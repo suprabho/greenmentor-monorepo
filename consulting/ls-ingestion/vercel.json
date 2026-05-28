@@ -1,0 +1,12 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "rewrites": [
+    { "source": "/efdb/:path*", "destination": "https://efdb-api.fly.dev/:path*" },
+    { "source": "/anthropic/:path*", "destination": "/api/anthropic/:path*" }
+  ],
+  "functions": {
+    "api/anthropic/[...path].js": {
+      "maxDuration": 60
+    }
+  }
+}
