@@ -287,17 +287,28 @@ function calcEmission(billType, extracted, factor) {
 // ─────────────────────────────────────────────────────────────────────────────
 // DESIGN SYSTEM
 // ─────────────────────────────────────────────────────────────────────────────
+// Greenmentor brand — dark world (teal-900 surface + neon green accent).
+// Mirrors the design tokens in academy/green-mentor-plus/app/globals.css.
 const T = {
-  bg:"#0B0F0B", surface:"#111511", card:"#181D18", border:"#232923", line:"#1E241E",
-  accent:"#4ADE80", accentDim:"#16A34A", accentGlow:"rgba(74,222,128,0.1)",
-  text:"#E8EDE8", muted:"#7A8A7A", dim:"#485048",
-  danger:"#F87171", dangerBg:"rgba(248,113,113,0.08)", dangerLine:"rgba(248,113,113,0.25)",
-  warn:"#FBBF24",   warnBg:"rgba(251,191,36,0.08)",    warnLine:"rgba(251,191,36,0.25)",
-  info:"#60A5FA",   infoBg:"rgba(96,165,250,0.08)",     infoLine:"rgba(96,165,250,0.25)",
-  successBg:"rgba(74,222,128,0.08)", successLine:"rgba(74,222,128,0.2)",
-  mono:"'DM Mono','Fira Mono',monospace",
-  head:"'Syne','Space Grotesk',sans-serif",
-  body:"'Instrument Sans','DM Sans',sans-serif",
+  bg:"#014A50",        // teal-900 — deep brand background
+  surface:"#0E3F44",   // shaded teal-900 — sidebar/topbar surface
+  card:"#164E4F",      // teal-800 — card surface
+  border:"#21776A",    // teal-600 — card strokes
+  line:"#1E5A5C",      // softer divider on dark teal
+  accent:"#07D862",    // green-500 — neon accent
+  accentDim:"#009C62", // green-700 — primary green
+  accentGlow:"rgba(7,216,98,0.12)",
+  text:"#ECFCEA",      // green-50 — body on dark
+  muted:"#A8C7BC",     // pale teal-tinted muted text
+  dim:"#5F8580",       // dim teal-grey
+  danger:"#F87171",    dangerBg:"rgba(248,113,113,0.08)", dangerLine:"rgba(248,113,113,0.25)",
+  warn:"#FFB020",      warnBg:"rgba(255,176,32,0.10)",    warnLine:"rgba(255,176,32,0.28)",
+  info:"#60A5FA",      infoBg:"rgba(96,165,250,0.08)",    infoLine:"rgba(96,165,250,0.25)",
+  successBg:"rgba(7,216,98,0.10)", successLine:"rgba(7,216,98,0.25)",
+  mono:"ui-monospace, 'SF Mono', Menlo, monospace",
+  head:"'Inter', system-ui, -apple-system, sans-serif",
+  body:"'Inter', system-ui, -apple-system, sans-serif",
+  accentFont:"'ABeeZee', 'Inter', system-ui, sans-serif",
 };
 
 const pill = (bg,c,extra={}) => ({ display:"inline-flex",alignItems:"center",gap:5,padding:"3px 10px",borderRadius:20,background:bg,color:c,fontSize:11,fontWeight:600,whiteSpace:"nowrap",...extra });
@@ -1080,7 +1091,9 @@ export default function App() {
 
   return (
     <div style={SS.app}>
-      <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet"/>
+      <link rel="preconnect" href="https://fonts.googleapis.com"/>
+      <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous"/>
+      <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=ABeeZee&display=swap" rel="stylesheet"/>
       <style>{`* { box-sizing: border-box; } @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}`}</style>
 
       <Sidebar page={page} setPage={setPage} reviewCount={reviewCount} efdbSrc={efdbSrc} extracting={globalExtracting}/>

@@ -2,50 +2,59 @@
 @tailwind components;
 @tailwind utilities;
 
+/* =================================================================
+   Greenmentor design tokens — mirrored from the academy/green-mentor-plus
+   pitch deck design system. Two color worlds:
+   • Light: white surface, green-700 primary, ink text
+   • Dark:  teal-900 surface, green-500 neon accent, green-100 text
+   ================================================================= */
+
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 155 60% 28%;
-    --primary-foreground: 0 0% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 155 60% 28%;
-    --radius: 0.5rem;
+    /* Light world — product surface */
+    --background:          0 0% 100%;
+    --foreground:          0 0% 4%;        /* ink #0A0A0A */
+    --card:                0 0% 100%;
+    --card-foreground:     0 0% 4%;
+    --popover:             0 0% 100%;
+    --popover-foreground:  0 0% 4%;
+    --primary:             158 100% 31%;   /* green-700 #009C62 */
+    --primary-foreground:  0 0% 100%;
+    --secondary:           90 51% 90%;     /* green-100 #DAF4D7 */
+    --secondary-foreground: 185 98% 16%;   /* teal-900 #014A50 */
+    --muted:               0 0% 96%;       /* gray-50 #ECECEC */
+    --muted-foreground:    0 0% 36%;       /* gray-700 #5D5D5D */
+    --accent:              146 94% 44%;    /* green-500 #07D862 */
+    --accent-foreground:   185 98% 16%;
+    --destructive:         355 72% 47%;    /* #CF222E */
+    --destructive-foreground: 0 0% 100%;
+    --border:              214 32% 91%;    /* gray-200 #E2E8F0 */
+    --input:               214 32% 91%;
+    --ring:                158 100% 31%;
+    --radius:              0.5rem;
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 155 60% 45%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 155 60% 45%;
+    /* Dark world — teal credibility surface */
+    --background:          185 98% 16%;    /* teal-900 #014A50 */
+    --foreground:          90 51% 90%;     /* green-100 #DAF4D7 */
+    --card:                181 56% 20%;    /* teal-800 #164E4F */
+    --card-foreground:     90 51% 90%;
+    --popover:             181 56% 20%;
+    --popover-foreground:  90 51% 90%;
+    --primary:             146 94% 44%;    /* green-500 neon */
+    --primary-foreground:  185 98% 16%;
+    --secondary:           172 61% 30%;    /* teal-700 #1E7B69 */
+    --secondary-foreground: 90 51% 90%;
+    --muted:               181 56% 20%;
+    --muted-foreground:    90 30% 70%;
+    --accent:              146 94% 44%;
+    --accent-foreground:   185 98% 16%;
+    --destructive:         355 72% 55%;
+    --destructive-foreground: 0 0% 100%;
+    --border:              172 61% 30%;
+    --input:               172 61% 30%;
+    --ring:                146 94% 44%;
   }
 }
 
@@ -53,9 +62,46 @@
   * {
     @apply border-border;
   }
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-sans;
     font-feature-settings: "rlig" 1, "calt" 1;
+  }
+  ::selection {
+    background-color: #07D862;
+    color: #014A50;
+  }
+}
+
+@layer utilities {
+  /* Brand-aligned display titling (Inter Medium, tight tracking) */
+  .font-display {
+    font-family: 'Inter', system-ui, sans-serif;
+    font-weight: 500;
+    letter-spacing: -0.02em;
+  }
+  .font-numeral {
+    font-family: 'Inter', system-ui, sans-serif;
+    font-weight: 400;
+    letter-spacing: -0.04em;
+  }
+  .gm-eyebrow {
+    font-family: 'Inter', system-ui, sans-serif;
+    font-weight: 400;
+    font-size: 14px;
+    line-height: 1;
+    letter-spacing: 0.11em;
+    text-transform: uppercase;
+  }
+  .gm-section-label {
+    font-family: 'Inter', system-ui, sans-serif;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: #009C62;
   }
 }
 
@@ -73,13 +119,13 @@
   @apply bg-primary/5 border-l-2 border-l-primary;
 }
 
-/* Confidence score colours */
-.conf-high   { @apply text-emerald-700 font-semibold; }
+/* Confidence score colours — brand greens replace emerald */
+.conf-high   { color: #009C62; @apply font-semibold; }
 .conf-medium { @apply text-amber-600 font-semibold; }
 .conf-low    { @apply text-red-600 font-semibold; }
 
 /* Extraction confidence badges */
-.badge-high   { @apply bg-emerald-100 text-emerald-800 text-xs px-1.5 py-0.5 rounded; }
+.badge-high   { background:#ECFCEA; color:#014A50; @apply text-xs px-1.5 py-0.5 rounded; }
 .badge-medium { @apply bg-amber-100 text-amber-800 text-xs px-1.5 py-0.5 rounded; }
 .badge-low    { @apply bg-red-100 text-red-800 text-xs px-1.5 py-0.5 rounded; }
 .badge-outlier { @apply bg-orange-100 text-orange-800 text-xs px-1.5 py-0.5 rounded; }

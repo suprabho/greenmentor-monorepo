@@ -38,11 +38,50 @@ export default {
           DEFAULT: 'hsl(var(--card))',
           foreground: 'hsl(var(--card-foreground))',
         },
+        // Greenmentor brand — sourced from green-mentor-plus design tokens
+        teal: {
+          900: '#014A50',
+          800: '#164E4F',
+          700: '#1E7B69',
+          600: '#21776A',
+        },
+        brand: {
+          green: {
+            700: '#009C62',
+            500: '#07D862',
+            100: '#DAF4D7',
+            50:  '#ECFCEA',
+          },
+        },
+        ink: {
+          DEFAULT: '#0A0A0A',
+          soft:    '#1E1E1E',
+        },
+      },
+      fontFamily: {
+        sans:    ['Inter', 'system-ui', '-apple-system', 'Segoe UI', 'Helvetica', 'Arial', 'sans-serif'],
+        accent:  ['ABeeZee', 'Inter', 'system-ui', 'sans-serif'],
+        display: ['Inter', 'system-ui', 'sans-serif'],
+        numeral: ['Inter', 'system-ui', 'sans-serif'],
       },
       borderRadius: {
         lg: 'var(--radius)',
         md: 'calc(var(--radius) - 2px)',
         sm: 'calc(var(--radius) - 4px)',
+        xs: '6px',
+        xl: '24px',
+        '2xl': '48px',
+        pill: '999px',
+      },
+      boxShadow: {
+        tile:
+          '4px 4px 12px rgba(0,0,0,0.11), 17px 14px 22px rgba(0,0,0,0.10), 39px 32px 30px rgba(0,0,0,0.06), 69px 57px 36px rgba(0,0,0,0.02), 108px 89px 39px rgba(0,0,0,0.00)',
+        soft: '0 1px 2px rgba(0,0,0,0.04), 0 8px 24px rgba(0,0,0,0.06)',
+        lift: '0 8px 24px rgba(0,0,0,0.08), 0 24px 60px rgba(0,0,0,0.10)',
+      },
+      backgroundImage: {
+        'stat-band':    'linear-gradient(180deg, #164E4F 0%, #07D862 100%)',
+        'section-fade': 'linear-gradient(180deg, #DAF4D7 0%, #FFFFFF 100%)',
       },
       keyframes: {
         'accordion-down': {
