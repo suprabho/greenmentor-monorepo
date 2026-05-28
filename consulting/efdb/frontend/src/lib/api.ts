@@ -43,6 +43,17 @@ export const efApi = {
     return request<EFListResponse>(`/emission-factors?${params}`)
   },
 
+  // Unauthenticated listing — backend only accepts a subset of filters.
+  listPublic: (filters: EFFilters = {}) => {
+    const ALLOWED = ['q', 'country', 'scope', 'sort_by', 'sort_dir', 'page', 'page_size'] as const
+    const params = new URLSearchParams()
+    for (const k of ALLOWED) {
+      const v = filters[k]
+      if (v !== undefined && v !== null && v !== '') params.set(k, String(v))
+    }
+    return request<EFListResponse>(`/emission-factors/public?${params}`)
+  },
+
   semanticSearch: (q: string, year?: number, country?: string, minConf?: number) => {
     const params = new URLSearchParams({ q })
     if (year) params.set('year', String(year))

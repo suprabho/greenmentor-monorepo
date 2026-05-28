@@ -14,7 +14,7 @@ export default function App() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
-      <Route path="/" element={<ProtectedRoute><MainPage /></ProtectedRoute>} />
+      <Route path="/" element={<MainPage />} />
       <Route path="/ingest" element={<ProtectedRoute><IngestionPage /></ProtectedRoute>} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

@@ -4,7 +4,8 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, and_, or_, func, text
+from sqlalchemy import select, and_, or_, func, text, cast
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import selectinload
 from app.database import get_db
 from app.models.emission_factor import EmissionFactor, EmissionFactorVersion
@@ -64,8 +65,11 @@ def _build_filter_query(
     if region:
         conditions.append(EmissionFactor.geography_region == region.upper())
     if scope:
+        # applicable_scopes is JSON (not JSONB), so .contains() emits LIKE which
+        # Postgres rejects on json values. Cast to jsonb so the `@>` containment
+        # operator is used instead.
         conditions.append(
-            EmissionFactor.applicable_scopes.contains([scope])
+            cast(EmissionFactor.applicable_scopes, JSONB).contains([scope])
         )
     if source_type:
         conditions.append(EmissionFactor.source_type == source_type)
@@ -163,6 +167,43 @@ async def semantic_search(
     )
     items = result.scalars().all()
     return EmissionFactorListResponse(items=items, total=len(items), page=1, page_size=limit)
+
+
+@router.get("/public", response_model=EmissionFactorListResponse)
+async def list_emission_factors_public(
+    q: Optional[str] = Query(None, description="Keyword search on canonical activity name"),
+    country: Optional[str] = Query(None, max_length=2),
+    scope: Optional[str] = Query(None),
+    sort_by: str = Query("confidence_score", enum=["confidence_score", "canonical_activity_name", "created_at", "validity_start"]),
+    sort_dir: str = Query("desc", enum=["asc", "desc"]),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(50, ge=1, le=200),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Unauthenticated read-only listing of emission factors.
+
+    Exposes a tighter query surface than the authenticated endpoint so the
+    public attack/scrape surface stays small. Intended for downstream tools
+    (e.g. the ls-ingestion bill extractor) that only need to look up factors
+    by activity + country + scope.
+    """
+    conditions = _build_filter_query(q, None, country, None, scope, None, None, False, None, None)
+    count_q = select(func.count()).select_from(EmissionFactor).where(conditions)
+    total = (await db.execute(count_q)).scalar()
+
+    sort_col = getattr(EmissionFactor, sort_by, EmissionFactor.confidence_score)
+    order = sort_col.desc() if sort_dir == "desc" else sort_col.asc()
+
+    result = await db.execute(
+        select(EmissionFactor)
+        .where(conditions)
+        .order_by(order)
+        .offset((page - 1) * page_size)
+        .limit(page_size)
+    )
+    items = result.scalars().all()
+    return EmissionFactorListResponse(items=items, total=total, page=page, page_size=page_size)
 
 
 @router.get("/{ef_id}", response_model=EmissionFactorOut)

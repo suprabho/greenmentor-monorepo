@@ -72,7 +72,14 @@ class EmissionFactor(Base):
 
     # ── Source ────────────────────────────────────────────────────────────
     source_name: Mapped[str | None] = mapped_column(Text, nullable=True)
-    source_type: Mapped[SourceType | None] = mapped_column(SAEnum(SourceType), nullable=True)
+    # The Postgres `sourcetype` enum was created with the human-readable
+    # VALUES (e.g. "Government / Regulatory body") — see migrations/versions/0001_initial.py.
+    # values_callable tells SAEnum to bind and look up by .value instead of
+    # the Python member .name (which is the SQLAlchemy default).
+    source_type: Mapped[SourceType | None] = mapped_column(
+        SAEnum(SourceType, values_callable=lambda e: [m.value for m in e]),
+        nullable=True,
+    )
     source_url: Mapped[str | None] = mapped_column(Text, nullable=True)
     source_document_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("source_documents.id"), nullable=True)
     extraction_session_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("extraction_sessions.id"), nullable=True)
@@ -92,7 +99,10 @@ class EmissionFactor(Base):
     # e.g. {"source_type": 35, "audited": 10, "geography": 20, "recency": 18, "total": 83}
 
     # ── GWP ───────────────────────────────────────────────────────────────
-    gwp_version: Mapped[GWPVersion | None] = mapped_column(SAEnum(GWPVersion), nullable=True, default=GWPVersion.not_stated)
+    gwp_version: Mapped[GWPVersion | None] = mapped_column(
+        SAEnum(GWPVersion, values_callable=lambda e: [m.value for m in e]),
+        nullable=True, default=GWPVersion.not_stated,
+    )
 
     # ── Supplier (optional, EPD-sourced only) ─────────────────────────────
     supplier_name: Mapped[str | None] = mapped_column(Text, nullable=True)
