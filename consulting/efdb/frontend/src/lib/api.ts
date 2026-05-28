@@ -45,7 +45,7 @@ export const efApi = {
 
   // Unauthenticated listing — backend only accepts a subset of filters.
   listPublic: (filters: EFFilters = {}) => {
-    const ALLOWED = ['q', 'country', 'scope', 'sort_by', 'sort_dir', 'page', 'page_size'] as const
+    const ALLOWED = ['q', 'country', 'scope', 'species', 'sort_by', 'sort_dir', 'page', 'page_size'] as const
     const params = new URLSearchParams()
     for (const k of ALLOWED) {
       const v = filters[k]
@@ -54,11 +54,11 @@ export const efApi = {
     return request<EFListResponse>(`/emission-factors/public?${params}`)
   },
 
-  semanticSearch: (q: string, year?: number, country?: string, minConf?: number) => {
+  semanticSearch: (q: string, year?: number, country?: string, maxDqScore?: number) => {
     const params = new URLSearchParams({ q })
     if (year) params.set('year', String(year))
     if (country) params.set('country', country)
-    if (minConf) params.set('min_confidence', String(minConf))
+    if (maxDqScore) params.set('max_dq_score', String(maxDqScore))
     return request<EFListResponse>(`/emission-factors/search/semantic?${params}`)
   },
 
@@ -76,9 +76,9 @@ export const efApi = {
       body: JSON.stringify({ reason }),
     }),
 
-  getVersions: (id: string) => request(`/emission-factors/${id}/versions`),
-  getConflicts: (id: string) => request(`/emission-factors/${id}/conflicts`),
-  getAuditLog: (id: string) => request(`/emission-factors/${id}/audit-log`),
+  getVersions: (id: string) => request<unknown[]>(`/emission-factors/${id}/versions`),
+  getConflicts: (id: string) => request<unknown[]>(`/emission-factors/${id}/conflicts`),
+  getAuditLog: (id: string) => request<unknown[]>(`/emission-factors/${id}/audit-log`),
   resolveConflict: (id: string, resolutionNote?: string) =>
     request<EmissionFactor>(`/emission-factors/${id}/resolve-conflict`, {
       method: 'POST',

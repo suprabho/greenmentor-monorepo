@@ -2,22 +2,11 @@ import { useState } from 'react'
 import { Search, X, SlidersHorizontal } from 'lucide-react'
 import type { EFFilters } from '@/types/emission-factor'
 
-const SCOPES = [
-  'Scope 1', 'Scope 2',
-  ...Array.from({ length: 15 }, (_, i) => `Scope 3 — Category ${i + 1}`),
-]
-
-const SOURCE_TYPES = [
-  'Government / Regulatory body',
-  'Intergovernmental body',
-  'GHG Protocol / Industry standard',
-  'Commercial LCA database export',
-  'Peer-reviewed publication',
-  'Industry association',
-  'Supplier-provided / EPD',
-  'Internal estimate',
-  'Other',
-]
+const SCOPES = ['1', '2', '3']
+const SPECIES = ['CO2e', 'CO2', 'CH4', 'N2O', 'SF6', 'NF3', 'HFC', 'PFC']
+const CATEGORIES = ['energy', 'transport', 'material', 'waste', 'agriculture', 'industrial-process', 'land-use', 'fugitive', 'other']
+const GWP = ['AR4', 'AR5', 'AR6', 'GWP20', 'GWP100']
+const DQ_LABELS = ['1 (best)', '2', '3', '4', '5 (worst)']
 
 interface FilterBarProps {
   filters: EFFilters
@@ -27,19 +16,22 @@ interface FilterBarProps {
 export default function FilterBar({ filters, onChange }: FilterBarProps) {
   const [showMore, setShowMore] = useState(false)
 
-  const set = (key: keyof EFFilters, value: unknown) => {
+  const set = <K extends keyof EFFilters>(key: K, value: EFFilters[K] | undefined) => {
     onChange({ ...filters, [key]: value || undefined, page: 1 })
   }
 
   const clearAll = () => onChange({ page: 1, page_size: filters.page_size })
 
-  const activeCount = [filters.q, filters.year, filters.country, filters.scope, filters.source_type, filters.min_confidence, filters.conflicts_only, filters.gwp_version, filters.tags]
-    .filter(Boolean).length
+  const activeCount = [
+    filters.q, filters.year, filters.country, filters.scope, filters.species,
+    filters.category, filters.source_organization, filters.max_dq_score,
+    filters.conflicts_only, filters.gwp_basis, filters.framework_tags, filters.sector_tags,
+    filters.include_superseded,
+  ].filter(Boolean).length
 
   return (
     <div className="border-b border-border bg-card px-4 py-2.5 space-y-2">
       <div className="flex items-center gap-2 flex-wrap">
-        {/* Semantic search */}
         <div className="relative min-w-[220px] max-w-xs flex-1">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
           <input
@@ -50,7 +42,6 @@ export default function FilterBar({ filters, onChange }: FilterBarProps) {
           />
         </div>
 
-        {/* Year */}
         <input
           type="number"
           min={1990}
@@ -61,28 +52,32 @@ export default function FilterBar({ filters, onChange }: FilterBarProps) {
           onChange={e => set('year', e.target.value ? Number(e.target.value) : undefined)}
         />
 
-        {/* Country */}
         <input
           className="w-20 h-8 px-2 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring uppercase"
-          placeholder="Country"
-          maxLength={2}
+          placeholder="ISO3"
+          maxLength={3}
           value={filters.country ?? ''}
           onChange={e => set('country', e.target.value.toUpperCase())}
         />
 
-        {/* Scope */}
         <select
           className="h-8 px-2 pr-6 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
           value={filters.scope ?? ''}
           onChange={e => set('scope', e.target.value)}
         >
           <option value="">All Scopes</option>
-          {SCOPES.map(s => (
-            <option key={s} value={s}>{s.replace('Scope 3 — Category ', 'S3-C')}</option>
-          ))}
+          {SCOPES.map(s => <option key={s} value={s}>Scope {s}</option>)}
         </select>
 
-        {/* More filters toggle */}
+        <select
+          className="h-8 px-2 pr-6 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+          value={filters.species ?? ''}
+          onChange={e => set('species', e.target.value)}
+        >
+          <option value="">All species</option>
+          {SPECIES.map(s => <option key={s} value={s}>{s}</option>)}
+        </select>
+
         <button
           onClick={() => setShowMore(v => !v)}
           className={`flex items-center gap-1.5 h-8 px-2.5 rounded-md border text-xs font-medium transition-colors ${showMore ? 'bg-primary/10 border-primary/30 text-primary' : 'border-input hover:bg-muted/50'}`}
@@ -91,7 +86,6 @@ export default function FilterBar({ filters, onChange }: FilterBarProps) {
           More {showMore ? '▲' : '▼'}
         </button>
 
-        {/* Conflict toggle */}
         <label className="flex items-center gap-1.5 text-xs cursor-pointer select-none">
           <input
             type="checkbox"
@@ -102,7 +96,6 @@ export default function FilterBar({ filters, onChange }: FilterBarProps) {
           Conflicts only
         </label>
 
-        {/* Clear */}
         {activeCount > 0 && (
           <button
             onClick={clearAll}
@@ -116,49 +109,65 @@ export default function FilterBar({ filters, onChange }: FilterBarProps) {
 
       {showMore && (
         <div className="flex items-center gap-2 flex-wrap pt-1">
-          {/* Source type */}
           <select
             className="h-8 px-2 pr-6 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-            value={filters.source_type ?? ''}
-            onChange={e => set('source_type', e.target.value)}
+            value={filters.category ?? ''}
+            onChange={e => set('category', e.target.value)}
           >
-            <option value="">All Sources</option>
-            {SOURCE_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+            <option value="">All categories</option>
+            {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
           </select>
 
-          {/* Confidence floor */}
+          <input
+            className="w-44 h-8 px-2 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+            placeholder="Source org (substring)"
+            value={filters.source_organization ?? ''}
+            onChange={e => set('source_organization', e.target.value)}
+          />
+
           <div className="flex items-center gap-1.5 text-xs">
-            <span className="text-muted-foreground">Conf ≥</span>
-            <input
-              type="number"
-              min={0}
-              max={100}
-              className="w-14 h-8 px-2 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-              value={filters.min_confidence ?? ''}
-              onChange={e => set('min_confidence', e.target.value ? Number(e.target.value) : undefined)}
-            />
-            <span className="text-muted-foreground">%</span>
+            <span className="text-muted-foreground">DQ ≤</span>
+            <select
+              className="h-8 px-2 pr-6 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              value={filters.max_dq_score ?? ''}
+              onChange={e => set('max_dq_score', e.target.value ? Number(e.target.value) : undefined)}
+            >
+              <option value="">any</option>
+              {DQ_LABELS.map((label, i) => <option key={i + 1} value={i + 1}>{label}</option>)}
+            </select>
           </div>
 
-          {/* GWP version */}
           <select
             className="h-8 px-2 pr-6 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-            value={filters.gwp_version ?? ''}
-            onChange={e => set('gwp_version', e.target.value)}
+            value={filters.gwp_basis ?? ''}
+            onChange={e => set('gwp_basis', e.target.value)}
           >
             <option value="">All GWP</option>
-            {['AR4', 'AR5', 'AR6', 'GWP20', 'GWP100', 'Not stated'].map(g => (
-              <option key={g} value={g}>{g}</option>
-            ))}
+            {GWP.map(g => <option key={g} value={g}>{g}</option>)}
           </select>
 
-          {/* Tags */}
           <input
             className="w-32 h-8 px-2 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-            placeholder="Tags (comma-sep)"
-            value={filters.tags ?? ''}
-            onChange={e => set('tags', e.target.value)}
+            placeholder="Framework tags"
+            value={filters.framework_tags ?? ''}
+            onChange={e => set('framework_tags', e.target.value)}
           />
+          <input
+            className="w-32 h-8 px-2 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+            placeholder="Sector tags"
+            value={filters.sector_tags ?? ''}
+            onChange={e => set('sector_tags', e.target.value)}
+          />
+
+          <label className="flex items-center gap-1.5 text-xs cursor-pointer select-none">
+            <input
+              type="checkbox"
+              className="accent-primary"
+              checked={!!filters.include_superseded}
+              onChange={e => set('include_superseded', e.target.checked || undefined)}
+            />
+            Include superseded
+          </label>
         </div>
       )}
     </div>

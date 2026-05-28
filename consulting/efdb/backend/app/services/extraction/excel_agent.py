@@ -395,64 +395,51 @@ async def scan_excel(file_path: str, document_id: str, session_id: str) -> ScanR
 
 # ── Extract ───────────────────────────────────────────────────────────────────
 
-EXCEL_EXTRACT_SYSTEM = """You are a GHG emission factor extraction specialist working with spreadsheet data.
+EXCEL_EXTRACT_SYSTEM = """You are a GHG emission factor extraction specialist working with spreadsheet data, producing records in our flat source schema (one row per (activity, ghg_species) pair).
 
 You receive JSON rows from a cleaned spreadsheet. Each row is a dict of {column_name: cell_value}.
-Your task: produce ONE output record per input row.
+For each input row, emit one record PER non-null GHG species present in that row. If the row contains only a combined CO2e factor, emit ONE record with ghg_species='CO2e'. If the row has separate CO2, CH4, N2O columns, emit THREE records (each with its own ghg_species and ef_value).
 
 COLUMN → SCHEMA FIELD MAPPING RULES:
-Map spreadsheet column names to schema fields using these patterns:
-  ef_total_co2e  ← columns whose name contains "CO2e" or "CO2eq" or "GHG" (the total combined factor)
-  ef_co2         ← columns whose name contains "CO2" AND also contains "CO2" component specifically (not the total)
-  ef_ch4         ← columns whose name contains "CH4" or "methane"
-  ef_n2o         ← columns whose name contains "N2O" or "nitrous"
-  ef_pfc         ← columns whose name contains "PFC" or "HFC"
-  ef_sf6         ← columns whose name contains "SF6"
-  source_activity_name ← columns named "Activity", "Fuel", "Fuel type", "Item", "Description", "Source"
-  unit           ← columns named "Unit", "Units"
+  ef_value with ghg_species='CO2e'  ← columns whose name contains "CO2e" or "CO2eq" or "GHG total"
+  ef_value with ghg_species='CO2'   ← columns whose name contains "CO2" but NOT CO2e/CO2eq
+  ef_value with ghg_species='CH4'   ← columns containing "CH4" or "methane"
+  ef_value with ghg_species='N2O'   ← columns containing "N2O" or "nitrous"
+  ef_value with ghg_species='SF6'   ← columns containing "SF6"
+  ef_value with ghg_species='NF3'   ← columns containing "NF3"
+  expressed_as_co2e=true ONLY when ghg_species='CO2e'
+  activity_name        ← columns named "Activity", "Fuel", "Fuel type", "Item", "Description", "Source"
+  numerator_unit       ← e.g. "kg CO2e"  (split from "kg CO2e / kWh")
+  denominator_unit     ← e.g. "kWh"      (split from "kg CO2e / kWh")
 
-IMPORTANT: When a column called "kg CO2e" exists and has a number, that number IS the ef_total_co2e value.
-When "kg CO2e of CO2 per unit" exists, that IS the ef_co2 value. And so on.
-NEVER return null for a numeric field when the input row contains a non-empty number for it.
+APPLY DOCUMENT CONTEXT to every record from the CONFIRMED METADATA block: source_organization, country_iso, gwp_basis, ghg_scope, reference_year, valid_from, valid_to, system_boundary, data_origin.
 
-APPLY DOCUMENT CONTEXT to every record: geography_country, gwp_version, applicable_scopes, source_name, source_type, validity_start, validity_end from the CONFIRMED METADATA block.
-
-OUTPUT FORMAT — return a JSON array. Each element is one record with this EXACT structure:
+OUTPUT FORMAT — return a JSON array. Each element is one record:
 [
   {
-    "source_activity_name":   {"value": "Butane", "source_snippet": "Butane", "extraction_confidence": "high"},
-    "canonical_activity_name":{"value": "Butane combustion", "source_snippet": "Butane", "extraction_confidence": "high"},
-    "activity_category":      {"value": "Fuel combustion > Gaseous fuels > Butane", "source_snippet": null, "extraction_confidence": "high"},
-    "unit":                   {"value": "tonnes", "source_snippet": "tonnes", "extraction_confidence": "high"},
-    "ef_total_co2e":          {"value": 3033.38, "source_snippet": "3033.3806711409397", "extraction_confidence": "high"},
-    "ef_co2":                 {"value": 3029.26, "source_snippet": "3029.26", "extraction_confidence": "high"},
-    "ef_ch4":                 {"value": 2.52, "source_snippet": "2.52", "extraction_confidence": "high"},
-    "ef_n2o":                 {"value": 1.60, "source_snippet": "1.6006711409395973", "extraction_confidence": "high"},
-    "ef_pfc":                 {"value": null, "source_snippet": null, "extraction_confidence": "high"},
-    "ef_sf6":                 {"value": null, "source_snippet": null, "extraction_confidence": "high"},
-    "ef_nf3":                 {"value": null, "source_snippet": null, "extraction_confidence": "high"},
-    "applicable_scopes":      {"value": ["Scope 1"], "source_snippet": null, "extraction_confidence": "high"},
-    "lca_stages":             {"value": null, "source_snippet": null, "extraction_confidence": "high"},
-    "source_name":            {"value": "UK Government GHG Conversion Factors 2023", "source_snippet": null, "extraction_confidence": "high"},
-    "source_type":            {"value": "Government / Regulatory body", "source_snippet": null, "extraction_confidence": "high"},
-    "source_url":             {"value": null, "source_snippet": null, "extraction_confidence": "high"},
-    "validity_start":         {"value": 2023, "source_snippet": null, "extraction_confidence": "high"},
-    "validity_end":           {"value": null, "source_snippet": null, "extraction_confidence": "high"},
-    "geography_global":       {"value": false, "source_snippet": null, "extraction_confidence": "high"},
-    "geography_country":      {"value": "GB", "source_snippet": null, "extraction_confidence": "high"},
-    "geography_region":       {"value": null, "source_snippet": null, "extraction_confidence": "high"},
-    "gwp_version":            {"value": "AR5", "source_snippet": null, "extraction_confidence": "high"},
-    "supplier_name":          {"value": null, "source_snippet": null, "extraction_confidence": "high"},
-    "supplier_country":       {"value": null, "source_snippet": null, "extraction_confidence": "high"},
-    "supplier_sector":        {"value": null, "source_snippet": null, "extraction_confidence": "high"},
-    "supplier_epd_reference": {"value": null, "source_snippet": null, "extraction_confidence": "high"},
-    "comments_applicability": {"value": null, "source_snippet": null, "extraction_confidence": "high"},
-    "comments_limitations":   {"value": null, "source_snippet": null, "extraction_confidence": "high"},
-    "custom_tags":            {"value": null, "source_snippet": null, "extraction_confidence": "high"},
-    "additional_notes":       {"value": null, "source_snippet": null, "extraction_confidence": "high"},
-    "has_outlier_values": false,
-    "has_unit_mismatch": false,
-    "outlier_notes": []
+    "activity_name":        {"value": "Butane", "source_snippet": "Butane", "extraction_confidence": "high"},
+    "emission_category":    {"value": "energy", "source_snippet": null, "extraction_confidence": "high"},
+    "sub_category":         {"value": "stationary combustion — gaseous fuels", "source_snippet": null, "extraction_confidence": "high"},
+    "ghg_scope":            {"value": "1", "source_snippet": null, "extraction_confidence": "high"},
+    "ef_value":             {"value": 3033.38, "source_snippet": "3033.3806711409397", "extraction_confidence": "high"},
+    "ghg_species":          {"value": "CO2e", "source_snippet": "kg CO2e", "extraction_confidence": "high"},
+    "expressed_as_co2e":    {"value": true, "source_snippet": null, "extraction_confidence": "high"},
+    "gwp_basis":            {"value": "AR5", "source_snippet": null, "extraction_confidence": "high"},
+    "ef_type":              {"value": "activity-based", "source_snippet": null, "extraction_confidence": "high"},
+    "numerator_unit":       {"value": "kg CO2e", "source_snippet": null, "extraction_confidence": "high"},
+    "denominator_unit":     {"value": "tonne", "source_snippet": "tonnes", "extraction_confidence": "high"},
+    "geography_type":       {"value": "national", "source_snippet": null, "extraction_confidence": "high"},
+    "country_iso":          {"value": "GBR", "source_snippet": null, "extraction_confidence": "high"},
+    "reference_year":       {"value": 2023, "source_snippet": null, "extraction_confidence": "high"},
+    "valid_from":           {"value": "2023-01-01", "source_snippet": null, "extraction_confidence": "high"},
+    "valid_to":             {"value": "2023-12-31", "source_snippet": null, "extraction_confidence": "high"},
+    "source_organization":  {"value": "BEIS / DESNZ", "source_snippet": null, "extraction_confidence": "high"},
+    "data_origin":          {"value": "secondary", "source_snippet": null, "extraction_confidence": "high"},
+    "calculation_method":   {"value": "fuel-based", "source_snippet": null, "extraction_confidence": "high"},
+    "system_boundary":      {"value": "gate-to-gate", "source_snippet": null, "extraction_confidence": "high"},
+    "has_outlier_values":   false,
+    "has_unit_mismatch":    false,
+    "outlier_notes":        []
   }
 ]
 
@@ -484,25 +471,9 @@ async def extract_from_excel(file_path: str, section_indices: list[int], confirm
         data_df, context_text = _preprocess_sheet(raw_df)
         rows_json = _df_to_records(data_df)
 
-        # Build context block: confirmed metadata takes priority over auto-detected context
-        meta_lines = []
-        if confirmed_metadata:
-            m = confirmed_metadata
-            if m.source_name:         meta_lines.append(f"Source name: {m.source_name}")
-            if m.source_type:         meta_lines.append(f"Source type: {m.source_type}")
-            if m.geography_country:   meta_lines.append(f"Geography: {m.geography_description or ''} ({m.geography_country})")
-            if m.gwp_version:         meta_lines.append(f"GWP version: {m.gwp_version}")
-            if m.applicable_scopes:   meta_lines.append(f"Applicable scopes: {', '.join(m.applicable_scopes)}")
-            if m.lca_stages:          meta_lines.append(f"LCA stages: {', '.join(m.lca_stages)}")
-            # Validity period (prefer explicit start/end years over single publication year)
-            if m.validity_start or m.validity_end:
-                start_str = str(m.validity_start) if m.validity_start else "unknown"
-                end_str = str(m.validity_end) if m.validity_end else "present"
-                meta_lines.append(f"Validity period: {start_str}–{end_str} (use {start_str}-01-01 as validity_start and {end_str + '-12-31' if m.validity_end else 'null'} as validity_end)")
-            elif m.year:
-                meta_lines.append(f"Publication year: {m.year} (use {m.year}-01-01 as validity_start)")
-            if m.comments_applicability: meta_lines.append(f"Applicability (add to every record's comments_applicability): {m.comments_applicability}")
-            if m.guidance_notes:         meta_lines.append(f"Additional guidance: {m.guidance_notes}")
+        # Build context block (source-schema field names).
+        from app.services.extraction.pdf_agent import _confirmed_metadata_lines
+        meta_lines = _confirmed_metadata_lines(confirmed_metadata)
 
         confirmed_block = (
             "CONFIRMED DOCUMENT METADATA (apply ALL of these to every record):\n"

@@ -1,102 +1,53 @@
 """
-Rule-based confidence score calculation.
-All logic is deterministic — given the same EF record and the same weight config,
-you always get the same score. This makes scores auditable and explainable.
+Source-schema replacement for the legacy 4-criterion confidence score.
+
+Source records carry a Pedigree-matrix DQ overall score (1=best, 5=worst) in
+`dq_score_overall`, plus per-axis scores `dq_geographic_rep`, `dq_temporal_rep`,
+`dq_tech_rep`. We expose those as the "score" surface; calculate_confidence is
+kept as a thin compatibility shim that returns (score 0–100, breakdown dict)
+so the existing routers / audit log calls don't break.
 """
-from datetime import date
 from app.models.emission_factor import EmissionFactor
 
 
 def calculate_confidence(ef: EmissionFactor, weights: dict) -> tuple[int, dict]:
     """
-    Calculate the confidence score for an emission factor record.
-
-    Returns:
-        (score: int 0–100, breakdown: dict with per-criterion points)
+    Compatibility shim. Maps the source schema's 1–5 pedigree scores to a
+    0–100 confidence percentage so legacy callers keep working. Higher is
+    better in both directions (1 pedigree → 100 pts; 5 pedigree → 0 pts).
     """
-    breakdown = {}
-    total = 0
+    breakdown: dict[str, int] = {}
 
-    # ── 1. Source type ─────────────────────────────────────────────────────
-    st_config = weights.get("source_type", {})
-    st_values = st_config.get("values", {})
-    st_max = st_config.get("max_points", 35)
-    if ef.source_type:
-        source_type_str = ef.source_type if isinstance(ef.source_type, str) else ef.source_type.value
-        source_pts = st_values.get(source_type_str, 5)
+    def _ped_to_pct(v):
+        if v is None:
+            return None
+        # Clamp to 1..5 then invert: 1→100, 2→80, 3→60, 4→40, 5→20.
+        v = max(1, min(5, int(v)))
+        return (6 - v) * 20
+
+    if (overall := _ped_to_pct(ef.dq_score_overall)) is not None:
+        breakdown["overall"] = overall
+        total = overall
     else:
-        source_pts = 0
-    source_pts = min(source_pts, st_max)
-    breakdown["source_type"] = source_pts
-    total += source_pts
+        # Average of per-axis scores when no overall is set.
+        axes = [_ped_to_pct(getattr(ef, k)) for k in ("dq_geographic_rep", "dq_temporal_rep", "dq_tech_rep")]
+        axes = [v for v in axes if v is not None]
+        total = round(sum(axes) / len(axes)) if axes else 0
 
-    # ── 2. Audited / peer-reviewed ─────────────────────────────────────────
-    aud_config = weights.get("audited", {})
-    aud_max = aud_config.get("max_points", 20)
-    # Infer audit status from source type
-    audited_types = {"Government / Regulatory body", "Intergovernmental body", "Peer-reviewed publication"}
-    published_types = {"GHG Protocol / Industry standard", "Commercial LCA database export", "Industry association"}
-    source_type_str = (ef.source_type if isinstance(ef.source_type, str) else ef.source_type.value) if ef.source_type else ""
-    if source_type_str in audited_types:
-        aud_pts = aud_config.get("audited", 20)
-    elif source_type_str in published_types:
-        aud_pts = aud_config.get("published", 10)
-    else:
-        aud_pts = aud_config.get("none", 0)
-    aud_pts = min(aud_pts, aud_max)
-    breakdown["audited"] = aud_pts
-    total += aud_pts
-
-    # ── 3. Geography specificity ───────────────────────────────────────────
-    geo_config = weights.get("geography", {})
-    geo_max = geo_config.get("max_points", 25)
-    if ef.geography_region:
-        geo_pts = geo_config.get("country_region", 25)
-    elif ef.geography_country:
-        geo_pts = geo_config.get("country", 20)
-    elif ef.geography_global:
-        geo_pts = geo_config.get("global", 5)
-    else:
-        geo_pts = geo_config.get("global", 5)
-    geo_pts = min(geo_pts, geo_max)
-    breakdown["geography"] = geo_pts
-    total += geo_pts
-
-    # ── 4. Data recency ────────────────────────────────────────────────────
-    rec_config = weights.get("recency", {})
-    rec_max = rec_config.get("max_points", 20)
-    decay = rec_config.get("points_per_year_decay", 2)
-    today = date.today()
-    if ef.validity_end:
-        ref_date = ef.validity_end
-    elif ef.validity_start:
-        ref_date = ef.validity_start
-    else:
-        ref_date = None
-
-    if ref_date:
-        years_old = max(0, (today.year - ref_date.year))
-        rec_pts = max(0, rec_max - years_old * decay)
-    else:
-        rec_pts = 0
-    rec_pts = min(rec_pts, rec_max)
-    breakdown["recency"] = rec_pts
-    total += rec_pts
-
-    total = min(total, 100)
+    if (geo := _ped_to_pct(ef.dq_geographic_rep)) is not None:
+        breakdown["geographic_rep"] = geo
+    if (tmp := _ped_to_pct(ef.dq_temporal_rep)) is not None:
+        breakdown["temporal_rep"] = tmp
+    if (tech := _ped_to_pct(ef.dq_tech_rep)) is not None:
+        breakdown["tech_rep"] = tech
     breakdown["total"] = total
     return total, breakdown
 
 
 def score_summary(breakdown: dict) -> str:
-    """Human-readable explanation of a confidence score breakdown."""
     parts = []
-    if "source_type" in breakdown:
-        parts.append(f"Source type: {breakdown['source_type']} pts")
-    if "audited" in breakdown:
-        parts.append(f"Audited/published: {breakdown['audited']} pts")
-    if "geography" in breakdown:
-        parts.append(f"Geography specificity: {breakdown['geography']} pts")
-    if "recency" in breakdown:
-        parts.append(f"Data recency: {breakdown['recency']} pts")
+    for k, label in (("overall", "Overall"), ("geographic_rep", "Geo"),
+                     ("temporal_rep", "Temporal"), ("tech_rep", "Tech")):
+        if k in breakdown:
+            parts.append(f"{label}: {breakdown[k]}%")
     return " | ".join(parts) + f" → Total: {breakdown.get('total', '?')}%"

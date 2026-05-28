@@ -4,9 +4,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, and_, or_, func, text, cast
-from sqlalchemy.dialects.postgresql import JSONB
-from sqlalchemy.orm import selectinload
+from sqlalchemy import select, and_, or_, func, text
 from app.database import get_db
 from app.models.emission_factor import EmissionFactor, EmissionFactorVersion
 from app.models.audit_log import AuditLog, AuditAction
@@ -26,92 +24,122 @@ import json
 router = APIRouter(prefix="/emission-factors", tags=["emission-factors"])
 
 
+# Source schema sort keys, mapped to model attributes.
+SORT_COLUMNS = {
+    "activity_name": EmissionFactor.activity_name,
+    "reference_year": EmissionFactor.reference_year,
+    "created_at": EmissionFactor.created_at,
+    "valid_from": EmissionFactor.valid_from,
+    "source_organization": EmissionFactor.source_organization,
+    "dq_score_overall": EmissionFactor.dq_score_overall,
+}
+
+
 def _build_filter_query(
     q: Optional[str],
     year: Optional[int],
     country: Optional[str],
     region: Optional[str],
     scope: Optional[str],
-    source_type: Optional[str],
-    min_confidence: Optional[int],
+    species: Optional[str],
+    category: Optional[str],
+    source_organization: Optional[str],
+    max_dq_score: Optional[int],
     conflicts_only: bool,
-    gwp_version: Optional[str],
-    tags: Optional[str],
+    gwp_basis: Optional[str],
+    framework_tags: Optional[str],
+    sector_tags: Optional[str],
+    include_superseded: bool = False,
 ):
     """Build the WHERE clause for the EF list query."""
-    conditions = [
-        EmissionFactor.is_current == True,
-        EmissionFactor.is_superseded == False,
-    ]
+    conditions = []
+    if not include_superseded:
+        conditions.append(EmissionFactor.status == "active")
     if q:
-        # Trigram fallback (semantic handled separately in search endpoint)
-        conditions.append(
-            EmissionFactor.canonical_activity_name.ilike(f"%{q}%")
-        )
+        conditions.append(EmissionFactor.activity_name.ilike(f"%{q}%"))
     if year:
         conditions.append(
             or_(
-                and_(EmissionFactor.validity_start <= date(year, 12, 31),
-                     EmissionFactor.validity_end >= date(year, 1, 1)),
-                and_(EmissionFactor.validity_start <= date(year, 12, 31),
-                     EmissionFactor.validity_end == None),
+                EmissionFactor.reference_year == year,
+                and_(EmissionFactor.valid_from <= date(year, 12, 31),
+                     EmissionFactor.valid_to >= date(year, 1, 1)),
+                and_(EmissionFactor.valid_from <= date(year, 12, 31),
+                     EmissionFactor.valid_to == None),
             )
         )
     if country:
+        # Accept ISO2 (back-compat) or ISO3; uppercase, take first 3 chars.
+        iso = country.upper()[:3]
         conditions.append(
-            or_(EmissionFactor.geography_country == country.upper(),
-                EmissionFactor.geography_global == True)
+            or_(EmissionFactor.country_iso == iso,
+                EmissionFactor.geography_type == "global")
         )
     if region:
-        conditions.append(EmissionFactor.geography_region == region.upper())
+        conditions.append(EmissionFactor.region_name.ilike(f"%{region}%"))
     if scope:
-        # applicable_scopes is JSON (not JSONB), so .contains() emits LIKE which
-        # Postgres rejects on json values. Cast to jsonb so the `@>` containment
-        # operator is used instead.
-        conditions.append(
-            cast(EmissionFactor.applicable_scopes, JSONB).contains([scope])
-        )
-    if source_type:
-        conditions.append(EmissionFactor.source_type == source_type)
-    if min_confidence is not None:
-        conditions.append(EmissionFactor.confidence_score >= min_confidence)
+        # Accept "1" / "Scope 1" / "scope1" / etc → keep just the digit
+        digit = "".join(c for c in scope if c.isdigit())
+        if digit:
+            conditions.append(EmissionFactor.ghg_scope == digit)
+    if species:
+        conditions.append(EmissionFactor.ghg_species.ilike(species))
+    if category:
+        conditions.append(EmissionFactor.emission_category.ilike(category))
+    if source_organization:
+        conditions.append(EmissionFactor.source_organization.ilike(f"%{source_organization}%"))
+    if max_dq_score is not None:
+        conditions.append(EmissionFactor.dq_score_overall <= max_dq_score)
     if conflicts_only:
         conditions.append(EmissionFactor.has_conflict == True)
-    if gwp_version:
-        conditions.append(EmissionFactor.gwp_version == gwp_version)
-    if tags:
-        tag_list = [t.strip() for t in tags.split(",")]
-        for tag in tag_list:
-            conditions.append(EmissionFactor.custom_tags.contains([tag]))
-    return and_(*conditions)
+    if gwp_basis:
+        conditions.append(EmissionFactor.gwp_basis.ilike(gwp_basis))
+    if framework_tags:
+        for tag in (t.strip() for t in framework_tags.split(",") if t.strip()):
+            conditions.append(EmissionFactor.framework_tags.contains([tag]))
+    if sector_tags:
+        for tag in (t.strip() for t in sector_tags.split(",") if t.strip()):
+            conditions.append(EmissionFactor.sector_tags.contains([tag]))
+    return and_(*conditions) if conditions else text("true")
+
+
+def _resolve_sort(sort_by: str, sort_dir: str):
+    col = SORT_COLUMNS.get(sort_by, EmissionFactor.created_at)
+    return col.desc() if sort_dir == "desc" else col.asc()
 
 
 @router.get("", response_model=EmissionFactorListResponse)
 async def list_emission_factors(
-    q: Optional[str] = Query(None, description="Keyword search on canonical activity name"),
+    q: Optional[str] = Query(None, description="Substring search on activity_name"),
     year: Optional[int] = Query(None),
-    country: Optional[str] = Query(None, max_length=2),
+    country: Optional[str] = Query(None, description="ISO 3166 alpha-3 country code"),
     region: Optional[str] = Query(None),
-    scope: Optional[str] = Query(None),
-    source_type: Optional[str] = Query(None),
-    min_confidence: Optional[int] = Query(None, ge=0, le=100),
+    scope: Optional[str] = Query(None, description="GHG scope (1, 2, or 3)"),
+    species: Optional[str] = Query(None, description="GHG species (CO2, CO2e, CH4, N2O, ...)"),
+    category: Optional[str] = Query(None, description="emission_category"),
+    source_organization: Optional[str] = Query(None),
+    max_dq_score: Optional[int] = Query(None, ge=1, le=5,
+                                        description="Pedigree DQ score (1=best, 5=worst)"),
     conflicts_only: bool = Query(False),
-    gwp_version: Optional[str] = Query(None),
-    tags: Optional[str] = Query(None, description="Comma-separated tags"),
-    sort_by: str = Query("confidence_score", enum=["confidence_score", "canonical_activity_name", "created_at", "validity_start"]),
+    gwp_basis: Optional[str] = Query(None),
+    framework_tags: Optional[str] = Query(None, description="Comma-separated framework tags"),
+    sector_tags: Optional[str] = Query(None, description="Comma-separated sector tags"),
+    include_superseded: bool = Query(False),
+    sort_by: str = Query("created_at",
+                         enum=list(SORT_COLUMNS.keys())),
     sort_dir: str = Query("desc", enum=["asc", "desc"]),
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=200),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    conditions = _build_filter_query(q, year, country, region, scope, source_type, min_confidence, conflicts_only, gwp_version, tags)
+    conditions = _build_filter_query(
+        q, year, country, region, scope, species, category, source_organization,
+        max_dq_score, conflicts_only, gwp_basis, framework_tags, sector_tags,
+        include_superseded,
+    )
     count_q = select(func.count()).select_from(EmissionFactor).where(conditions)
     total = (await db.execute(count_q)).scalar()
-
-    sort_col = getattr(EmissionFactor, sort_by, EmissionFactor.confidence_score)
-    order = sort_col.desc() if sort_dir == "desc" else sort_col.asc()
-
+    order = _resolve_sort(sort_by, sort_dir)
     result = await db.execute(
         select(EmissionFactor)
         .where(conditions)
@@ -128,36 +156,35 @@ async def semantic_search(
     q: str = Query(..., min_length=2),
     year: Optional[int] = Query(None),
     country: Optional[str] = Query(None),
-    min_confidence: Optional[int] = Query(None),
+    max_dq_score: Optional[int] = Query(None, ge=1, le=5),
     limit: int = Query(20, ge=1, le=100),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Semantic vector search on canonical activity name using pgvector."""
+    """Semantic vector search on activity_name using pgvector."""
     embedding = await generate_embedding(q)
     embedding_str = "[" + ",".join(str(x) for x in embedding) + "]"
 
     base_conditions = [
-        EmissionFactor.is_current == True,
-        EmissionFactor.is_superseded == False,
+        EmissionFactor.status == "active",
         EmissionFactor.name_embedding != None,
     ]
     if year:
         base_conditions.append(
-            or_(
-                and_(EmissionFactor.validity_start <= date(year, 12, 31),
-                     EmissionFactor.validity_end >= date(year, 1, 1)),
-                and_(EmissionFactor.validity_start <= date(year, 12, 31),
-                     EmissionFactor.validity_end == None),
-            )
+            or_(EmissionFactor.reference_year == year,
+                and_(EmissionFactor.valid_from <= date(year, 12, 31),
+                     EmissionFactor.valid_to >= date(year, 1, 1)),
+                and_(EmissionFactor.valid_from <= date(year, 12, 31),
+                     EmissionFactor.valid_to == None))
         )
     if country:
+        iso = country.upper()[:3]
         base_conditions.append(
-            or_(EmissionFactor.geography_country == country.upper(),
-                EmissionFactor.geography_global == True)
+            or_(EmissionFactor.country_iso == iso,
+                EmissionFactor.geography_type == "global")
         )
-    if min_confidence:
-        base_conditions.append(EmissionFactor.confidence_score >= min_confidence)
+    if max_dq_score is not None:
+        base_conditions.append(EmissionFactor.dq_score_overall <= max_dq_score)
 
     result = await db.execute(
         select(EmissionFactor)
@@ -171,30 +198,29 @@ async def semantic_search(
 
 @router.get("/public", response_model=EmissionFactorListResponse)
 async def list_emission_factors_public(
-    q: Optional[str] = Query(None, description="Keyword search on canonical activity name"),
-    country: Optional[str] = Query(None, max_length=2),
+    q: Optional[str] = Query(None),
+    country: Optional[str] = Query(None),
     scope: Optional[str] = Query(None),
-    sort_by: str = Query("confidence_score", enum=["confidence_score", "canonical_activity_name", "created_at", "validity_start"]),
+    species: Optional[str] = Query(None),
+    sort_by: str = Query("created_at", enum=list(SORT_COLUMNS.keys())),
     sort_dir: str = Query("desc", enum=["asc", "desc"]),
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=200),
     db: AsyncSession = Depends(get_db),
 ):
     """
-    Unauthenticated read-only listing of emission factors.
-
-    Exposes a tighter query surface than the authenticated endpoint so the
-    public attack/scrape surface stays small. Intended for downstream tools
-    (e.g. the ls-ingestion bill extractor) that only need to look up factors
-    by activity + country + scope.
+    Unauthenticated read-only listing of emission factors. Exposes a tighter
+    query surface than the authenticated endpoint so the public attack /
+    scrape surface stays small. Intended for downstream tools that only
+    need to look up factors by activity + country + scope.
     """
-    conditions = _build_filter_query(q, None, country, None, scope, None, None, False, None, None)
+    conditions = _build_filter_query(
+        q, None, country, None, scope, species, None, None,
+        None, False, None, None, None, False,
+    )
     count_q = select(func.count()).select_from(EmissionFactor).where(conditions)
     total = (await db.execute(count_q)).scalar()
-
-    sort_col = getattr(EmissionFactor, sort_by, EmissionFactor.confidence_score)
-    order = sort_col.desc() if sort_dir == "desc" else sort_col.asc()
-
+    order = _resolve_sort(sort_by, sort_dir)
     result = await db.execute(
         select(EmissionFactor)
         .where(conditions)
@@ -242,8 +268,7 @@ async def get_conflicts(
     ef = (await db.execute(select(EmissionFactor).where(EmissionFactor.id == ef_id))).scalar_one_or_none()
     if not ef:
         raise HTTPException(404, "Not found")
-    conflicts = await detect_conflicts(ef, db, exclude_id=ef_id)
-    return conflicts
+    return await detect_conflicts(ef, db, exclude_id=ef_id)
 
 
 @router.patch("/{ef_id}", response_model=EmissionFactorOut)
@@ -258,42 +283,31 @@ async def update_emission_factor(
     if not ef:
         raise HTTPException(404, "Not found")
 
-    # Snapshot before edit
     snapshot = EmissionFactorOut.model_validate(ef).model_dump(mode="json")
-    version = EmissionFactorVersion(
+    db.add(EmissionFactorVersion(
         emission_factor_id=ef.id,
         version_number=ef.version_number,
         snapshot=snapshot,
         edited_by=current_user.id,
         edit_summary=data.edit_summary,
-    )
-    db.add(version)
+    ))
 
-    # Apply updates
     update_dict = data.model_dump(exclude_none=True, exclude={"edit_summary"})
     for field, value in update_dict.items():
         setattr(ef, field, value)
     ef.version_number += 1
-    ef.last_edited_by = current_user.id
+    ef.last_edited_by_user_id = current_user.id
     ef.last_edited_at = datetime.now(timezone.utc)
 
-    # Recalculate confidence
-    config = await _get_active_config(db)
-    score, breakdown = calculate_confidence(ef, config)
-    ef.confidence_score = score
-    ef.confidence_breakdown = breakdown
+    if "activity_name" in update_dict:
+        ef.name_embedding = await generate_embedding(ef.activity_name)
 
-    # Regenerate embedding if canonical name changed
-    if "canonical_activity_name" in update_dict:
-        ef.name_embedding = await generate_embedding(ef.canonical_activity_name)
-
-    # Serialize update_dict for audit log — date/datetime objects are not JSON serializable
     def _to_json_safe(obj):
         if isinstance(obj, dict):
             return {k: _to_json_safe(v) for k, v in obj.items()}
         if isinstance(obj, (list, tuple)):
             return [_to_json_safe(v) for v in obj]
-        if hasattr(obj, "isoformat"):   # date, datetime
+        if hasattr(obj, "isoformat"):
             return obj.isoformat()
         return obj
 
@@ -315,12 +329,11 @@ async def resolve_conflict(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_admin),
 ):
-    """Mark a conflicting record as reviewed / resolved. Clears has_conflict flag."""
     ef = (await db.execute(select(EmissionFactor).where(EmissionFactor.id == ef_id))).scalar_one_or_none()
     if not ef:
         raise HTTPException(404, "Not found")
     ef.has_conflict = False
-    ef.last_edited_by = current_user.id
+    ef.last_edited_by_user_id = current_user.id
     ef.last_edited_at = datetime.now(timezone.utc)
     resolution_note = data.get("resolution_note") or ""
     db.add(AuditLog(
@@ -345,15 +358,16 @@ async def supersede_emission_factor(
     ef = result.scalar_one_or_none()
     if not ef:
         raise HTTPException(404, "Not found")
-    ef.is_superseded = True
+    ef.status = "superseded"
     ef.superseded_reason = data.reason
-    ef.last_edited_by = current_user.id
+    ef.superseded_by_ef_id = data.superseded_by_ef_id
+    ef.last_edited_by_user_id = current_user.id
     ef.last_edited_at = datetime.now(timezone.utc)
     db.add(AuditLog(
         action=AuditAction.record_superseded,
         actor_id=current_user.id,
         emission_factor_id=ef.id,
-        details={"reason": data.reason},
+        details={"reason": data.reason, "superseded_by_ef_id": data.superseded_by_ef_id},
     ))
     await db.commit()
     await db.refresh(ef)
@@ -378,7 +392,6 @@ async def restore_version(
     if not version:
         raise HTTPException(404, "Version not found")
 
-    # Take snapshot of current state before restoring
     snapshot = EmissionFactorOut.model_validate(ef).model_dump(mode="json")
     db.add(EmissionFactorVersion(
         emission_factor_id=ef.id,
@@ -388,11 +401,12 @@ async def restore_version(
         edit_summary=f"Snapshot before restoring to v{version_number}",
     ))
 
-    # Apply the old snapshot (exclude system fields)
-    exclude = {"id", "version_number", "is_current", "is_superseded", "created_by", "created_at",
-               "last_edited_by", "last_edited_at", "has_conflict", "migrated", "confidence_score",
-               "confidence_breakdown", "name_embedding", "source_document_id", "extraction_session_id",
-               "superseded_by_id", "superseded_reason"}
+    exclude = {
+        "id", "version_number", "created_at", "updated_at",
+        "created_by_user_id", "last_edited_by_user_id", "last_edited_at",
+        "has_conflict", "name_embedding",
+        "source_document_id", "extraction_session_id",
+    }
     for field, value in version.snapshot.items():
         if field not in exclude:
             try:
@@ -400,9 +414,9 @@ async def restore_version(
             except AttributeError:
                 pass
     ef.version_number += 1
-    ef.last_edited_by = current_user.id
+    ef.last_edited_by_user_id = current_user.id
     ef.last_edited_at = datetime.now(timezone.utc)
-    ef.is_superseded = False
+    ef.status = "active"
 
     db.add(AuditLog(
         action=AuditAction.version_restored,
@@ -429,6 +443,28 @@ async def get_audit_log(
     return result.scalars().all()
 
 
+# ── CSV export with all source-schema columns ──────────────────────────────
+CSV_COLUMNS = [
+    "id", "ef_id", "activity_name", "activity_description", "activity_code",
+    "emission_category", "sub_category", "ghg_scope", "scope3_category", "activity_level",
+    "ef_value", "ghg_species", "expressed_as_co2e", "gwp_basis", "gwp_value_used", "ef_type",
+    "numerator_unit", "denominator_unit", "denominator_basis", "unit_notes",
+    "geography_type", "country_iso", "region_name", "grid_zone_id", "location_basis",
+    "fuel_material_type", "technology_descriptor", "vehicle_type", "end_use_sector",
+    "combustion_type", "carbon_content_fraction",
+    "reference_year", "valid_from", "valid_to", "ef_version", "update_frequency",
+    "source_organization", "source_database", "publication_title", "publication_year",
+    "source_url", "original_ef_value", "original_unit", "data_origin",
+    "calculation_method", "system_boundary", "includes_biogenic_co2",
+    "includes_land_use_change", "allocation_method", "upstream_included",
+    "uncertainty_pct", "uncertainty_method", "dq_score_overall",
+    "dq_geographic_rep", "dq_temporal_rep", "dq_tech_rep", "third_party_verified",
+    "status", "superseded_by_ef_id", "superseded_reason", "framework_tags",
+    "sector_tags", "is_default_ef", "created_at", "updated_at", "created_by", "notes",
+    "version_number", "has_conflict",
+]
+
+
 @router.get("/export/csv")
 async def export_csv(
     q: Optional[str] = Query(None),
@@ -436,39 +472,33 @@ async def export_csv(
     country: Optional[str] = Query(None),
     region: Optional[str] = Query(None),
     scope: Optional[str] = Query(None),
-    source_type: Optional[str] = Query(None),
-    min_confidence: Optional[int] = Query(None),
+    species: Optional[str] = Query(None),
+    category: Optional[str] = Query(None),
+    source_organization: Optional[str] = Query(None),
+    max_dq_score: Optional[int] = Query(None, ge=1, le=5),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    conditions = _build_filter_query(q, year, country, region, scope, source_type, min_confidence, False, None, None)
-    result = await db.execute(select(EmissionFactor).where(conditions).order_by(EmissionFactor.confidence_score.desc()))
+    conditions = _build_filter_query(
+        q, year, country, region, scope, species, category, source_organization,
+        max_dq_score, False, None, None, None, False,
+    )
+    result = await db.execute(
+        select(EmissionFactor).where(conditions).order_by(EmissionFactor.activity_name.asc())
+    )
     records = result.scalars().all()
 
     output = io.StringIO()
     writer = csv.writer(output)
-    headers = [
-        "id", "canonical_activity_name", "source_activity_name", "unit",
-        "ef_total_co2e", "ef_co2", "ef_ch4", "ef_n2o", "ef_pfc", "ef_sf6", "ef_nf3",
-        "applicable_scopes", "lca_stages", "source_name", "source_type", "source_url",
-        "validity_start", "validity_end", "geography_global", "geography_country", "geography_region",
-        "gwp_version", "confidence_score", "has_conflict", "is_superseded",
-        "comments_applicability", "comments_limitations", "custom_tags", "additional_notes",
-        "created_at", "version_number",
-    ]
-    writer.writerow(headers)
+    writer.writerow(CSV_COLUMNS)
     for r in records:
-        writer.writerow([
-            r.id, r.canonical_activity_name, r.source_activity_name, r.unit,
-            r.ef_total_co2e, r.ef_co2, r.ef_ch4, r.ef_n2o, r.ef_pfc, r.ef_sf6, r.ef_nf3,
-            json.dumps(r.applicable_scopes), json.dumps(r.lca_stages),
-            r.source_name, r.source_type, r.source_url,
-            r.validity_start, r.validity_end, r.geography_global, r.geography_country, r.geography_region,
-            r.gwp_version, r.confidence_score, r.has_conflict, r.is_superseded,
-            r.comments_applicability, r.comments_limitations,
-            json.dumps(r.custom_tags), r.additional_notes,
-            r.created_at, r.version_number,
-        ])
+        row = []
+        for col in CSV_COLUMNS:
+            v = getattr(r, col, None)
+            if isinstance(v, (list, dict)):
+                v = json.dumps(v)
+            row.append(v)
+        writer.writerow(row)
 
     output.seek(0)
     return StreamingResponse(
@@ -476,12 +506,3 @@ async def export_csv(
         media_type="text/csv",
         headers={"Content-Disposition": "attachment; filename=emission_factors.csv"},
     )
-
-
-async def _get_active_config(db: AsyncSession) -> dict:
-    from app.models.confidence_config import ConfidenceWeightConfig
-    result = await db.execute(
-        select(ConfidenceWeightConfig).where(ConfidenceWeightConfig.is_active == True)
-    )
-    config = result.scalar_one_or_none()
-    return config.weights if config else ConfidenceWeightConfig.default_weights()

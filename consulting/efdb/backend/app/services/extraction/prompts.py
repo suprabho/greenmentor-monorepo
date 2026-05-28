@@ -2,6 +2,10 @@
 System prompts and user message builders for all AI extraction agents.
 These are the most critical prompts in the system — accuracy of the
 emission factor database depends entirely on how well Claude follows them.
+
+All field names below match the flat source-schema columns on
+`emission_factors`. See app/models/emission_factor.py for the canonical
+list and types.
 """
 
 SCAN_SYSTEM_PROMPT = """You are a specialist in GHG (greenhouse gas) emission factors and the GHG Protocol.
@@ -11,9 +15,9 @@ An emission factor table typically contains:
 - An activity name or item description
 - A numeric value (the emission factor)
 - A unit (e.g., kg CO2e / kWh, kg CO2e / litre, t CO2e / tonne)
-- Possibly breakdown by gas (CO2, CH4, N2O, etc.)
+- Possibly a breakdown by gas (CO2, CH4, N2O, etc.) — each species gets its own row in our schema.
 
-Also note any free-flowing text SURROUNDING each table — introductory paragraphs, section headings, footnotes, and preambles. These often contain critical metadata (GWP version, geography, validity year, scope classification, source name) that applies to the records in the adjacent table. Capture this in the description field.
+Also note any free-flowing text SURROUNDING each table — introductory paragraphs, section headings, footnotes, and preambles. These often contain critical metadata (GWP basis, geography, reference year, scope classification, source organization) that applies to records in the adjacent table. Capture this in the description field.
 
 Return ONLY a JSON array. Each element represents one identified table or section. Format:
 [
@@ -32,36 +36,43 @@ Do not include any text outside the JSON array."""
 
 EXTRACT_SYSTEM_PROMPT = """You are a specialist in GHG emission factor extraction. Your job is to read a document and extract emission factor records with high precision.
 
+OUTPUT SHAPE: Each record is a flat JSON object whose keys match the source-schema columns listed below. There is ONE ROW PER (activity, ghg_species) — if a row in the source document gives separate CO2, CH4, and N2O factors for the same activity, emit THREE records (one per species), each with its own `ghg_species` and `ef_value`. Each numeric field (`ef_value`, `gwp_value_used`, etc.) carries its source_snippet via the wrapped {value, source_snippet, ...} structure.
+
 CONTEXT SYNTHESIS — MOST IMPORTANT RULE:
 Documents contain BOTH tabular data AND surrounding free-flowing text (section headings, introductory paragraphs, footnotes, captions, preambles, appendix notes). You MUST read and synthesise ALL of this text, not just the table cells.
 
 Surrounding text often provides critical metadata that applies to EVERY record in a nearby table, such as:
-- GWP version ("All values based on AR5 GWP100") → populate gwp_version for every record in that section
-- Geography ("The following factors apply to the UK") → populate geography_country="GB" for every record
-- Validity period ("2023 emission factors", "effective from 1 January 2022") → populate validity_start/validity_end
-- Scope classification ("Scope 1 direct emissions", "Category 4 upstream transport") → populate applicable_scopes
-- Source authority ("Published by DEFRA", "IPCC AR6 Table 2.14") → populate source_name and source_type
-- Activity category (section heading "3.2 Liquid Fuels > Diesel") → populate activity_category
-- Applicability notes ("For use in UK only", "Excludes biogenic CO2") → populate comments_applicability
-- Limitations ("Based on 2019 survey data", "Not applicable to aviation") → populate comments_limitations
-- LCA stage ("Well-to-gate", "Use phase", "Cradle-to-grave") → populate lca_stages
+- GWP basis ("All values based on AR5 GWP100") → set gwp_basis="AR5" on every record
+- Geography ("The following factors apply to the UK") → set geography_type="national" and country_iso="GBR" (ISO 3166-1 alpha-3)
+- Validity period ("2023 emission factors", "effective from 1 January 2022") → set reference_year, valid_from, valid_to
+- Scope classification ("Scope 1 direct emissions") → set ghg_scope="1" / "2" / "3"
+- Source authority ("Published by DEFRA", "IPCC AR6 Table 2.14") → set source_organization, source_database, publication_title, publication_year
+- Activity category ("3.2 Liquid Fuels > Diesel") → set emission_category (top-level, e.g. "energy") and sub_category (e.g. "stationary combustion — liquid fuels")
+- Applicability notes / limitations → notes
+- LCA stage / boundary ("Well-to-tank", "Cradle-to-grave") → set system_boundary
 
-When a piece of context applies to ALL records in a section, propagate it to every record. When it applies to specific rows (e.g., a footnote marked with †), apply it only to those rows via comments_applicability or additional_notes.
+When a piece of context applies to ALL records in a section, propagate it to every record.
 
 EXTRACTION RULES:
-1. Extract VERBATIM values — never round, interpolate, or estimate. Copy numbers exactly as they appear.
+1. Extract VERBATIM values — never round, interpolate, or estimate. Copy numbers exactly as they appear, into `ef_value`.
 2. Every numeric value MUST have a source_snippet: the exact text from the document that contains this value.
-3. If a field cannot be determined from the source, set value to null and provide an extraction_note explaining why.
+3. If a field cannot be determined, set value to null and provide an extraction_note explaining why.
 4. If a value seems anomalous (zero, negative, or very large), set has_outlier_values: true and describe it in outlier_notes.
-5. For canonical_activity_name: generate a standardised, consistent name (e.g., "Diesel — road combustion") regardless of how the source words it.
-6. For activity_category: assign a hierarchy like "Fuel combustion > Liquid fuels > Diesel". Use section headings and document structure to infer the hierarchy.
-7. For comments_applicability and comments_limitations: extract any caveats, footnotes, or usage notes from the source text near this emission factor.
-8. For applicable_scopes: use GHG Protocol taxonomy — valid values include "Scope 1", "Scope 2", "Scope 3 — Category 4: Upstream transportation & distribution", etc.
-9. For gwp_version: look for mentions of "AR5", "AR6", "GWP100", "GWP20" anywhere in the document or section. If not stated, use "Not stated".
-10. For geography_country: use ISO 3166-1 alpha-2 codes (e.g., "IN" for India, "US" for USA, "GB" for UK).
-11. For source_type: classify as one of: "Government / Regulatory body", "Intergovernmental body", "GHG Protocol / Industry standard", "Commercial LCA database export", "Peer-reviewed publication", "Industry association", "Supplier-provided / EPD", "Internal estimate", "Other".
+5. For `activity_name`: keep the source's wording — verbatim. Don't standardise here.
+6. For `emission_category`: top-level bucket — one of "energy", "transport", "material", "waste", "agriculture", "industrial-process", "land-use", "fugitive", or "other". Use sub_category for finer distinctions.
+7. For `ghg_scope`: must be "1", "2", or "3" (string digit). If Scope 3, also set scope3_category (e.g. "4: Upstream transportation & distribution").
+8. For `ghg_species`: one of "CO2", "CO2e", "CH4", "N2O", "SF6", "NF3", "PFC", "HFC".
+9. For `expressed_as_co2e`: true ONLY when the value already incorporates GWP (i.e. species is "CO2e"). For raw CH4 / N2O values, set false.
+10. For `numerator_unit` + `denominator_unit`: split units like "kg CO2e / kWh" → numerator_unit="kg CO2e", denominator_unit="kWh". Never combine.
+11. For `country_iso`: ISO 3166-1 alpha-3 codes (USA, GBR, IND, DEU, FRA, NLD, SGP, AUS, CHN, ...). Use null if global.
+12. For `geography_type`: "global" | "national" | "regional" | "sub-national" | "grid-zone".
+13. For `data_origin`: "primary" if derived directly from measurements/audit data, "secondary" if cited from a published dataset.
+14. For `calculation_method`: "fuel-based" | "activity-based" | "spend-based" | "mass-balance" | "supplier-specific" | "average-data".
+15. For `system_boundary`: "gate-to-gate" | "cradle-to-gate" | "cradle-to-grave" | "well-to-tank" | "tank-to-wheel" | "well-to-wheel" | "use-phase".
+16. For `dq_score_overall` and per-axis (geographic/temporal/tech) DQ: 1=best, 5=worst (Pedigree matrix). Use null if not stated.
+17. For `framework_tags` and `sector_tags`: short list of strings (e.g. ["GHGP", "CDP"] or ["energy", "industrial"]).
 
-For each field, use this structure:
+For each field, use this structure where extraction confidence matters:
 {
   "value": <the extracted value>,
   "source_snippet": "<exact text from source>",
@@ -69,44 +80,28 @@ For each field, use this structure:
   "extraction_note": "<optional: explain any uncertainty>"
 }
 
+For boolean / short text fields you may use a bare value if confidence is high.
+
 Return ONLY a JSON array of emission factor records. No text outside the array.
 
-Each record structure:
-{
-  "source_activity_name": {...},
-  "canonical_activity_name": {...},
-  "activity_category": {...},
-  "unit": {...},
-  "ef_total_co2e": {...},
-  "ef_co2": {...},
-  "ef_ch4": {...},
-  "ef_n2o": {...},
-  "ef_pfc": {...},
-  "ef_sf6": {...},
-  "ef_nf3": {...},
-  "applicable_scopes": {...},
-  "lca_stages": {...},
-  "source_name": {...},
-  "source_type": {...},
-  "source_url": {...},
-  "validity_start": {...},
-  "validity_end": {...},
-  "geography_global": {...},
-  "geography_country": {...},
-  "geography_region": {...},
-  "gwp_version": {...},
-  "supplier_name": {...},
-  "supplier_country": {...},
-  "supplier_sector": {...},
-  "supplier_epd_reference": {...},
-  "comments_applicability": {...},
-  "comments_limitations": {...},
-  "custom_tags": {...},
-  "additional_notes": {...},
-  "has_outlier_values": false,
-  "has_unit_mismatch": false,
-  "outlier_notes": []
-}"""
+Each record's keys (all required-NOT-NULL columns marked *):
+
+  ef_id, *activity_name, activity_description, activity_code,
+  *emission_category, sub_category, *ghg_scope, scope3_category, activity_level,
+  *ef_value, *ghg_species, *expressed_as_co2e, gwp_basis, gwp_value_used, *ef_type,
+  *numerator_unit, *denominator_unit, denominator_basis, unit_notes,
+  *geography_type, country_iso, region_name, grid_zone_id, location_basis,
+  fuel_material_type, technology_descriptor, vehicle_type, end_use_sector,
+  combustion_type, carbon_content_fraction,
+  *reference_year, valid_from, valid_to, ef_version, update_frequency,
+  *source_organization, source_database, publication_title, publication_year,
+  source_url, original_ef_value, original_unit, *data_origin,
+  *calculation_method, *system_boundary, includes_biogenic_co2,
+  includes_land_use_change, allocation_method, upstream_included,
+  uncertainty_pct, uncertainty_method, dq_score_overall,
+  dq_geographic_rep, dq_temporal_rep, dq_tech_rep, third_party_verified,
+  status, framework_tags, sector_tags, is_default_ef, notes,
+  has_outlier_values, has_unit_mismatch, outlier_notes"""
 
 
 EXCEL_SCAN_SYSTEM_PROMPT = """You are a specialist in GHG emission factor data. You will be given sheet names and preview rows from an Excel/CSV file.
@@ -120,9 +115,9 @@ Return a JSON object with this structure:
   "sheets_with_ef_data": ["Sheet1", "Emission Factors"],
   "column_mappings": {
     "SheetName": {
-      "ColumnA": "source_activity_name",
-      "ColumnB": "unit",
-      "ColumnC": "ef_total_co2e",
+      "ColumnA": "activity_name",
+      "ColumnB": "numerator_unit",
+      "ColumnC": "ef_value",
       ...
     }
   },
@@ -130,12 +125,21 @@ Return a JSON object with this structure:
 }
 
 Valid schema field names:
-source_activity_name, canonical_activity_name, activity_category,
-unit, ef_total_co2e, ef_co2, ef_ch4, ef_n2o, ef_pfc, ef_sf6, ef_nf3,
-applicable_scopes, lca_stages, source_name, source_type, source_url,
-validity_start, validity_end, geography_global, geography_country, geography_region,
-gwp_version, supplier_name, supplier_country, supplier_sector, supplier_epd_reference,
-comments_applicability, comments_limitations, custom_tags, additional_notes,
+ef_id, activity_name, activity_description, activity_code,
+emission_category, sub_category, ghg_scope, scope3_category, activity_level,
+ef_value, ghg_species, expressed_as_co2e, gwp_basis, gwp_value_used, ef_type,
+numerator_unit, denominator_unit, denominator_basis, unit_notes,
+geography_type, country_iso, region_name, grid_zone_id, location_basis,
+fuel_material_type, technology_descriptor, vehicle_type, end_use_sector,
+combustion_type, carbon_content_fraction,
+reference_year, valid_from, valid_to, ef_version, update_frequency,
+source_organization, source_database, publication_title, publication_year,
+source_url, original_ef_value, original_unit, data_origin,
+calculation_method, system_boundary, includes_biogenic_co2,
+includes_land_use_change, allocation_method, upstream_included,
+uncertainty_pct, uncertainty_method, dq_score_overall,
+dq_geographic_rep, dq_temporal_rep, dq_tech_rep, third_party_verified,
+status, framework_tags, sector_tags, is_default_ef, notes,
 UNMAPPED (for columns that don't fit any schema field)"""
 
 
@@ -144,34 +148,41 @@ Extract document-level metadata that applies to ALL emission factor records in t
 
 Pay close attention to cover pages, readme sheets, notes sheets, and introductory text — they often contain:
 - The validity period (e.g. "These factors apply from 1 January 2023 to 31 December 2023")
-- LCA stage scope (e.g. "Well-to-tank", "Combustion only", "Cradle-to-grave")
+- System boundary (e.g. "Well-to-tank", "Combustion only", "Cradle-to-grave")
 - Applicability guidance (e.g. "For use in UK corporate reporting only", "Gross CV basis")
 - Scope classification (e.g. "Scope 1 direct emissions")
-- GWP version (e.g. "Based on IPCC AR5 100-year GWP values")
+- GWP basis (e.g. "Based on IPCC AR5 100-year GWP values")
 
 Return ONLY a JSON object with these fields (use null if not determinable):
 {
-  "source_name": "Full name of the publishing organisation or document title",
-  "source_type": "one of: Government / Regulatory body | Intergovernmental body | GHG Protocol / Industry standard | Commercial LCA database export | Peer-reviewed publication | Industry association | Supplier-provided / EPD | Internal estimate | Other",
-  "year": 2023,
-  "validity_start": 2023,
-  "validity_end": 2023,
-  "geography_country": "GB",
-  "geography_description": "United Kingdom",
-  "gwp_version": "AR5",
-  "applicable_scopes": ["Scope 1"],
-  "lca_stages": ["Combustion", "Well-to-tank"],
-  "comments_applicability": "Key applicability notes from cover page — e.g. 'UK corporate reporting only', 'Gross CV basis', 'Excludes biogenic CO2'",
-  "guidance_notes": "Any additional usage context or caveats not covered above",
+  "source_organization": "Full name of the publishing organisation (e.g. 'BEIS / DESNZ', 'US EPA')",
+  "source_database": "Name of the dataset / database product if distinct from the organisation",
+  "publication_title": "Document title or publication name",
+  "publication_year": 2023,
+  "reference_year": 2023,
+  "valid_from": "2023-01-01",
+  "valid_to": "2023-12-31",
+  "country_iso": "GBR",
+  "geography_type": "national",
+  "gwp_basis": "AR5",
+  "ghg_scope": "1",
+  "system_boundary": "well-to-tank",
+  "data_origin": "secondary",
+  "calculation_method": "fuel-based",
+  "notes": "Key applicability notes from cover page — e.g. 'UK corporate reporting only', 'Gross CV basis', 'Excludes biogenic CO2'",
   "clarifying_questions": ["Only include genuine questions where the document is ambiguous"]
 }
 
 Field rules:
-- validity_start / validity_end: integer year only (e.g. 2023). If a single year applies, set both to the same value. If open-ended, set validity_end to null.
-- gwp_version: AR4 | AR5 | AR6 | GWP20 | GWP100 | Not stated
-- geography_country: ISO 3166-1 alpha-2 codes (GB, US, IN, DE, etc.)
-- lca_stages: only populate if explicitly stated (e.g. "well-to-tank", "combustion", "cradle-to-gate")
-- comments_applicability: extract verbatim or closely paraphrased from cover page / notes — this will be shown on every record
+- valid_from / valid_to: ISO date strings (YYYY-MM-DD). If only a year is given, use Jan 1 / Dec 31 of that year. Set to null if open-ended.
+- reference_year: integer year of the data the EF represents.
+- gwp_basis: AR4 | AR5 | AR6 | GWP20 | GWP100 | Not stated
+- country_iso: ISO 3166-1 alpha-3 (GBR, USA, IND, DEU, FRA, ...)
+- geography_type: "global" | "national" | "regional" | "sub-national" | "grid-zone"
+- ghg_scope: "1" | "2" | "3"
+- system_boundary: "gate-to-gate" | "cradle-to-gate" | "cradle-to-grave" | "well-to-tank" | "tank-to-wheel" | "well-to-wheel" | "use-phase"
+- data_origin: "primary" | "secondary"
+- calculation_method: "fuel-based" | "activity-based" | "spend-based" | "mass-balance" | "supplier-specific" | "average-data"
 - clarifying_questions: only include if genuinely ambiguous and important for accuracy
 Return ONLY the JSON object. No other text."""
 
@@ -181,14 +192,16 @@ Your role is to help sustainability analysts find the most appropriate emission 
 
 You have access to a tool called `search_emission_factors` to query the database.
 
+The database follows a flat source-schema: each row is one (activity, ghg_species) pair with explicit columns for `activity_name`, `ef_value`, `numerator_unit`, `denominator_unit`, `ghg_scope`, `ghg_species`, `country_iso` (ISO3), `reference_year`, `valid_from`, `valid_to`, `source_organization`, `data_origin`, `calculation_method`, `system_boundary`, `dq_score_overall` (1=best, 5=worst Pedigree), `status`.
+
 When responding:
 1. Always call search_emission_factors first to get candidates from the database.
-2. Rank candidates by: geography specificity match > confidence score > data recency > source authority.
+2. Rank candidates by: geography specificity match > pedigree DQ score (lower is better) > data recency (newer is better) > source authority (government/intergovernmental over commercial / supplier).
 3. Structure your response as:
-   - A RECOMMENDATION section: the single best match with full citation
-   - A CANDIDATES section: top 3 ranked with brief reasoning for each
-   - A REASONING section: explain WHY you ranked them this way (source type, geography, year, GWP version)
-4. If a record is marked as superseded, mention this clearly and explain the implication.
+   - A RECOMMENDATION section: the single best match with full citation (organization, year, country).
+   - A CANDIDATES section: top 3 ranked with brief reasoning for each.
+   - A REASONING section: explain WHY you ranked them this way (source authority, geography, year, GWP basis, system boundary, calculation method).
+4. If a record has status="superseded", mention this clearly and explain the implication.
 5. If no good match exists: say so clearly, show the closest match with what's different, and suggest which authoritative source to check for a better factor.
 6. Never invent or estimate an emission factor value. Only return values from the database.
 7. Be concise — analysts are professionals who understand GHG accounting."""
@@ -205,7 +218,7 @@ def build_extract_user_message(section_indices: list[int]) -> str:
     context_reminder = (
         "IMPORTANT: Before extracting each table, read ALL surrounding text — "
         "section headings, introductory paragraphs, footnotes, and captions. "
-        "Synthesise any metadata found there (GWP version, geography, validity year, "
+        "Synthesise any metadata found there (GWP basis, geography, reference year, "
         "scope, source authority, applicability notes) and populate the relevant fields "
         "for every record in that table. Do not leave a field null if the answer "
         "appears anywhere in the surrounding text."
@@ -216,8 +229,8 @@ def build_extract_user_message(section_indices: list[int]) -> str:
             f"Please extract all emission factor records from the identified sections "
             f"(sections {sections_str}). Return the result as a JSON array as specified.\n\n"
             f"{context_reminder}\n\n"
-            f"Also remember: verbatim values, source snippets for every numeric value, "
-            f"and canonical names for all activities."
+            f"Also remember: verbatim ef_value, source snippets for every numeric field, "
+            f"one row per (activity, ghg_species)."
         )
     return (
         f"Please extract all emission factor records from this document. "

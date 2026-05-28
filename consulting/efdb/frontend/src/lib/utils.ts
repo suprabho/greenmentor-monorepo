@@ -5,10 +5,15 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-export function confColor(score: number | null | undefined): string {
+/**
+ * Pedigree DQ score → color class. Lower is better (1 = best, 5 = worst).
+ * Returned classes match the same conf-high/medium/low semantics so existing
+ * styles keep working.
+ */
+export function dqColor(score: number | null | undefined): string {
   if (score == null) return 'text-muted-foreground'
-  if (score >= 75) return 'conf-high'
-  if (score >= 50) return 'conf-medium'
+  if (score <= 2) return 'conf-high'
+  if (score <= 3) return 'conf-medium'
   return 'conf-low'
 }
 
@@ -24,17 +29,14 @@ export function formatValidity(start: string | null, end: string | null): string
   return `${s} – ${e}`
 }
 
-export function geoLabel(global: boolean, country: string | null, region: string | null): string {
-  if (region) return region
-  if (country) return country
-  if (global) return 'Global'
+export function geoLabel(geographyType: string | null, countryIso: string | null, regionName: string | null): string {
+  if (geographyType === 'global' || (!countryIso && !regionName)) return 'Global'
+  if (regionName) return regionName
+  if (countryIso) return countryIso
   return '—'
 }
 
-export function scopeShort(scopes: string[] | null): string {
-  if (!scopes || scopes.length === 0) return '—'
-  const short = scopes[0]
-    .replace('Scope 3 — Category ', 'S3C')
-    .replace('Scope ', 'S')
-  return scopes.length > 1 ? `${short} +${scopes.length - 1}` : short
+export function scopeShort(scope: string | null): string {
+  if (!scope) return '—'
+  return `S${scope}`
 }
