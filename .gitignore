@@ -1,1 +1,9 @@
 **/.claude/worktrees
+
+# Dependencies
+**/node_modules/
+
+# Env / secrets
+**/.env
+**/.env.*
+!**/.env.example

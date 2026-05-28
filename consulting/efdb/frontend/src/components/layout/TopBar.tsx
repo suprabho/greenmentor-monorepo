@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/stores/auth'
-import { Upload, MessageSquare, LogOut, User, AlertTriangle } from 'lucide-react'
+import { Upload, MessageSquare, LogOut, User, AlertTriangle, LogIn } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { efApi } from '@/lib/api'
 
@@ -11,11 +11,12 @@ interface TopBarProps {
 
 export default function TopBar({ onChatOpen, onConflictsOpen }: TopBarProps) {
   const navigate = useNavigate()
-  const { user, logout, isAdmin } = useAuthStore()
+  const { token, user, logout, isAdmin } = useAuthStore()
 
   const { data: conflictCount } = useQuery<number>({
     queryKey: ['conflicts-count'],
     queryFn: () => efApi.conflictsCount(),
+    enabled: !!token,
     refetchInterval: 60_000,  // refresh every minute
     staleTime: 30_000,
   })
@@ -54,28 +55,42 @@ export default function TopBar({ onChatOpen, onConflictsOpen }: TopBarProps) {
             {conflictCount} Conflicts
           </button>
         )}
-        <button
-          onClick={onChatOpen}
-          className="flex items-center gap-1.5 h-7 px-3 rounded-md text-xs font-medium border border-border hover:bg-muted/50 transition-colors"
-        >
-          <MessageSquare className="w-3.5 h-3.5" />
-          AI Chat
-        </button>
-        <div className="flex items-center gap-1.5 ml-2 pl-2 border-l border-border">
-          <div className="flex items-center gap-1 text-xs text-muted-foreground">
-            <User className="w-3.5 h-3.5" />
-            <span>{user?.full_name ?? user?.email}</span>
-            <span className="px-1 py-0.5 rounded text-[10px] bg-muted font-medium uppercase tracking-wider">
-              {user?.role}
-            </span>
-          </div>
+        {token && (
           <button
-            onClick={() => { logout(); navigate('/login') }}
-            className="p-1 rounded hover:bg-muted/50 text-muted-foreground"
-            title="Sign out"
+            onClick={onChatOpen}
+            className="flex items-center gap-1.5 h-7 px-3 rounded-md text-xs font-medium border border-border hover:bg-muted/50 transition-colors"
           >
-            <LogOut className="w-3.5 h-3.5" />
+            <MessageSquare className="w-3.5 h-3.5" />
+            AI Chat
           </button>
+        )}
+        <div className="flex items-center gap-1.5 ml-2 pl-2 border-l border-border">
+          {token ? (
+            <>
+              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                <User className="w-3.5 h-3.5" />
+                <span>{user?.full_name ?? user?.email}</span>
+                <span className="px-1 py-0.5 rounded text-[10px] bg-muted font-medium uppercase tracking-wider">
+                  {user?.role}
+                </span>
+              </div>
+              <button
+                onClick={() => { logout(); navigate('/login') }}
+                className="p-1 rounded hover:bg-muted/50 text-muted-foreground"
+                title="Sign out"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+              </button>
+            </>
+          ) : (
+            <button
+              onClick={() => navigate('/login')}
+              className="flex items-center gap-1.5 h-7 px-3 rounded-md text-xs font-medium border border-border hover:bg-muted/50 transition-colors"
+            >
+              <LogIn className="w-3.5 h-3.5" />
+              Sign in
+            </button>
+          )}
         </div>
       </div>
     </header>

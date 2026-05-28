@@ -102,8 +102,9 @@ function overallConf(scores) {
   return vals.length ? Math.min(...vals) : 0;
 }
 
-// REAL Claude API call — vision for images/PDFs, text for already-extracted strings
-async function callClaudeExtract(file, apiKey) {
+// REAL Claude API call — vision for images/PDFs, text for already-extracted strings.
+// Auth: x-api-key is injected by the vite proxy from ANTHROPIC_API_KEY in .env.
+async function callClaudeExtract(file) {
   const arrayBuffer = await file.arrayBuffer();
   const base64 = arrayBufferToBase64(arrayBuffer);
   const mediaType = getMediaType(file.type);
@@ -147,46 +148,37 @@ async function callClaudeExtract(file, apiKey) {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // REAL EFDB INTEGRATION
-// Uses authenticated endpoint (GET /emission-factors) with JWT from EFDB login
-// Falls back to public endpoint, then to hardcoded values
-// Field names match EmissionFactorOut schema exactly
+// Uses authenticated endpoint (GET /emission-factors) with JWT from EFDB login,
+// then falls back to the public endpoint. No hardcoded factors — if EFDB has no
+// matching record (or is unreachable), the extraction fails loudly so the
+// underlying data gap is visible instead of silently substituted.
+// Field names match EmissionFactorOut schema exactly.
 // ─────────────────────────────────────────────────────────────────────────────
-const EFDB_BASE   = ""  // proxied via vite — see vite.config.js;
 const EFDB_PUBLIC = "/efdb/emission-factors/public";
 const EFDB_AUTH   = "/efdb/emission-factors";
 const EFDB_LOGIN  = "/efdb/auth/login";
 
-// Maps bill activity → EFDB query params (matches canonical_activity_name ilike search)
+// Maps bill activity → EFDB query params (matches canonical_activity_name ilike search).
+// Mirrors the canonical names seeded by efdb/backend/scripts/seed_india_factors.py.
 const EFDB_QUERIES = {
-  electricity: { q:"electricity purchased grid",   scope:"Scope 2", country:"IN" },
+  electricity: { q:"electricity purchased",        scope:"Scope 2", country:"IN" },
   diesel:      { q:"diesel combustion",            scope:"Scope 1", country:"IN" },
   petrol:      { q:"petrol combustion",            scope:"Scope 1", country:"IN" },
-  cng:         { q:"CNG natural gas combustion",   scope:"Scope 1", country:"IN" },
+  cng:         { q:"CNG combustion",               scope:"Scope 1", country:"IN" },
   lpg:         { q:"LPG combustion",               scope:"Scope 1", country:"IN" },
   hsd:         { q:"HSD fuel oil combustion",      scope:"Scope 1", country:"IN" },
-  coal:        { q:"coal bituminous combustion",   scope:"Scope 1", country:"IN" },
-};
-
-// Fallback — exact EmissionFactorOut field names
-const EFDB_FALLBACK = {
-  electricity: { id:"fb-elec", canonical_activity_name:"electricity purchased — India grid",     ef_total_co2e:0.757, unit:"kg CO2e / kWh",   applicable_scopes:["Scope 2"], source_name:"CEA CO2 Baseline v20.0 Dec 2024", source_type:"Government / Regulatory body", geography_country:"IN", gwp_version:"AR5", confidence_score:88,  _source:"fallback" },
-  diesel:      { id:"fb-dsl",  canonical_activity_name:"diesel combustion — road/stationary",    ef_total_co2e:2.68,  unit:"kg CO2e / litre", applicable_scopes:["Scope 1"], source_name:"IPCC 2006 Guidelines",             source_type:"Intergovernmental body",        geography_country:"IN", gwp_version:"AR5", confidence_score:82,  _source:"fallback" },
-  petrol:      { id:"fb-pet",  canonical_activity_name:"petrol combustion",                      ef_total_co2e:2.31,  unit:"kg CO2e / litre", applicable_scopes:["Scope 1"], source_name:"IPCC 2006 Guidelines",             source_type:"Intergovernmental body",        geography_country:"IN", gwp_version:"AR5", confidence_score:82,  _source:"fallback" },
-  cng:         { id:"fb-cng",  canonical_activity_name:"CNG combustion — natural gas",           ef_total_co2e:2.21,  unit:"kg CO2e / kg",    applicable_scopes:["Scope 1"], source_name:"IPCC 2006 Guidelines",             source_type:"Intergovernmental body",        geography_country:"IN", gwp_version:"AR5", confidence_score:80,  _source:"fallback" },
-  lpg:         { id:"fb-lpg",  canonical_activity_name:"LPG combustion",                         ef_total_co2e:1.611, unit:"kg CO2e / litre", applicable_scopes:["Scope 1"], source_name:"IPCC 2006 Guidelines",             source_type:"Intergovernmental body",        geography_country:"IN", gwp_version:"AR5", confidence_score:80,  _source:"fallback" },
-  hsd:         { id:"fb-hsd",  canonical_activity_name:"HSD fuel oil combustion",                ef_total_co2e:2.77,  unit:"kg CO2e / litre", applicable_scopes:["Scope 1"], source_name:"IPCC 2006 Guidelines",             source_type:"Intergovernmental body",        geography_country:"IN", gwp_version:"AR5", confidence_score:79,  _source:"fallback" },
-  coal:        { id:"fb-coal", canonical_activity_name:"coal combustion — bituminous",           ef_total_co2e:2.42,  unit:"kg CO2e / kg",    applicable_scopes:["Scope 1"], source_name:"IPCC 2006 Guidelines",             source_type:"Intergovernmental body",        geography_country:"IN", gwp_version:"AR5", confidence_score:78,  _source:"fallback" },
+  coal:        { q:"coal combustion",              scope:"Scope 1", country:"IN" },
 };
 
 const factorCache = {};
 
-// Try authenticated EFDB → public EFDB → hardcoded fallback
+// Try authenticated EFDB → public EFDB → throw
 async function lookupFactor(billType, fuelType, efdbToken) {
   const key = billType==="electricity" ? "electricity" : (fuelType||"diesel");
   if (factorCache[key]) return factorCache[key];
 
   const qp = EFDB_QUERIES[key];
-  if (!qp) return { ...EFDB_FALLBACK[key] };
+  if (!qp) throw new Error(`No EFDB query mapping for activity "${key}"`);
 
   // Try authenticated endpoint first (has all records including India-specific)
   if (efdbToken) {
@@ -204,7 +196,7 @@ async function lookupFactor(billType, fuelType, efdbToken) {
     } catch(_) {}
   }
 
-  // Try public endpoint (no auth needed — available after EFDB backend deploy)
+  // Try public endpoint (no auth)
   try {
     const url = `${EFDB_PUBLIC}?q=${encodeURIComponent(qp.q)}&country=${qp.country}&scope=${encodeURIComponent(qp.scope)}&page_size=5`;
     const r = await fetch(url, { signal:AbortSignal.timeout(5000) });
@@ -218,10 +210,7 @@ async function lookupFactor(billType, fuelType, efdbToken) {
     }
   } catch(_) {}
 
-  // Hardcoded fallback
-  const f = { ...EFDB_FALLBACK[key] };
-  factorCache[key] = f;
-  return f;
+  throw new Error(`EFDB has no "${key}" factor for ${qp.country}/${qp.scope}. Seed it with scripts.seed_india_factors or upload via the EFDB ingestion flow.`);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -395,7 +384,7 @@ function Sidebar({page,setPage,reviewCount,efdbSrc,extracting}) {
       <div style={{padding:"10px 14px",borderTop:`1px solid ${T.line}`}}>
         <div style={{display:"flex",gap:12,marginBottom:3}}>
           <div><div style={{fontSize:9,color:T.dim,marginBottom:2,textTransform:"uppercase",letterSpacing:"0.08em"}}>Claude</div><span style={pill(T.successBg,T.accent,{fontSize:10,padding:"2px 8px"})}>{CLAUDE_MODEL.slice(7)}</span></div>
-          <div><div style={{fontSize:9,color:T.dim,marginBottom:2,textTransform:"uppercase",letterSpacing:"0.08em"}}>EFDB</div><span style={pill(efdbSrc==="efdb_authenticated"?T.successBg:efdbSrc==="efdb_public"?T.infoBg:T.warnBg,efdbSrc==="efdb_authenticated"?T.accent:efdbSrc==="efdb_public"?T.info:T.warn,{fontSize:10,padding:"2px 8px"})}>{efdbSrc==="efdb_authenticated"?"auth":efdbSrc==="efdb_public"?"public":"fallback"}</span></div>
+          <div><div style={{fontSize:9,color:T.dim,marginBottom:2,textTransform:"uppercase",letterSpacing:"0.08em"}}>EFDB</div><span style={pill(efdbSrc==="efdb_authenticated"?T.successBg:efdbSrc==="efdb_public"?T.infoBg:T.dangerBg,efdbSrc==="efdb_authenticated"?T.accent:efdbSrc==="efdb_public"?T.info:T.danger,{fontSize:10,padding:"2px 8px"})}>{efdbSrc==="efdb_authenticated"?"auth":efdbSrc==="efdb_public"?"public":"offline"}</span></div>
         </div>
         {extracting&&<div style={{display:"flex",alignItems:"center",gap:6,marginTop:4}}><div style={{width:6,height:6,borderRadius:"50%",background:T.accent,animation:"pulse 1s infinite"}}/><span style={{fontSize:10,color:T.accent,fontFamily:T.mono}}>extracting…</span></div>}
       </div>
@@ -406,7 +395,7 @@ function Sidebar({page,setPage,reviewCount,efdbSrc,extracting}) {
 // ─────────────────────────────────────────────────────────────────────────────
 // UPLOAD + REAL EXTRACTION
 // ─────────────────────────────────────────────────────────────────────────────
-function Upload({apiKey, efdbToken, setBills, setSelected, setPage, setEfdbSrc, setGlobalExtracting}) {
+function Upload({efdbToken, setBills, setSelected, setPage, setEfdbSrc, setGlobalExtracting}) {
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState(null);
   const [drag, setDrag] = useState(false);
@@ -433,7 +422,6 @@ function Upload({apiKey, efdbToken, setBills, setSelected, setPage, setEfdbSrc, 
 
   async function extract() {
     if (!file) return;
-    if (!apiKey) { setError("Paste your Claude API key in Settings first."); return; }
     setError(""); setLog([]); setStage("hashing"); setGlobalExtracting(true);
 
     try {
@@ -447,7 +435,7 @@ function Upload({apiKey, efdbToken, setBills, setSelected, setPage, setEfdbSrc, 
       setStage("extracting");
       addLog(`Calling Claude ${CLAUDE_MODEL} (prompt ${PROMPT_VERSION})…`);
       const t0 = Date.now();
-      const { parsed, rawText, usage } = await callClaudeExtract(file, apiKey);
+      const { parsed, rawText, usage } = await callClaudeExtract(file);
       addLog(`Extracted in ${Date.now()-t0}ms — ${usage?.input_tokens} input / ${usage?.output_tokens} output tokens`, "success");
 
       // Step 3: parse result
@@ -468,7 +456,7 @@ function Upload({apiKey, efdbToken, setBills, setSelected, setPage, setEfdbSrc, 
       // Step 5: EFDB factor lookup
       addLog("Looking up EFDB emission factor…");
       const factor = await lookupFactor(billType, extracted?.fuel_type, efdbToken);
-      setEfdbSrc(factor._source||"fallback");
+      setEfdbSrc(factor._source);
       addLog(`Factor: ${factor.ef_total_co2e} ${factor.unit} — source: ${factor._source}`, "success");
 
       // Step 6: compute emission
@@ -531,12 +519,6 @@ function Upload({apiKey, efdbToken, setBills, setSelected, setPage, setEfdbSrc, 
 
   return <>
     <style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}`}</style>
-
-    {!apiKey && (
-      <div style={{padding:"12px 16px",background:T.dangerBg,border:`1px solid ${T.dangerLine}`,borderRadius:8,marginBottom:14,fontSize:12,color:T.danger}}>
-        ⚠ Claude API key not set — go to <b>Settings</b> and paste your <code style={{fontFamily:T.mono}}>sk-ant-…</code> key to enable real extraction.
-      </div>
-    )}
 
     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,alignItems:"start"}}>
       {/* LEFT: drop zone + preview */}
@@ -608,7 +590,7 @@ function Upload({apiKey, efdbToken, setBills, setSelected, setPage, setEfdbSrc, 
             ["Claude extraction","Real API call to api.anthropic.com — your actual bill is read"],
             ["Field confidence","Returned by Claude per field — not hardcoded"],
             ["Validation rules","Live rule engine on real extracted values"],
-            ["EFDB lookup","Real fetch to efdb-kappa.vercel.app — falls back if India factors missing"],
+            ["EFDB lookup","Real fetch to the EFDB API — extraction fails loudly if no matching factor is found"],
             ["Emission calc","Real GHG Protocol math on real extracted consumption data"],
           ].map(([k,v])=>(
             <div key={k} style={{display:"flex",gap:10,padding:"5px 0",borderBottom:`1px solid ${T.successLine}`,fontSize:11}}>
@@ -677,7 +659,7 @@ function ReviewDetail({bill, setBills, setPage}) {
             <div style={{background:T.successBg,border:`1px solid ${T.successLine}`,borderRadius:8,padding:"12px 14px"}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
                 <span style={{fontFamily:T.mono,fontSize:11,color:T.accent}}>{factor.canonical_activity_name}</span>
-                <span style={pill(factor._source==="fallback"?T.warnBg:T.successBg,factor._source==="fallback"?T.warn:T.accent,{fontSize:9})}>{factor._source}</span>
+                <span style={pill(T.successBg,T.accent,{fontSize:9})}>{factor._source}</span>
               </div>
               {[["ef_total_co2e",`${factor.ef_total_co2e} (${factor.unit})`],["source_name",factor.source_name],["applicable_scopes",(factor.applicable_scopes||[]).join(", ")],["gwp_version",factor.gwp_version],["confidence_score",factor.confidence_score!=null?`${factor.confidence_score}/100`:"—"],["id",factor.id]].map(([k,v])=>(
                 <div key={k} style={{display:"flex",gap:10,padding:"3px 0",borderBottom:`1px solid rgba(74,222,128,0.1)`,fontSize:11}}>
@@ -902,7 +884,7 @@ function Records({bills}) {
                 <td style={{padding:"9px 8px"}}>{f?<div><span style={{fontFamily:T.mono,fontSize:11,color:T.accent}}>{f.ef_total_co2e}</span><br/><span style={{fontSize:9,color:T.dim}}>{f.unit}</span></div>:"—"}</td>
                 <td style={{padding:"9px 8px",fontFamily:T.mono,fontWeight:700,color:T.accent}}>{em?.tco2e??"—"}</td>
                 <td style={{padding:"9px 8px"}}>{em&&<span style={pill(T.infoBg,T.info)}>Scope {em.scope}</span>}</td>
-                <td style={{padding:"9px 8px"}}>{f&&<span style={pill(f._source==="fallback"?T.warnBg:T.successBg,f._source==="fallback"?T.warn:T.accent,{fontSize:9})}>{f._source}</span>}</td>
+                <td style={{padding:"9px 8px"}}>{f&&<span style={pill(T.successBg,T.accent,{fontSize:9})}>{f._source}</span>}</td>
                 <td style={{padding:"9px 8px",fontFamily:T.mono,fontSize:10,color:T.dim}}>{b.token_usage?`${b.token_usage.input_tokens}↑ ${b.token_usage.output_tokens}↓`:"—"}</td>
               </tr>
             );
@@ -974,22 +956,12 @@ function Audit({bill}) {
 // ─────────────────────────────────────────────────────────────────────────────
 // SETTINGS
 // ─────────────────────────────────────────────────────────────────────────────
-function Settings({apiKey, setApiKey, efdbToken, setEfdbToken, efdbSrc}) {
-  const [keyInput, setKeyInput] = useState(apiKey||"");
+function Settings({efdbToken, setEfdbToken, efdbSrc}) {
   const [emailInput, setEmailInput] = useState("");
   const [passInput, setPassInput] = useState("");
   const [efdbLoading, setEfdbLoading] = useState(false);
   const [efdbError, setEfdbError] = useState("");
   const [testResult, setTestResult] = useState(null);
-  const [saved, setSaved] = useState(false);
-
-  function saveKey() {
-    setApiKey(keyInput.trim());
-    // Clear factor cache so next lookup uses correct auth
-    Object.keys(factorCache).forEach(k=>delete factorCache[k]);
-    setSaved(true);
-    setTimeout(()=>setSaved(false), 2000);
-  }
 
   async function efdbLogin() {
     setEfdbLoading(true); setEfdbError("");
@@ -1019,23 +991,13 @@ function Settings({apiKey, setApiKey, efdbToken, setEfdbToken, efdbSrc}) {
   }
 
   return <>
-    {/* Claude API Key */}
+    {/* Claude API Key — server-side */}
     <div style={SS.card}>
       <div style={SS.label}>Claude API key</div>
-      <div style={{fontSize:12,color:T.muted,marginBottom:14,lineHeight:1.7}}>
-        Get your key from <code style={{fontFamily:T.mono,fontSize:11,background:T.bg,padding:"2px 6px",borderRadius:4}}>console.anthropic.com/settings/keys</code>.
-        Sign up → Settings → API Keys → Create Key → copy <code style={{fontFamily:T.mono,fontSize:11}}>sk-ant-…</code>.
-        Add $5 credit under Plans & Billing. Key is stored only in React state — never sent anywhere except Anthropic.
+      <div style={{fontSize:12,color:T.muted,lineHeight:1.7}}>
+        Configured server-side via <code style={{fontFamily:T.mono,fontSize:11,background:T.bg,padding:"2px 6px",borderRadius:4}}>ANTHROPIC_API_KEY</code> in <code style={{fontFamily:T.mono,fontSize:11}}>.env</code>.
+        The vite proxy injects it on every request — the key never reaches the browser. Restart the dev server after changing it.
       </div>
-      <div style={{display:"flex",gap:10,alignItems:"flex-end"}}>
-        <div style={{flex:1}}>
-          <div style={{fontSize:10,color:T.dim,marginBottom:4,fontFamily:T.mono}}>API key (sk-ant-…)</div>
-          <input type="password" style={SS.input} value={keyInput} onChange={e=>setKeyInput(e.target.value)} placeholder="sk-ant-api03-…"/>
-        </div>
-        <Btn onClick={saveKey} disabled={!keyInput.startsWith("sk-ant-")}>{saved?"✓ Saved":"Save key"}</Btn>
-      </div>
-      {apiKey&&<div style={{marginTop:8,fontSize:11,color:T.accent,fontFamily:T.mono}}>✓ Key active: {apiKey.slice(0,12)}…{apiKey.slice(-4)}</div>}
-      {keyInput&&!keyInput.startsWith("sk-ant-")&&<div style={{marginTop:6,fontSize:11,color:T.warn}}>⚠ Anthropic keys start with sk-ant-</div>}
     </div>
 
     {/* EFDB Auth */}
@@ -1061,7 +1023,7 @@ function Settings({apiKey, setApiKey, efdbToken, setEfdbToken, efdbSrc}) {
 
       <div style={{display:"flex",gap:10,alignItems:"center"}}>
         <Btn v="subtle" sz="sm" onClick={testEFDB}>Test EFDB factor lookup</Btn>
-        <span style={{fontSize:11,color:T.dim}}>Current source: <b style={{color:efdbSrc==="fallback"?T.warn:T.accent}}>{efdbSrc}</b></span>
+        <span style={{fontSize:11,color:T.dim}}>Current source: <b style={{color:efdbSrc==="offline"?T.danger:efdbSrc==="efdb_public"?T.info:T.accent}}>{efdbSrc}</b></span>
       </div>
 
       {testResult&&(
@@ -1080,21 +1042,16 @@ function Settings({apiKey, setApiKey, efdbToken, setEfdbToken, efdbSrc}) {
       <div style={SS.label}>EFDB lookup query map</div>
       <table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
         <thead><tr style={{borderBottom:`1px solid ${T.line}`}}>
-          {["Activity key","q (search term)","country","scope","Fallback ef_total_co2e","unit"].map(h=><th key={h} style={{textAlign:"left",padding:"6px 8px",fontSize:10,color:T.dim,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.06em"}}>{h}</th>)}
+          {["Activity key","q (search term)","country","scope"].map(h=><th key={h} style={{textAlign:"left",padding:"6px 8px",fontSize:10,color:T.dim,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.06em"}}>{h}</th>)}
         </tr></thead>
-        <tbody>{Object.entries(EFDB_QUERIES).map(([k,q])=>{
-          const fb=EFDB_FALLBACK[k];
-          return (
-            <tr key={k} style={{borderBottom:`1px solid ${T.line}`}}>
-              <td style={{padding:"7px 8px",fontFamily:T.mono,fontWeight:700,color:T.accent}}>{k}</td>
-              <td style={{padding:"7px 8px",fontFamily:T.mono,color:T.muted,fontSize:10}}>{q.q}</td>
-              <td style={{padding:"7px 8px",fontFamily:T.mono}}>{q.country}</td>
-              <td style={{padding:"7px 8px"}}><span style={pill(q.scope==="Scope 2"?T.infoBg:T.warnBg,q.scope==="Scope 2"?T.info:T.warn)}>{q.scope}</span></td>
-              <td style={{padding:"7px 8px",fontFamily:T.mono,color:T.accent}}>{fb?.ef_total_co2e}</td>
-              <td style={{padding:"7px 8px",fontFamily:T.mono,color:T.dim,fontSize:10}}>{fb?.unit}</td>
-            </tr>
-          );
-        })}</tbody>
+        <tbody>{Object.entries(EFDB_QUERIES).map(([k,q])=>(
+          <tr key={k} style={{borderBottom:`1px solid ${T.line}`}}>
+            <td style={{padding:"7px 8px",fontFamily:T.mono,fontWeight:700,color:T.accent}}>{k}</td>
+            <td style={{padding:"7px 8px",fontFamily:T.mono,color:T.muted,fontSize:10}}>{q.q}</td>
+            <td style={{padding:"7px 8px",fontFamily:T.mono}}>{q.country}</td>
+            <td style={{padding:"7px 8px"}}><span style={pill(q.scope==="Scope 2"?T.infoBg:T.warnBg,q.scope==="Scope 2"?T.info:T.warn)}>{q.scope}</span></td>
+          </tr>
+        ))}</tbody>
       </table>
     </div>
   </>;
@@ -1107,9 +1064,8 @@ export default function App() {
   const [bills, setBills]               = useState([]);
   const [page, setPage]                 = useState("upload");
   const [selectedId, setSelectedId]     = useState(null);
-  const [apiKey, setApiKey]             = useState("");
   const [efdbToken, setEfdbToken]       = useState(null);
-  const [efdbSrc, setEfdbSrc]           = useState("fallback");
+  const [efdbSrc, setEfdbSrc]           = useState("offline");
   const [globalExtracting, setGlobalExtracting] = useState(false);
 
   const reviewCount   = bills.filter(b=>b.status==="review").length;
@@ -1138,8 +1094,6 @@ export default function App() {
             <div style={{fontSize:11,color:T.dim,marginTop:1,fontFamily:T.mono}}>Maharashtra Govt Emissions Audit · FY 2024-25 · Real extraction active</div>
           </div>
           <div style={{display:"flex",gap:10,alignItems:"center"}}>
-            {!apiKey&&<span style={pill(T.dangerBg,T.danger)}>⚠ No API key</span>}
-            {apiKey&&<span style={pill(T.successBg,T.accent)}>✓ Claude ready</span>}
             {reviewCount>0&&(
               <div style={{...pill(T.warnBg,T.warn),cursor:"pointer",padding:"5px 12px",borderRadius:7}} onClick={()=>setPage("review")}>
                 <Dot c={T.warn}/>{reviewCount} need review
@@ -1149,12 +1103,12 @@ export default function App() {
         </div>
 
         <div style={SS.content}>
-          {page==="upload"   && <Upload apiKey={apiKey} efdbToken={efdbToken} setBills={setBills} setSelected={setSelectedId} setPage={setPage} setEfdbSrc={setEfdbSrc} setGlobalExtracting={setGlobalExtracting}/>}
+          {page==="upload"   && <Upload efdbToken={efdbToken} setBills={setBills} setSelected={setSelectedId} setPage={setPage} setEfdbSrc={setEfdbSrc} setGlobalExtracting={setGlobalExtracting}/>}
           {page==="dash"     && <Dashboard bills={bills} setPage={setPage} setSelected={setSelectedId}/>}
           {page==="review"   && <Review bills={bills} setBills={setBills} selectedId={selectedId} setSelected={setSelectedId} setPage={setPage}/>}
           {page==="records"  && <Records bills={bills}/>}
           {page==="audit"    && <Audit bill={selectedBill}/>}
-          {page==="settings" && <Settings apiKey={apiKey} setApiKey={setApiKey} efdbToken={efdbToken} setEfdbToken={setEfdbToken} efdbSrc={efdbSrc}/>}
+          {page==="settings" && <Settings efdbToken={efdbToken} setEfdbToken={setEfdbToken} efdbSrc={efdbSrc}/>}
         </div>
       </div>
     </div>

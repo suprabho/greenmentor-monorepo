@@ -7,12 +7,13 @@ import SidePanel from '@/components/table/SidePanel'
 import ChatPanel from '@/components/chat/ChatPanel'
 import type { EmissionFactor, EFFilters } from '@/types/emission-factor'
 import { efApi } from '@/lib/api'
+import { useAuthStore } from '@/stores/auth'
 
 const DEFAULT_FILTERS: EFFilters = {
   sort_by: 'confidence_score',
   sort_dir: 'desc',
   page: 1,
-  page_size: 50,
+  page_size: 200,
 }
 
 export default function MainPage() {
@@ -20,10 +21,11 @@ export default function MainPage() {
   const [selectedEF, setSelectedEF] = useState<EmissionFactor | null>(null)
   const [chatOpen, setChatOpen] = useState(false)
   const queryClient = useQueryClient()
+  const token = useAuthStore(s => s.token)
 
   const { data, isLoading } = useQuery({
-    queryKey: ['emission-factors', filters],
-    queryFn: () => efApi.list(filters),
+    queryKey: ['emission-factors', filters, !!token],
+    queryFn: () => token ? efApi.list(filters) : efApi.listPublic(filters),
   })
 
   const handleFiltersChange = useCallback((f: EFFilters) => {
