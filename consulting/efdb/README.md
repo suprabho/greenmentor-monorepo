@@ -46,13 +46,16 @@ Subsequent starts take ~15 seconds.
 
 ### 3. Create the first admin user
 
-Once the stack is running, open a new terminal:
+`/auth/register` requires an existing admin, so the first admin is bootstrapped
+via a CLI script. Once the stack is running, open a new terminal:
 
 ```bash
-curl -X POST http://localhost:8000/auth/register \
-  -H "Content-Type: application/json" \
-  -d '{"email":"admin@yourcompany.com","full_name":"Your Name","password":"yourpassword","role":"admin"}'
+docker compose exec backend python -m scripts.create_admin \
+  admin@yourcompany.com "Your Name" yourpassword
 ```
+
+The script is idempotent — re-running it promotes an existing user to admin and
+resets their password.
 
 ### 4. Open the app
 

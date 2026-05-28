@@ -1,5 +1,4 @@
 from pydantic_settings import BaseSettings
-from typing import Optional
 
 
 class Settings(BaseSettings):
@@ -21,6 +20,13 @@ class Settings(BaseSettings):
     # File storage
     upload_dir: str = "/app/uploads"
     max_upload_size_mb: int = 100
+
+    # CORS — comma-separated list of allowed origins.
+    cors_origins: str = "http://localhost:5173,http://localhost:3000"
+
+    @property
+    def cors_origin_list(self) -> list[str]:
+        return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
 
     class Config:
         env_file = ".env"
