@@ -13,8 +13,9 @@ Base URL: `https://<your-host>` (replace with your deployed URL)
 
 ## Authentication
 
-All endpoints except `/health`, `/auth/register`, `/auth/login`, and `/auth/token`
-require a JWT Bearer token in the `Authorization` header:
+All endpoints except `/health`, `/auth/login`, and `/auth/token`
+require a JWT Bearer token in the `Authorization` header. `/auth/register` is
+admin-only — see the admin bootstrap script for creating the first admin.
 
 ```
 Authorization: Bearer <access_token>
@@ -65,7 +66,7 @@ Roles: `admin` | `analyst`.
 
 | Method | Path             | Auth   | Description                                                          |
 | ------ | ---------------- | ------ | -------------------------------------------------------------------- |
-| POST   | `/auth/register` | none   | Create a user. Body: `{email, full_name, password, role}`.           |
+| POST   | `/auth/register` | Bearer **🔒 admin** | Create a user. Body: `{email, full_name, password, role}`.    |
 | POST   | `/auth/login`    | none   | JSON login. Body: `{email, password}`. Returns `{access_token,user}`.|
 | POST   | `/auth/token`    | none   | OAuth2 form login (for Swagger UI). Form: `username`, `password`.    |
 | GET    | `/auth/me`       | Bearer | Returns the current user.                                            |

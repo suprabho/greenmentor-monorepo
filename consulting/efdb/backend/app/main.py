@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 from app.routers import auth, emission_factors, ingestion, chat
 from app.database import engine, Base
+from app.config import settings
 from app.models import *  # noqa: ensure all models are registered
 
 
@@ -27,7 +28,7 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:3000"],
+    allow_origins=settings.cors_origin_list,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
