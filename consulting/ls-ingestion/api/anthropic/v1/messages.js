@@ -17,11 +17,8 @@ export default async function handler(req, res) {
     });
   }
 
-  const segments = Array.isArray(req.query.path) ? req.query.path : [req.query.path];
-  const upstreamUrl = `https://api.anthropic.com/${segments.join("/")}`;
-
   try {
-    const upstream = await fetch(upstreamUrl, {
+    const upstream = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
         "content-type": "application/json",

@@ -5,7 +5,7 @@
     { "source": "/anthropic/:path*", "destination": "/api/anthropic/:path*" }
   ],
   "functions": {
-    "api/anthropic/[...path].js": {
+    "api/anthropic/v1/messages.js": {
       "maxDuration": 60
     }
   }
