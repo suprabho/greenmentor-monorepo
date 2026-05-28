@@ -1,0 +1,61 @@
+/**
+ * Companies hiring ESG talent that our learners have moved into. Split into
+ * a primary top-10 (always visible, prominent pill) and a long-tail of 40
+ * more (revealed when the user expands). Source: HTML v3.
+ */
+
+export const topHiringCompanies: string[] = [
+  "Tata",
+  "Reliance",
+  "Mahindra",
+  "Arabesque",
+  "BCG",
+  "EY",
+  "KPMG",
+  "PwC",
+  "Deloitte",
+  "ReNew Energy",
+];
+
+export const moreHiringCompanies: string[] = [
+  "Shell",
+  "Wipro",
+  "Infosys",
+  "HCL",
+  "Adani",
+  "JSW",
+  "Godrej",
+  "ITC",
+  "Marico",
+  "L&T",
+  "HDFC Bank",
+  "Axis Bank",
+  "SBI",
+  "ICICI Bank",
+  "Kotak",
+  "Aditya Birla",
+  "Vedanta",
+  "NTPC",
+  "ONGC",
+  "Siemens",
+  "Schneider Electric",
+  "ABB",
+  "Unilever",
+  "Nestlé",
+  "P&G",
+  "Dalmia Cement",
+  "UltraTech",
+  "JSL",
+  "Tata Steel",
+  "SAIL",
+  "Greenko",
+  "Sterlite Power",
+  "Torrent Power",
+  "Hero MotoCorp",
+  "Bajaj Auto",
+  "TVS Motor",
+  "Asian Paints",
+  "Pidilite",
+  "Havells",
+  "Voltas",
+];

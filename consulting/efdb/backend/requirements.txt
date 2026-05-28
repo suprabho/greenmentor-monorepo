@@ -1,0 +1,34 @@
+# Web framework
+fastapi==0.115.6
+uvicorn[standard]==0.32.1
+python-multipart==0.0.20
+
+# Database
+sqlalchemy[asyncio]==2.0.36
+asyncpg==0.30.0
+psycopg2-binary==2.9.10
+alembic==1.14.0
+pgvector==0.3.6
+
+# Auth
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+bcrypt==3.2.2
+
+# AI
+anthropic==0.40.0
+
+# Document parsing
+pymupdf==1.25.1
+openpyxl==3.1.5
+pandas==2.2.3
+
+# HTTP (for URL ingestion)
+httpx==0.28.1
+beautifulsoup4==4.12.3
+
+# Utilities
+python-dotenv==1.0.1
+pydantic[email]==2.10.3
+pydantic-settings==2.7.0
+numpy==2.2.1
