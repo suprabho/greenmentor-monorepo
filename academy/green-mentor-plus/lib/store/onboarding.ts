@@ -14,6 +14,9 @@ export type BillingCycle = "monthly" | "annual";
 export type PaymentStatus = "idle" | "pending" | "paid" | "failed";
 
 export interface OnboardingState {
+  // Stable per-visitor key for the lead sheet. Generated once name+email are
+  // captured (welcome step) so every later sync upserts the same row.
+  leadId: string | null;
   name: string;
   email: string;
   segment: AudienceSegment | null;
@@ -43,6 +46,7 @@ export interface OnboardingState {
 }
 
 const initialState = {
+  leadId: null as string | null,
   name: "",
   email: "",
   segment: null,
@@ -60,7 +64,13 @@ export const useOnboarding = create<OnboardingState>()(
       ...initialState,
 
       setIdentity: ({ name, email }) =>
-        set({ name: name.trim(), email: email.trim().toLowerCase() }),
+        set((state) => ({
+          name: name.trim(),
+          email: email.trim().toLowerCase(),
+          // Mint the lead id on first identity capture; keep it stable if the
+          // user edits their details and resubmits.
+          leadId: state.leadId ?? crypto.randomUUID(),
+        })),
 
       setSegment: (segment) => set({ segment }),
 

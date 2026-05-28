@@ -27,6 +27,16 @@ export interface Plan {
   priceAnnualTotal: number;
   badge?: string;
   features: string[];
+  /** Courses live on the platform today — included in every membership. */
+  coursesLive: string[];
+  /** Courses on the roadmap; included automatically when they launch. */
+  coursesComingSoon: string[];
+  /** Non-course inclusions (community, live Q&A, jobs feed, guidance). */
+  whatElse: string[];
+  /** Career Services bundled free with the annual plan. */
+  careerServices: string[];
+  /** Standalone value of Career Services, shown as "included free" on annual. */
+  careerServicesValue: number;
   ctaLabel: string;
   highlight?: boolean;
 }
@@ -49,6 +59,43 @@ export const plans: Plan[] = [
       "Curated ESG jobs community access",
       "Personalised career guidance & resume review",
     ],
+    coursesLive: [
+      "Intro to ESG & BRSR",
+      "ESG Mastery Program",
+      "GHG Accounting",
+      "Materiality Assessment",
+      "Sustainable Finance",
+      "ESG Reporting Bundle",
+      "Carbon Footprinting",
+      "ESG Software Tools",
+    ],
+    coursesComingSoon: [
+      "AI for ESG",
+      "Carbon Markets",
+      "Climate Risk & TCFD",
+      "Supply Chain & Scope 3",
+      "Circular Economy",
+      "ESG for Startups",
+    ],
+    whatElse: [
+      "Bi-weekly live Q&A with industry experts",
+      "WhatsApp learners community",
+      "Weekly industry insights & case studies",
+      "Curated ESG jobs community access",
+      "Personalised career guidance",
+      "Certifications & workshops available as add-ons",
+    ],
+    careerServices: [
+      "LinkedIn profile enrichment",
+      "Resume building",
+      "Statement of purpose (SoP) writing",
+      "Pre-placement screening test",
+      "Mock interviews with industry professionals",
+      "Internship & job placement support",
+      "Practical career roadmap & guidance",
+      "Certifications & workshops available as add-ons",
+    ],
+    careerServicesValue: 25000,
     ctaLabel: "Start membership",
   },
 ];

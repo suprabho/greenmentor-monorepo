@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 60" role="img" aria-label="Boeing">
+  <title>Boeing</title>
+  <text
+    x="110"
+    y="48"
+    text-anchor="middle"
+    font-family="'Helvetica Neue', Helvetica, Arial, sans-serif"
+    font-style="italic"
+    font-weight="800"
+    font-size="46"
+    letter-spacing="1"
+    fill="#000"
+  >BOEING</text>
+</svg>

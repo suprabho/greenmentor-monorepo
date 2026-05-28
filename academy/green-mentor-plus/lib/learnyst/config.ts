@@ -14,7 +14,13 @@ export const LEARNYST_SIGNUP_URL = `${LEARNYST_BASE_URL}/signup`;
 export const LEARNYST_LOGIN_URL = `${LEARNYST_BASE_URL}/login`;
 
 /**
- * Course catalog URL — courses link out to per-course Learnyst pages.
- * Real per-course URLs live alongside the course in `lib/data/courses.ts`.
+ * Public course catalog base. Per-course pages are `${LEARNYST_COURSES_URL}/<Slug>`,
+ * with slugs living alongside each course in `lib/data/courses.ts`.
+ *
+ * NOTE: the live catalog is hosted on a different domain/path than the auth base
+ * above — it's `academy.greenmentor.co/learn`, not `${LEARNYST_BASE_URL}/courses`.
+ * Override via NEXT_PUBLIC_LEARNYST_CATALOG_URL if the host changes.
  */
-export const LEARNYST_COURSES_URL = `${LEARNYST_BASE_URL}/courses`;
+export const LEARNYST_COURSES_URL =
+  process.env.NEXT_PUBLIC_LEARNYST_CATALOG_URL ??
+  "https://academy.greenmentor.co/learn";

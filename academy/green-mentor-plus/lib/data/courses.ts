@@ -1,38 +1,39 @@
 import { LEARNYST_COURSES_URL } from "@/lib/learnyst/config";
 
 /**
- * Course taxonomy used in two places:
- *  - Home `CoursePreview` (compact grid with lesson count + standalone price)
- *  - `/courses` library page (full card with framework + duration + level)
+ * Course taxonomy powering the home `CoursePreview` grid (lesson count + price).
  *
- * The course list is the v3 reframe: 8 named courses, each available
- * standalone but bundled into the single Plus Essential subscription.
+ * The list mirrors the five live Learnyst courses. Each is sold standalone;
+ * the foundational three are also bundled into the Plus Essential subscription,
+ * while the two premium programs (Live LCA, ESG Reporting Pro) are paid extras.
  */
 
 export type Framework =
   | "ESG & BRSR"
-  | "ESG Strategy"
   | "GHG Accounting"
-  | "Materiality"
+  | "ESG Strategy"
   | "LCA"
-  | "CBAM"
-  | "Circularity"
-  | "ESG Tools";
+  | "ESG Reporting";
 
 export interface Course {
   id: string;
   title: string;
   framework: Framework;
   description: string;
-  /** Display string for the `/courses` library cards, e.g. "23 lessons". */
+  /** Display string for course cards, e.g. "23 lessons". */
   duration: string;
-  /** Number of lessons. Powers the home preview card meta line. */
+  /** Number of lessons. Powers the preview card meta line. */
   lessons: number;
   /** Standalone INR price; null = included with subscription only. */
   standalonePrice: number | null;
   level: "Foundation" | "Intermediate" | "Advanced";
-  // TODO[Learnyst]: replace with per-course Learnyst URLs once migrated.
+  /** Full per-course page on academy.greenmentor.co/learn (see LEARNYST_COURSES_URL). */
   learnystUrl: string;
+  /**
+   * Card thumbnail. Currently a generated placeholder in /public/courses.
+   * TODO[assets]: swap each file for the real Learnyst banner (keep the path).
+   */
+  image: string;
 }
 
 export const courses: Course[] = [
@@ -46,7 +47,21 @@ export const courses: Course[] = [
     lessons: 23,
     standalonePrice: 999,
     level: "Foundation",
-    learnystUrl: `${LEARNYST_COURSES_URL}/fundamentals-esg-brsr`,
+    learnystUrl: `${LEARNYST_COURSES_URL}/Intro-to-ESG-and-BRSR`,
+    image: "/courses/fundamentals-esg-brsr.svg",
+  },
+  {
+    id: "ghg-accounting-mastery",
+    title: "GHG Accounting Mastery in 20 Hours",
+    framework: "GHG Accounting",
+    description:
+      "Scope 1, 2 and 3 from first principles — ISO 14064-aligned, with the spreadsheets and audit trail your assurance partner will accept.",
+    duration: "22 lessons",
+    lessons: 22,
+    standalonePrice: 6999,
+    level: "Intermediate",
+    learnystUrl: `${LEARNYST_COURSES_URL}/GHG-Accounting-101`,
+    image: "/courses/ghg-accounting-mastery.svg",
   },
   {
     id: "esg-readiness",
@@ -54,106 +69,37 @@ export const courses: Course[] = [
     framework: "ESG Strategy",
     description:
       "Build an ESG program from scratch — governance, materiality, KPIs, and the rollout plan that actually survives Q1.",
-    duration: "30 lessons",
-    lessons: 30,
+    duration: "28 lessons",
+    lessons: 28,
     standalonePrice: 6999,
     level: "Intermediate",
-    learnystUrl: `${LEARNYST_COURSES_URL}/esg-readiness`,
-  },
-  {
-    id: "ghg-accounting-mastery",
-    title: "GHG Accounting Mastery",
-    framework: "GHG Accounting",
-    description:
-      "Scope 1, 2 and 3 from first principles — ISO 14064-aligned, with the spreadsheets and audit trail your assurance partner will accept.",
-    duration: "25 lessons",
-    lessons: 25,
-    standalonePrice: 6999,
-    level: "Intermediate",
-    learnystUrl: `${LEARNYST_COURSES_URL}/ghg-accounting-mastery`,
-  },
-  {
-    id: "materiality-assessment-mastery",
-    title: "Materiality Assessment Mastery",
-    framework: "Materiality",
-    description:
-      "Run a double-materiality assessment your board can defend — stakeholder mapping, scoring, and the disclosure that comes out the other side.",
-    duration: "21 lessons",
-    lessons: 21,
-    standalonePrice: 5999,
-    level: "Intermediate",
-    learnystUrl: `${LEARNYST_COURSES_URL}/materiality-assessment-mastery`,
-  },
-  {
-    id: "lca-mastery",
-    title: "Life Cycle Assessment Mastery",
-    framework: "LCA",
-    description:
-      "ISO 14040/14044 LCA — goal & scope, inventory, impact assessment, interpretation — on real product systems, not toy examples.",
-    duration: "15 lessons",
-    lessons: 15,
-    standalonePrice: 5999,
-    level: "Advanced",
-    learnystUrl: `${LEARNYST_COURSES_URL}/lca-mastery`,
-  },
-  {
-    id: "cbam-mastery",
-    title: "CBAM Mastery Course",
-    framework: "CBAM",
-    description:
-      "CBAM scope, embedded emissions, and how to ready your supply chain for the European compliance bar before the levy kicks in.",
-    duration: "18 lessons",
-    lessons: 18,
-    standalonePrice: 10000,
-    level: "Advanced",
-    learnystUrl: `${LEARNYST_COURSES_URL}/cbam-mastery`,
-  },
-  {
-    id: "circularity-mastery",
-    title: "Circularity Mastery",
-    framework: "Circularity",
-    description:
-      "Circular design, business model patterns, and the metrics — including the Indian regulatory hooks — that turn circularity from buzzword to roadmap.",
-    duration: "37 lessons",
-    lessons: 37,
-    standalonePrice: 6999,
-    level: "Intermediate",
-    learnystUrl: `${LEARNYST_COURSES_URL}/circularity-mastery`,
-  },
-  {
-    id: "esg-software-tool-training",
-    title: "ESG Software Tool Training",
-    framework: "ESG Tools",
-    description:
-      "Hands-on with the disclosure software hiring teams ask for — data input, mapping, and a clean export ready for assurance.",
-    duration: "Included with subscription",
-    lessons: 0,
-    standalonePrice: null,
-    level: "Foundation",
-    learnystUrl: `${LEARNYST_COURSES_URL}/esg-software-tool-training`,
-  },
-];
-
-/**
- * Paid certifications & live workshops sold separately from the subscription.
- * Surfaced in the home page's "courses included" section as a small footer
- * bar so the price story stays clean.
- */
-export interface AddOn {
-  id: string;
-  title: string;
-  price: number;
-}
-
-export const certificationAddOns: AddOn[] = [
-  {
-    id: "esg-reporting-pro",
-    title: "Become an ESG Reporting Pro",
-    price: 35000,
+    learnystUrl: `${LEARNYST_COURSES_URL}/ESG-Readiness`,
+    image: "/courses/esg-readiness.svg",
   },
   {
     id: "live-lca-training",
-    title: "Live LCA Training",
-    price: 20000,
+    title: "Live Training — Master Life Cycle Assessment (LCA)",
+    framework: "LCA",
+    description:
+      "Live, instructor-led LCA — work a real product system through ISO 14040/14044 (goal & scope, inventory, impact assessment, interpretation) with direct feedback on your model.",
+    duration: "1 lesson",
+    lessons: 1,
+    standalonePrice: 20000,
+    level: "Advanced",
+    learnystUrl: `${LEARNYST_COURSES_URL}/Live-Training---Master-Life-Cycle-Assessment-LCA-`,
+    image: "/courses/live-lca-training.svg",
+  },
+  {
+    id: "esg-reporting-pro",
+    title: "Become an ESG Reporting Pro",
+    framework: "ESG Reporting",
+    description:
+      "A four-week intensive that takes you from data to a defensible ESG report — disclosure structure, the evidence trail, and the review cycle assurance partners expect.",
+    duration: "2 lessons",
+    lessons: 2,
+    standalonePrice: 35000,
+    level: "Advanced",
+    learnystUrl: `${LEARNYST_COURSES_URL}/Become-an-ESG-Reporting-Pro`,
+    image: "/courses/esg-reporting-pro.svg",
   },
 ];

@@ -22,7 +22,7 @@ export function FaqSection({ limit }: FaqSectionProps) {
                   Questions, <span className="text-green-700">answered</span>.
                 </>
               }
-              description="Still unsure? Email sachin@greenmentor.co — we usually respond within a working day."
+              description="Still unsure? Email help@greenmentor.co — we usually respond within a working day."
             />
           </div>
           <div className="md:col-span-7">

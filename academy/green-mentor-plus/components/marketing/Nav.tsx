@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/Button";
 import { Container } from "@/components/marketing/Container";
 import { Logo, SubBrand } from "@/components/marketing/Logo";
 import { primaryNav } from "@/lib/data/nav";
+import { track } from "@/lib/utils/analytics";
 
 export function Nav() {
   const [open, setOpen] = useState(false);
@@ -41,8 +42,8 @@ export function Nav() {
         <div className="flex h-[72px] items-center justify-between gap-6 md:h-20">
           <div className="flex items-center gap-3">
             <Logo />
-            <span className="hidden h-5 w-px bg-gray-200 md:block" aria-hidden />
-            <SubBrand className="hidden md:inline" />
+            <span className="block h-5 w-px bg-gray-200" aria-hidden />
+            <SubBrand />
           </div>
 
           <nav
@@ -66,11 +67,15 @@ export function Nav() {
           </nav>
 
           <div className="hidden items-center gap-3 md:flex">
-            <Button asChild variant="ghost-light" size="sm">
-              <Link href="/login">Log in</Link>
-            </Button>
             <Button asChild variant="primary" size="md">
-              <Link href="/onboarding/intro">Get Started</Link>
+              <Link
+                href="/onboarding/intro"
+                onClick={() =>
+                  track("cta_clicked", { location: "nav_desktop" })
+                }
+              >
+                Get Started
+              </Link>
             </Button>
           </div>
 
@@ -105,11 +110,15 @@ export function Nav() {
                 </Link>
               ))}
               <div className="mt-3 grid gap-2 border-t border-gray-200 pt-4">
-                <Button asChild variant="outline" size="md">
-                  <Link href="/login">Log in</Link>
-                </Button>
                 <Button asChild variant="primary" size="md">
-                  <Link href="/onboarding/intro">Get Started</Link>
+                  <Link
+                    href="/onboarding/intro"
+                    onClick={() =>
+                      track("cta_clicked", { location: "nav_mobile" })
+                    }
+                  >
+                    Get Started
+                  </Link>
                 </Button>
               </div>
             </nav>

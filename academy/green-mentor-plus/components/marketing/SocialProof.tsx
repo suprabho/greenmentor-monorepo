@@ -31,9 +31,13 @@ export function SocialProof() {
 
         <div className="mt-16 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
           {testimonials.map((t) => (
-            <figure
+            <a
               key={t.name}
-              className="flex flex-col rounded-[20px] border border-gray-200 bg-white p-7"
+              href={t.linkedinUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={`View ${t.name} on LinkedIn`}
+              className="group flex flex-col rounded-lg border border-gray-200 bg-white p-7 transition hover:-translate-y-0.5 hover:border-green-300 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-700 focus-visible:ring-offset-2"
             >
               <div className="flex items-center gap-3">
                 <span
@@ -56,15 +60,10 @@ export function SocialProof() {
                 &ldquo;{t.quote}&rdquo;
               </blockquote>
 
-              <a
-                href={t.linkedinUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="mt-5 inline-flex items-center gap-1.5 text-[12px] font-semibold text-green-700 hover:text-green-700/80"
-              >
+              <span className="mt-5 inline-flex items-center gap-1.5 text-[12px] font-semibold text-green-700 group-hover:text-green-700/80">
                 <LinkedinLogo size={14} weight="fill" /> View on LinkedIn
-              </a>
-            </figure>
+              </span>
+            </a>
           ))}
         </div>
       </Container>

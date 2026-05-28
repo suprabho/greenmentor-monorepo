@@ -22,11 +22,11 @@ export function BottomNav({
   continueLoading = false,
 }: BottomNavProps) {
   return (
-    <div className="mt-12 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
+    <div className="sticky bottom-0 z-30 -mx-6 mt-auto flex flex-col-reverse gap-3 border-t border-white/10 bg-teal-900/85 px-6 py-4 backdrop-blur sm:flex-row sm:items-center sm:justify-between md:-mx-8 md:px-8">
       {backHref ? (
         <Button
           asChild
-          variant="ghost-light"
+          variant="ghost-dark"
           size="md"
           iconLeft={<ArrowLeft size={16} />}
         >
@@ -34,7 +34,7 @@ export function BottomNav({
         </Button>
       ) : onBack ? (
         <Button
-          variant="ghost-light"
+          variant="ghost-dark"
           size="md"
           onClick={onBack}
           iconLeft={<ArrowLeft size={16} />}

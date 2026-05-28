@@ -1,8 +1,11 @@
+"use client";
+
 import Link from "next/link";
 import { ArrowRight } from "@phosphor-icons/react/dist/ssr";
 import { Container } from "@/components/marketing/Container";
 import { Button } from "@/components/ui/Button";
 import { Eyebrow } from "@/components/ui/Badge";
+import { track } from "@/lib/utils/analytics";
 
 export function FinalCta() {
   return (
@@ -43,12 +46,24 @@ export function FinalCta() {
               size="lg"
               iconRight={<ArrowRight size={18} weight="bold" />}
             >
-              <Link href="/onboarding/intro">
+              <Link
+                href="/onboarding/intro"
+                onClick={() =>
+                  track("cta_clicked", { location: "final_cta", label: "get_plus" })
+                }
+              >
                 Get Plus Essential — ₹4,000 / month
               </Link>
             </Button>
             <Button asChild variant="ghost-dark" size="lg">
-              <Link href="/pricing">See annual plan</Link>
+              <Link
+                href="/#pricing"
+                onClick={() =>
+                  track("cta_clicked", { location: "final_cta", label: "see_annual" })
+                }
+              >
+                See annual plan
+              </Link>
             </Button>
           </div>
 

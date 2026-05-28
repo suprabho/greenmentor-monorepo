@@ -28,18 +28,21 @@ export function ProblemSection() {
             return (
               <li
                 key={p.id}
-                className="rounded-[20px] border border-gray-200 bg-white p-7 transition-colors hover:border-green-500/60"
+                className="rounded-lg border border-gray-200 bg-linear-to-br from-green-700 to-green-900 p-7 transition-colors hover:border-green-500/60"
               >
-                <Icon
-                  size={24}
-                  weight="duotone"
-                  className="text-green-700"
-                  aria-hidden
-                />
-                <h3 className="mt-5 text-[18px] font-bold leading-snug text-ink">
+                <div className="size-3 -m-8">
+                  <Icon
+                    size={90}
+                    weight="fill"
+                    className="text-green-100/20"
+                    aria-hidden
+                  />
+                </div>
+                
+                <h3 className="mt-20 text-[18px] font-bold leading-snug text-white">
                   {p.title}
                 </h3>
-                <p className="mt-2 text-[15px] leading-relaxed text-gray-700">
+                <p className="mt-2 text-[15px] leading-relaxed text-green-100">
                   {p.description}
                 </p>
               </li>

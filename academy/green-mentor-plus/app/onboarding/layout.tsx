@@ -31,17 +31,14 @@ export default function OnboardingLayout({
   const hideProgress = isHandoff || isIntro;
 
   return (
-    <div className="flex min-h-screen flex-col bg-section-fade">
-      <header className="border-b border-gray-200 bg-white">
+    <div className="flex h-svh flex-col bg-teal-900 text-white">
+      <main className="flex-1 overflow-y-auto">
         <Container width="wide">
-          <div className="flex h-[72px] items-center justify-between gap-6 md:h-20">
+          <div className="flex h-18 items-center justify-between gap-6 md:h-20">
             <div className="flex items-center gap-3">
-              <Logo />
-              <span
-                className="hidden h-5 w-px bg-gray-200 sm:block"
-                aria-hidden
-              />
-              <SubBrand className="hidden sm:inline" />
+              <Logo variant="dark" />
+              <span className="block h-5 w-px bg-white/20" aria-hidden />
+              <SubBrand className="text-green-100" />
             </div>
             {!hideProgress ? (
               <div className="hidden w-64 sm:block">
@@ -55,10 +52,12 @@ export default function OnboardingLayout({
             </div>
           ) : null}
         </Container>
-      </header>
-
-      <main className="flex-1 py-12 md:py-20">
-        <Container width="narrow">{children}</Container>
+        <Container
+          width="default"
+          className="flex min-h-full flex-col "
+          >
+          {children}
+          </Container>
       </main>
     </div>
   );

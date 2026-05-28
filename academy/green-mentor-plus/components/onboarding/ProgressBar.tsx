@@ -13,17 +13,17 @@ export function ProgressBar({ step, total }: ProgressBarProps) {
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between text-[13px]">
-        <span className="gm-eyebrow text-green-700">
+        <span className="gm-eyebrow text-green-100">
           Step {step} of {total}
         </span>
-        <span className="text-gray-500">{percent}%</span>
+        <span className="text-white/60">{percent}%</span>
       </div>
       <div
         role="progressbar"
         aria-valuemin={0}
         aria-valuemax={100}
         aria-valuenow={percent}
-        className="h-1 w-full overflow-hidden rounded-full bg-gray-200"
+        className="h-1 w-full overflow-hidden rounded-full bg-white/15"
       >
         <motion.div
           initial={false}

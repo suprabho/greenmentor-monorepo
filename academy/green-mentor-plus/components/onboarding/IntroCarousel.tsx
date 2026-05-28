@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { CaretLeft, CaretRight, Check } from "@phosphor-icons/react/dist/ssr";
+import { CaretLeft, CaretRight } from "@phosphor-icons/react/dist/ssr";
 import type { IntroCard } from "@/lib/data/intro-cards";
 import { cn } from "@/lib/utils/cn";
 
@@ -13,6 +13,11 @@ export function IntroCarousel({ cards }: IntroCarouselProps) {
   const trackRef = useRef<HTMLDivElement | null>(null);
   const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
   const [activeIndex, setActiveIndex] = useState(0);
+  // Whether the track actually overflows in each direction. On desktop the
+  // cards lay out as a 3-up grid with nothing to scroll, so both stay false
+  // and the arrows hide.
+  const [canScrollPrev, setCanScrollPrev] = useState(false);
+  const [canScrollNext, setCanScrollNext] = useState(false);
 
   // Keep dot indicator in sync with manual swipes via a scroll listener.
   // Programmatic dot taps update activeIndex directly inside scrollTo,
@@ -22,7 +27,7 @@ export function IntroCarousel({ cards }: IntroCarouselProps) {
     const track = trackRef.current;
     if (!track) return;
 
-    const computeActive = () => {
+    const update = () => {
       const center = track.scrollLeft + track.clientWidth / 2;
       let bestIdx = 0;
       let bestDist = Infinity;
@@ -36,10 +41,23 @@ export function IntroCarousel({ cards }: IntroCarouselProps) {
         }
       });
       setActiveIndex(bestIdx);
+
+      // 1px tolerance absorbs sub-pixel rounding at the scroll extremes.
+      setCanScrollPrev(track.scrollLeft > 1);
+      setCanScrollNext(
+        track.scrollLeft + track.clientWidth < track.scrollWidth - 1,
+      );
     };
 
-    track.addEventListener("scroll", computeActive, { passive: true });
-    return () => track.removeEventListener("scroll", computeActive);
+    update();
+    track.addEventListener("scroll", update, { passive: true });
+    // Recompute when the layout changes (e.g. mobile carousel ⇄ desktop grid).
+    const observer = new ResizeObserver(update);
+    observer.observe(track);
+    return () => {
+      track.removeEventListener("scroll", update);
+      observer.disconnect();
+    };
   }, [cards.length]);
 
   const scrollTo = useCallback((index: number) => {
@@ -70,11 +88,11 @@ export function IntroCarousel({ cards }: IntroCarouselProps) {
         type="button"
         aria-label="Previous card"
         onClick={goPrev}
-        disabled={activeIndex === 0}
+        disabled={!canScrollPrev}
         className={cn(
           "absolute top-1/2 -left-4 z-10 hidden -translate-y-1/2 rounded-full border border-gray-200 bg-white p-3 shadow-soft transition-opacity",
           "md:flex",
-          activeIndex === 0
+          !canScrollPrev
             ? "pointer-events-none opacity-0"
             : "hover:border-green-700",
         )}
@@ -85,11 +103,11 @@ export function IntroCarousel({ cards }: IntroCarouselProps) {
         type="button"
         aria-label="Next card"
         onClick={goNext}
-        disabled={activeIndex === cards.length - 1}
+        disabled={!canScrollNext}
         className={cn(
           "absolute top-1/2 -right-4 z-10 hidden -translate-y-1/2 rounded-full border border-gray-200 bg-white p-3 shadow-soft transition-opacity",
           "md:flex",
-          activeIndex === cards.length - 1
+          !canScrollNext
             ? "pointer-events-none opacity-0"
             : "hover:border-green-700",
         )}
@@ -124,54 +142,34 @@ export function IntroCarousel({ cards }: IntroCarouselProps) {
               aria-roledescription="slide"
               aria-label={`${i + 1} of ${cards.length}`}
               className={cn(
-                // Mobile: each card takes ~85% of viewport so a hint of the
+                // Mobile: each card takes ~78% of viewport so more of the
                 // next card peeks in to telegraph "swipeable". `min-w-0`
                 // overrides the flex default (min-content) so the card
                 // actually honors basis instead of growing to fit content.
-                "min-w-0 basis-[85%] shrink-0 snap-center",
+                "min-w-0 basis-[78%] shrink-0 snap-center",
                 "md:basis-auto",
               )}
             >
               <div
                 className={cn(
-                  "flex h-full flex-col rounded-[20px] border bg-white p-7 transition-[border-color,box-shadow] duration-200",
+                  "flex h-full flex-col rounded-[20px] border bg-white/20 backdrop:backdrop-blur-2xl p-7 transition-[border-color,box-shadow] duration-200",
                   isActive
-                    ? "border-green-700 shadow-lift md:shadow-soft"
-                    : "border-gray-200",
+                    ? "border-green-500 shadow-lift md:shadow-soft"
+                    : "border-gray-200/20",
                 )}
               >
-                <div className="grid size-12 place-items-center rounded-full bg-green-100">
+                <div className="grid size-12 place-items-center rounded-full bg-green-900/20">
                   <Icon
                     size={24}
-                    weight="duotone"
-                    className="text-green-700"
+                    weight="fill"
+                    className="text-green-500"
                     aria-hidden
                   />
                 </div>
-                <p className="gm-eyebrow mt-6 text-green-700">{card.eyebrow}</p>
-                <h2 className="font-display mt-3 text-[24px] leading-tight tracking-[-0.02em] text-ink">
+                <p className="gm-eyebrow mt-6 text-green-300">{card.eyebrow}</p>
+                <h2 className="font-display mt-3 text-[24px] leading-tight tracking-[-0.02em] text-white">
                   {card.title}
                 </h2>
-                <p className="mt-3 text-[15px] leading-relaxed text-gray-700">
-                  {card.body}
-                </p>
-                <ul className="mt-5 space-y-2 border-t border-gray-200 pt-5">
-                  {card.bullets.map((bullet) => (
-                    <li
-                      key={bullet}
-                      className="flex items-start gap-2 text-[14px] text-ink"
-                    >
-                      <span className="mt-0.5 grid size-5 shrink-0 place-items-center rounded-full bg-green-500">
-                        <Check
-                          size={12}
-                          weight="bold"
-                          className="text-teal-900"
-                        />
-                      </span>
-                      <span>{bullet}</span>
-                    </li>
-                  ))}
-                </ul>
               </div>
             </div>
           );

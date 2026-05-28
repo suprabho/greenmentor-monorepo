@@ -8,7 +8,6 @@ import { ArrowRight } from "@phosphor-icons/react/dist/ssr";
 import { useOnboarding } from "@/lib/store/onboarding";
 import type { AudienceSegment } from "@/lib/data/audiences";
 import { introCards } from "@/lib/data/intro-cards";
-import { Eyebrow } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { IntroCarousel } from "@/components/onboarding/IntroCarousel";
 import { track } from "@/lib/utils/analytics";
@@ -50,24 +49,25 @@ function IntroBody() {
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, ease: [0.2, 0.7, 0.2, 1] }}
+      className="flex min-h-full flex-1 flex-col"
     >
-      <Eyebrow tone="white">Greenmentor Plus</Eyebrow>
-      <h1 className="font-display mt-8 text-[32px] leading-tight tracking-[-0.02em] text-ink sm:text-[40px] md:text-[48px]">
-        The only subscription you need to master anything in ESG.
-      </h1>
-      <p className="mt-3 max-w-xl text-[16px] leading-relaxed text-gray-700 md:text-[17px]">
-        Courses, live expert sessions, career tools, and a community of 40,000+
-        sustainability professionals — all in one place, for one simple price.
-      </p>
-
-      <div className="mt-10">
-        <IntroCarousel cards={introCards} />
+      <div className="flex flex-col">
+        <h1 className="font-display text-[32px] leading-tight tracking-[-0.02em] text-white sm:text-[40px] md:text-[48px]">
+          The only subscription you need to master anything in ESG.
+        </h1>
+        <p className="mt-3 max-w-xl text-[16px] leading-relaxed text-white/80 md:text-[17px]">
+          Courses, live expert sessions, career tools, and a community of 40,000+
+          sustainability professionals all in one place, for one simple price.
+        </p>
+        <div className="mt-10">
+          <IntroCarousel cards={introCards} />
+        </div>
       </div>
 
-      <div className="mt-10 flex flex-col-reverse items-center gap-3 sm:flex-row sm:justify-between">
+      <div className="sticky bottom-0 z-30 -mx-6 mt-auto flex flex-col-reverse items-center gap-3 border-t border-white/10 bg-teal-900/85 px-6 py-4 backdrop-blur sm:flex-row sm:justify-between md:-mx-8 md:px-8">
         <Link
           href="/"
-          className="text-[14px] text-gray-500 underline-offset-4 hover:underline"
+          className="text-[14px] text-white/60 underline-offset-4 hover:underline"
         >
           Back to home
         </Link>

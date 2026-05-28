@@ -45,7 +45,7 @@ export const faqs: Faq[] = [
     id: "team-pricing",
     question: "Do you offer team plans?",
     answer:
-      "Yes. For 5+ seats we run a team plan with shared analytics, cohort kickoffs, and a dedicated coach. Email sachin@greenmentor.co.",
+      "Yes. For 5+ seats we run a team plan with shared analytics, cohort kickoffs, and a dedicated coach. Email help@greenmentor.co.",
   },
   {
     id: "payment",

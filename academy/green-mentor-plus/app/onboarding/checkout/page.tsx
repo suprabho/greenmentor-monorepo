@@ -8,9 +8,9 @@ import { CheckCircle, Lock, WarningCircle } from "@phosphor-icons/react/dist/ssr
 import { useOnboarding } from "@/lib/store/onboarding";
 import { plans, annualSavingsPercent } from "@/lib/data/plans";
 import { Button } from "@/components/ui/Button";
-import { Eyebrow } from "@/components/ui/Badge";
 import { BottomNav } from "@/components/onboarding/BottomNav";
 import { track } from "@/lib/utils/analytics";
+import { syncLead } from "@/lib/lead/sync";
 import type {
   CreateSubscriptionRequest,
   CreateSubscriptionResponse,
@@ -136,6 +136,20 @@ export default function CheckoutStep() {
         setSubscription(json);
         setRazorpaySubscriptionId(json.subscriptionId);
         setPhase("ready");
+        // Record that they reached payment — the highest-intent drop-off point.
+        syncLead("checkout");
+        track("begin_checkout", {
+          currency: json.currency,
+          value: json.amountPaise / 100,
+          items: [
+            {
+              item_id: planId,
+              item_name: plan?.name,
+              item_variant: billingCycle,
+              price: json.amountPaise / 100,
+            },
+          ],
+        });
       } catch (err) {
         if (cancelled) return;
         setError(
@@ -152,6 +166,7 @@ export default function CheckoutStep() {
 
   const openCheckout = useCallback(() => {
     if (!subscription || !scriptReady) return;
+    const { amountPaise, currency } = subscription;
     const RazorpayCtor = window.Razorpay;
     if (!RazorpayCtor) {
       setError("Razorpay Checkout failed to load. Please retry.");
@@ -204,6 +219,19 @@ export default function CheckoutStep() {
           });
           setPhase("succeeded");
           track("checkout_succeeded", { planId, billingCycle });
+          track("purchase", {
+            transaction_id: response.razorpay_payment_id,
+            currency,
+            value: amountPaise / 100,
+            items: [
+              {
+                item_id: planId,
+                item_name: plan?.name,
+                item_variant: billingCycle,
+                price: amountPaise / 100,
+              },
+            ],
+          });
           // Small delay so the success state is perceivable before redirect.
           window.setTimeout(() => router.push("/onboarding/handoff"), 700);
         } catch (err) {
@@ -272,7 +300,7 @@ export default function CheckoutStep() {
   const displayAmountPaise =
     subscription?.amountPaise ??
     (billingCycle === "annual"
-      ? plan.priceAnnual * 100
+      ? plan.priceAnnualTotal * 100
       : plan.priceMonthly * 100);
 
   return (
@@ -291,12 +319,13 @@ export default function CheckoutStep() {
         initial={{ opacity: 0, x: 16 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.3, ease: [0.2, 0.7, 0.2, 1] }}
+        className="flex min-h-full flex-1 flex-col"
       >
-        <Eyebrow tone="white">Checkout</Eyebrow>
-        <h1 className="font-display mt-8 text-[40px] leading-tight tracking-[-0.02em] text-ink md:text-[56px]">
+        <div>
+        <h1 className="font-display text-[40px] leading-tight tracking-[-0.02em] text-white md:text-[56px]">
           Confirm and pay.
         </h1>
-        <p className="mt-4 text-[17px] leading-relaxed text-gray-700">
+        <p className="mt-4 text-[17px] leading-relaxed text-white/80">
           Secure checkout powered by Razorpay. Cancel anytime from your
           account.
         </p>
@@ -318,13 +347,21 @@ export default function CheckoutStep() {
             ) : null}
           </div>
 
-          <div className="mt-6 flex items-baseline gap-2 border-t border-gray-200 pt-6">
-            <span className="font-numeral text-[48px] leading-none text-green-700">
-              {formatINR(displayAmountPaise)}
-            </span>
-            <span className="text-[14px] text-gray-500">
-              / month{billingCycle === "annual" ? ", billed yearly" : ""}
-            </span>
+          <div className="mt-6 border-t border-gray-200 pt-6">
+            <div className="flex items-baseline gap-2">
+              <span className="font-numeral text-[48px] leading-none text-green-700">
+                {formatINR(displayAmountPaise)}
+              </span>
+              <span className="text-[14px] text-gray-500">
+                {billingCycle === "annual" ? "/ year" : "/ month"}
+              </span>
+            </div>
+            {billingCycle === "annual" ? (
+              <p className="mt-2 text-[13px] text-gray-500">
+                Billed once a year · works out to{" "}
+                {formatINR(plan.priceAnnual * 100)} / month
+              </p>
+            ) : null}
           </div>
 
           <dl className="mt-6 grid gap-3 text-[14px]">
@@ -361,10 +398,17 @@ export default function CheckoutStep() {
           ) : null}
         </div>
 
-        <p className="mt-4 flex items-center gap-2 text-[12px] text-gray-500">
+        <p className="mt-4 flex items-center gap-2 text-[12px] text-white/60">
           <Lock size={14} aria-hidden />
           PCI-DSS Level 1 checkout. We never see your card details.
         </p>
+
+        {razorpaySubscriptionId ? (
+          <p className="mt-6 text-[11px] text-white/50">
+            Subscription ref: {razorpaySubscriptionId}
+          </p>
+        ) : null}
+        </div>
 
         <BottomNav
           backHref="/onboarding/plan"
@@ -385,12 +429,6 @@ export default function CheckoutStep() {
                   : `Pay ${formatINR(displayAmountPaise)}`
           }
         />
-
-        {razorpaySubscriptionId ? (
-          <p className="mt-6 text-[11px] text-gray-400">
-            Subscription ref: {razorpaySubscriptionId}
-          </p>
-        ) : null}
       </motion.div>
     </>
   );

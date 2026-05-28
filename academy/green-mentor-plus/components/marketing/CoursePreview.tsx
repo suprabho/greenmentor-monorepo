@@ -6,36 +6,17 @@ import {
   FileText,
   ChartBar,
   Cloud,
-  Target,
-  Recycle,
-  Globe,
-  ArrowsLeftRight,
-  Wrench,
+  Broadcast,
+  Certificate,
   Stack,
-  Tag,
 } from "@phosphor-icons/react/dist/ssr";
 import type { Icon } from "@phosphor-icons/react";
 import { Container } from "@/components/marketing/Container";
 import { SectionHeader } from "@/components/marketing/SectionHeader";
-import { Button } from "@/components/ui/Button";
-import { courses, certificationAddOns } from "@/lib/data/courses";
+import { courses } from "@/lib/data/courses";
 import { track } from "@/lib/utils/analytics";
 
-/**
- * Pick the right Phosphor icon for each course. Map keyed by course id so
- * the order in `courses.ts` can change without breaking the assignment.
- */
-const courseIcons: Record<string, Icon> = {
-  "fundamentals-esg-brsr": FileText,
-  "esg-readiness": ChartBar,
-  "ghg-accounting-mastery": Cloud,
-  "materiality-assessment-mastery": Target,
-  "lca-mastery": Recycle,
-  "cbam-mastery": Globe,
-  "circularity-mastery": ArrowsLeftRight,
-  "esg-software-tool-training": Wrench,
-};
-
+/** Standalone INR price, e.g. "₹6,999" — matches the en-IN formatting used in pricing. */
 function formatINR(n: number) {
   return new Intl.NumberFormat("en-IN", {
     style: "currency",
@@ -44,34 +25,47 @@ function formatINR(n: number) {
   }).format(n);
 }
 
+/**
+ * Pick the right Phosphor icon for each course. Map keyed by course id so
+ * the order in `courses.ts` can change without breaking the assignment.
+ */
+const courseIcons: Record<string, Icon> = {
+  "fundamentals-esg-brsr": FileText,
+  "ghg-accounting-mastery": Cloud,
+  "esg-readiness": ChartBar,
+  "live-lca-training": Broadcast,
+  "esg-reporting-pro": Certificate,
+};
+
 export function CoursePreview() {
   return (
     <section id="courses" className="bg-white py-24 md:py-28">
       <Container width="wide">
-        <div className="flex flex-col items-start justify-between gap-8 md:flex-row md:items-end">
-          <SectionHeader
-            label="Courses included"
-            title={
-              <>
-                Every course you need.{" "}
-                <span className="text-green-700">One subscription.</span>
-              </>
-            }
-            description="All courses below are included in your Plus Essential subscription. Bundles are curated paths combining multiple courses for a specific outcome."
-            className="max-w-2xl"
-          />
-          <Button asChild variant="outline" size="md">
-            <Link href="/courses">See full library</Link>
-          </Button>
+        <SectionHeader
+          label="Courses included"
+          title={
+            <>
+              Every course you need.{" "}
+              <span className="text-green-700">One subscription.</span>
+            </>
+          }
+          description="Foundational courses are included in your Plus Essential subscription; the live and pro programs are available as paid add-ons. Bundles are curated paths combining several courses for a specific outcome."
+          className="max-w-2xl"
+        />
+
+        {/* Aligned-with-frameworks lockup from the deck */}
+        <div className="mt-10 flex flex-col items-start gap-4 rounded-[20px] border border-gray-200 bg-section-fade p-6 md:flex-row md:items-center md:gap-6 md:p-8">
+          <span className="gm-eyebrow shrink-0 border border-black/[0.06] bg-white px-[18px] py-[10px] text-green-700">
+            Aligned With
+          </span>
+          <p className="text-[15px] font-medium text-ink md:text-[17px]">
+            BRSR · GRI · SASB · CDP · CBAM · TCFD · DJSI
+          </p>
         </div>
 
-        <div className="mt-14 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {courses.map((course) => {
             const Icon = courseIcons[course.id] ?? FileText;
-            const meta =
-              course.standalonePrice !== null
-                ? `${course.lessons} lessons · ${formatINR(course.standalonePrice)} standalone`
-                : "Included with subscription";
             return (
               <Link
                 key={course.id}
@@ -84,25 +78,43 @@ export function CoursePreview() {
                     framework: course.framework,
                   })
                 }
-                className="group flex flex-col rounded-[14px] border border-gray-200 bg-white p-5 transition-[border-color,transform,box-shadow] duration-200 hover:-translate-y-0.5 hover:border-green-700 hover:shadow-soft"
+                className="group flex flex-col overflow-hidden rounded-[14px] border border-gray-200 bg-white transition-[border-color,transform,box-shadow] duration-200 hover:-translate-y-0.5 hover:border-green-700 hover:shadow-soft"
               >
-                <div className="flex items-start justify-between">
+                {/* TODO[assets]: swap the placeholder banners in /public/courses
+                    for real Learnyst thumbnails (keep the same file paths) */}
+                <div className="relative aspect-2/1 w-full overflow-hidden bg-green-900">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={course.image}
+                    alt=""
+                    loading="lazy"
+                    className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+                  />
+                  <ArrowUpRight
+                    size={14}
+                    weight="bold"
+                    className="absolute right-3 top-3 text-white/70 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-white"
+                  />
+                </div>
+                <div className="flex flex-1 flex-col p-5">
                   <Icon
                     size={20}
                     weight="duotone"
                     className="text-green-700"
                     aria-hidden
                   />
-                  <ArrowUpRight
-                    size={14}
-                    weight="bold"
-                    className="text-gray-400 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-green-700"
-                  />
+                  <h3 className="mt-3 text-[14px] font-bold leading-snug text-ink">
+                    {course.title}
+                  </h3>
+                  {course.standalonePrice !== null && (
+                    <p className="mt-auto pt-3 text-[13px] font-semibold text-green-700">
+                      {formatINR(course.standalonePrice)}{" "}
+                      <span className="font-medium text-gray-500">
+                        standalone value
+                      </span>
+                    </p>
+                  )}
                 </div>
-                <h3 className="mt-5 text-[14px] font-bold leading-snug text-ink">
-                  {course.title}
-                </h3>
-                <p className="mt-2 text-[12px] text-gray-500">{meta}</p>
               </Link>
             );
           })}
@@ -119,25 +131,7 @@ export function CoursePreview() {
           <span>
             <strong className="font-semibold">Bundles</strong> are curated
             combinations of these courses with a clear learning path and
-            outcome — e.g. ESG Reporting Bundle, ESG Mastery Essentials. All
-            included in your subscription.
-          </span>
-        </div>
-
-        {/* Paid certifications/workshops sit outside the subscription — call
-            this out so users don't bounce when they see a 35k SKU later */}
-        <div className="mt-3 flex flex-wrap items-center gap-2 rounded-[14px] border border-gray-200 bg-white px-4 py-3 text-[13px] text-gray-700">
-          <Tag
-            size={16}
-            className="flex-shrink-0 text-[#BA7517]"
-            aria-hidden
-          />
-          <span>
-            Certifications & workshops available as separate add-ons —{" "}
-            {certificationAddOns
-              .map((a) => `${a.title} (${formatINR(a.price)})`)
-              .join(", ")}
-            .
+            outcome — e.g. ESG Reporting Bundle, ESG Mastery Essentials.
           </span>
         </div>
       </Container>

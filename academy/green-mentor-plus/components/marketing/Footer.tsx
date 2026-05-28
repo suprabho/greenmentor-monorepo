@@ -54,7 +54,7 @@ export function Footer() {
             © {new Date().getFullYear()} Greenmentor. All rights reserved.
           </p>
           <p className="text-[13px] text-white/60">
-            sachin@greenmentor.co · Courses delivered via Learnyst
+            help@greenmentor.co · Courses delivered via Learnyst
           </p>
         </div>
       </Container>

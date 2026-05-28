@@ -6,9 +6,9 @@ import { motion } from "framer-motion";
 import { useOnboarding } from "@/lib/store/onboarding";
 import type { AudienceSegment } from "@/lib/data/audiences";
 import { Input } from "@/components/ui/Input";
-import { Eyebrow } from "@/components/ui/Badge";
 import { BottomNav } from "@/components/onboarding/BottomNav";
 import { track } from "@/lib/utils/analytics";
+import { syncLead } from "@/lib/lead/sync";
 
 const validSegments: AudienceSegment[] = [
   "student",
@@ -58,6 +58,7 @@ function WelcomeForm() {
     if (!canContinue) return;
     setIdentity({ name: nameInput, email: emailInput });
     track("onboarding_step_completed", { step: "welcome" });
+    syncLead("welcome");
     router.push("/onboarding/audience");
   }
 
@@ -66,43 +67,51 @@ function WelcomeForm() {
       initial={{ opacity: 0, x: 16 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ duration: 0.3, ease: [0.2, 0.7, 0.2, 1] }}
+      className="flex min-h-full flex-1 flex-col"
     >
-      <Eyebrow tone="white">Welcome</Eyebrow>
-      <h1 className="font-display mt-8 text-[40px] leading-tight tracking-[-0.02em] text-ink md:text-[56px]">
-        Let&apos;s get the basics.
-      </h1>
-      <p className="mt-4 text-[17px] leading-relaxed text-gray-700">
-        We&apos;ll use this to personalize the next few questions — no spam,
-        no calls.
-      </p>
+      <div>
+        <h1 className="font-display text-[40px] leading-tight tracking-[-0.02em] text-white md:text-[56px]">
+          Let&apos;s get the basics.
+        </h1>
+        <p className="mt-4 text-[17px] leading-relaxed text-white/80">
+          We&apos;ll use this to personalize the next few questions — no spam,
+          no calls.
+        </p>
+      </div>
 
-      <form onSubmit={handleSubmit} className="mt-10 space-y-5" noValidate>
-        <Input
-          label="Full name"
-          placeholder="Aanya Mehra"
-          autoComplete="name"
-          value={nameInput}
-          onChange={(e) => setNameInput(e.target.value)}
-          error={
-            touched && !nameValid
-              ? "Please enter at least 2 characters."
-              : undefined
-          }
-        />
-        <Input
-          label="Email"
-          type="email"
-          inputMode="email"
-          autoComplete="email"
-          placeholder="aanya@company.com"
-          value={emailInput}
-          onChange={(e) => setEmailInput(e.target.value)}
-          error={
-            touched && !emailValid
-              ? "That doesn't look like a valid email."
-              : undefined
-          }
-        />
+      <form
+        onSubmit={handleSubmit}
+        className="mt-10 flex flex-1 flex-col"
+        noValidate
+      >
+        <div className="space-y-5 rounded-[20px] border border-gray-200/20 bg-white/40 backdrop-blur-3xl p-7">
+          <Input
+            label="Full name"
+            placeholder="Aanya Mehra"
+            autoComplete="name"
+            value={nameInput}
+            onChange={(e) => setNameInput(e.target.value)}
+            error={
+              touched && !nameValid
+                ? "Please enter at least 2 characters."
+                : undefined
+            }
+          />
+          <Input
+            label="Email"
+            type="email"
+            inputMode="email"
+            autoComplete="email"
+            placeholder="aanya@company.com"
+            value={emailInput}
+            onChange={(e) => setEmailInput(e.target.value)}
+            error={
+              touched && !emailValid
+                ? "That doesn't look like a valid email."
+                : undefined
+            }
+          />
+        </div>
 
         <BottomNav
           backHref="/onboarding/intro"

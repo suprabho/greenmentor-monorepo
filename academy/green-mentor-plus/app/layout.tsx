@@ -1,8 +1,12 @@
 import type { Metadata } from "next";
-import { Inter, ABeeZee } from "next/font/google";
+import { Manrope, ABeeZee } from "next/font/google";
+import { GoogleAnalytics } from "@next/third-parties/google";
+import { PageViewTracker } from "@/components/analytics/PageViewTracker";
 import "./globals.css";
 
-const inter = Inter({
+const gaMeasurementId = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
+
+const manrope = Manrope({
   subsets: ["latin"],
   display: "swap",
   variable: "--font-sans",
@@ -42,8 +46,16 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${inter.variable} ${abeezee.variable}`}>
-      <body className="min-h-screen bg-white text-ink">{children}</body>
+    <html lang="en" className={`${manrope.variable} ${abeezee.variable}`}>
+      <body className="min-h-screen bg-white/20 text-white">
+        {children}
+        {gaMeasurementId ? (
+          <>
+            <GoogleAnalytics gaId={gaMeasurementId} />
+            <PageViewTracker />
+          </>
+        ) : null}
+      </body>
     </html>
   );
 }

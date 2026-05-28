@@ -87,6 +87,9 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
+    scroll-behavior: smooth;
+    /* Offset in-page anchor targets below the sticky nav (h-[72px]/md:h-20) */
+    scroll-padding-top: 88px;
   }
 
   body {
@@ -179,4 +182,28 @@
   /* Background utilities */
   .bg-stat-band { background-image: var(--gradient-stat-band); }
   .bg-section-fade { background-image: var(--gradient-section-fade); }
+
+  /* ----- Marquee (continuous logo carousel) -----
+     The track holds two identical groups laid out with a shared 10px gap; one
+     full group + one gap is exactly half the track plus half a gap, so the
+     translate below loops seamlessly with variable-width logos. Honors the
+     global reduced-motion rule above (animation collapses to its first frame,
+     leaving the first group visible and static). */
+  @keyframes gm-marquee {
+    to { transform: translateX(calc(-50% - 5px)); }
+  }
+  .gm-marquee-track {
+    display: flex;
+    width: max-content;
+    gap: 10px;
+    animation: gm-marquee var(--gm-marquee-duration, 40s) linear infinite;
+  }
+  .gm-marquee-track:hover { animation-play-state: paused; }
+  .gm-marquee--reverse { animation-direction: reverse; }
+
+  /* Soft fade-out at both horizontal edges of the carousel. */
+  .gm-marquee-mask {
+    -webkit-mask-image: linear-gradient(to right, transparent, #000 6%, #000 94%, transparent);
+    mask-image: linear-gradient(to right, transparent, #000 6%, #000 94%, transparent);
+  }
 }
