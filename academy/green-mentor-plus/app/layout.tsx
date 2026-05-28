@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
 import { Manrope, ABeeZee } from "next/font/google";
 import { GoogleAnalytics } from "@next/third-parties/google";
+import { MetaPixel } from "@/components/analytics/MetaPixel";
 import { PageViewTracker } from "@/components/analytics/PageViewTracker";
 import "./globals.css";
 
 const gaMeasurementId = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
+const metaPixelId = process.env.NEXT_PUBLIC_META_PIXEL_ID;
 
 const manrope = Manrope({
   subsets: ["latin"],
@@ -49,12 +51,9 @@ export default function RootLayout({
     <html lang="en" className={`${manrope.variable} ${abeezee.variable}`}>
       <body className="min-h-screen bg-white/20 text-white">
         {children}
-        {gaMeasurementId ? (
-          <>
-            <GoogleAnalytics gaId={gaMeasurementId} />
-            <PageViewTracker />
-          </>
-        ) : null}
+        {gaMeasurementId ? <GoogleAnalytics gaId={gaMeasurementId} /> : null}
+        {metaPixelId ? <MetaPixel pixelId={metaPixelId} /> : null}
+        {gaMeasurementId || metaPixelId ? <PageViewTracker /> : null}
       </body>
     </html>
   );
