@@ -128,18 +128,9 @@ async def extract_from_url(url: str, section_indices: list[int], confirmed_metad
     except Exception:
         page_text = response.text[:50000]
 
-    # Build confirmed metadata block
-    meta_lines = []
-    if confirmed_metadata:
-        m = confirmed_metadata
-        if m.source_name:       meta_lines.append(f"Source name: {m.source_name}")
-        if m.source_type:       meta_lines.append(f"Source type: {m.source_type}")
-        if m.year:              meta_lines.append(f"Publication year: {m.year}")
-        if m.geography_country: meta_lines.append(f"Geography: {m.geography_description or ''} ({m.geography_country})")
-        if m.gwp_version:       meta_lines.append(f"GWP version: {m.gwp_version}")
-        if m.applicable_scopes: meta_lines.append(f"Applicable scopes: {', '.join(m.applicable_scopes)}")
-        if m.lca_stages:        meta_lines.append(f"LCA stages: {', '.join(m.lca_stages)}")
-        if m.guidance_notes:    meta_lines.append(f"Guidance notes: {m.guidance_notes}")
+    # Build confirmed metadata block (source-schema field names).
+    from app.services.extraction.pdf_agent import _confirmed_metadata_lines
+    meta_lines = _confirmed_metadata_lines(confirmed_metadata)
 
     meta_prefix = ""
     if meta_lines:

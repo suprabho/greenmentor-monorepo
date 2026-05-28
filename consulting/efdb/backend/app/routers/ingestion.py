@@ -308,10 +308,11 @@ async def commit_session(
     for idx in approved_indices:
         raw = session.extraction_result[idx]
         ef = _build_ef_from_extraction(raw, session, current_user.id)
-        score, breakdown = calculate_confidence(ef, weights)
-        ef.confidence_score = score
-        ef.confidence_breakdown = breakdown
-        ef.name_embedding = await generate_embedding(ef.canonical_activity_name)
+        # `calculate_confidence` is kept as a back-compat shim that reads
+        # the dq_score_overall pedigree score; we don't store its output
+        # since the source schema already has dq_* columns.
+        calculate_confidence(ef, weights)
+        ef.name_embedding = await generate_embedding(ef.activity_name)
         db.add(ef)
         await db.flush()
 
@@ -350,109 +351,145 @@ async def commit_session(
 
 
 def _build_ef_from_extraction(raw: dict, session: ExtractionSession, user_id: uuid.UUID) -> EmissionFactor:
-    """Convert a raw extraction dict (as stored in session) to an EmissionFactor model instance."""
-    def val(field: str):
-        """Extract the 'value' sub-key from an ExtractionFieldResult dict."""
-        entry = raw.get(field, {})
-        if isinstance(entry, dict):
+    """Convert a raw extraction dict (as stored in session) to an EmissionFactor model instance.
+
+    Expects Claude to emit dicts whose keys match the source-schema column
+    names. Values can be either scalars or {value, confidence, source} dicts
+    (the older ExtractionFieldResult shape). _v() handles both.
+    """
+    def v(field: str, default=None):
+        entry = raw.get(field, None)
+        if entry is None:
+            return default
+        if isinstance(entry, dict) and "value" in entry:
             return entry.get("value")
         return entry
 
-    # ── Enum sanitisers ──────────────────────────────────────────────────────
-    GWP_VALID = {"ar4", "ar5", "ar6", "gwp20", "gwp100", "not_stated"}
-    SOURCE_TYPE_VALID = {
-        "government", "intergovernmental", "ghg_protocol", "commercial_lca",
-        "peer_reviewed", "industry_association", "supplier_epd",
-        "internal_estimate", "other",
-    }
+    def vbool(field: str, default=None):
+        x = v(field, default)
+        if x is None or isinstance(x, bool):
+            return x
+        if isinstance(x, (int, float)):
+            return bool(x)
+        s = str(x).strip().lower()
+        if s in ("true", "yes", "1", "y"):
+            return True
+        if s in ("false", "no", "0", "n"):
+            return False
+        return default
 
-    def _gwp(v):
-        if not v:
-            return None
-        s = str(v).lower().replace(" ", "_").replace("-", "_")
-        return s if s in GWP_VALID else None
+    def vint(field: str, default=None):
+        x = v(field, default)
+        if x is None or isinstance(x, int):
+            return x
+        try:
+            return int(float(x))
+        except (ValueError, TypeError):
+            return default
 
-    def _source_type(v):
-        if not v:
-            return None
-        s = str(v).lower().replace(" ", "_").replace("-", "_")
-        # common aliases Claude returns
-        aliases = {
-            "supplier_epd": "supplier_epd",
-            "supplier": "supplier_epd",
-            "epd": "supplier_epd",
-            "government_regulatory_body": "government",
-            "government___regulatory_body": "government",
-            "governmental": "government",
-            "intergovernmental_body": "intergovernmental",
-            "ghg_protocol___industry_standard": "ghg_protocol",
-            "commercial_lca_database_export": "commercial_lca",
-            "peer_reviewed_publication": "peer_reviewed",
-            "industry_association": "industry_association",
-            "internal_estimate": "internal_estimate",
-        }
-        s = aliases.get(s, s)
-        return s if s in SOURCE_TYPE_VALID else "other"
+    def vfloat(field: str, default=None):
+        x = v(field, default)
+        if x is None or isinstance(x, (int, float)):
+            return float(x) if x is not None else None
+        try:
+            return float(x)
+        except (ValueError, TypeError):
+            return default
 
-    def _country(v):
-        """Keep only first 2 chars of ISO country code; strip longer values."""
-        if not v:
+    def vlist(field: str):
+        x = v(field)
+        if x is None:
             return None
-        s = str(v).strip()
-        return s[:2].upper() if len(s) >= 2 else None
+        if isinstance(x, list):
+            return [str(i) for i in x if i not in (None, "")]
+        if isinstance(x, str) and x.strip():
+            return [p.strip() for p in x.replace(";", ",").split(",") if p.strip()]
+        return None
 
-    def _supplier_countries(v):
-        """Return a list of ISO 2-char country codes. Accepts string or list."""
-        if not v:
-            return None
-        if isinstance(v, list):
-            codes = [str(c).strip()[:2].upper() for c in v if c and str(c).strip()]
-        else:
-            # Claude may return comma-separated string or single code
-            parts = str(v).replace(';', ',').split(',')
-            codes = [p.strip()[:2].upper() for p in parts if p.strip()]
-        return codes if codes else None
-
-    def _region(v):
-        """Truncate geography_region to varchar(10) limit."""
-        if not v:
-            return None
-        return str(v)[:10]
+    activity_name = v("activity_name") or v("canonical_activity_name") or v("source_activity_name") or ""
+    ef_value = vfloat("ef_value")
+    ghg_species = v("ghg_species") or ("CO2e" if vbool("expressed_as_co2e", True) else "CO2")
+    expressed = vbool("expressed_as_co2e")
+    if expressed is None:
+        expressed = ghg_species.upper() == "CO2E"
 
     return EmissionFactor(
-        source_activity_name=val("source_activity_name") or "",
-        canonical_activity_name=val("canonical_activity_name") or val("source_activity_name") or "",
-        activity_category=val("activity_category"),
-        unit=val("unit") or "",
-        ef_total_co2e=val("ef_total_co2e"),
-        ef_co2=val("ef_co2"),
-        ef_ch4=val("ef_ch4"),
-        ef_n2o=val("ef_n2o"),
-        ef_pfc=val("ef_pfc"),
-        ef_sf6=val("ef_sf6"),
-        ef_nf3=val("ef_nf3"),
-        applicable_scopes=val("applicable_scopes"),
-        lca_stages=val("lca_stages"),
-        source_name=val("source_name"),
-        source_type=_source_type(val("source_type")),
-        source_url=val("source_url"),
-        validity_start=_parse_date(val("validity_start")),
-        validity_end=_parse_date(val("validity_end")),
-        geography_global=bool(val("geography_global")),
-        geography_country=_country(val("geography_country")),
-        geography_region=_region(val("geography_region")),
-        gwp_version=_gwp(val("gwp_version")),
-        supplier_name=val("supplier_name"),
-        supplier_country=_supplier_countries(val("supplier_country")),
-        supplier_sector=val("supplier_sector"),
-        supplier_epd_reference=val("supplier_epd_reference"),
-        comments_applicability=val("comments_applicability"),
-        comments_limitations=val("comments_limitations"),
-        custom_tags=val("custom_tags"),
-        additional_notes=val("additional_notes"),
+        # Identity
+        ef_id=v("ef_id"),
+        activity_name=activity_name,
+        activity_description=v("activity_description"),
+        activity_code=v("activity_code"),
+        emission_category=v("emission_category") or "unknown",
+        sub_category=v("sub_category"),
+        ghg_scope=str(v("ghg_scope") or "3"),
+        scope3_category=v("scope3_category"),
+        activity_level=v("activity_level"),
+        # EF Value
+        ef_value=ef_value if ef_value is not None else 0.0,
+        ghg_species=ghg_species,
+        expressed_as_co2e=expressed,
+        gwp_basis=v("gwp_basis"),
+        gwp_value_used=vfloat("gwp_value_used"),
+        ef_type=v("ef_type") or "activity-based",
+        # Units
+        numerator_unit=v("numerator_unit") or "",
+        denominator_unit=v("denominator_unit") or "",
+        denominator_basis=v("denominator_basis"),
+        unit_notes=v("unit_notes"),
+        # Geography
+        geography_type=v("geography_type") or ("global" if not v("country_iso") else "national"),
+        country_iso=(v("country_iso") or "").upper()[:3] or None,
+        region_name=v("region_name"),
+        grid_zone_id=v("grid_zone_id"),
+        location_basis=v("location_basis"),
+        # Technology
+        fuel_material_type=v("fuel_material_type"),
+        technology_descriptor=v("technology_descriptor"),
+        vehicle_type=v("vehicle_type"),
+        end_use_sector=v("end_use_sector"),
+        combustion_type=v("combustion_type"),
+        carbon_content_fraction=vfloat("carbon_content_fraction"),
+        # Temporal
+        reference_year=vint("reference_year") or datetime.now(timezone.utc).year,
+        valid_from=_parse_date(v("valid_from")),
+        valid_to=_parse_date(v("valid_to")),
+        ef_version=v("ef_version"),
+        update_frequency=v("update_frequency"),
+        # Source
+        source_organization=v("source_organization") or v("source_name") or "Unknown",
+        source_database=v("source_database"),
+        publication_title=v("publication_title"),
+        publication_year=vint("publication_year"),
+        source_url=v("source_url"),
+        original_ef_value=vfloat("original_ef_value"),
+        original_unit=v("original_unit"),
+        data_origin=v("data_origin") or "secondary",
+        # Methodology
+        calculation_method=v("calculation_method") or "activity-based",
+        system_boundary=v("system_boundary") or "gate-to-gate",
+        includes_biogenic_co2=vbool("includes_biogenic_co2"),
+        includes_land_use_change=vbool("includes_land_use_change"),
+        allocation_method=v("allocation_method"),
+        upstream_included=vbool("upstream_included"),
+        # DQ
+        uncertainty_pct=vfloat("uncertainty_pct"),
+        uncertainty_method=v("uncertainty_method"),
+        dq_score_overall=vint("dq_score_overall"),
+        dq_geographic_rep=vint("dq_geographic_rep"),
+        dq_temporal_rep=vint("dq_temporal_rep"),
+        dq_tech_rep=vint("dq_tech_rep"),
+        third_party_verified=vbool("third_party_verified"),
+        # Operational
+        status=v("status") or "active",
+        framework_tags=vlist("framework_tags"),
+        sector_tags=vlist("sector_tags"),
+        is_default_ef=vbool("is_default_ef"),
+        notes=v("notes") or v("additional_notes"),
+        # System links
         source_document_id=session.source_document_id,
         extraction_session_id=session.id,
-        created_by=user_id,
+        created_by_user_id=user_id,
+        created_by="ingestion",
         created_at=datetime.now(timezone.utc),
     )
 

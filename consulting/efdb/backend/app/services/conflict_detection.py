@@ -22,46 +22,41 @@ async def detect_conflicts(
     """
     Return a list of EF records that potentially conflict with the given EF.
     Conflict criteria:
-      - Similar canonical activity name (trigram similarity ≥ threshold)
+      - Similar activity name (trigram similarity ≥ threshold)
+      - Same GHG species (otherwise CO2 and CH4 rows for one activity look like conflicts)
       - Overlapping validity period (or both have no validity)
       - Same or broader geography
     """
     conditions = [
-        EmissionFactor.is_current == True,
-        EmissionFactor.is_superseded == False,
+        EmissionFactor.status == "active",
+        EmissionFactor.ghg_species == ef.ghg_species,
     ]
     if exclude_id:
         conditions.append(EmissionFactor.id != exclude_id)
 
     # Activity name similarity via pg_trgm
     conditions.append(
-        func.similarity(EmissionFactor.canonical_activity_name, ef.canonical_activity_name) >= SIMILARITY_THRESHOLD
+        func.similarity(EmissionFactor.activity_name, ef.activity_name) >= SIMILARITY_THRESHOLD
     )
 
     # Geography: conflict if existing record covers same or broader area
-    geo_conditions = [EmissionFactor.geography_global == True]
-    if ef.geography_global or ef.geography_country:
-        if ef.geography_country:
-            geo_conditions.append(EmissionFactor.geography_country == ef.geography_country)
+    geo_conditions = [EmissionFactor.geography_type == "global"]
+    if ef.country_iso:
+        geo_conditions.append(EmissionFactor.country_iso == ef.country_iso)
     conditions.append(or_(*geo_conditions))
 
     result = await db.execute(select(EmissionFactor).where(and_(*conditions)).limit(20))
     candidates = result.scalars().all()
 
-    # Filter by overlapping validity
-    conflicts = []
-    for candidate in candidates:
-        if _validity_overlaps(ef, candidate):
-            conflicts.append(candidate)
-    return conflicts
+    return [c for c in candidates if _validity_overlaps(ef, c)]
 
 
 def _validity_overlaps(a: EmissionFactor, b: EmissionFactor) -> bool:
     """Return True if the validity windows of a and b overlap (or either is open-ended)."""
-    a_start = a.validity_start or date(1990, 1, 1)
-    a_end = a.validity_end or date(2099, 12, 31)
-    b_start = b.validity_start or date(1990, 1, 1)
-    b_end = b.validity_end or date(2099, 12, 31)
+    a_start = a.valid_from or date(1990, 1, 1)
+    a_end = a.valid_to or date(2099, 12, 31)
+    b_start = b.valid_from or date(1990, 1, 1)
+    b_end = b.valid_to or date(2099, 12, 31)
     return a_start <= b_end and b_start <= a_end
 
 
@@ -74,10 +69,7 @@ async def detect_and_flag_conflicts(ef: EmissionFactor, db: AsyncSession) -> int
     if not conflicts:
         return 0
 
-    # Flag the new record
     ef.has_conflict = True
-
-    # Flag all conflicting existing records
     for conflict in conflicts:
         conflict.has_conflict = True
 

@@ -10,7 +10,7 @@ import { efApi } from '@/lib/api'
 import { useAuthStore } from '@/stores/auth'
 
 const DEFAULT_FILTERS: EFFilters = {
-  sort_by: 'confidence_score',
+  sort_by: 'created_at',
   sort_dir: 'desc',
   page: 1,
   page_size: 200,

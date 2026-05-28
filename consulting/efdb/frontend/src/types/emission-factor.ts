@@ -1,58 +1,89 @@
 export interface EmissionFactor {
+  // System
   id: string
   version_number: number
-  is_current: boolean
-  is_superseded: boolean
-  superseded_by_id: string | null
-  superseded_reason: string | null
   has_conflict: boolean
-  migrated: boolean
-  source_activity_name: string
-  canonical_activity_name: string
-  activity_category: string | null
-  unit: string
-  ef_total_co2e: number | null
-  ef_co2: number | null
-  ef_ch4: number | null
-  ef_n2o: number | null
-  ef_pfc: number | null
-  ef_sf6: number | null
-  ef_nf3: number | null
-  applicable_scopes: string[] | null
-  lca_stages: string[] | null
-  source_name: string | null
-  source_type: string | null
-  source_url: string | null
   source_document_id: string | null
   extraction_session_id: string | null
-  validity_start: string | null
-  validity_end: string | null
-  geography_global: boolean
-  geography_country: string | null
-  geography_region: string | null
-  confidence_score: number | null
-  confidence_breakdown: ConfidenceBreakdown | null
-  gwp_version: string | null
-  supplier_name: string | null
-  supplier_country: string[] | null
-  supplier_sector: string | null
-  supplier_epd_reference: string | null
-  comments_applicability: string | null
-  comments_limitations: string | null
-  custom_tags: string[] | null
-  additional_notes: string | null
-  created_by: string
-  created_at: string
-  last_edited_by: string | null
+  created_by_user_id: string | null
+  last_edited_by_user_id: string | null
   last_edited_at: string | null
-}
-
-export interface ConfidenceBreakdown {
-  source_type: number
-  audited: number
-  geography: number
-  recency: number
-  total: number
+  created_at: string
+  updated_at: string
+  // Identity
+  ef_id: string | null
+  activity_name: string
+  activity_description: string | null
+  activity_code: string | null
+  emission_category: string
+  sub_category: string | null
+  ghg_scope: string
+  scope3_category: string | null
+  activity_level: string | null
+  // EF Value
+  ef_value: number
+  ghg_species: string
+  expressed_as_co2e: boolean
+  gwp_basis: string | null
+  gwp_value_used: number | null
+  ef_type: string
+  // Units
+  numerator_unit: string
+  denominator_unit: string
+  denominator_basis: string | null
+  unit_notes: string | null
+  // Geography
+  geography_type: string
+  country_iso: string | null
+  region_name: string | null
+  grid_zone_id: string | null
+  location_basis: string | null
+  // Technology
+  fuel_material_type: string | null
+  technology_descriptor: string | null
+  vehicle_type: string | null
+  end_use_sector: string | null
+  combustion_type: string | null
+  carbon_content_fraction: number | null
+  // Temporal
+  reference_year: number
+  valid_from: string | null
+  valid_to: string | null
+  ef_version: string | null
+  update_frequency: string | null
+  // Source
+  source_organization: string
+  source_database: string | null
+  publication_title: string | null
+  publication_year: number | null
+  source_url: string | null
+  original_ef_value: number | null
+  original_unit: string | null
+  data_origin: string
+  // Methodology
+  calculation_method: string
+  system_boundary: string
+  includes_biogenic_co2: boolean | null
+  includes_land_use_change: boolean | null
+  allocation_method: string | null
+  upstream_included: boolean | null
+  // DQ
+  uncertainty_pct: number | null
+  uncertainty_method: string | null
+  dq_score_overall: number | null
+  dq_geographic_rep: number | null
+  dq_temporal_rep: number | null
+  dq_tech_rep: number | null
+  third_party_verified: boolean | null
+  // Operational
+  status: string
+  superseded_by_ef_id: string | null
+  superseded_reason: string | null
+  framework_tags: string[] | null
+  sector_tags: string[] | null
+  is_default_ef: boolean | null
+  created_by: string | null
+  notes: string | null
 }
 
 export interface EFListResponse {
@@ -65,14 +96,18 @@ export interface EFListResponse {
 export interface EFFilters {
   q?: string
   year?: number
-  country?: string
+  country?: string          // ISO3
   region?: string
-  scope?: string
-  source_type?: string
-  min_confidence?: number
+  scope?: string            // "1" | "2" | "3"
+  species?: string          // "CO2e" | "CO2" | "CH4" | ...
+  category?: string         // emission_category
+  source_organization?: string
+  max_dq_score?: number     // 1=best, 5=worst
   conflicts_only?: boolean
-  gwp_version?: string
-  tags?: string
+  gwp_basis?: string
+  framework_tags?: string
+  sector_tags?: string
+  include_superseded?: boolean
   sort_by?: string
   sort_dir?: 'asc' | 'desc'
   page?: number
@@ -108,17 +143,22 @@ export interface DocumentSection {
 }
 
 export interface DocumentMetadata {
-  source_name: string | null
-  source_type: string | null
-  year: number | null
-  validity_start: number | null
-  validity_end: number | null
-  geography_country: string | null
+  source_organization: string | null
+  source_database: string | null
+  publication_title: string | null
+  publication_year: number | null
+  reference_year: number | null
+  valid_from: string | null
+  valid_to: string | null
+  country_iso: string | null            // ISO3
+  geography_type: string | null
   geography_description: string | null
-  gwp_version: string | null
-  applicable_scopes: string[] | null
-  lca_stages: string[] | null
-  comments_applicability: string | null
+  gwp_basis: string | null
+  ghg_scope: string | null
+  system_boundary: string | null
+  data_origin: string | null
+  calculation_method: string | null
+  notes: string | null
   guidance_notes: string | null
   clarifying_questions: string[] | null
 }
@@ -143,10 +183,11 @@ export interface ExtractionFieldResult {
 
 export interface ExtractedRecord {
   index: number
-  source_activity_name: ExtractionFieldResult
-  canonical_activity_name: ExtractionFieldResult
-  unit: ExtractionFieldResult
-  ef_total_co2e: ExtractionFieldResult
+  activity_name: ExtractionFieldResult
+  ef_value: ExtractionFieldResult
+  ghg_species: ExtractionFieldResult
+  numerator_unit: ExtractionFieldResult
+  denominator_unit: ExtractionFieldResult
   has_outlier_values: boolean
   has_unit_mismatch: boolean
   outlier_notes: string[]

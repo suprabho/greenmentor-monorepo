@@ -17,23 +17,29 @@ class DocumentSection(BaseModel):
 
 class DocumentMetadata(BaseModel):
     """
-    Document-level metadata auto-detected during scan.
-    Shown to the user for confirmation before extraction starts.
-    Confirmed values are passed as hard context to every extraction batch.
+    Document-level metadata auto-detected during scan, expressed in source-
+    schema field names. Shown to the user for confirmation before
+    extraction starts; confirmed values are passed as hard context to
+    every extraction batch.
     """
-    source_name: Optional[str] = None           # e.g. "UK Government GHG Conversion Factors 2023"
-    source_type: Optional[str] = None           # one of the SourceType enum values
-    year: Optional[int] = None                  # publication year (kept for backward compat)
-    validity_start: Optional[int] = None        # year the factors become effective
-    validity_end: Optional[int] = None          # year the factors expire (None = open-ended)
-    geography_country: Optional[str] = None     # ISO 3166-1 alpha-2
-    geography_description: Optional[str] = None # human-readable e.g. "United Kingdom"
-    gwp_version: Optional[str] = None           # AR4 | AR5 | AR6 | Not stated
-    applicable_scopes: Optional[list[str]] = None
-    lca_stages: Optional[list[str]] = None
-    comments_applicability: Optional[str] = None  # usage guidance from cover page / notes
-    guidance_notes: Optional[str] = None           # additional context / caveats
-    clarifying_questions: Optional[list[str]] = None  # questions Claude wants to ask the user
+    source_organization: Optional[str] = None        # e.g. "BEIS / DESNZ"
+    source_database: Optional[str] = None
+    publication_title: Optional[str] = None
+    publication_year: Optional[int] = None
+    reference_year: Optional[int] = None             # data year (e.g. 2023)
+    valid_from: Optional[str] = None                 # ISO date string YYYY-MM-DD
+    valid_to: Optional[str] = None
+    country_iso: Optional[str] = None                # ISO 3166-1 alpha-3
+    geography_type: Optional[str] = None             # global | national | regional | sub-national | grid-zone
+    geography_description: Optional[str] = None     # human-readable, e.g. "United Kingdom"
+    gwp_basis: Optional[str] = None                  # AR4 | AR5 | AR6 | GWP20 | GWP100 | Not stated
+    ghg_scope: Optional[str] = None                  # "1" | "2" | "3"
+    system_boundary: Optional[str] = None
+    data_origin: Optional[str] = None                # primary | secondary
+    calculation_method: Optional[str] = None
+    notes: Optional[str] = None
+    guidance_notes: Optional[str] = None
+    clarifying_questions: Optional[list[str]] = None
 
 
 class ScanResult(BaseModel):
@@ -45,56 +51,97 @@ class ScanResult(BaseModel):
     estimated_cost_usd: float
     page_count: int
     has_scanned_pages: bool
-    document_metadata: Optional[DocumentMetadata] = None  # auto-detected context
+    document_metadata: Optional[DocumentMetadata] = None
 
 
 class SectionSelection(BaseModel):
     """User selects which sections to extract from, with confirmed document metadata."""
     section_indices: list[int]
-    confirmed_metadata: Optional[DocumentMetadata] = None  # user-confirmed context for extraction
+    confirmed_metadata: Optional[DocumentMetadata] = None
 
 
 class ExtractionFieldResult(BaseModel):
     """Per-field extraction result shown in the review panel."""
-    value: Optional[str | float | int | list] = None
-    source_snippet: Optional[str] = None    # exact text from source that produced this value
+    value: Optional[str | float | int | bool | list] = None
+    source_snippet: Optional[str] = None
     extraction_confidence: str = "high"     # high | medium | low
-    extraction_note: Optional[str] = None   # reason if null or flagged
+    extraction_note: Optional[str] = None
 
 
 class ExtractedRecord(BaseModel):
-    """A single extracted emission factor record, before user approval."""
-    index: int                              # position in the extraction batch
-    source_activity_name: ExtractionFieldResult
-    canonical_activity_name: ExtractionFieldResult
-    activity_category: ExtractionFieldResult
-    unit: ExtractionFieldResult
-    ef_total_co2e: ExtractionFieldResult
-    ef_co2: ExtractionFieldResult
-    ef_ch4: ExtractionFieldResult
-    ef_n2o: ExtractionFieldResult
-    ef_pfc: ExtractionFieldResult
-    ef_sf6: ExtractionFieldResult
-    ef_nf3: ExtractionFieldResult
-    applicable_scopes: ExtractionFieldResult
-    lca_stages: ExtractionFieldResult
-    source_name: ExtractionFieldResult
-    source_type: ExtractionFieldResult
-    source_url: ExtractionFieldResult
-    validity_start: ExtractionFieldResult
-    validity_end: ExtractionFieldResult
-    geography_global: ExtractionFieldResult
-    geography_country: ExtractionFieldResult
-    geography_region: ExtractionFieldResult
-    gwp_version: ExtractionFieldResult
-    supplier_name: ExtractionFieldResult
-    supplier_country: ExtractionFieldResult
-    supplier_sector: ExtractionFieldResult
-    supplier_epd_reference: ExtractionFieldResult
-    comments_applicability: ExtractionFieldResult
-    comments_limitations: ExtractionFieldResult
-    custom_tags: ExtractionFieldResult
-    additional_notes: ExtractionFieldResult
+    """A single extracted emission factor record, in source-schema shape, before approval."""
+    index: int
+    # Identity
+    ef_id: Optional[ExtractionFieldResult] = None
+    activity_name: ExtractionFieldResult
+    activity_description: Optional[ExtractionFieldResult] = None
+    activity_code: Optional[ExtractionFieldResult] = None
+    emission_category: ExtractionFieldResult
+    sub_category: Optional[ExtractionFieldResult] = None
+    ghg_scope: ExtractionFieldResult
+    scope3_category: Optional[ExtractionFieldResult] = None
+    activity_level: Optional[ExtractionFieldResult] = None
+    # EF Value
+    ef_value: ExtractionFieldResult
+    ghg_species: ExtractionFieldResult
+    expressed_as_co2e: ExtractionFieldResult
+    gwp_basis: Optional[ExtractionFieldResult] = None
+    gwp_value_used: Optional[ExtractionFieldResult] = None
+    ef_type: ExtractionFieldResult
+    # Units
+    numerator_unit: ExtractionFieldResult
+    denominator_unit: ExtractionFieldResult
+    denominator_basis: Optional[ExtractionFieldResult] = None
+    unit_notes: Optional[ExtractionFieldResult] = None
+    # Geography
+    geography_type: ExtractionFieldResult
+    country_iso: Optional[ExtractionFieldResult] = None
+    region_name: Optional[ExtractionFieldResult] = None
+    grid_zone_id: Optional[ExtractionFieldResult] = None
+    location_basis: Optional[ExtractionFieldResult] = None
+    # Technology
+    fuel_material_type: Optional[ExtractionFieldResult] = None
+    technology_descriptor: Optional[ExtractionFieldResult] = None
+    vehicle_type: Optional[ExtractionFieldResult] = None
+    end_use_sector: Optional[ExtractionFieldResult] = None
+    combustion_type: Optional[ExtractionFieldResult] = None
+    carbon_content_fraction: Optional[ExtractionFieldResult] = None
+    # Temporal
+    reference_year: ExtractionFieldResult
+    valid_from: Optional[ExtractionFieldResult] = None
+    valid_to: Optional[ExtractionFieldResult] = None
+    ef_version: Optional[ExtractionFieldResult] = None
+    update_frequency: Optional[ExtractionFieldResult] = None
+    # Source
+    source_organization: ExtractionFieldResult
+    source_database: Optional[ExtractionFieldResult] = None
+    publication_title: Optional[ExtractionFieldResult] = None
+    publication_year: Optional[ExtractionFieldResult] = None
+    source_url: Optional[ExtractionFieldResult] = None
+    original_ef_value: Optional[ExtractionFieldResult] = None
+    original_unit: Optional[ExtractionFieldResult] = None
+    data_origin: ExtractionFieldResult
+    # Methodology
+    calculation_method: ExtractionFieldResult
+    system_boundary: ExtractionFieldResult
+    includes_biogenic_co2: Optional[ExtractionFieldResult] = None
+    includes_land_use_change: Optional[ExtractionFieldResult] = None
+    allocation_method: Optional[ExtractionFieldResult] = None
+    upstream_included: Optional[ExtractionFieldResult] = None
+    # DQ
+    uncertainty_pct: Optional[ExtractionFieldResult] = None
+    uncertainty_method: Optional[ExtractionFieldResult] = None
+    dq_score_overall: Optional[ExtractionFieldResult] = None
+    dq_geographic_rep: Optional[ExtractionFieldResult] = None
+    dq_temporal_rep: Optional[ExtractionFieldResult] = None
+    dq_tech_rep: Optional[ExtractionFieldResult] = None
+    third_party_verified: Optional[ExtractionFieldResult] = None
+    # Operational
+    status: Optional[ExtractionFieldResult] = None
+    framework_tags: Optional[ExtractionFieldResult] = None
+    sector_tags: Optional[ExtractionFieldResult] = None
+    is_default_ef: Optional[ExtractionFieldResult] = None
+    notes: Optional[ExtractionFieldResult] = None
     # Flags
     has_outlier_values: bool = False
     has_unit_mismatch: bool = False
@@ -115,17 +162,14 @@ class SessionStatusOut(BaseModel):
 
 
 class ReviewAction(BaseModel):
-    """Approve or reject a single record (with optional field edits)."""
-    action: str                             # "approve" | "reject"
+    action: str
     rejection_reason: Optional[str] = None
-    # If approving with edits, send the full corrected record data
     edited_data: Optional[dict] = None
 
 
 class BulkReviewAction(BaseModel):
-    """Approve or reject a range of records by index."""
-    action: str                             # "approve_all" | "reject_all"
-    indices: Optional[list[int]] = None     # None means "all pending"
+    action: str
+    indices: Optional[list[int]] = None
     rejection_reason: Optional[str] = None
 
 

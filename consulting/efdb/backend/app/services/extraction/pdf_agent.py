@@ -207,30 +207,8 @@ async def extract_from_pdf(file_path: str, section_indices: list[int], confirmed
     doc_content = _build_document_content(doc)
     doc.close()
 
-    # Build confirmed metadata block
-    meta_lines = []
-    if confirmed_metadata:
-        m = confirmed_metadata
-        if m.source_name:       meta_lines.append(f"Source name: {m.source_name}")
-        if m.source_type:       meta_lines.append(f"Source type: {m.source_type}")
-        if m.geography_country: meta_lines.append(f"Geography: {m.geography_description or ''} ({m.geography_country})")
-        if m.gwp_version:       meta_lines.append(f"GWP version: {m.gwp_version}")
-        if m.applicable_scopes: meta_lines.append(f"Applicable scopes: {', '.join(m.applicable_scopes)}")
-        if m.lca_stages:        meta_lines.append(f"LCA stages: {', '.join(m.lca_stages)}")
-        # Validity period (prefer explicit start/end years over single publication year)
-        if m.validity_start or m.validity_end:
-            start_str = str(m.validity_start) if m.validity_start else "unknown"
-            end_str = str(m.validity_end) if m.validity_end else "present"
-            meta_lines.append(
-                f"Validity period: {start_str}–{end_str} "
-                f"(use {start_str}-01-01 as validity_start and "
-                f"{str(m.validity_end) + '-12-31' if m.validity_end else 'null'} as validity_end)"
-            )
-        elif m.year:
-            meta_lines.append(f"Publication year: {m.year} (use {m.year}-01-01 as validity_start)")
-        if m.comments_applicability:
-            meta_lines.append(f"Applicability (add to every record's comments_applicability): {m.comments_applicability}")
-        if m.guidance_notes:    meta_lines.append(f"Guidance notes: {m.guidance_notes}")
+    # Build confirmed metadata block (source-schema field names).
+    meta_lines = _confirmed_metadata_lines(confirmed_metadata)
 
     meta_prefix = []
     if meta_lines:
@@ -302,39 +280,57 @@ def _dict_to_extracted_record(item: dict, index: int) -> ExtractedRecord:
     has_unit_mismatch = item.get("has_unit_mismatch", False)
     outlier_notes = item.get("outlier_notes", [])
 
-    return ExtractedRecord(
-        index=index,
-        source_activity_name=field("source_activity_name"),
-        canonical_activity_name=field("canonical_activity_name"),
-        activity_category=field("activity_category"),
-        unit=field("unit"),
-        ef_total_co2e=field("ef_total_co2e"),
-        ef_co2=field("ef_co2"),
-        ef_ch4=field("ef_ch4"),
-        ef_n2o=field("ef_n2o"),
-        ef_pfc=field("ef_pfc"),
-        ef_sf6=field("ef_sf6"),
-        ef_nf3=field("ef_nf3"),
-        applicable_scopes=field("applicable_scopes"),
-        lca_stages=field("lca_stages"),
-        source_name=field("source_name"),
-        source_type=field("source_type"),
-        source_url=field("source_url"),
-        validity_start=field("validity_start"),
-        validity_end=field("validity_end"),
-        geography_global=field("geography_global"),
-        geography_country=field("geography_country"),
-        geography_region=field("geography_region"),
-        gwp_version=field("gwp_version"),
-        supplier_name=field("supplier_name"),
-        supplier_country=field("supplier_country"),
-        supplier_sector=field("supplier_sector"),
-        supplier_epd_reference=field("supplier_epd_reference"),
-        comments_applicability=field("comments_applicability"),
-        comments_limitations=field("comments_limitations"),
-        custom_tags=field("custom_tags"),
-        additional_notes=field("additional_notes"),
-        has_outlier_values=has_outlier,
-        has_unit_mismatch=has_unit_mismatch,
-        outlier_notes=outlier_notes,
-    )
+    return _record_from_dict(item, index, field, has_outlier, has_unit_mismatch, outlier_notes)
+
+
+def _record_from_dict(item, index, field, has_outlier, has_unit_mismatch, outlier_notes):
+    """Build ExtractedRecord from a source-schema dict produced by Claude."""
+    kwargs = {"index": index}
+    SOURCE_FIELDS = [
+        "ef_id", "activity_name", "activity_description", "activity_code",
+        "emission_category", "sub_category", "ghg_scope", "scope3_category", "activity_level",
+        "ef_value", "ghg_species", "expressed_as_co2e", "gwp_basis", "gwp_value_used", "ef_type",
+        "numerator_unit", "denominator_unit", "denominator_basis", "unit_notes",
+        "geography_type", "country_iso", "region_name", "grid_zone_id", "location_basis",
+        "fuel_material_type", "technology_descriptor", "vehicle_type", "end_use_sector",
+        "combustion_type", "carbon_content_fraction",
+        "reference_year", "valid_from", "valid_to", "ef_version", "update_frequency",
+        "source_organization", "source_database", "publication_title", "publication_year",
+        "source_url", "original_ef_value", "original_unit", "data_origin",
+        "calculation_method", "system_boundary", "includes_biogenic_co2",
+        "includes_land_use_change", "allocation_method", "upstream_included",
+        "uncertainty_pct", "uncertainty_method", "dq_score_overall",
+        "dq_geographic_rep", "dq_temporal_rep", "dq_tech_rep", "third_party_verified",
+        "status", "framework_tags", "sector_tags", "is_default_ef", "notes",
+    ]
+    for key in SOURCE_FIELDS:
+        if key in item:
+            kwargs[key] = field(key)
+    kwargs["has_outlier_values"] = has_outlier
+    kwargs["has_unit_mismatch"] = has_unit_mismatch
+    kwargs["outlier_notes"] = outlier_notes
+    return ExtractedRecord(**kwargs)
+
+
+def _confirmed_metadata_lines(m: "DocumentMetadata | None") -> list[str]:
+    """Build the 'CONFIRMED DOCUMENT METADATA' block prepended to every extraction."""
+    if not m:
+        return []
+    lines = []
+    if m.source_organization:   lines.append(f"source_organization: {m.source_organization}")
+    if m.source_database:       lines.append(f"source_database: {m.source_database}")
+    if m.publication_title:     lines.append(f"publication_title: {m.publication_title}")
+    if m.publication_year:      lines.append(f"publication_year: {m.publication_year}")
+    if m.reference_year:        lines.append(f"reference_year: {m.reference_year}")
+    if m.valid_from:            lines.append(f"valid_from: {m.valid_from}")
+    if m.valid_to:              lines.append(f"valid_to: {m.valid_to}")
+    if m.country_iso:           lines.append(f"country_iso (ISO3): {m.country_iso} ({m.geography_description or ''})")
+    if m.geography_type:        lines.append(f"geography_type: {m.geography_type}")
+    if m.gwp_basis:             lines.append(f"gwp_basis: {m.gwp_basis}")
+    if m.ghg_scope:             lines.append(f"ghg_scope: {m.ghg_scope}")
+    if m.system_boundary:       lines.append(f"system_boundary: {m.system_boundary}")
+    if m.data_origin:           lines.append(f"data_origin: {m.data_origin}")
+    if m.calculation_method:    lines.append(f"calculation_method: {m.calculation_method}")
+    if m.notes:                 lines.append(f"notes (apply to every record): {m.notes}")
+    if m.guidance_notes:        lines.append(f"Guidance: {m.guidance_notes}")
+    return lines

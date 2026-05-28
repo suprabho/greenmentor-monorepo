@@ -7,53 +7,24 @@ import { cn } from '@/lib/utils'
 
 type Step = 'upload' | 'confirm-metadata' | 'selecting' | 'extracting' | 'review' | 'done'
 
-const SOURCE_TYPES = [
-  'Government / Regulatory body',
-  'Intergovernmental body',
-  'GHG Protocol / Industry standard',
-  'Commercial LCA database export',
-  'Peer-reviewed publication',
-  'Industry association',
-  'Supplier-provided / EPD',
-  'Internal estimate',
-  'Other',
-]
-
-const GWP_VERSIONS = ['AR4', 'AR5', 'AR6', 'GWP20', 'GWP100', 'Not stated']
-
-const SCOPE_OPTIONS = [
-  'Scope 1',
-  'Scope 2',
-  'Scope 3 — Category 1: Purchased goods and services',
-  'Scope 3 — Category 2: Capital goods',
-  'Scope 3 — Category 3: Fuel and energy-related activities',
-  'Scope 3 — Category 4: Upstream transportation & distribution',
-  'Scope 3 — Category 5: Waste generated in operations',
-  'Scope 3 — Category 6: Business travel',
-  'Scope 3 — Category 7: Employee commuting',
-  'Scope 3 — Category 8: Upstream leased assets',
-  'Scope 3 — Category 9: Downstream transportation & distribution',
-  'Scope 3 — Category 10: Processing of sold products',
-  'Scope 3 — Category 11: Use of sold products',
-  'Scope 3 — Category 12: End-of-life treatment of sold products',
-  'Scope 3 — Category 13: Downstream leased assets',
-  'Scope 3 — Category 14: Franchises',
-  'Scope 3 — Category 15: Investments',
-]
-
 function emptyMetadata(): DocumentMetadata {
   return {
-    source_name: null,
-    source_type: null,
-    year: null,
-    validity_start: null,
-    validity_end: null,
-    geography_country: null,
+    source_organization: null,
+    source_database: null,
+    publication_title: null,
+    publication_year: null,
+    reference_year: null,
+    valid_from: null,
+    valid_to: null,
+    country_iso: null,
+    geography_type: null,
     geography_description: null,
-    gwp_version: null,
-    applicable_scopes: null,
-    lca_stages: null,
-    comments_applicability: null,
+    gwp_basis: null,
+    ghg_scope: null,
+    system_boundary: null,
+    data_origin: null,
+    calculation_method: null,
+    notes: null,
     guidance_notes: null,
     clarifying_questions: null,
   }
@@ -69,76 +40,26 @@ interface MetadataFormProps {
 function MetadataForm({ metadata: m, clarifyingAnswers, onChange, onAnswerChange }: MetadataFormProps) {
   const set = (patch: Partial<DocumentMetadata>) => onChange({ ...m, ...patch })
 
-  const toggleScope = (scope: string) => {
-    const current = m.applicable_scopes ?? []
-    if (current.includes(scope)) {
-      set({ applicable_scopes: current.filter(s => s !== scope) })
-    } else {
-      set({ applicable_scopes: [...current, scope] })
-    }
-  }
-
   return (
     <div className="space-y-5">
-      {/* Source name */}
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-1.5">
-          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Source Name</label>
+          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Source organization</label>
           <input
             type="text"
-            value={m.source_name ?? ''}
-            onChange={e => set({ source_name: e.target.value || null })}
-            placeholder="e.g. UK Government GHG Conversion Factors 2023"
+            value={m.source_organization ?? ''}
+            onChange={e => set({ source_organization: e.target.value || null })}
+            placeholder="e.g. BEIS / DESNZ"
             className="w-full h-9 px-3 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
           />
         </div>
         <div className="space-y-1.5">
-          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Source Type</label>
-          <select
-            value={m.source_type ?? ''}
-            onChange={e => set({ source_type: e.target.value || null })}
-            className="w-full h-9 px-3 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-          >
-            <option value="">— Select type —</option>
-            {SOURCE_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-          </select>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-3 gap-4">
-        <div className="space-y-1.5">
-          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Publication Year</label>
+          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Source database (optional)</label>
           <input
-            type="number"
-            value={m.year ?? ''}
-            onChange={e => set({ year: e.target.value ? Number(e.target.value) : null })}
-            placeholder="2023"
-            min="1990"
-            max="2099"
-            className="w-full h-9 px-3 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-          />
-        </div>
-        <div className="space-y-1.5">
-          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Valid From (year)</label>
-          <input
-            type="number"
-            value={m.validity_start ?? ''}
-            onChange={e => set({ validity_start: e.target.value ? Number(e.target.value) : null })}
-            placeholder="2023"
-            min="1990"
-            max="2099"
-            className="w-full h-9 px-3 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-          />
-        </div>
-        <div className="space-y-1.5">
-          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Valid To (year)</label>
-          <input
-            type="number"
-            value={m.validity_end ?? ''}
-            onChange={e => set({ validity_end: e.target.value ? Number(e.target.value) : null })}
-            placeholder="open-ended"
-            min="1990"
-            max="2099"
+            type="text"
+            value={m.source_database ?? ''}
+            onChange={e => set({ source_database: e.target.value || null })}
+            placeholder="e.g. UK GHG Conversion Factors 2023"
             className="w-full h-9 px-3 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
           />
         </div>
@@ -146,100 +67,155 @@ function MetadataForm({ metadata: m, clarifyingAnswers, onChange, onAnswerChange
 
       <div className="grid grid-cols-3 gap-4">
         <div className="space-y-1.5">
-          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Geography (ISO alpha-2)</label>
+          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Publication year</label>
           <input
-            type="text"
-            value={m.geography_country ?? ''}
-            onChange={e => set({ geography_country: e.target.value.toUpperCase() || null })}
-            placeholder="GB"
-            maxLength={2}
+            type="number" min="1990" max="2099"
+            value={m.publication_year ?? ''}
+            onChange={e => set({ publication_year: e.target.value ? Number(e.target.value) : null })}
+            placeholder="2023"
+            className="w-full h-9 px-3 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+          />
+        </div>
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Reference year (data)</label>
+          <input
+            type="number" min="1990" max="2099"
+            value={m.reference_year ?? ''}
+            onChange={e => set({ reference_year: e.target.value ? Number(e.target.value) : null })}
+            placeholder="2023"
+            className="w-full h-9 px-3 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+          />
+        </div>
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Country (ISO-3)</label>
+          <input
+            type="text" maxLength={3}
+            value={m.country_iso ?? ''}
+            onChange={e => set({ country_iso: e.target.value.toUpperCase() || null })}
+            placeholder="GBR"
             className="w-full h-9 px-3 rounded-md border border-input bg-background text-sm font-mono uppercase focus:outline-none focus:ring-2 focus:ring-ring"
           />
         </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
         <div className="space-y-1.5">
-          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">GWP Version</label>
-          <select
-            value={m.gwp_version ?? ''}
-            onChange={e => set({ gwp_version: e.target.value || null })}
-            className="w-full h-9 px-3 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-          >
-            <option value="">— Select —</option>
-            {GWP_VERSIONS.map(v => <option key={v} value={v}>{v}</option>)}
-          </select>
-        </div>
-        <div className="space-y-1.5">
-          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">LCA Stage(s)</label>
+          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Valid from (YYYY-MM-DD)</label>
           <input
             type="text"
-            value={m.lca_stages?.join(', ') ?? ''}
-            onChange={e => set({ lca_stages: e.target.value ? e.target.value.split(',').map(s => s.trim()).filter(Boolean) : null })}
-            placeholder="e.g. Combustion, Well-to-tank"
+            value={m.valid_from ?? ''}
+            onChange={e => set({ valid_from: e.target.value || null })}
+            placeholder="2023-01-01"
+            className="w-full h-9 px-3 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+          />
+        </div>
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Valid to (YYYY-MM-DD)</label>
+          <input
+            type="text"
+            value={m.valid_to ?? ''}
+            onChange={e => set({ valid_to: e.target.value || null })}
+            placeholder="open-ended"
             className="w-full h-9 px-3 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
           />
         </div>
       </div>
 
-      {/* Applicability notes from cover page */}
+      <div className="grid grid-cols-3 gap-4">
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">GWP basis</label>
+          <select
+            value={m.gwp_basis ?? ''}
+            onChange={e => set({ gwp_basis: e.target.value || null })}
+            className="w-full h-9 px-3 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+          >
+            <option value="">—</option>
+            {['AR4', 'AR5', 'AR6', 'GWP20', 'GWP100', 'Not stated'].map(v => <option key={v} value={v}>{v}</option>)}
+          </select>
+        </div>
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">GHG scope</label>
+          <select
+            value={m.ghg_scope ?? ''}
+            onChange={e => set({ ghg_scope: e.target.value || null })}
+            className="w-full h-9 px-3 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+          >
+            <option value="">—</option>
+            {['1', '2', '3'].map(v => <option key={v} value={v}>Scope {v}</option>)}
+          </select>
+        </div>
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Geography type</label>
+          <select
+            value={m.geography_type ?? ''}
+            onChange={e => set({ geography_type: e.target.value || null })}
+            className="w-full h-9 px-3 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+          >
+            <option value="">—</option>
+            {['global', 'national', 'regional', 'sub-national', 'grid-zone'].map(v => <option key={v} value={v}>{v}</option>)}
+          </select>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-3 gap-4">
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">System boundary</label>
+          <select
+            value={m.system_boundary ?? ''}
+            onChange={e => set({ system_boundary: e.target.value || null })}
+            className="w-full h-9 px-3 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+          >
+            <option value="">—</option>
+            {['gate-to-gate', 'cradle-to-gate', 'cradle-to-grave', 'well-to-tank', 'tank-to-wheel', 'well-to-wheel', 'use-phase'].map(v => <option key={v} value={v}>{v}</option>)}
+          </select>
+        </div>
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Calculation method</label>
+          <select
+            value={m.calculation_method ?? ''}
+            onChange={e => set({ calculation_method: e.target.value || null })}
+            className="w-full h-9 px-3 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+          >
+            <option value="">—</option>
+            {['fuel-based', 'activity-based', 'spend-based', 'mass-balance', 'supplier-specific', 'average-data'].map(v => <option key={v} value={v}>{v}</option>)}
+          </select>
+        </div>
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Data origin</label>
+          <select
+            value={m.data_origin ?? ''}
+            onChange={e => set({ data_origin: e.target.value || null })}
+            className="w-full h-9 px-3 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+          >
+            <option value="">—</option>
+            {['primary', 'secondary'].map(v => <option key={v} value={v}>{v}</option>)}
+          </select>
+        </div>
+      </div>
+
       <div className="space-y-1.5">
-        <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Applicability Notes <span className="text-primary normal-case font-normal">(from cover page)</span></label>
-        <p className="text-[11px] text-muted-foreground">Key usage guidance from the cover page — applied to every record's Comments field (e.g. "UK use only", "Gross CV basis", "Excludes biogenic CO₂").</p>
+        <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Notes (applied to every record)</label>
+        <p className="text-[11px] text-muted-foreground">Key usage guidance / caveats — e.g. "UK use only", "Gross CV basis", "Excludes biogenic CO₂".</p>
         <textarea
-          value={m.comments_applicability ?? ''}
-          onChange={e => set({ comments_applicability: e.target.value || null })}
+          value={m.notes ?? ''}
+          onChange={e => set({ notes: e.target.value || null })}
           placeholder="Auto-filled from cover page / notes sheet…"
           rows={2}
           className="w-full px-3 py-2 rounded-md border border-input bg-background text-sm resize-none focus:outline-none focus:ring-2 focus:ring-ring"
         />
       </div>
 
-      {/* Applicable scopes */}
-      <div className="space-y-2">
-        <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Applicable Scopes</label>
-        <div className="grid grid-cols-2 gap-1">
-          {SCOPE_OPTIONS.slice(0, 3).map(scope => (
-            <label key={scope} className="flex items-center gap-2 text-sm cursor-pointer py-0.5">
-              <input
-                type="checkbox"
-                className="accent-primary"
-                checked={(m.applicable_scopes ?? []).includes(scope)}
-                onChange={() => toggleScope(scope)}
-              />
-              {scope}
-            </label>
-          ))}
-        </div>
-        <details className="text-sm">
-          <summary className="cursor-pointer text-xs text-muted-foreground hover:text-foreground">Show Scope 3 categories…</summary>
-          <div className="grid grid-cols-1 gap-0.5 mt-2 pl-2">
-            {SCOPE_OPTIONS.slice(3).map(scope => (
-              <label key={scope} className="flex items-center gap-2 text-xs cursor-pointer py-0.5">
-                <input
-                  type="checkbox"
-                  className="accent-primary"
-                  checked={(m.applicable_scopes ?? []).includes(scope)}
-                  onChange={() => toggleScope(scope)}
-                />
-                {scope}
-              </label>
-            ))}
-          </div>
-        </details>
-      </div>
-
-      {/* Guidance notes */}
       <div className="space-y-1.5">
-        <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Guidance Notes</label>
-        <p className="text-[11px] text-muted-foreground">Key applicability notes that should be attached to every record (e.g. gross vs net CV, biofuel blending rules, exclusions).</p>
+        <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Guidance notes</label>
         <textarea
           value={m.guidance_notes ?? ''}
           onChange={e => set({ guidance_notes: e.target.value || null })}
           rows={3}
-          placeholder="e.g. Factors are based on gross calorific values. Excludes biogenic CO2."
+          placeholder="e.g. Factors based on gross calorific values. Excludes biogenic CO2."
           className="w-full px-3 py-2 rounded-md border border-input bg-background text-sm resize-y focus:outline-none focus:ring-2 focus:ring-ring"
         />
       </div>
 
-      {/* Clarifying questions from Claude */}
       {m.clarifying_questions && m.clarifying_questions.length > 0 && (
         <div className="space-y-3 p-4 rounded-lg bg-blue-50 border border-blue-200">
           <div className="flex items-center gap-2">
@@ -454,17 +430,6 @@ export default function IngestionPage() {
         draft[k] = entry
       }
     }
-    // Convert full date strings to plain year numbers for year inputs
-    if (draft.validity_start) {
-      draft.validity_start_year = parseInt(String(draft.validity_start).slice(0, 4)) || ''
-    } else {
-      draft.validity_start_year = ''
-    }
-    if (draft.validity_end) {
-      draft.validity_end_year = parseInt(String(draft.validity_end).slice(0, 4)) || ''
-    } else {
-      draft.validity_end_year = ''
-    }
     setEditDraft(draft)
     setEditingIndex(absIndex)
   }
@@ -473,15 +438,8 @@ export default function IngestionPage() {
     if (!scanResult) return
     setLoading(true)
     try {
-      // Build clean payload: convert year numbers → ISO date strings, remove helper keys
-      const { validity_start_year, validity_end_year, ...rest } = editDraft
-      const payload: Record<string, unknown> = {
-        ...rest,
-        validity_start: validity_start_year ? `${validity_start_year}-01-01` : null,
-        validity_end: validity_end_year ? `${validity_end_year}-12-31` : null,
-      }
       const action = andApprove ? 'approve' : 'pending'
-      await ingestionApi.reviewRecord(scanResult.session_id, absIndex, action, payload)
+      await ingestionApi.reviewRecord(scanResult.session_id, absIndex, action, editDraft)
       if (andApprove) {
         setApproved(prev => new Set([...prev, absIndex]))
         setRejected(prev => { const s = new Set(prev); s.delete(absIndex); return s })
@@ -780,90 +738,71 @@ export default function IngestionPage() {
               </div>
             </div>
 
-            {/* Record rows */}
+            {/* Record rows (source-schema) */}
             <div className="space-y-2">
               {records.map((record, i) => {
                 const absIndex = (reviewPage - 1) * PAGE_SIZE + i
                 const isApproved = approved.has(absIndex)
                 const isRejected = rejected.has(absIndex)
-                const activityField = record.source_activity_name as { value?: string } | undefined
-                const canonicalField = record.canonical_activity_name as { value?: string } | undefined
-                const unitField = record.unit as { value?: string } | undefined
-                const co2eField = record.ef_total_co2e as { value?: number | string | null; extraction_confidence?: string } | undefined
-                const co2Field = record.ef_co2 as { value?: number | string | null } | undefined
-                const ch4Field = record.ef_ch4 as { value?: number | string | null } | undefined
-                const n2oField = record.ef_n2o as { value?: number | string | null } | undefined
-                const scopesField = record.applicable_scopes as { value?: string[] } | undefined
-                const gwpField = record.gwp_version as { value?: string } | undefined
-                const countryField = record.geography_country as { value?: string } | undefined
+
+                // Extract source-schema fields (handles both {value:...} wrapper and bare values).
+                const fld = (k: string): unknown => {
+                  const e = record[k]
+                  if (e && typeof e === 'object' && 'value' in (e as Record<string, unknown>)) return (e as Record<string, unknown>).value
+                  return e
+                }
+                const activity = fld('activity_name') as string | undefined
+                const efValue = fld('ef_value') as number | string | null | undefined
+                const species = fld('ghg_species') as string | undefined
+                const numUnit = fld('numerator_unit') as string | undefined
+                const denUnit = fld('denominator_unit') as string | undefined
+                const country = fld('country_iso') as string | undefined
+                const scope = fld('ghg_scope') as string | undefined
+                const gwp = fld('gwp_basis') as string | undefined
+                const category = fld('emission_category') as string | undefined
+                const refYear = fld('reference_year') as number | undefined
+                const sourceOrg = fld('source_organization') as string | undefined
                 const hasOutlier = record.has_outlier_values as boolean
                 const hasUnitMismatch = record.has_unit_mismatch as boolean
 
-                // Pick the best displayable EF value
                 const toNum = (v: number | string | null | undefined) => {
                   if (v == null || v === '') return null
                   const n = Number(v)
                   return isNaN(n) ? null : n
                 }
-                const co2eVal = toNum(co2eField?.value)
-                const co2Val = toNum(co2Field?.value)
-                const ch4Val = toNum(ch4Field?.value)
-                const n2oVal = toNum(n2oField?.value)
-                const hasAnyValue = co2eVal != null || co2Val != null || ch4Val != null || n2oVal != null
-                const isLowConf = co2eField?.extraction_confidence === 'low'
+                const efVal = toNum(efValue)
 
                 return (
                   <div key={absIndex} className={cn('bg-card border rounded-lg p-3 transition-colors', isApproved && 'border-emerald-300 bg-emerald-50/50', isRejected && 'border-red-300 bg-red-50/50', !isApproved && !isRejected && 'border-border')}>
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0 flex-1 space-y-1.5">
-                        {/* Activity name + flags */}
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-sm font-medium">
-                            {canonicalField?.value ?? activityField?.value ?? '—'}
-                          </span>
+                          <span className="text-sm font-medium">{activity ?? '—'}</span>
                           {hasOutlier && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 border border-amber-200">Outlier value</span>}
                           {hasUnitMismatch && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-orange-100 text-orange-700 border border-orange-200">Unit mismatch</span>}
-                          {isLowConf && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-red-100 text-red-700 border border-red-200">Low confidence</span>}
-                          {!hasAnyValue && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-600 border border-gray-200">No EF value extracted</span>}
+                          {efVal == null && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-600 border border-gray-200">No EF value</span>}
                         </div>
 
-                        {/* Source name if different from canonical */}
-                        {activityField?.value && canonicalField?.value && activityField.value !== canonicalField.value && (
-                          <p className="text-xs text-muted-foreground">Source: {activityField.value}</p>
-                        )}
-
-                        {/* EF values row */}
                         <div className="flex items-center gap-3 text-xs flex-wrap">
-                          <span className={cn('font-mono font-semibold', co2eVal != null ? 'text-foreground' : 'text-muted-foreground')}>
-                            {co2eVal != null ? co2eVal.toFixed(4) : '—'}
+                          <span className={cn('font-mono font-semibold', efVal != null ? 'text-foreground' : 'text-muted-foreground')}>
+                            {efVal != null ? efVal.toFixed(6) : '—'}
                           </span>
-                          <span className="text-muted-foreground">{unitField?.value ?? '—'}</span>
-                          {co2Val != null && (
-                            <span className="text-muted-foreground">CO₂: <span className="font-mono text-foreground">{co2Val.toFixed(4)}</span></span>
-                          )}
-                          {ch4Val != null && (
-                            <span className="text-muted-foreground">CH₄: <span className="font-mono text-foreground">{ch4Val.toFixed(6)}</span></span>
-                          )}
-                          {n2oVal != null && (
-                            <span className="text-muted-foreground">N₂O: <span className="font-mono text-foreground">{n2oVal.toFixed(6)}</span></span>
+                          {species && <span className="text-muted-foreground">{species}</span>}
+                          {(numUnit || denUnit) && (
+                            <span className="text-muted-foreground">{numUnit ?? '?'} / {denUnit ?? '?'}</span>
                           )}
                         </div>
 
-                        {/* Tags row */}
                         <div className="flex items-center gap-2 flex-wrap">
-                          {countryField?.value && (
-                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">{countryField.value}</span>
-                          )}
-                          {gwpField?.value && (
-                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">{gwpField.value}</span>
-                          )}
-                          {scopesField?.value && Array.isArray(scopesField.value) && scopesField.value.slice(0, 2).map(s => (
-                            <span key={s} className="text-[10px] px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-100">{s}</span>
-                          ))}
+                          {country && <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">{country}</span>}
+                          {scope && <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-100">Scope {scope}</span>}
+                          {gwp && <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">{gwp}</span>}
+                          {category && <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">{category}</span>}
+                          {refYear && <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">{refYear}</span>}
+                          {sourceOrg && <span className="text-[10px] text-muted-foreground">· {sourceOrg}</span>}
                         </div>
                       </div>
 
-                      {/* Action buttons */}
                       <div className="flex gap-1.5 shrink-0">
                         <button
                           onClick={() => editingIndex === absIndex ? setEditingIndex(null) : openEdit(absIndex, record)}
@@ -886,161 +825,45 @@ export default function IngestionPage() {
                       </div>
                     </div>
 
-                    {/* ── Inline edit panel ── */}
+                    {/* ── Inline edit panel (source-schema) ── */}
                     {editingIndex === absIndex && (
-                      <div className="mt-3 pt-3 border-t border-border space-y-4">
-                        {/* Names */}
-                        <div className="grid grid-cols-2 gap-3">
-                          <div className="space-y-1">
-                            <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Canonical Activity Name</label>
-                            <input
-                              className="w-full h-8 px-2 rounded border border-input bg-background text-xs focus:outline-none focus:ring-2 focus:ring-ring"
-                              value={String(editDraft.canonical_activity_name ?? '')}
-                              onChange={e => setDraft({ canonical_activity_name: e.target.value })}
-                            />
-                          </div>
-                          <div className="space-y-1">
-                            <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Source Activity Name</label>
-                            <input
-                              className="w-full h-8 px-2 rounded border border-input bg-background text-xs focus:outline-none focus:ring-2 focus:ring-ring"
-                              value={String(editDraft.source_activity_name ?? '')}
-                              onChange={e => setDraft({ source_activity_name: e.target.value })}
-                            />
-                          </div>
-                        </div>
-
-                        {/* Unit + Activity Category */}
-                        <div className="grid grid-cols-2 gap-3">
-                          <div className="space-y-1">
-                            <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Unit</label>
-                            <input
-                              className="w-full h-8 px-2 rounded border border-input bg-background text-xs focus:outline-none focus:ring-2 focus:ring-ring"
-                              value={String(editDraft.unit ?? '')}
-                              onChange={e => setDraft({ unit: e.target.value })}
-                            />
-                          </div>
-                          <div className="space-y-1">
-                            <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Activity Category</label>
-                            <input
-                              className="w-full h-8 px-2 rounded border border-input bg-background text-xs focus:outline-none focus:ring-2 focus:ring-ring"
-                              value={String(editDraft.activity_category ?? '')}
-                              onChange={e => setDraft({ activity_category: e.target.value || null })}
-                            />
-                          </div>
-                        </div>
-
-                        {/* EF values */}
-                        <div>
-                          <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide block mb-1.5">EF Values (kg per unit)</label>
-                          <div className="grid grid-cols-4 gap-2">
-                            {[
-                              { key: 'ef_total_co2e', label: 'Total CO₂e' },
-                              { key: 'ef_co2',        label: 'CO₂' },
-                              { key: 'ef_ch4',        label: 'CH₄' },
-                              { key: 'ef_n2o',        label: 'N₂O' },
-                              { key: 'ef_pfc',        label: 'PFC' },
-                              { key: 'ef_sf6',        label: 'SF₆' },
-                              { key: 'ef_nf3',        label: 'NF₃' },
-                            ].map(({ key, label }) => (
-                              <div key={key} className="space-y-0.5">
-                                <label className="text-[10px] text-muted-foreground">{label}</label>
-                                <input
-                                  type="number"
-                                  step="any"
-                                  className="w-full h-7 px-2 rounded border border-input bg-background text-xs font-mono focus:outline-none focus:ring-2 focus:ring-ring"
-                                  value={editDraft[key] != null ? String(editDraft[key]) : ''}
-                                  onChange={e => setDraft({ [key]: e.target.value !== '' ? Number(e.target.value) : null })}
-                                />
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-
-                        {/* Classification */}
-                        <div className="grid grid-cols-3 gap-3">
-                          <div className="space-y-1">
-                            <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">GWP Version</label>
-                            <select
-                              className="w-full h-8 px-2 rounded border border-input bg-background text-xs focus:outline-none focus:ring-2 focus:ring-ring"
-                              value={String(editDraft.gwp_version ?? '')}
-                              onChange={e => setDraft({ gwp_version: e.target.value || null })}
-                            >
-                              <option value="">— Select —</option>
-                              {GWP_VERSIONS.map(g => <option key={g} value={g}>{g}</option>)}
-                            </select>
-                          </div>
-                          <div className="space-y-1">
-                            <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Country (ISO 2)</label>
-                            <input
-                              maxLength={2}
-                              className="w-full h-8 px-2 rounded border border-input bg-background text-xs uppercase focus:outline-none focus:ring-2 focus:ring-ring"
-                              value={String(editDraft.geography_country ?? '')}
-                              onChange={e => setDraft({ geography_country: e.target.value.toUpperCase() || null })}
-                            />
-                          </div>
-                          <div className="space-y-1">
-                            <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Valid From / To (year)</label>
-                            <div className="flex gap-1">
+                      <div className="mt-3 pt-3 border-t border-border space-y-3">
+                        <div className="grid grid-cols-2 gap-2 max-h-[300px] overflow-auto pr-1">
+                          {[
+                            { key: 'activity_name', label: 'Activity name' },
+                            { key: 'emission_category', label: 'Emission category' },
+                            { key: 'sub_category', label: 'Sub-category' },
+                            { key: 'ghg_scope', label: 'GHG scope (1/2/3)' },
+                            { key: 'ef_value', label: 'EF value', type: 'number' },
+                            { key: 'ghg_species', label: 'GHG species' },
+                            { key: 'numerator_unit', label: 'Numerator unit' },
+                            { key: 'denominator_unit', label: 'Denominator unit' },
+                            { key: 'country_iso', label: 'Country (ISO3)' },
+                            { key: 'geography_type', label: 'Geography type' },
+                            { key: 'reference_year', label: 'Reference year', type: 'number' },
+                            { key: 'valid_from', label: 'Valid from (YYYY-MM-DD)' },
+                            { key: 'valid_to', label: 'Valid to (YYYY-MM-DD)' },
+                            { key: 'gwp_basis', label: 'GWP basis' },
+                            { key: 'source_organization', label: 'Source organization' },
+                            { key: 'data_origin', label: 'Data origin' },
+                            { key: 'calculation_method', label: 'Calc method' },
+                            { key: 'system_boundary', label: 'System boundary' },
+                            { key: 'notes', label: 'Notes' },
+                          ].map(({ key, label, type }) => (
+                            <label key={key} className="block">
+                              <span className="text-[10px] text-muted-foreground">{label}</span>
                               <input
-                                type="number" min="1990" max="2099" placeholder="From"
-                                className="w-full h-8 px-2 rounded border border-input bg-background text-xs focus:outline-none focus:ring-2 focus:ring-ring"
-                                value={(editDraft.validity_start_year as number | string) ?? ''}
-                                onChange={e => setDraft({ validity_start_year: e.target.value ? Number(e.target.value) : '' })}
+                                type={type ?? 'text'}
+                                className="w-full h-7 px-2 rounded border border-input bg-background text-xs"
+                                value={editDraft[key] != null ? String(editDraft[key]) : ''}
+                                onChange={e => setDraft({ [key]: type === 'number'
+                                  ? (e.target.value !== '' ? Number(e.target.value) : null)
+                                  : (e.target.value || null) })}
                               />
-                              <input
-                                type="number" min="1990" max="2099" placeholder="To"
-                                className="w-full h-8 px-2 rounded border border-input bg-background text-xs focus:outline-none focus:ring-2 focus:ring-ring"
-                                value={(editDraft.validity_end_year as number | string) ?? ''}
-                                onChange={e => setDraft({ validity_end_year: e.target.value ? Number(e.target.value) : '' })}
-                              />
-                            </div>
-                          </div>
+                            </label>
+                          ))}
                         </div>
 
-                        {/* Scope multi-select */}
-                        <div className="space-y-1.5">
-                          <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">GHG Scope(s)</label>
-                          <div className="flex flex-wrap gap-1.5">
-                            {SCOPE_OPTIONS.map(scope => {
-                              const current = (editDraft.applicable_scopes as string[] | null) ?? []
-                              const active = current.includes(scope)
-                              return (
-                                <button
-                                  key={scope}
-                                  type="button"
-                                  onClick={() => setDraft({ applicable_scopes: active ? current.filter(s => s !== scope) : [...current, scope] })}
-                                  className={cn('text-[10px] px-2 py-0.5 rounded-full border transition-colors', active ? 'bg-primary text-primary-foreground border-primary' : 'border-input hover:bg-muted/50')}
-                                >
-                                  {scope.replace('Scope 3 — Category ', 'S3-C')}
-                                </button>
-                              )
-                            })}
-                          </div>
-                        </div>
-
-                        {/* Comments */}
-                        <div className="grid grid-cols-2 gap-3">
-                          <div className="space-y-1">
-                            <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Comments — Applicability</label>
-                            <textarea
-                              rows={2}
-                              className="w-full px-2 py-1.5 rounded border border-input bg-background text-xs resize-none focus:outline-none focus:ring-2 focus:ring-ring"
-                              value={String(editDraft.comments_applicability ?? '')}
-                              onChange={e => setDraft({ comments_applicability: e.target.value || null })}
-                            />
-                          </div>
-                          <div className="space-y-1">
-                            <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Comments — Limitations</label>
-                            <textarea
-                              rows={2}
-                              className="w-full px-2 py-1.5 rounded border border-input bg-background text-xs resize-none focus:outline-none focus:ring-2 focus:ring-ring"
-                              value={String(editDraft.comments_limitations ?? '')}
-                              onChange={e => setDraft({ comments_limitations: e.target.value || null })}
-                            />
-                          </div>
-                        </div>
-
-                        {/* Save actions */}
                         <div className="flex gap-2 pt-1">
                           <button
                             onClick={() => handleSaveEdit(absIndex, true)}
