@@ -2,15 +2,14 @@ import { useState, useRef } from "react";
 import { T, SS, pill, tag } from "../theme.js";
 import { Btn } from "../components/ui.jsx";
 import { CLAUDE_MODEL, PROMPT_VERSION, hashFile, overallConf, callClaudeExtract } from "../lib/claude.js";
-import { lookupFactor } from "../lib/efdb.js";
 import { runValidation } from "../lib/validation.js";
-import { calcEmission } from "../lib/emission.js";
+import { saveBillToSheet } from "../lib/sheets.js";
 import { uid } from "../lib/format.js";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // UPLOAD + REAL EXTRACTION
 // ─────────────────────────────────────────────────────────────────────────────
-export default function Upload({efdbToken, setBills, setSelected, setPage, setEfdbSrc, setGlobalExtracting}) {
+export default function Upload({setBills, setSelected, setPage, setGlobalExtracting}) {
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState(null);
   const [drag, setDrag] = useState(false);
@@ -68,25 +67,14 @@ export default function Upload({efdbToken, setBills, setSelected, setPage, setEf
       const hasHard = validation.flags.some(f=>f.sev==="HARD_REJECT");
       addLog(`Validation: ${validation.status} — ${validation.rules_run} rules, ${validation.flags.length} flags`, hasHard?"warn":"success");
 
-      // Step 5: EFDB factor lookup — NON-FATAL.
-      // If EFDB has no matching factor or is unreachable, we keep the extracted
-      // values and surface them anyway; only the emission calc is skipped.
-      addLog("Looking up EFDB emission factor…");
-      let factor = null;
-      try {
-        factor = await lookupFactor(billType, extracted?.fuel_type, efdbToken);
-        setEfdbSrc(factor._source);
-        addLog(`Factor: ${factor.ef_total_co2e} ${factor.unit} — source: ${factor._source}`, "success");
-      } catch(efErr) {
-        setEfdbSrc("offline");
-        addLog(`EFDB lookup failed: ${efErr.message} — keeping extracted values, emission skipped`, "warn");
-      }
+      // EFDB factor lookup + emission calc are now a deliberate SECOND step,
+      // done on the Review page against the reviewer-corrected extracted data.
+      // Extraction here captures the bill data only; factor/emission stay null.
+      addLog("Extraction captured — emission factor is looked up at review", "info");
+      const factor = null;
+      const emission = null;
 
-      // Step 6: compute emission (only when a factor was found)
-      const emission = factor ? calcEmission(billType, extracted, factor) : null;
-      if (emission) addLog(`Emission: ${emission.tco2e} tCO₂e (Scope ${emission.scope})`, "success");
-
-      // Step 7: determine final status
+      // Determine final status
       let status = routing==="auto_approved"?"approved":routing==="human_review"?"review":"rejected";
       if (hasHard && status!=="rejected") { status="rejected"; }
 
@@ -124,6 +112,21 @@ export default function Upload({efdbToken, setBills, setSelected, setPage, setEf
 
       setBills(p=>[bill,...p]);
       setSelected(bill.id);
+
+      // Step 8: persist to the Supabase sheet — NON-FATAL.
+      // Detects the sheet from bill_type; water/other bills are skipped.
+      if (billType==="electricity" || billType==="fuel") {
+        addLog("Saving to sheet…");
+        try {
+          await saveBillToSheet(bill);
+          addLog(`Saved to ${billType} sheet`, "success");
+        } catch(sheetErr) {
+          addLog(`Sheet save failed: ${sheetErr.message} — extraction kept`, "warn");
+        }
+      } else {
+        addLog(`No sheet for bill type "${billType}" — skipped`, "warn");
+      }
+
       setStage("done");
       addLog(`Done — bill ID: ${bill.id}`, "success");
 
@@ -213,8 +216,8 @@ export default function Upload({efdbToken, setBills, setSelected, setPage, setEf
             ["Claude extraction","Real API call to api.anthropic.com — your actual bill is read"],
             ["Field confidence","Returned by Claude per field — not hardcoded"],
             ["Validation rules","Live rule engine on real extracted values"],
-            ["EFDB lookup","Real fetch to the EFDB API — extraction fails loudly if no matching factor is found"],
-            ["Emission calc","Real GHG Protocol math on real extracted consumption data"],
+            ["EFDB lookup","Second step — run on the Review page against the corrected extracted data"],
+            ["Emission calc","Real GHG Protocol math, computed at review once the factor is found"],
           ].map(([k,v])=>(
             <div key={k} style={{display:"flex",gap:10,padding:"5px 0",borderBottom:`1px solid ${T.successLine}`,fontSize:11}}>
               <span style={{color:T.accent,width:160,flexShrink:0,fontFamily:T.mono}}>✓ {k}</span>

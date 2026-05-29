@@ -4,9 +4,11 @@ import { EFDB_PUBLIC } from "./lib/efdb.js";
 import Sidebar from "./components/Sidebar.jsx";
 import TopBar from "./components/TopBar.jsx";
 import Upload from "./pages/Upload.jsx";
+import IngestEF from "./pages/IngestEF.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
 import Review from "./pages/Review.jsx";
 import Records from "./pages/Records.jsx";
+import Sheets from "./pages/Sheets.jsx";
 import Audit from "./pages/Audit.jsx";
 import Settings from "./pages/Settings.jsx";
 
@@ -44,10 +46,12 @@ export default function App() {
         <TopBar page={page} reviewCount={reviewCount} setPage={setPage}/>
 
         <div style={SS.content}>
-          {page==="upload"   && <Upload efdbToken={efdbToken} setBills={setBills} setSelected={setSelectedId} setPage={setPage} setEfdbSrc={setEfdbSrc} setGlobalExtracting={setGlobalExtracting}/>}
+          {page==="upload"   && <Upload setBills={setBills} setSelected={setSelectedId} setPage={setPage} setGlobalExtracting={setGlobalExtracting}/>}
+          {page==="ingest_ef"&& <IngestEF efdbToken={efdbToken}/>}
           {page==="dash"     && <Dashboard bills={bills} setPage={setPage} setSelected={setSelectedId}/>}
-          {page==="review"   && <Review bills={bills} setBills={setBills} selectedId={selectedId} setSelected={setSelectedId} setPage={setPage}/>}
+          {page==="review"   && <Review bills={bills} setBills={setBills} selectedId={selectedId} setSelected={setSelectedId} setPage={setPage} efdbToken={efdbToken} setEfdbSrc={setEfdbSrc}/>}
           {page==="records"  && <Records bills={bills}/>}
+          {page==="sheets"   && <Sheets/>}
           {page==="audit"    && <Audit bill={selectedBill}/>}
           {page==="settings" && <Settings efdbToken={efdbToken} setEfdbToken={setEfdbToken} efdbSrc={efdbSrc}/>}
         </div>

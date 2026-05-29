@@ -1,7 +1,7 @@
 import { T, SS, pill } from "../theme.js";
 import { Dot } from "./ui.jsx";
 
-const PAGE_TITLES = {upload:"Upload & Extract",dash:"Dashboard",review:"Review",records:"Emission Records",audit:"Audit Trail",settings:"Settings"};
+const PAGE_TITLES = {upload:"Upload & Extract",ingest_ef:"Ingest Emission Factors",dash:"Dashboard",review:"Review",records:"Emission Records",sheets:"Sheets",audit:"Audit Trail",settings:"Settings"};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // TOP BAR

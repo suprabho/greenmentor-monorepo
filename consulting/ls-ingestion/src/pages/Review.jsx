@@ -3,19 +3,42 @@ import { T, SS, pill } from "../theme.js";
 import { Btn, ConfBar, SPill, TPill } from "../components/ui.jsx";
 import { runValidation } from "../lib/validation.js";
 import { calcEmission } from "../lib/emission.js";
+import { lookupFactor, factorQuery } from "../lib/efdb.js";
+import { updateBillEF } from "../lib/sheets.js";
 import { fmtD, short } from "../lib/format.js";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // REVIEW DETAIL
 // ─────────────────────────────────────────────────────────────────────────────
-function ReviewDetail({bill, setBills, setSelected, setPage}) {
+function ReviewDetail({bill, setBills, setPage, efdbToken, setEfdbSrc}) {
   const [corrections, setCorrections] = useState({});
   const [isApproved, setIsApproved] = useState(bill.status==="approved");
+  const [looking, setLooking] = useState(false);
+  const [lookupErr, setLookupErr] = useState("");
   const factor = bill.factor;
   const merged = {...bill, extracted:{...bill.extracted,...corrections}};
   const val = merged.extracted ? runValidation(merged.bill_type, merged.extracted) : bill.validation;
   const emission = factor&&merged.extracted ? calcEmission(merged.bill_type, merged.extracted, factor) : bill.emission;
   const hardFail = val?.flags.some(f=>f.sev==="HARD_REJECT");
+
+  // Step 2: look up the EFDB emission factor for the (corrected) extracted data,
+  // then compute the emission and backfill the persisted sheet row. Non-fatal —
+  // a missing/unreachable factor surfaces an error and leaves the extraction intact.
+  const fq = factorQuery(merged.bill_type, merged.extracted);
+  async function lookupEF() {
+    setLooking(true); setLookupErr("");
+    try {
+      const f = await lookupFactor(merged.bill_type, merged.extracted, efdbToken);
+      const em = calcEmission(merged.bill_type, merged.extracted, f);
+      const updated = {...bill, factor:f, emission:em};
+      setBills(p=>p.map(x=>x.id===bill.id?updated:x));
+      setEfdbSrc?.(f._source);
+      try { await updateBillEF(updated); } catch(_) {} // sheet backfill — non-fatal
+    } catch(e) {
+      setEfdbSrc?.("offline");
+      setLookupErr(e.message);
+    } finally { setLooking(false); }
+  }
 
   function approve() {
     setBills(p=>p.map(x=>x.id===bill.id?{...x,status:"approved",approved_by:"Reviewer: Current User",approved_at:new Date().toISOString(),human_corrections:corrections,emission:calcEmission(merged.bill_type,merged.extracted,factor)}:x));
@@ -69,7 +92,32 @@ function ReviewDetail({bill, setBills, setSelected, setPage}) {
                 </div>
               ))}
             </div>
-          ) : <div style={{color:T.dim,fontSize:12}}>No factor available</div>}
+          ) : (
+            <div>
+              <div style={{fontSize:11,color:T.muted,lineHeight:1.6,marginBottom:10}}>
+                Step 2 — look up the EFDB emission factor for this bill's activity, using the
+                {Object.keys(corrections).length>0 ? <b style={{color:T.accent}}> corrected </b> : " "}
+                extracted data. Edit the fields first if needed, then run the lookup.
+              </div>
+              {fq.qp ? (
+                <div style={{fontSize:10,color:T.dim,fontFamily:T.mono,marginBottom:10}}>
+                  query: q="{fq.q}" · country={fq.country} · {fq.scope}
+                </div>
+              ) : (
+                <div style={{fontSize:10,color:T.warn,fontFamily:T.mono,marginBottom:10}}>
+                  No EFDB query mapping for "{fq.key}" — set a fuel type that maps to a factor.
+                </div>
+              )}
+              <Btn sz="sm" disabled={looking||!fq.qp||!merged.extracted} onClick={lookupEF}>
+                {looking ? "Looking up…" : "🔎 Look up emission factor"}
+              </Btn>
+              {lookupErr && (
+                <div style={{marginTop:10,padding:"8px 10px",background:T.dangerBg,border:`1px solid ${T.dangerLine}`,borderRadius:6,fontSize:10,color:T.danger,fontFamily:T.mono,wordBreak:"break-word"}}>
+                  {lookupErr}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {val&&(
@@ -160,9 +208,9 @@ function ReviewDetail({bill, setBills, setSelected, setPage}) {
 // ─────────────────────────────────────────────────────────────────────────────
 // REVIEW QUEUE
 // ─────────────────────────────────────────────────────────────────────────────
-export default function Review({bills, setBills, selectedId, setSelected, setPage}) {
+export default function Review({bills, setBills, selectedId, setSelected, setPage, efdbToken, setEfdbSrc}) {
   const sel = bills.find(b=>b.id===selectedId);
-  if (sel) return <ReviewDetail bill={sel} setBills={setBills} setSelected={setSelected} setPage={setPage}/>;
+  if (sel) return <ReviewDetail bill={sel} setBills={setBills} setPage={setPage} efdbToken={efdbToken} setEfdbSrc={setEfdbSrc}/>;
 
   const q = bills.filter(b=>b.status==="review"||b.status==="pending");
   if (!q.length) return (

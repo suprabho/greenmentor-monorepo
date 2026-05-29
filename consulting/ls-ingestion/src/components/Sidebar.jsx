@@ -4,7 +4,7 @@ import { CLAUDE_MODEL } from "../lib/claude.js";
 // ─────────────────────────────────────────────────────────────────────────────
 // SIDEBAR
 // ─────────────────────────────────────────────────────────────────────────────
-export const NAV=[{id:"dash",icon:"◈",label:"Dashboard"},{id:"upload",icon:"↑",label:"Upload bills"},{id:"review",icon:"⊡",label:"Review queue"},{id:"records",icon:"◉",label:"Emission records"},{id:"audit",icon:"⊞",label:"Audit trail"},{id:"settings",icon:"⬡",label:"Settings"}];
+export const NAV=[{id:"dash",icon:"◈",label:"Dashboard"},{id:"upload",icon:"↑",label:"Upload bills"},{id:"ingest_ef",icon:"⚗",label:"Ingest factors"},{id:"review",icon:"⊡",label:"Review queue"},{id:"records",icon:"◉",label:"Emission records"},{id:"sheets",icon:"▦",label:"Sheets"},{id:"audit",icon:"⊞",label:"Audit trail"},{id:"settings",icon:"⬡",label:"Settings"}];
 
 export default function Sidebar({page,setPage,reviewCount,efdbSrc,extracting}) {
   return (
