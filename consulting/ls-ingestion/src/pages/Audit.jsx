@@ -14,8 +14,8 @@ export default function Audit({bill}) {
     {n:3,label:"Claude extraction",      d:`Model: ${bill.llm_model||"—"}\nPrompt version: ${bill.llm_prompt_version||"—"}\nMethod: ${bill.extraction_method||"—"}\nTokens: ${bill.token_usage?`${bill.token_usage.input_tokens} input, ${bill.token_usage.output_tokens} output`:"—"}\nNotes: ${bill.extraction_notes||"none"}`},
     {n:4,label:"Confidence scoring",     d:`Overall: ${bill.overall_confidence!=null?Math.round(bill.overall_confidence*100)+"%":"—"}\nRouting: ${bill.overall_confidence>=0.9?"auto_approved (≥90%)":bill.overall_confidence>=0.7?"human_review (70–89%)":"rejected (<70%)"}`},
     {n:5,label:"Validation rules",       d:val?`${val.rules_run} rules run\nStatus: ${val.status}\nFlags: ${val.flags.length}\n${val.flags.map(f=>`[${f.rule}] ${f.label}`).join("\n")||"none"}`:"Skipped"},
-    {n:6,label:"EFDB factor lookup",     d:bill.factor?`Source: ${bill.factor._source}\ncanonical: ${bill.factor.canonical_activity_name}\nef_total_co2e: ${bill.factor.ef_total_co2e} ${bill.factor.unit}\nsource_name: ${bill.factor.source_name}\nconfidence: ${bill.factor.confidence_score}/100\nid: ${bill.factor.id}`:"No factor"},
-    bill.emission?{n:7,label:"Emission computed",d:`${bill.emission.formula} = ${bill.emission.tco2e} tCO₂e\nScope ${bill.emission.scope} · GWP: ${bill.factor?.gwp_version||"—"}\nMethodology: GHG Protocol`}:null,
+    {n:6,label:"EFDB factor lookup",     d:bill.factor?`Source: ${bill.factor._source}\nactivity_name: ${bill.factor.activity_name}\nef_value: ${bill.factor.ef_value} ${bill.factor.unit}\nsource_organization: ${bill.factor.source_organization}\nghg_scope: ${bill.factor.ghg_scope!=null?`Scope ${bill.factor.ghg_scope}`:"—"}\ndq_score_overall: ${bill.factor.dq_score_overall!=null?`${bill.factor.dq_score_overall}/5 (1=best)`:"—"}\nid: ${bill.factor.id}`:"No factor"},
+    bill.emission?{n:7,label:"Emission computed",d:`${bill.emission.formula} = ${bill.emission.tco2e} tCO₂e\nScope ${bill.emission.scope} · GWP: ${bill.factor?.gwp_basis||"—"}\nMethodology: GHG Protocol`}:null,
     bill.approved_by?{n:8,label:"Approved",d:`By: ${bill.approved_by}\nAt: ${fmtD(bill.approved_at)}\nCorrections: ${Object.keys(bill.human_corrections||{}).length} fields`}:null,
   ].filter(Boolean);
 
@@ -53,7 +53,7 @@ export default function Audit({bill}) {
         overall_confidence:bill.overall_confidence, extracted_fields:bill.extracted,
         confidence_scores:bill.confidence_scores, extraction_notes:bill.extraction_notes,
         validation:val, human_corrections:bill.human_corrections, token_usage:bill.token_usage,
-        efdb_factor:bill.factor?{id:bill.factor.id,canonical_activity_name:bill.factor.canonical_activity_name,ef_total_co2e:bill.factor.ef_total_co2e,unit:bill.factor.unit,source_name:bill.factor.source_name,confidence_score:bill.factor.confidence_score,gwp_version:bill.factor.gwp_version,_source:bill.factor._source}:null,
+        efdb_factor:bill.factor?{id:bill.factor.id,activity_name:bill.factor.activity_name,ef_value:bill.factor.ef_value,numerator_unit:bill.factor.numerator_unit,denominator_unit:bill.factor.denominator_unit,ghg_scope:bill.factor.ghg_scope,source_organization:bill.factor.source_organization,gwp_basis:bill.factor.gwp_basis,dq_score_overall:bill.factor.dq_score_overall,_source:bill.factor._source}:null,
         emission:bill.emission,
       },null,2)}</pre>
     </div>

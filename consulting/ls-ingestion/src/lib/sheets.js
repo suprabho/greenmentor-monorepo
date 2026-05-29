@@ -133,6 +133,23 @@ export async function updateBillEF(bill) {
   return data;
 }
 
+// Serialize sheet rows into a CSV string matching the bulk-upload template:
+// header + values restricted to the sheet's template columns (the `meta` fields
+// like bill_id/raw are intentionally omitted so the output round-trips as a
+// re-uploadable template). RFC-4180 quoting for values with commas/quotes/newlines.
+export function sheetRowsToCSV(type, rows) {
+  const schema = SHEET_SCHEMAS[type];
+  if (!schema) throw new Error(`Unknown sheet type: ${type}`);
+  const esc = (v) => {
+    if (v === null || v === undefined) return "";
+    const s = String(v);
+    return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  };
+  const header = schema.columns.join(",");
+  const lines = rows.map((r) => schema.columns.map((c) => esc(r[c])).join(","));
+  return [header, ...lines].join("\n");
+}
+
 // Read all rows for a sheet, newest first, for the live table.
 export async function fetchSheet(type) {
   if (!supabaseConfigured) throw new Error("Supabase not configured (set VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY)");

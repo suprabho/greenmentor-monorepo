@@ -85,7 +85,7 @@ function ReviewDetail({bill, setBills, setPage, efdbToken, setEfdbSrc}) {
                 <span style={{fontFamily:T.mono,fontSize:11,color:T.accent}}>{factor.canonical_activity_name}</span>
                 <span style={pill(T.successBg,T.accent,{fontSize:9})}>{factor._source}</span>
               </div>
-              {[["ef_total_co2e",`${factor.ef_total_co2e} (${factor.unit})`],["source_name",factor.source_name],["applicable_scopes",(factor.applicable_scopes||[]).join(", ")],["gwp_version",factor.gwp_version],["confidence_score",factor.confidence_score!=null?`${factor.confidence_score}/100`:"—"],["id",factor.id]].map(([k,v])=>(
+              {[["ef_value",`${factor.ef_value} ${factor.unit}`],["ghg_species",factor.ghg_species],["scope",factor.ghg_scope!=null?`Scope ${factor.ghg_scope}`:"—"],["gwp_basis",factor.gwp_basis],["source",factor.source_organization],["reference_year",factor.reference_year],["country_iso",factor.country_iso],["dq_score",factor.dq_score_overall!=null?`${factor.dq_score_overall}/5 (1=best)`:"—"],["id",factor.id]].map(([k,v])=>(
                 <div key={k} style={{display:"flex",gap:10,padding:"3px 0",borderBottom:`1px solid rgba(74,222,128,0.1)`,fontSize:11}}>
                   <span style={{fontFamily:T.mono,color:"#4ADE80",width:180,flexShrink:0}}>{k}</span>
                   <span style={{color:T.text,wordBreak:"break-all"}}>{v||"—"}</span>
