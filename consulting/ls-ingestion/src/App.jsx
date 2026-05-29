@@ -464,14 +464,22 @@ function Upload({efdbToken, setBills, setSelected, setPage, setEfdbSrc, setGloba
       const hasHard = validation.flags.some(f=>f.sev==="HARD_REJECT");
       addLog(`Validation: ${validation.status} — ${validation.rules_run} rules, ${validation.flags.length} flags`, hasHard?"warn":"success");
 
-      // Step 5: EFDB factor lookup
+      // Step 5: EFDB factor lookup — NON-FATAL.
+      // If EFDB has no matching factor or is unreachable, we keep the extracted
+      // values and surface them anyway; only the emission calc is skipped.
       addLog("Looking up EFDB emission factor…");
-      const factor = await lookupFactor(billType, extracted?.fuel_type, efdbToken);
-      setEfdbSrc(factor._source);
-      addLog(`Factor: ${factor.ef_total_co2e} ${factor.unit} — source: ${factor._source}`, "success");
+      let factor = null;
+      try {
+        factor = await lookupFactor(billType, extracted?.fuel_type, efdbToken);
+        setEfdbSrc(factor._source);
+        addLog(`Factor: ${factor.ef_total_co2e} ${factor.unit} — source: ${factor._source}`, "success");
+      } catch(efErr) {
+        setEfdbSrc("offline");
+        addLog(`EFDB lookup failed: ${efErr.message} — keeping extracted values, emission skipped`, "warn");
+      }
 
-      // Step 6: compute emission
-      const emission = calcEmission(billType, extracted, factor);
+      // Step 6: compute emission (only when a factor was found)
+      const emission = factor ? calcEmission(billType, extracted, factor) : null;
       if (emission) addLog(`Emission: ${emission.tco2e} tCO₂e (Scope ${emission.scope})`, "success");
 
       // Step 7: determine final status
@@ -867,7 +875,9 @@ function Dashboard({bills, setPage, setSelected}) {
 // EMISSION RECORDS
 // ─────────────────────────────────────────────────────────────────────────────
 function Records({bills}) {
-  const approved = bills.filter(b=>b.status==="approved"&&b.emission);
+  // Include all approved bills — even those without an EFDB factor/emission.
+  // Those rows show "—" for EF/tCO₂e instead of being dropped from the registry.
+  const approved = bills.filter(b=>b.status==="approved");
   const totalTco2e = approved.reduce((sum,b)=>sum+(b.emission?.tco2e||0),0);
   return <>
     <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12,marginBottom:18}}>
