@@ -51,14 +51,14 @@ export const SITE_COMBINATIONS = [
 ];
 
 // Our fuel_type code → SaaS master fuel type. Codes with no exact SaaS equivalent
-// (biomass, kerosene, other) are intentionally absent and pass through unchanged so
-// the SaaS flags them for manual fixing rather than silently mislabelling them.
+// (natural_gas, biomass, kerosene, other) are intentionally absent and pass through
+// unchanged — natural gas stays natural gas rather than being relabelled as CNG —
+// so the SaaS flags them for manual fixing instead of silently mislabelling them.
 const FUEL_TYPE_EXPORT = {
   diesel:      "Diesel",
   hsd:         "Diesel",            // High-Speed Diesel
   petrol:      "Petrol",
   cng:         "CNG",
-  natural_gas: "CNG",              // no distinct SaaS natural-gas entry
   lpg:         "LPG",
   furnace_oil: "Processed fuel oils-residual oil",
   coal:        "Coal (industrial)",
