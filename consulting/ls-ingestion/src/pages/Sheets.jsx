@@ -101,7 +101,7 @@ export default function Sheets() {
         <select
           value={site}
           onChange={e=>setSite(e.target.value)}
-          title="Stamped on the site_combination column of every exported row"
+          title="Stamped on the site column (site_combination on fuel, facility on electricity) of every exported row"
           style={{...SS.input,width:190,color:site?T.text:T.dim}}
         >
           <option value="">Site combination…</option>

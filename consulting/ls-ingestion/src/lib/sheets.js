@@ -25,11 +25,20 @@ export const SHEET_SCHEMAS = {
   electricity: {
     table: "electricity_bills",
     label: "Electricity",
+    // Column order mirrors the GreenMentor electricity bulk-upload template.
+    // `headers` are the human-readable names the SaaS expects in the CSV header
+    // row; `columns` are our internal storage keys (1:1, same order).
     columns: [
-      "bill_date", "period_from", "period_to", "discom", "account_number",
-      "units_kwh", "peak_units_kwh", "offpeak_units_kwh", "solar_export_kwh",
-      "sanctioned_load_kw", "amount_paid", "currency", "site_combination",
-      "ef_of_electricity",
+      "bill_date", "period_from", "period_to", "facility",
+      "electricity_source", "source_type", "transaction_type", "electricity_board",
+      "units_kwh", "unit", "amount_paid", "currency",
+      "ef_of_electricity", "evidence", "status",
+    ],
+    headers: [
+      "Bill Date", "Billing Start Period", "Billing End Period", "Facility",
+      "Electricity Source", "Source Type", "Transaction Type", "Electricity Board",
+      "Unit Used", "Unit", "Amount Paid", "Currency",
+      "Emission Factor", "Evidence", "Status",
     ],
   },
 };
@@ -40,7 +49,8 @@ export const SHEET_SCHEMAS = {
 // strings at CSV-export time (see sheetRowsToCSV) — the DB keeps its own values.
 
 // Accepted Level2 - Level3 site combinations, surfaced as a dropdown on the Sheets
-// page. `site_combination` is never extracted, so the user stamps one at export.
+// page. The site is never extracted, so the user stamps one at export — onto
+// `site_combination` (fuel) or `facility` (electricity).
 export const SITE_COMBINATIONS = [
   "Andhra Pradesh - Kurnool",
   "Gurgaon - Gurgaon",
@@ -62,6 +72,13 @@ const FUEL_TYPE_EXPORT = {
   lpg:         "LPG",
   furnace_oil: "Processed fuel oils-residual oil",
   coal:        "Coal (industrial)",
+};
+
+// Our internal routing status → SaaS master status. Unmapped values pass through.
+const STATUS_EXPORT = {
+  approved: "Accepted",
+  rejected: "Rejected",
+  review:   "In Review",
 };
 
 // Fields attached to every row for traceability (alongside the template columns).
@@ -103,17 +120,17 @@ export function toElectricityRow(bill) {
     bill_date:          e.period_to ?? e.due_date ?? null,
     period_from:        e.period_from ?? null,
     period_to:          e.period_to ?? null,
-    discom:             e.discom ?? null,
-    account_number:     e.account_number ?? null,
-    units_kwh:          e.units_kwh ?? null,
-    peak_units_kwh:     e.peak_units_kwh ?? null,
-    offpeak_units_kwh:  e.offpeak_units_kwh ?? null,
-    solar_export_kwh:   e.solar_export_kwh ?? null,
-    sanctioned_load_kw: e.sanctioned_load_kw ?? null,
+    facility:           null,                      // not extracted — stamped at export
+    electricity_source: e.electricity_source ?? null,
+    source_type:        e.source_type ?? null,
+    transaction_type:   e.transaction_type ?? null,
+    electricity_board:  e.discom ?? null,          // template "Electricity Board"
+    units_kwh:          e.units_kwh ?? null,       // template "Unit Used"
+    unit:               e.units_kwh != null ? "kWh" : null,
     amount_paid:        e.amount_inr ?? null,
     currency:           "INR",
-    site_combination:   null,
-    ef_of_electricity:  f?.ef_total_co2e ?? null,
+    ef_of_electricity:  f?.ef_total_co2e ?? null,  // template "Emission Factor"
+    evidence:           e.evidence_url ?? null,    // storage URL — null until file upload lands
   };
 }
 
@@ -175,15 +192,17 @@ export function sheetRowsToCSV(type, rows, { siteCombination = "" } = {}) {
     const s = String(v);
     return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
   };
-  // Translate a stored cell to the value the SaaS master list expects. site_combination
-  // is stamped from the export-time selection (rows never carry one); fuel_type is mapped
+  // Translate a stored cell to the value the SaaS master list expects. The site
+  // (site_combination on fuel / facility on electricity) is stamped from the
+  // export-time selection (rows never carry one); fuel_type and status are mapped
   // to the SaaS naming (unmapped codes pass through for manual fixing).
   const cell = (col, r) => {
-    if (col === "site_combination") return siteCombination || r.site_combination;
-    if (col === "fuel_type")        return FUEL_TYPE_EXPORT[r.fuel_type] ?? r.fuel_type;
+    if (col === "site_combination" || col === "facility") return siteCombination || r[col];
+    if (col === "fuel_type")                              return FUEL_TYPE_EXPORT[r.fuel_type] ?? r.fuel_type;
+    if (col === "status")                                 return STATUS_EXPORT[r.status] ?? r.status;
     return r[col];
   };
-  const header = schema.columns.join(",");
+  const header = (schema.headers ?? schema.columns).join(",");
   const lines = rows.map((r) => schema.columns.map((c) => esc(cell(c, r))).join(","));
   return [header, ...lines].join("\n");
 }

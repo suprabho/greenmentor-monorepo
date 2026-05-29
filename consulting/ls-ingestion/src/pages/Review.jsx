@@ -49,7 +49,7 @@ function ReviewDetail({bill, setBills, setPage, efdbToken, setEfdbSrc}) {
     setPage("review");
   }
 
-  const elecF=[{k:"discom",l:"DISCOM"},{k:"account_number",l:"Account no."},{k:"consumer_name",l:"Consumer name"},{k:"consumer_category",l:"Category"},{k:"period_from",l:"Period from"},{k:"period_to",l:"Period to"},{k:"units_kwh",l:"Units (kWh)"},{k:"solar_export_kwh",l:"Solar export (kWh)"},{k:"sanctioned_load_kw",l:"Sanctioned load (kW)"},{k:"amount_inr",l:"Amount (₹)"}];
+  const elecF=[{k:"discom",l:"DISCOM"},{k:"electricity_source",l:"Electricity source"},{k:"source_type",l:"Source type"},{k:"transaction_type",l:"Transaction type"},{k:"account_number",l:"Account no."},{k:"consumer_name",l:"Consumer name"},{k:"consumer_category",l:"Category"},{k:"period_from",l:"Period from"},{k:"period_to",l:"Period to"},{k:"units_kwh",l:"Units (kWh)"},{k:"solar_export_kwh",l:"Solar export (kWh)"},{k:"sanctioned_load_kw",l:"Sanctioned load (kW)"},{k:"amount_inr",l:"Amount (₹)"}];
   const fuelF=[{k:"vendor_name",l:"Vendor name"},{k:"vendor_gstin",l:"Vendor GSTIN"},{k:"invoice_number",l:"Invoice no."},{k:"invoice_date",l:"Invoice date"},{k:"fuel_type",l:"Fuel type"},{k:"quantity",l:"Quantity"},{k:"quantity_unit",l:"Unit"},{k:"vehicle_number",l:"Vehicle no."},{k:"amount_inr",l:"Amount (₹)"}];
   const fields = bill.bill_type==="electricity" ? elecF : fuelF;
 

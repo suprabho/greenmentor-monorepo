@@ -17,6 +17,9 @@ STRICT RULES:
 - Numbers must be numeric — no commas, no currency symbols, no units in the value field.
 - bill_type must be exactly one of: electricity, fuel, water, other.
 - discom must be one of: MSEDCL, BEST, Tata Power, Adani Electricity, MSEDC, MAHADISCOM, other.
+- electricity_source must be one of: Grid - EB, Diesel Generator, Solar, Wind, other.
+- source_type must be one of: Renewable, Non Renewable.
+- transaction_type must be one of: Captive, Purchased. Self-generated (DG/solar/captive plant) is Captive; supply drawn from the grid/utility is Purchased.
 - fuel_type must be one of: diesel, petrol, cng, lpg, hsd, furnace_oil, coal, biomass, natural_gas, kerosene, other.
 - quantity_unit must be one of: litres, kg, SCM, MT, kL.
 - confidence values must be floats between 0.0 and 1.0.
@@ -28,6 +31,9 @@ const USER_PROMPT = `Extract all available fields from this utility bill. Return
   "bill_type": "electricity" | "fuel" | "water" | "other",
   "electricity": {
     "discom": string | null,
+    "electricity_source": "Grid - EB" | "Diesel Generator" | "Solar" | "Wind" | "other" | null,
+    "source_type": "Renewable" | "Non Renewable" | null,
+    "transaction_type": "Captive" | "Purchased" | null,
     "account_number": string | null,
     "consumer_name": string | null,
     "consumer_address": string | null,
@@ -56,6 +62,9 @@ const USER_PROMPT = `Extract all available fields from this utility bill. Return
   },
   "confidence": {
     "bill_type": 0.0,
+    "electricity_source": 0.0,
+    "source_type": 0.0,
+    "transaction_type": 0.0,
     "account_number": 0.0,
     "consumer_name": 0.0,
     "period_from": 0.0,
