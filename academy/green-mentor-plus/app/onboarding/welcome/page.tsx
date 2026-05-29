@@ -12,6 +12,12 @@ import { track } from "@/lib/utils/analytics";
 import { syncLead } from "@/lib/lead/sync";
 import { countryByIso } from "@/lib/data/country-codes";
 import { detectCountryIso } from "@/lib/utils/geo";
+import {
+  isValidEmail,
+  isValidPhone,
+  phoneDigits,
+  phoneLengthHint,
+} from "@/lib/utils/validation";
 
 const validSegments: AudienceSegment[] = [
   "student",
@@ -71,9 +77,8 @@ function WelcomeForm() {
   }, [phone, countryPicked]);
 
   const nameValid = nameInput.trim().length >= 2;
-  const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailInput.trim());
-  const phoneDigits = phoneInput.replace(/\D/g, "");
-  const phoneValid = phoneDigits.length >= 7 && phoneDigits.length <= 15;
+  const emailValid = isValidEmail(emailInput);
+  const phoneValid = isValidPhone(phoneInput, countryIso);
   const canContinue = nameValid && emailValid && phoneValid;
 
   function handleSubmit(e?: FormEvent) {
@@ -84,7 +89,7 @@ function WelcomeForm() {
     setIdentity({
       name: nameInput,
       email: emailInput,
-      phone: `${dial}${phoneDigits}`,
+      phone: `${dial}${phoneDigits(phoneInput)}`,
       phoneCountry: countryIso,
     });
     track("onboarding_step_completed", { step: "welcome" });
@@ -152,9 +157,7 @@ function WelcomeForm() {
               setCountryIso(iso);
             }}
             error={
-              touched && !phoneValid
-                ? "Please enter a valid mobile number."
-                : undefined
+              touched && !phoneValid ? phoneLengthHint(countryIso) : undefined
             }
           />
         </div>

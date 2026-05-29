@@ -17,7 +17,7 @@ so it never reaches the browser. `/api/lead` validates the payload, then POSTs
 
 ## Columns written
 
-`leadId · createdAt · updatedAt · status · step · name · email · segment · goals · planId · billingCycle · razorpaySubscriptionId · razorpayPaymentId`
+`leadId · createdAt · updatedAt · status · step · name · email · phone · segment · goals · planId · billingCycle · razorpaySubscriptionId · razorpayPaymentId`
 
 The script auto-creates this header row on first write — you don't need to add
 it manually.
@@ -79,6 +79,7 @@ const HEADERS = [
   "step",
   "name",
   "email",
+  "phone",
   "segment",
   "goals",
   "planId",
@@ -138,6 +139,7 @@ function doPost(e) {
       lead.step || "",
       lead.name || "",
       lead.email || "",
+      lead.phone || "",
       lead.segment || "",
       goals,
       lead.planId || "",
