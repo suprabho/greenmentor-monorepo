@@ -1,13 +1,11 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { sheetsConfigured, upsertLead } from "@/lib/lead/sheets";
 
 /**
- * Lead sink. Upserts the onboarding lead (keyed by leadId) directly into a
- * Google Sheet via the Sheets API, authenticating as a service account — no
- * Apps Script web app, no /exec URL. See docs/lead-sheet-setup.md. Credentials
- * stay server-side; the browser only ever talks to this route. Falls back to
- * console logging when the service-account env vars are unset (local dev).
+ * Lead sink. Upserts the onboarding lead (keyed by leadId) into a Google
+ * Sheet via an Apps Script web app — see docs/lead-sheet-setup.md. The
+ * webhook URL stays server-side; the browser only ever talks to this route.
+ * Falls back to console logging when SHEETS_WEBHOOK_URL is unset (local dev).
  */
 
 const LeadSchema = z.object({
@@ -56,20 +54,37 @@ export async function POST(request: Request) {
     receivedAt: new Date().toISOString(),
   };
 
-  if (!sheetsConfigured()) {
-    // Dev fallback: no service account configured, log instead.
+  const webhookUrl = process.env.SHEETS_WEBHOOK_URL;
+  if (!webhookUrl) {
+    // Dev fallback: no sheet configured, log instead.
     // eslint-disable-next-line no-console
     console.log("[lead]", JSON.stringify(lead));
     return NextResponse.json({ ok: true, id: lead.leadId });
   }
 
+  const secret = process.env.SHEETS_WEBHOOK_SECRET;
   try {
-    await upsertLead(lead);
+    // Apps Script web apps 302 to a googleusercontent URL; fetch follows the
+    // redirect by default and returns the doPost result. The secret travels in
+    // the body — Apps Script doesn't expose request headers to doPost.
+    const res = await fetch(webhookUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(secret ? { secret, lead } : { lead }),
+    });
+    if (!res.ok) {
+      // eslint-disable-next-line no-console
+      console.error("[lead] sheet webhook failed", res.status);
+      return NextResponse.json(
+        { ok: false, error: "Sheet write failed" },
+        { status: 502 },
+      );
+    }
   } catch (err) {
     // eslint-disable-next-line no-console
-    console.error("[lead] sheet write error", err);
+    console.error("[lead] sheet webhook error", err);
     return NextResponse.json(
-      { ok: false, error: "Sheet write failed" },
+      { ok: false, error: "Sheet write error" },
       { status: 502 },
     );
   }
