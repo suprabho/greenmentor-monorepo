@@ -26,6 +26,7 @@ export function syncLead(step: OnboardingStep): void {
     step,
     name: s.name,
     email: s.email,
+    phone: s.phone,
     segment: s.segment,
     goals: s.goals,
     planId: s.planId,

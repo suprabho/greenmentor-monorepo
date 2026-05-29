@@ -6,9 +6,12 @@ import { motion } from "framer-motion";
 import { useOnboarding } from "@/lib/store/onboarding";
 import type { AudienceSegment } from "@/lib/data/audiences";
 import { Input } from "@/components/ui/Input";
+import { PhoneInput } from "@/components/ui/PhoneInput";
 import { BottomNav } from "@/components/onboarding/BottomNav";
 import { track } from "@/lib/utils/analytics";
 import { syncLead } from "@/lib/lead/sync";
+import { countryByIso } from "@/lib/data/country-codes";
+import { detectCountryIso } from "@/lib/utils/geo";
 
 const validSegments: AudienceSegment[] = [
   "student",
@@ -42,21 +45,48 @@ function QueryParamSync() {
 
 function WelcomeForm() {
   const router = useRouter();
-  const { name, email, setIdentity } = useOnboarding();
+  const { name, email, phone, phoneCountry, setIdentity } = useOnboarding();
 
   const [nameInput, setNameInput] = useState(name);
   const [emailInput, setEmailInput] = useState(email);
+  // National number only (digits); the dial code lives on `countryIso`.
+  const [phoneInput, setPhoneInput] = useState(phone);
+  const [countryIso, setCountryIso] = useState(phoneCountry);
+  // Becomes true once the user touches the country picker — keeps the IP
+  // detection from overriding a deliberate choice if it resolves late.
+  const [countryPicked, setCountryPicked] = useState(false);
   const [touched, setTouched] = useState(false);
+
+  // Auto-detect the country code from the visitor's IP / ISP and pre-fill the
+  // picker, unless the store already has a saved choice or the user picked one.
+  useEffect(() => {
+    if (phone || countryPicked) return;
+    let active = true;
+    detectCountryIso().then((iso) => {
+      if (active && !countryPicked) setCountryIso(iso);
+    });
+    return () => {
+      active = false;
+    };
+  }, [phone, countryPicked]);
 
   const nameValid = nameInput.trim().length >= 2;
   const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailInput.trim());
-  const canContinue = nameValid && emailValid;
+  const phoneDigits = phoneInput.replace(/\D/g, "");
+  const phoneValid = phoneDigits.length >= 7 && phoneDigits.length <= 15;
+  const canContinue = nameValid && emailValid && phoneValid;
 
   function handleSubmit(e?: FormEvent) {
     e?.preventDefault();
     setTouched(true);
     if (!canContinue) return;
-    setIdentity({ name: nameInput, email: emailInput });
+    const dial = countryByIso(countryIso)?.dial ?? "";
+    setIdentity({
+      name: nameInput,
+      email: emailInput,
+      phone: `${dial}${phoneDigits}`,
+      phoneCountry: countryIso,
+    });
     track("onboarding_step_completed", { step: "welcome" });
     syncLead("welcome");
     router.push("/onboarding/audience");
@@ -108,6 +138,22 @@ function WelcomeForm() {
             error={
               touched && !emailValid
                 ? "That doesn't look like a valid email."
+                : undefined
+            }
+          />
+          <PhoneInput
+            label="Mobile number"
+            placeholder="98765 43210"
+            value={phoneInput}
+            onChange={setPhoneInput}
+            countryIso={countryIso}
+            onCountryChange={(iso) => {
+              setCountryPicked(true);
+              setCountryIso(iso);
+            }}
+            error={
+              touched && !phoneValid
+                ? "Please enter a valid mobile number."
                 : undefined
             }
           />

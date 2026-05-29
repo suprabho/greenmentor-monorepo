@@ -14,6 +14,7 @@ const LeadSchema = z.object({
   step: z.string().optional(),
   name: z.string().min(2).max(120),
   email: z.string().email(),
+  phone: z.string().max(32).optional(),
   segment: z
     .enum(["student", "mid-career", "business-leader"])
     .nullable()
