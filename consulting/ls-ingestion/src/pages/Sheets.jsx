@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { T, SS, pill } from "../theme.js";
 import { Btn } from "../components/ui.jsx";
-import { SHEET_SCHEMAS, fetchSheet, sheetRowsToCSV } from "../lib/sheets.js";
+import { SHEET_SCHEMAS, SITE_COMBINATIONS, fetchSheet, sheetRowsToCSV } from "../lib/sheets.js";
 import { supabaseConfigured } from "../lib/supabase.js";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -16,12 +16,15 @@ export default function Sheets() {
   const [loading, setLoad]= useState(false);
   const [error, setError] = useState("");
   const [query, setQuery] = useState("");
+  const [site, setSite]   = useState(""); // site_combination stamped on export
   const [selected, setSel]= useState(() => new Set()); // selected row ids
 
   const schema = SHEET_SCHEMAS[type];
 
   const load = useCallback(async () => {
-    if (!supabaseConfigured) { setError("Supabase not configured — set VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY in .env"); return; }
+    // Config issues get their own dedicated notice (rendered below), not the
+    // generic red error line — so leave `error` empty and bail early here.
+    if (!supabaseConfigured) return;
     setLoad(true); setError("");
     try { setRows(await fetchSheet(type)); }
     catch(e) { setError(e.message); setRows([]); }
@@ -59,7 +62,7 @@ export default function Sheets() {
   const download = () => {
     const picked = filtered.filter(r => selected.size === 0 || selected.has(r.id));
     if (picked.length === 0) return;
-    const csv = sheetRowsToCSV(type, picked);
+    const csv = sheetRowsToCSV(type, picked, { siteCombination: site });
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -95,9 +98,35 @@ export default function Sheets() {
           placeholder="Filter rows…"
           style={{...SS.input,width:200}}
         />
+        <select
+          value={site}
+          onChange={e=>setSite(e.target.value)}
+          title="Stamped on the site_combination column of every exported row"
+          style={{...SS.input,width:190,color:site?T.text:T.dim}}
+        >
+          <option value="">Site combination…</option>
+          {SITE_COMBINATIONS.map(s=><option key={s} value={s} style={{color:T.text}}>{s}</option>)}
+        </select>
         <Btn sz="sm" v="primary" disabled={filtered.length===0} onClick={download}>{downloadLabel}</Btn>
       </div>
-      {error ? (
+      {!supabaseConfigured ? (
+        <div style={{padding:"28px 20px",textAlign:"center"}}>
+          <div style={{fontSize:13,fontWeight:700,color:T.text,marginBottom:8}}>Supabase isn’t configured yet</div>
+          <div style={{fontSize:12,color:T.dim,lineHeight:1.6,maxWidth:440,margin:"0 auto"}}>
+            The Sheets tab reads bill data directly from Supabase, but the connection keys are missing.
+            Add them to the <span style={{fontFamily:T.mono,color:T.text}}>.env</span> file at the project root:
+          </div>
+          <div style={{margin:"14px auto 0",maxWidth:440,textAlign:"left",fontFamily:T.mono,fontSize:11,color:T.muted,background:T.successBg,border:`1px solid ${T.line}`,borderRadius:6,padding:"12px 14px",lineHeight:1.8}}>
+            VITE_SUPABASE_URL=<span style={{color:T.dim}}>your-project-url</span><br/>
+            VITE_SUPABASE_ANON_KEY=<span style={{color:T.dim}}>your-anon-key</span>
+          </div>
+          <div style={{fontSize:11,color:T.dim,marginTop:12,lineHeight:1.6}}>
+            Find both under <span style={{color:T.muted}}>Supabase dashboard → Project Settings → API</span>.
+            Each key must appear only once — duplicate lines silently take the first (often empty) value.
+            Restart the dev server after editing <span style={{fontFamily:T.mono}}>.env</span>.
+          </div>
+        </div>
+      ) : error ? (
         <div style={{color:T.danger,fontSize:12,fontFamily:T.mono,padding:"20px 0",textAlign:"center"}}>{error}</div>
       ) : rows.length===0 ? (
         <div style={{color:T.dim,fontSize:12,textAlign:"center",padding:"30px 0"}}>{loading?"Loading…":`No ${schema.label.toLowerCase()} rows yet — upload a bill to populate this sheet`}</div>

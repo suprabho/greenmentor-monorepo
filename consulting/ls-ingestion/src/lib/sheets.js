@@ -34,6 +34,36 @@ export const SHEET_SCHEMAS = {
   },
 };
 
+// The external bulk-upload SaaS validates every cell against a fixed master list
+// and rejects any value it doesn't recognise ("<field> required"). Stored rows use
+// our internal lowercase codes, so we translate them to the SaaS's exact accepted
+// strings at CSV-export time (see sheetRowsToCSV) — the DB keeps its own values.
+
+// Accepted Level2 - Level3 site combinations, surfaced as a dropdown on the Sheets
+// page. `site_combination` is never extracted, so the user stamps one at export.
+export const SITE_COMBINATIONS = [
+  "Andhra Pradesh - Kurnool",
+  "Gurgaon - Gurgaon",
+  "India - Andhra Pradesh",
+  "India - Telangana",
+  "Segment1 - Delhi",
+  "Segment2 - Mumbai",
+];
+
+// Our fuel_type code → SaaS master fuel type. Codes with no exact SaaS equivalent
+// (biomass, kerosene, other) are intentionally absent and pass through unchanged so
+// the SaaS flags them for manual fixing rather than silently mislabelling them.
+const FUEL_TYPE_EXPORT = {
+  diesel:      "Diesel",
+  hsd:         "Diesel",            // High-Speed Diesel
+  petrol:      "Petrol",
+  cng:         "CNG",
+  natural_gas: "CNG",              // no distinct SaaS natural-gas entry
+  lpg:         "LPG",
+  furnace_oil: "Processed fuel oils-residual oil",
+  coal:        "Coal (industrial)",
+};
+
 // Fields attached to every row for traceability (alongside the template columns).
 function meta(bill) {
   return {
@@ -137,7 +167,7 @@ export async function updateBillEF(bill) {
 // header + values restricted to the sheet's template columns (the `meta` fields
 // like bill_id/raw are intentionally omitted so the output round-trips as a
 // re-uploadable template). RFC-4180 quoting for values with commas/quotes/newlines.
-export function sheetRowsToCSV(type, rows) {
+export function sheetRowsToCSV(type, rows, { siteCombination = "" } = {}) {
   const schema = SHEET_SCHEMAS[type];
   if (!schema) throw new Error(`Unknown sheet type: ${type}`);
   const esc = (v) => {
@@ -145,8 +175,16 @@ export function sheetRowsToCSV(type, rows) {
     const s = String(v);
     return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
   };
+  // Translate a stored cell to the value the SaaS master list expects. site_combination
+  // is stamped from the export-time selection (rows never carry one); fuel_type is mapped
+  // to the SaaS naming (unmapped codes pass through for manual fixing).
+  const cell = (col, r) => {
+    if (col === "site_combination") return siteCombination || r.site_combination;
+    if (col === "fuel_type")        return FUEL_TYPE_EXPORT[r.fuel_type] ?? r.fuel_type;
+    return r[col];
+  };
   const header = schema.columns.join(",");
-  const lines = rows.map((r) => schema.columns.map((c) => esc(r[c])).join(","));
+  const lines = rows.map((r) => schema.columns.map((c) => esc(cell(c, r))).join(","));
   return [header, ...lines].join("\n");
 }
 
