@@ -11,14 +11,28 @@ export interface CreateSubscriptionRequest {
   billingCycle: BillingCycle;
   name: string;
   email: string;
+  /** Optional promo code; server resolves it to a Razorpay offer (or rejects). */
+  promoCode?: string;
+}
+
+/** A successfully applied promo — drives the "code applied" UI + struck-through
+ *  original price. `amountPaise` on the response already reflects the discount. */
+export interface AppliedPromo {
+  code: string;
+  label: string;
+  originalAmountPaise: number;
+  discountedAmountPaise: number;
 }
 
 /** POST /api/razorpay/subscription — success response. */
 export interface CreateSubscriptionResponse {
   subscriptionId: string;
   keyId: string;
+  /** Amount that will actually be charged — discounted when a promo applied. */
   amountPaise: number;
   currency: string;
+  /** Present only when a valid promo code was applied to this subscription. */
+  appliedPromo?: AppliedPromo;
 }
 
 /**

@@ -12,6 +12,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createSubscription } from "@/lib/razorpay/client";
 import { getRazorpayPublicKeyId } from "@/lib/razorpay/config";
+import { resolvePromoCode, promoRejectionMessage } from "@/lib/razorpay/promos";
 import type {
   CreateSubscriptionResponse,
   ErrorResponse,
@@ -22,6 +23,8 @@ const BodySchema = z.object({
   billingCycle: z.enum(["monthly", "annual"]),
   name: z.string().min(2).max(120),
   email: z.string().email(),
+  // Optional — empty/whitespace is treated as "no code".
+  promoCode: z.string().max(64).optional(),
 });
 
 export async function POST(
@@ -57,13 +60,30 @@ export async function POST(
     );
   }
 
+  // Resolve the promo code (if any) before touching Razorpay, so an invalid
+  // code fails fast with a friendly 422 and never creates a subscription.
+  const { promoCode, ...subscriptionInput } = parsed.data;
+  const rawCode = promoCode?.trim();
+  let promo;
+  if (rawCode) {
+    const result = resolvePromoCode(rawCode, subscriptionInput.billingCycle);
+    if (!result.ok) {
+      return NextResponse.json(
+        { ok: false, error: promoRejectionMessage(result.reason) },
+        { status: 422 },
+      );
+    }
+    promo = result.promo;
+  }
+
   try {
-    const subscription = await createSubscription(parsed.data);
+    const subscription = await createSubscription({ ...subscriptionInput, promo });
     return NextResponse.json({
       subscriptionId: subscription.id,
       keyId: publicKey,
       amountPaise: subscription.amountPaise,
       currency: subscription.currency,
+      appliedPromo: subscription.appliedPromo,
     });
   } catch (err) {
     // Razorpay's Node SDK throws plain objects, not Error instances, so we

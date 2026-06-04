@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Script from "next/script";
 import { motion } from "framer-motion";
-import { CheckCircle, Lock, WarningCircle } from "@phosphor-icons/react/dist/ssr";
+import { CheckCircle, Lock, Tag, WarningCircle } from "@phosphor-icons/react/dist/ssr";
 import { useOnboarding } from "@/lib/store/onboarding";
 import { plans, annualSavingsPercent } from "@/lib/data/plans";
 import { Button } from "@/components/ui/Button";
@@ -12,6 +12,7 @@ import { BottomNav } from "@/components/onboarding/BottomNav";
 import { track } from "@/lib/utils/analytics";
 import { syncLead } from "@/lib/lead/sync";
 import type {
+  AppliedPromo,
   CreateSubscriptionRequest,
   CreateSubscriptionResponse,
   ErrorResponse,
@@ -62,6 +63,13 @@ export default function CheckoutStep() {
   const [hydrated, setHydrated] = useState(false);
   const createInFlightRef = useRef(false);
 
+  // Promo code state. `appliedPromo` mirrors the server-confirmed discount;
+  // `promoBusy` covers the re-create round-trip when applying/removing a code.
+  const [promoInput, setPromoInput] = useState("");
+  const [appliedPromo, setAppliedPromo] = useState<AppliedPromo | null>(null);
+  const [promoError, setPromoError] = useState<string | null>(null);
+  const [promoBusy, setPromoBusy] = useState(false);
+
   const plan = planId ? plans.find((p) => p.id === planId) ?? null : null;
 
   // The store is persisted to localStorage — on first render it returns the
@@ -98,7 +106,40 @@ export default function CheckoutStep() {
     }
   }, [hydrated, paymentStatus, router]);
 
-  // Create (or reuse) a Razorpay subscription on mount.
+  // POST to the subscription endpoint. Shared by the on-mount create and the
+  // promo apply/remove handlers — applying a code re-creates the subscription
+  // because Razorpay can only attach an offer at creation time. Throws on
+  // error (incl. an invalid promo code) so callers can surface the message.
+  const postSubscription = useCallback(
+    async (promoCode?: string): Promise<CreateSubscriptionResponse> => {
+      if (!planId) throw new Error("No plan selected.");
+      const body: CreateSubscriptionRequest = {
+        planId,
+        billingCycle,
+        name,
+        email,
+        ...(promoCode ? { promoCode } : {}),
+      };
+      const res = await fetch("/api/razorpay/subscription", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const json = (await res.json()) as
+        | CreateSubscriptionResponse
+        | ErrorResponse;
+      if (!res.ok || "error" in json) {
+        throw new Error(
+          "error" in json ? json.error : "Could not start checkout.",
+        );
+      }
+      return json;
+    },
+    [planId, billingCycle, name, email],
+  );
+
+  // Create the Razorpay subscription on mount (full price; a promo is applied
+  // later by re-creating with the offer attached).
   useEffect(() => {
     if (!hydrated) return;
     if (!planId || !email || !name) return;
@@ -109,32 +150,11 @@ export default function CheckoutStep() {
 
     (async () => {
       try {
-        const body: CreateSubscriptionRequest = {
-          planId,
-          billingCycle,
-          name,
-          email,
-        };
-        const res = await fetch("/api/razorpay/subscription", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(body),
-        });
-        const json = (await res.json()) as
-          | CreateSubscriptionResponse
-          | ErrorResponse;
-
+        const json = await postSubscription();
         if (cancelled) return;
-        if (!res.ok || "error" in json) {
-          const message =
-            "error" in json ? json.error : "Could not start checkout.";
-          setError(message);
-          setPhase("failed");
-          return;
-        }
-
         setSubscription(json);
         setRazorpaySubscriptionId(json.subscriptionId);
+        setAppliedPromo(json.appliedPromo ?? null);
         setPhase("ready");
         // Record that they reached payment — the highest-intent drop-off point.
         syncLead("checkout");
@@ -162,7 +182,66 @@ export default function CheckoutStep() {
     return () => {
       cancelled = true;
     };
-  }, [hydrated, planId, billingCycle, name, email, setRazorpaySubscriptionId]);
+  }, [
+    hydrated,
+    planId,
+    billingCycle,
+    name,
+    email,
+    setRazorpaySubscriptionId,
+    postSubscription,
+  ]);
+
+  // Apply a promo code: re-create the subscription with the offer attached and
+  // swap in the discounted amount. On failure the current subscription stays
+  // intact and the reason is shown inline next to the input.
+  const applyPromo = useCallback(async () => {
+    const code = promoInput.trim();
+    if (!code || promoBusy) return;
+    setPromoBusy(true);
+    setPromoError(null);
+    try {
+      const json = await postSubscription(code);
+      setSubscription(json);
+      setRazorpaySubscriptionId(json.subscriptionId);
+      setAppliedPromo(json.appliedPromo ?? null);
+      track("promo_applied", { code, planId, billingCycle });
+    } catch (err) {
+      setPromoError(
+        err instanceof Error ? err.message : "Couldn't apply that code.",
+      );
+      track("promo_rejected", { code });
+    } finally {
+      setPromoBusy(false);
+    }
+  }, [
+    promoInput,
+    promoBusy,
+    postSubscription,
+    setRazorpaySubscriptionId,
+    planId,
+    billingCycle,
+  ]);
+
+  // Remove an applied code: re-create the subscription at full price.
+  const removePromo = useCallback(async () => {
+    if (promoBusy) return;
+    setPromoBusy(true);
+    setPromoError(null);
+    try {
+      const json = await postSubscription();
+      setSubscription(json);
+      setRazorpaySubscriptionId(json.subscriptionId);
+      setAppliedPromo(null);
+      setPromoInput("");
+    } catch (err) {
+      setPromoError(
+        err instanceof Error ? err.message : "Couldn't remove the code.",
+      );
+    } finally {
+      setPromoBusy(false);
+    }
+  }, [promoBusy, postSubscription, setRazorpaySubscriptionId]);
 
   const openCheckout = useCallback(() => {
     if (!subscription || !scriptReady) return;
@@ -223,6 +302,7 @@ export default function CheckoutStep() {
             transaction_id: response.razorpay_payment_id,
             currency,
             value: amountPaise / 100,
+            coupon: appliedPromo?.code,
             items: [
               {
                 item_id: planId,
@@ -274,6 +354,7 @@ export default function CheckoutStep() {
     plan,
     planId,
     billingCycle,
+    appliedPromo,
     router,
     setPaymentResult,
     setPaymentStatus,
@@ -352,6 +433,11 @@ export default function CheckoutStep() {
               <span className="font-numeral text-[48px] leading-none text-green-700">
                 {formatINR(displayAmountPaise)}
               </span>
+              {appliedPromo ? (
+                <span className="font-numeral text-[20px] leading-none text-gray-400 line-through">
+                  {formatINR(appliedPromo.originalAmountPaise)}
+                </span>
+              ) : null}
               <span className="text-[14px] text-gray-500">
                 {billingCycle === "annual" ? "/ year" : "/ month"}
               </span>
@@ -362,6 +448,73 @@ export default function CheckoutStep() {
                 {formatINR(plan.priceAnnual * 100)} / month
               </p>
             ) : null}
+          </div>
+
+          <div className="mt-6 border-t border-gray-200 pt-6">
+            {appliedPromo ? (
+              <div className="flex items-center justify-between gap-3 rounded-[12px] bg-green-50 px-4 py-3">
+                <div className="flex min-w-0 items-center gap-2 text-[14px] text-green-700">
+                  <Tag size={16} weight="fill" className="shrink-0" aria-hidden />
+                  <span className="font-semibold">{appliedPromo.code}</span>
+                  <span className="truncate text-green-700/80">
+                    · {appliedPromo.label}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={removePromo}
+                  disabled={promoBusy}
+                  className="shrink-0 text-[13px] font-medium text-gray-500 underline underline-offset-2 hover:text-gray-700 disabled:opacity-50"
+                >
+                  Remove
+                </button>
+              </div>
+            ) : (
+              <div>
+                <label
+                  htmlFor="promo"
+                  className="text-[13px] font-medium text-gray-600"
+                >
+                  Have a promo code?
+                </label>
+                <div className="mt-2 flex gap-2">
+                  <input
+                    id="promo"
+                    value={promoInput}
+                    onChange={(e) => {
+                      setPromoInput(e.target.value);
+                      if (promoError) setPromoError(null);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        applyPromo();
+                      }
+                    }}
+                    placeholder="Enter code"
+                    autoCapitalize="characters"
+                    autoComplete="off"
+                    spellCheck={false}
+                    disabled={promoBusy}
+                    className="h-11 flex-1 rounded-[10px] border border-gray-200 bg-white px-3 text-[14px] uppercase tracking-wide text-ink placeholder:normal-case placeholder:tracking-normal placeholder:text-gray-400 focus:border-green-700 focus:ring-1 focus:ring-green-700 focus:outline-none disabled:opacity-50"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-11"
+                    onClick={applyPromo}
+                    loading={promoBusy}
+                    disabled={!promoInput.trim() || promoBusy}
+                  >
+                    Apply
+                  </Button>
+                </div>
+                {promoError ? (
+                  <p className="mt-2 text-[13px] text-red-600">{promoError}</p>
+                ) : null}
+              </div>
+            )}
           </div>
 
           <dl className="mt-6 grid gap-3 text-[14px]">
@@ -414,7 +567,7 @@ export default function CheckoutStep() {
           backHref="/onboarding/plan"
           onContinue={phase === "failed" ? handleRetry : openCheckout}
           continueDisabled={
-            phase !== "ready" && phase !== "failed"
+            (phase !== "ready" && phase !== "failed") || promoBusy
           }
           continueLoading={
             phase === "loading" || phase === "opening" || phase === "verifying"
