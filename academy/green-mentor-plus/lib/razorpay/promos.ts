@@ -26,7 +26,8 @@ export interface PromoDiscount {
 }
 
 interface PromoDefinition {
-  /** Normalised, uppercase alphanumeric — compared against `normalizePromoCode`. */
+  /** Normalised, uppercase alphanumeric. Acts as an internal identifier and,
+   *  unless `autoApply`, is what the user types (`normalizePromoCode`). */
   code: string;
   /** Shown to the user when the code is applied, e.g. "20% off your first year". */
   label: string;
@@ -35,6 +36,13 @@ interface PromoDefinition {
   discount: PromoDiscount;
   /** Restrict to certain billing cycles; omit to allow all. */
   cycles?: BillingCycle[];
+  /** Attach automatically (no typed code) when the cycle matches — for sitewide
+   *  launch offers. Shown as a non-removable badge. The first configured + env-set
+   *  auto promo for a cycle wins. */
+  autoApply?: boolean;
+  /** Discount applies to the first billing cycle only (full price after). Drives
+   *  the "then ₹X/cycle" note so the recurring price stays clear. */
+  firstCycleOnly?: boolean;
 }
 
 /**
@@ -48,7 +56,21 @@ interface PromoDefinition {
  *     discount: { type: "percent", value: 20 },
  *   }
  */
-const PROMO_DEFINITIONS: PromoDefinition[] = [];
+const PROMO_DEFINITIONS: PromoDefinition[] = [
+  {
+    // "GreenMentor Plus Launch Offer" — auto-applies, no code to type.
+    code: "LAUNCH", // internal identifier (offer auto-applies)
+    label: "Launch offer — first month for ₹2,000", // shown when applied
+    offerEnvKey: "RAZORPAY_OFFER_WELCOME20", // env var holding your offer id
+    // ₹2,000 off, in PAISE (plan amount is in paise). Mirrors the dashboard
+    // offer's flat ₹2,000 discount.
+    discount: { type: "flat", value: 200000 },
+    // Offer terms: monthly-only, first billing cycle only.
+    cycles: ["monthly"],
+    autoApply: true,
+    firstCycleOnly: true,
+  },
+];
 
 export type PromoRejection =
   | "unknown" // no code matches
@@ -60,6 +82,10 @@ export interface ResolvedPromo {
   label: string;
   offerId: string;
   discount: PromoDiscount;
+  /** True when applied automatically (launch offer) — non-removable in the UI. */
+  auto: boolean;
+  /** True when the discount only covers the first billing cycle. */
+  firstCycleOnly: boolean;
 }
 
 /** Strip whitespace/punctuation and upper-case so "welcome-20" === "WELCOME20". */
@@ -83,14 +109,33 @@ export function resolvePromoCode(
   }
   const offerId = process.env[def.offerEnvKey];
   if (!offerId) return { ok: false, reason: "not_configured" };
+  return { ok: true, promo: toResolved(def, offerId) };
+}
+
+/**
+ * Find the auto-applying promo for a cycle (no typed code). Returns the first
+ * `autoApply` definition that matches the cycle and has its offer-id env var
+ * set, or undefined when none applies (→ full price).
+ */
+export function resolveAutoPromo(cycle: BillingCycle): ResolvedPromo | undefined {
+  for (const def of PROMO_DEFINITIONS) {
+    if (!def.autoApply) continue;
+    if (def.cycles && !def.cycles.includes(cycle)) continue;
+    const offerId = process.env[def.offerEnvKey];
+    if (!offerId) continue;
+    return toResolved(def, offerId);
+  }
+  return undefined;
+}
+
+function toResolved(def: PromoDefinition, offerId: string): ResolvedPromo {
   return {
-    ok: true,
-    promo: {
-      code: def.code,
-      label: def.label,
-      offerId,
-      discount: def.discount,
-    },
+    code: def.code,
+    label: def.label,
+    offerId,
+    discount: def.discount,
+    auto: def.autoApply === true,
+    firstCycleOnly: def.firstCycleOnly === true,
   };
 }
 

@@ -22,6 +22,10 @@ export interface AppliedPromo {
   label: string;
   originalAmountPaise: number;
   discountedAmountPaise: number;
+  /** Auto-applied launch offer (non-removable in the UI) vs a typed code. */
+  auto: boolean;
+  /** Discount covers only the first billing cycle (full price thereafter). */
+  firstCycleOnly: boolean;
 }
 
 /** POST /api/razorpay/subscription — success response. */

@@ -53,6 +53,8 @@ export interface CreatedSubscription {
     label: string;
     originalAmountPaise: number;
     discountedAmountPaise: number;
+    auto: boolean;
+    firstCycleOnly: boolean;
   };
 }
 
@@ -117,6 +119,8 @@ export async function createSubscription(
           label: promo.label,
           originalAmountPaise: baseAmountPaise,
           discountedAmountPaise: amountPaise,
+          auto: promo.auto,
+          firstCycleOnly: promo.firstCycleOnly,
         }
       : undefined,
   };

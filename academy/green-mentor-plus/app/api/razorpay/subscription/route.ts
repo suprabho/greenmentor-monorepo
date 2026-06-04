@@ -12,7 +12,11 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createSubscription } from "@/lib/razorpay/client";
 import { getRazorpayPublicKeyId } from "@/lib/razorpay/config";
-import { resolvePromoCode, promoRejectionMessage } from "@/lib/razorpay/promos";
+import {
+  resolvePromoCode,
+  resolveAutoPromo,
+  promoRejectionMessage,
+} from "@/lib/razorpay/promos";
 import type {
   CreateSubscriptionResponse,
   ErrorResponse,
@@ -60,8 +64,9 @@ export async function POST(
     );
   }
 
-  // Resolve the promo code (if any) before touching Razorpay, so an invalid
-  // code fails fast with a friendly 422 and never creates a subscription.
+  // Resolve the promo (if any) before touching Razorpay, so an invalid code
+  // fails fast with a friendly 422 and never creates a subscription. With no
+  // typed code, fall back to any auto-applying offer for this cycle.
   const { promoCode, ...subscriptionInput } = parsed.data;
   const rawCode = promoCode?.trim();
   let promo;
@@ -74,6 +79,8 @@ export async function POST(
       );
     }
     promo = result.promo;
+  } else {
+    promo = resolveAutoPromo(subscriptionInput.billingCycle);
   }
 
   try {

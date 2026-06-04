@@ -161,6 +161,7 @@ export default function CheckoutStep() {
         track("begin_checkout", {
           currency: json.currency,
           value: json.amountPaise / 100,
+          coupon: json.appliedPromo?.code,
           items: [
             {
               item_id: planId,
@@ -223,7 +224,9 @@ export default function CheckoutStep() {
     billingCycle,
   ]);
 
-  // Remove an applied code: re-create the subscription at full price.
+  // Remove a typed code: re-create without one. The server re-applies any
+  // auto offer for this cycle, so the launch discount falls back into place
+  // rather than dropping to full price.
   const removePromo = useCallback(async () => {
     if (promoBusy) return;
     setPromoBusy(true);
@@ -232,7 +235,7 @@ export default function CheckoutStep() {
       const json = await postSubscription();
       setSubscription(json);
       setRazorpaySubscriptionId(json.subscriptionId);
-      setAppliedPromo(null);
+      setAppliedPromo(json.appliedPromo ?? null);
       setPromoInput("");
     } catch (err) {
       setPromoError(
@@ -447,6 +450,11 @@ export default function CheckoutStep() {
                 Billed once a year · works out to{" "}
                 {formatINR(plan.priceAnnual * 100)} / month
               </p>
+            ) : appliedPromo?.firstCycleOnly ? (
+              <p className="mt-2 text-[13px] text-gray-500">
+                First month only · renews at{" "}
+                {formatINR(plan.priceMonthly * 100)} / month
+              </p>
             ) : null}
           </div>
 
@@ -455,27 +463,44 @@ export default function CheckoutStep() {
               <div className="flex items-center justify-between gap-3 rounded-[12px] bg-green-50 px-4 py-3">
                 <div className="flex min-w-0 items-center gap-2 text-[14px] text-green-700">
                   <Tag size={16} weight="fill" className="shrink-0" aria-hidden />
-                  <span className="font-semibold">{appliedPromo.code}</span>
-                  <span className="truncate text-green-700/80">
-                    · {appliedPromo.label}
-                  </span>
+                  {appliedPromo.auto ? (
+                    <span className="truncate font-semibold">
+                      {appliedPromo.label}
+                    </span>
+                  ) : (
+                    <>
+                      <span className="font-semibold">{appliedPromo.code}</span>
+                      <span className="truncate text-green-700/80">
+                        · {appliedPromo.label}
+                      </span>
+                    </>
+                  )}
                 </div>
-                <button
-                  type="button"
-                  onClick={removePromo}
-                  disabled={promoBusy}
-                  className="shrink-0 text-[13px] font-medium text-gray-500 underline underline-offset-2 hover:text-gray-700 disabled:opacity-50"
-                >
-                  Remove
-                </button>
+                {appliedPromo.auto ? null : (
+                  <button
+                    type="button"
+                    onClick={removePromo}
+                    disabled={promoBusy}
+                    className="shrink-0 text-[13px] font-medium text-gray-500 underline underline-offset-2 hover:text-gray-700 disabled:opacity-50"
+                  >
+                    Remove
+                  </button>
+                )}
               </div>
-            ) : (
-              <div>
+            ) : null}
+
+            {/* Input stays available when nothing's applied or only the auto
+                launch offer is — so a targeted code can still be entered (it
+                overrides the auto offer). Hidden once a typed code wins. */}
+            {!appliedPromo || appliedPromo.auto ? (
+              <div className={appliedPromo?.auto ? "mt-3" : undefined}>
                 <label
                   htmlFor="promo"
                   className="text-[13px] font-medium text-gray-600"
                 >
-                  Have a promo code?
+                  {appliedPromo?.auto
+                    ? "Have a different code?"
+                    : "Have a promo code?"}
                 </label>
                 <div className="mt-2 flex gap-2">
                   <input
@@ -514,7 +539,7 @@ export default function CheckoutStep() {
                   <p className="mt-2 text-[13px] text-red-600">{promoError}</p>
                 ) : null}
               </div>
-            )}
+            ) : null}
           </div>
 
           <dl className="mt-6 grid gap-3 text-[14px]">
