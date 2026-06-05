@@ -16,7 +16,7 @@ export const faqs: Faq[] = [
     id: "whats-included",
     question: "What exactly is and isn't included in the monthly plan?",
     answer:
-      "Your Plus Essential subscription includes all 8 foundational and self-paced courses, bi-weekly live Q&A sessions with practitioners, the 40,000+ member community, weekly industry insights, and the curated ESG jobs feed. Live intensive programs (like Master LCA and ESG Reporting Pro) and certification bundles are available as paid add-ons — they're not part of the base subscription. We show exactly which is which on every course card.",
+      "Your Plus Essential subscription includes the full course library — all 8 courses, including the live intensives like Master LCA and ESG Reporting Pro — plus bi-weekly live Q&A sessions with practitioners, the 40,000+ member community, weekly industry insights, and the curated ESG jobs feed. Certification programs and workshops are available as paid add-ons on top of the plan — they're not part of the base subscription.",
   },
   {
     id: "refunds",

@@ -3,9 +3,9 @@ import { LEARNYST_COURSES_URL } from "@/lib/learnyst/config";
 /**
  * Course taxonomy powering the home `CoursePreview` grid (lesson count + price).
  *
- * The list mirrors the five live Learnyst courses. Each is sold standalone;
- * the foundational three are also bundled into the Plus Essential subscription,
- * while the two premium programs (Live LCA, ESG Reporting Pro) are paid extras.
+ * The list mirrors the five live Learnyst courses. Each is sold standalone,
+ * and all five — including the two premium live programs (Live LCA, ESG
+ * Reporting Pro) — are bundled into the Plus Essential subscription.
  */
 
 export type Framework =
@@ -100,7 +100,7 @@ export const courses: Course[] = [
     duration: "1 lesson",
     lessons: 1,
     standalonePrice: 20000,
-    included: false,
+    included: true,
     outcome: "Conduct a full life cycle assessment — ISO 14040/44 compliant.",
     level: "Advanced",
     learnystUrl: `${LEARNYST_COURSES_URL}/Live-Training---Master-Life-Cycle-Assessment-LCA-`,
@@ -115,7 +115,7 @@ export const courses: Course[] = [
     duration: "2 lessons",
     lessons: 2,
     standalonePrice: 35000,
-    included: false,
+    included: true,
     outcome: "File a GRI/BRSR report that survives external assurance.",
     level: "Advanced",
     learnystUrl: `${LEARNYST_COURSES_URL}/Become-an-ESG-Reporting-Pro`,

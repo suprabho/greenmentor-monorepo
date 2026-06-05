@@ -53,7 +53,7 @@ export function CoursePreview() {
               <span className="text-green-700">One subscription.</span>
             </>
           }
-          description="Foundational courses are included in your Plus Essential subscription. Live intensives and certification programs are available as paid add-ons — clearly marked on every card."
+          description="Every course here is included in your Plus Essential subscription. Certifications &amp; workshops are available as paid add-ons on top of the plan."
           className="max-w-2xl"
         />
 
@@ -67,8 +67,8 @@ export function CoursePreview() {
               </p>
             </div>
             <p className="mt-2 text-[14px] leading-relaxed text-gray-700">
-              Foundational &amp; self-paced courses — all part of your
-              subscription.
+              Every course — foundational, self-paced and live — all part of
+              your subscription.
             </p>
           </div>
           <div className="rounded-[16px] border border-[#FFB020]/30 bg-[#FFB020]/10 p-5">

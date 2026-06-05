@@ -14,7 +14,12 @@ import { Container } from "@/components/marketing/Container";
 import { SectionHeader } from "@/components/marketing/SectionHeader";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
-import { plans, annualSavingsPercent, valueStack } from "@/lib/data/plans";
+import {
+  plans,
+  annualSavingsPercent,
+  valueStack,
+  launchOffer,
+} from "@/lib/data/plans";
 import { guarantee } from "@/lib/data/guarantee";
 import { cn } from "@/lib/utils/cn";
 import { track } from "@/lib/utils/analytics";
@@ -38,23 +43,34 @@ interface PricingSnapshotProps {
 export function PricingSnapshot({ compact = false }: PricingSnapshotProps) {
   const plan = plans[0];
 
+  // Launch promo — a first-month discount on the monthly cycle (see
+  // `launchOffer`, mirrored by the auto-applied Razorpay offer at checkout).
+  const monthlyHasLaunch = launchOffer.cycle === "monthly";
+  const monthlyFirstCharge = plan.priceMonthly - launchOffer.discountInr;
+
   const cycleCards = [
     {
       cycle: "monthly" as const,
       title: "Monthly",
       subtitle: "Billed every month. Cancel anytime.",
-      price: plan.priceMonthly,
-      priceSuffix: "/ month",
-      footnote: "Same access. Try it without the annual commit.",
+      price: monthlyHasLaunch ? monthlyFirstCharge : plan.priceMonthly,
+      original: monthlyHasLaunch ? plan.priceMonthly : null,
+      priceSuffix: monthlyHasLaunch ? "first month" : "/ month",
+      footnote: monthlyHasLaunch
+        ? `Then ${formatINR(plan.priceMonthly)} / month · cancel anytime.`
+        : "Same access. Try it without the annual commit.",
       highlight: false,
-      badge: null as string | null,
-      ctaLabel: "Get instant access — ₹4,000 / month",
+      badge: monthlyHasLaunch ? "Launch offer" : (null as string | null),
+      ctaLabel: monthlyHasLaunch
+        ? `Get instant access — first month ${formatINR(monthlyFirstCharge)}`
+        : "Get instant access — ₹4,000 / month",
     },
     {
       cycle: "annual" as const,
       title: "Annual",
       subtitle: `Everything in monthly, plus the ${formatINR(plan.careerServicesValue)} Career Services bundle — free.`,
       price: plan.priceAnnual,
+      original: null as number | null,
       priceSuffix: "/ month, billed yearly",
       footnote: `${formatINR(plan.priceAnnualTotal)} billed once a year · Save ${annualSavingsPercent}% vs monthly.`,
       highlight: true,
@@ -83,7 +99,7 @@ export function PricingSnapshot({ compact = false }: PricingSnapshotProps) {
         />
 
         {/* PR-1 — value stack: what's included, and what it would cost standalone.
-            Included items only (add-ons are deliberately excluded — see plans.ts). */}
+            Counts every included item (see plans.ts). */}
         <div className="mx-auto mt-12 max-w-2xl rounded-[20px] border border-gray-200 bg-white p-6 shadow-soft md:p-8">
           <p className="gm-eyebrow text-green-700">What you&apos;re getting</p>
           <h3 className="mt-2 text-[20px] font-bold text-ink">
@@ -158,10 +174,15 @@ export function PricingSnapshot({ compact = false }: PricingSnapshotProps) {
                 </p>
               </div>
 
-              <div className="mt-6 flex items-baseline gap-2">
+              <div className="mt-6 flex flex-wrap items-baseline gap-2">
                 <span className="font-numeral text-[56px] leading-none text-green-700">
                   {formatINR(card.price)}
                 </span>
+                {card.original ? (
+                  <span className="font-numeral text-[24px] leading-none text-gray-400 line-through">
+                    {formatINR(card.original)}
+                  </span>
+                ) : null}
                 <span className="text-[13px] text-gray-500">
                   {card.priceSuffix}
                 </span>

@@ -32,16 +32,19 @@ export function Nav() {
   return (
     <header
       className={cn(
-        "sticky top-0 z-40 border-b transition-[background-color,border-color,backdrop-filter] duration-200",
+        "sticky top-8 mx-auto border-gray-200 z-40 border-b transition-[background-color,border-color,backdrop-filter] duration-200 rounded-full",
         scrolled
-          ? "border-gray-200 bg-white/90 backdrop-blur"
-          : "border-transparent bg-white",
+          ? "bg-white/90 backdrop-blur"
+          : "bg-white/10 backdrop-blur-xl",
       )}
     >
       <Container width="wide">
         <div className="flex h-[72px] items-center justify-between gap-6 md:h-20">
           <div className="flex items-center gap-3">
-            <Logo />
+            <Logo
+              variant={scrolled ? "light" : "dark"}
+              className="transition-colors"
+            />
             <span className="block h-5 w-px bg-gray-200" aria-hidden />
             <SubBrand />
           </div>
@@ -56,9 +59,13 @@ export function Nav() {
                 href={link.href}
                 className={cn(
                   "text-[15px] font-medium transition-colors",
-                  pathname === link.href
-                    ? "text-green-700"
-                    : "text-gray-700 hover:text-green-700",
+                  scrolled
+                    ? pathname === link.href
+                      ? "text-green-700"
+                      : "text-gray-700 hover:text-green-700"
+                    : pathname === link.href
+                      ? "text-green-200"
+                      : "text-white/80 hover:text-white",
                 )}
               >
                 {link.label}
@@ -67,7 +74,7 @@ export function Nav() {
           </nav>
 
           <div className="hidden items-center gap-3 md:flex">
-            <Button asChild variant="primary" size="md">
+            <Button asChild variant="ghost-dark" className="rounded-full" size="md">
               <Link
                 href="/onboarding/intro"
                 onClick={() =>
