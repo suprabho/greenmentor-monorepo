@@ -34,13 +34,13 @@ const subBrands = [
     name: "Longsight",
     tag: "Compliance Software",
     blurb:
-      "AI-powered suite that automates sustainability compliance workflows — GRI, BRSR, CDP, CBAM, SASB. 1st CBAM Ready tool for European compliance.",
+      "AI-powered suite that automates sustainability compliance workflows: GRI, BRSR, CDP, CBAM, SASB. 1st CBAM Ready tool for European compliance.",
   },
   {
     name: "Greenmentor Community",
     tag: "ESG Community",
     blurb:
-      "India's biggest ESG community — the demand-generation engine that feeds Academy and Longsight.",
+      "India's biggest ESG community, the demand-generation engine that feeds Academy and Longsight.",
   },
 ];
 
@@ -61,7 +61,7 @@ export function AboutSection() {
               <span className="text-green-700">ESG platform.</span>
             </>
           }
-          description="We work both sides of the gap. Demand for sustainability professionals is 3× the supply, and ESG compliance — CBAM, SBTi, BRSR, GRI — is complex and ever-changing. We build the talent and automate the workflows."
+          description="We work both sides of the gap. Demand for sustainability professionals is 3× the supply, and ESG compliance (CBAM, SBTi, BRSR, GRI) is complex and ever-changing. We build the talent and automate the workflows."
           className="max-w-2xl"
         />
 
@@ -83,7 +83,7 @@ export function AboutSection() {
                 key={name}
                 className="rounded-md border border-dashed border-gray-300 px-3 py-1.5 text-[12px] text-gray-400"
               >
-                {name} — logo TODO
+                {name} · logo TODO
               </span>
             ))}
           </div>
@@ -117,7 +117,7 @@ export function AboutSection() {
             <p>
               Frameworks are a means, not an identity. A sustainability
               practitioner is someone who can write a report that survives
-              external assurance — not someone who can recite the GRI 200
+              external assurance, not someone who can recite the GRI 200
               series.
             </p>
             <p>
@@ -138,7 +138,7 @@ export function AboutSection() {
             </h3>
             <div aria-hidden className="gm-section-rule" />
             <p className="text-[15px] text-gray-700">
-              The practitioners who teach and grade — named here, at the point of
+              The practitioners who teach and grade, named here at the point of
               purchase, not buried on a course page.
             </p>
             <div className="grid gap-3">
@@ -162,7 +162,7 @@ export function AboutSection() {
                     </p>
                     <span className="mt-1 inline-flex items-center gap-1 text-[11px] text-gray-400">
                       <LinkedinLogo size={12} weight="fill" aria-hidden />{" "}
-                      LinkedIn — TODO
+                      LinkedIn pending
                     </span>
                   </div>
                 </div>

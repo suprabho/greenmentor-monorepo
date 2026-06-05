@@ -15,7 +15,7 @@ export function SocialProof() {
               <span className="text-green-700">career momentum.</span>
             </>
           }
-          description="Across disclosure work, certifications, and new roles — our members show up in the ESG conversations happening on LinkedIn every week."
+          description="Across disclosure work, certifications, and new roles, our members show up in the ESG conversations happening on LinkedIn every week."
         />
 
         {/* T-3 — single pull-quote replaces the repeated hero stat band. The 3×
@@ -27,7 +27,7 @@ export function SocialProof() {
             where that supply gets built.&rdquo;
           </blockquote>
           <figcaption className="mt-5 text-[14px] text-gray-500">
-            GreenMentor — built with IIM Bangalore (NSRCEL) &amp; IIT-B
+            GreenMentor, built with IIM Bangalore (NSRCEL) &amp; IIT-B
             Innovation Centre
           </figcaption>
         </figure>

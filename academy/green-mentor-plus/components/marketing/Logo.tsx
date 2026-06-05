@@ -40,7 +40,7 @@ export function Logo({ className, bare = false, variant = "light" }: LogoProps) 
 
   if (bare) return content;
   return (
-    <Link href="/" className="inline-flex" aria-label="Greenmentor — home">
+    <Link href="/" className="inline-flex" aria-label="Greenmentor home">
       {content}
     </Link>
   );

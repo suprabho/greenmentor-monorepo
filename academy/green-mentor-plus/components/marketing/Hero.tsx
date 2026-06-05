@@ -64,7 +64,7 @@ export function Hero() {
 
           <p className="mt-8 mx-auto max-w-2xl text-center text-[20px] leading-relaxed text-white/85 md:text-[22px]">
             8 courses. Bi-weekly live sessions with practitioners. Career tools.
-            A 40,000+ member community. All included — one subscription, cancel
+            A 40,000+ member community. All included in one subscription, cancel
             anytime.
           </p>
 
@@ -142,10 +142,6 @@ export function Hero() {
               />
             ))}
           </div>
-          <p className="mt-5 text-[14px] leading-relaxed text-white/70">
-            Plus a former Big-4 sustainability partner, a Nifty-50 ESG reporting
-            head, and a TCFD-aligned climate risk advisor.
-          </p>
         </div>
       </Container>
 

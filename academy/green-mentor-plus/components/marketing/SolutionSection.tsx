@@ -22,7 +22,7 @@ export function SolutionSection() {
               The problem, <span className="text-green-700">answered.</span>
             </>
           }
-          description="Every trap above has a deliberate fix built into the membership — not a promise, a mechanism."
+          description="Every trap above has a deliberate fix built into the membership. Not a promise, a mechanism."
           align="center"
           className="text-center"
         />

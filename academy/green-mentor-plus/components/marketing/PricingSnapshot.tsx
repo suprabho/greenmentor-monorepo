@@ -63,13 +63,13 @@ export function PricingSnapshot({ compact = false }: PricingSnapshotProps) {
       highlight: false,
       badge: monthly.active ? "Launch offer" : (null as string | null),
       ctaLabel: monthly.active
-        ? `Get instant access — first month ${formatINR(monthly.price)}`
-        : "Get instant access — ₹4,000 / month",
+        ? `Get instant access · first month ${formatINR(monthly.price)}`
+        : "Get instant access · ₹4,000 / month",
     },
     {
       cycle: "annual" as const,
       title: "Annual",
-      subtitle: `Everything in monthly, plus the ${formatINR(plan.careerServicesValue)} Career Services bundle — free.`,
+      subtitle: `Everything in monthly, plus the ${formatINR(plan.careerServicesValue)} Career Services bundle, free.`,
       price: plan.priceAnnual,
       original: null as number | null,
       priceSuffix: "/ month, billed yearly",
@@ -79,8 +79,8 @@ export function PricingSnapshot({ compact = false }: PricingSnapshotProps) {
       highlight: true,
       badge: "Career Services included",
       ctaLabel: annual.active
-        ? `Get Plus Annual + Career — first year ${formatINR(annual.price)}`
-        : "Get Plus Annual + Career Services — ₹44,000 / year",
+        ? `Get Plus Annual + Career · first year ${formatINR(annual.price)}`
+        : "Get Plus Annual + Career Services · ₹44,000 / year",
     },
   ];
 
@@ -223,7 +223,7 @@ export function PricingSnapshot({ compact = false }: PricingSnapshotProps) {
                       />
                       <span>
                         Career Services bundle (
-                        {formatINR(plan.careerServicesValue)}) — included free
+                        {formatINR(plan.careerServicesValue)}), included free
                       </span>
                     </li>
                   ) : null}
@@ -294,7 +294,7 @@ export function PricingSnapshot({ compact = false }: PricingSnapshotProps) {
               aria-hidden
             />
             <span className="text-[15px] font-semibold text-green-700">
-              {guarantee.label} — no questions asked
+              {guarantee.label}, no questions asked
             </span>
           </div>
           <div className="mt-3 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-[13px] text-gray-500">
@@ -315,7 +315,7 @@ export function PricingSnapshot({ compact = false }: PricingSnapshotProps) {
 
         {/* G-1 — name the delivery platform + device availability */}
         <p className="mx-auto mt-6 max-w-2xl text-center text-[13px] text-gray-500">
-          Courses delivered on GreenMentor Academy, powered by Learnyst —
+          Courses delivered on GreenMentor Academy, powered by Learnyst,
           accessible on web, iOS, and Android.
         </p>
       </Container>

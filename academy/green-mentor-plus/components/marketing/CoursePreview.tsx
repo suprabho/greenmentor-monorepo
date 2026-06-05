@@ -53,7 +53,7 @@ export function CoursePreview() {
               <span className="text-green-700">One subscription.</span>
             </>
           }
-          description="Every course here is included in your Plus Essential subscription. Certifications &amp; workshops are available as paid add-ons on top of the plan."
+          description="Every course here is included in your Plus Essential subscription, each with its own certificate of completion. Only live certifications like ISO 14064 and standalone workshops are available as paid add-ons."
           className="max-w-2xl"
         />
 
@@ -67,8 +67,8 @@ export function CoursePreview() {
               </p>
             </div>
             <p className="mt-2 text-[14px] leading-relaxed text-gray-700">
-              Every course — foundational, self-paced and live — all part of
-              your subscription.
+              Every course (foundational, self-paced and live) is part of your
+              subscription, with a certificate of completion.
             </p>
           </div>
           <div className="rounded-[16px] border border-[#FFB020]/30 bg-[#FFB020]/10 p-5">
@@ -80,8 +80,8 @@ export function CoursePreview() {
               <p className="gm-eyebrow text-[#946200]">Available as add-ons</p>
             </div>
             <p className="mt-2 text-[14px] leading-relaxed text-gray-700">
-              Live intensives &amp; certification programs — bought on top of the
-              plan.
+              Live certifications like ISO 14064 &amp; standalone workshops,
+              bought on top of the plan.
             </p>
           </div>
         </div>
@@ -190,7 +190,7 @@ export function CoursePreview() {
           <span>
             <strong className="font-semibold">Bundles</strong> are curated
             combinations of these courses with a clear learning path and
-            outcome — e.g. ESG Reporting Bundle, ESG Mastery Essentials.
+            outcome, e.g. ESG Reporting Bundle, ESG Mastery Essentials.
           </span>
         </div>
       </Container>

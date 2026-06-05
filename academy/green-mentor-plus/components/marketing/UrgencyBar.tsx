@@ -31,7 +31,7 @@ export function UrgencyBar({ date, topic, seatsRemaining }: UrgencyBarProps) {
             Next live session · {date}
           </span>
           <span className="text-white/90">
-            &ldquo;{topic}&rdquo; — open to Plus members · {seatsRemaining} seats
+            &ldquo;{topic}&rdquo;, open to Plus members · {seatsRemaining} seats
             remaining
           </span>
         </div>

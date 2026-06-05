@@ -16,7 +16,7 @@ export const faqs: Faq[] = [
     id: "whats-included",
     question: "What exactly is and isn't included in the monthly plan?",
     answer:
-      "Your Plus Essential subscription includes the full course library — all 8 courses, including the live intensives like Master LCA and ESG Reporting Pro — plus bi-weekly live Q&A sessions with practitioners, the 40,000+ member community, weekly industry insights, and the curated ESG jobs feed. Certification programs and workshops are available as paid add-ons on top of the plan — they're not part of the base subscription.",
+      "Your Plus Essential subscription includes the full course library, all 8 courses (including the live intensives like Master LCA and ESG Reporting Pro), each with its own certificate of completion, plus bi-weekly live Q&A sessions with practitioners, the 40,000+ member community, weekly industry insights, and the curated ESG jobs feed. Only live certifications like ISO 14064 and standalone workshops are available as paid add-ons on top of the plan. They're not part of the base subscription.",
   },
   {
     id: "refunds",
@@ -25,21 +25,21 @@ export const faqs: Faq[] = [
   },
   {
     id: "membership-vs-courses",
-    question: "What changed — isn't this a per-course platform?",
+    question: "What changed? Isn't this a per-course platform?",
     answer:
-      "We've moved to a single subscription. One price unlocks every track — GRI, SASB, CDP, TCFD, BRSR, DJSI, CBAM — plus capstones, live coaching, and the AI copilot. No more buying frameworks one at a time.",
+      "We've moved to a single subscription. One price unlocks every track (GRI, SASB, CDP, TCFD, BRSR, DJSI, CBAM) plus capstones, live coaching, and the AI copilot. No more buying frameworks one at a time.",
   },
   {
     id: "vs-one-time",
     question: "How is this different from a one-time course purchase?",
     answer:
-      "A one-time course gives you one topic. A Plus subscription gives you the full library, live practitioner access, the community, and career support — all updating as ESG regulations evolve. BRSR requirements have changed repeatedly in the last couple of years; your subscription keeps you current, a one-time course doesn't.",
+      "A one-time course gives you one topic. A Plus subscription gives you the full library, live practitioner access, the community, and career support, all updating as ESG regulations evolve. BRSR requirements have changed repeatedly in the last couple of years; your subscription keeps you current, a one-time course doesn't.",
   },
   {
     id: "certification",
     question: "Are the certifications recognized?",
     answer:
-      "Yes. Certifications are verifiable, time-stamped, and shareable on LinkedIn. Recruiters from Big-4 advisories and listed companies have hired through them.",
+      "Yes. Your course completion certificates are verifiable, time-stamped, and shareable on LinkedIn. Recruiters from Big-4 advisories and listed companies have hired through them.",
   },
   {
     id: "time-realistic",
@@ -69,6 +69,6 @@ export const faqs: Faq[] = [
     id: "payment",
     question: "How does payment work?",
     answer:
-      "Payments are handled by our learning partner Learnyst — cards, UPI, and netbanking via Razorpay. You'll complete checkout there after onboarding.",
+      "Payments are handled by our learning partner Learnyst: cards, UPI, and netbanking via Razorpay. You'll complete checkout there after onboarding.",
   },
 ];

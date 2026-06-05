@@ -58,7 +58,7 @@ export const plans: Plan[] = [
     priceAnnualTotal: 44000,
     highlight: true,
     features: [
-      "Full library — 8 courses, all included",
+      "Full library: 8 courses, all included",
       "Bi-weekly live Q&A with practitioners",
       "40,000+ learner WhatsApp community",
       "Weekly industry insights & case studies",
@@ -66,14 +66,15 @@ export const plans: Plan[] = [
       "Personalised career guidance & resume review",
     ],
     included: [
-      "Full library — 8 foundational courses",
+      "Full library: 8 foundational courses",
+      "Certificate of completion for every course",
       "Bi-weekly live Q&A with practitioners",
       "40,000+ learner WhatsApp community",
       "Weekly industry insights & case studies",
       "Curated ESG jobs feed",
     ],
     addOns: [
-      "Certification programs",
+      "Live certifications (e.g. ISO 14064)",
       "Workshops & masterclasses",
     ],
     coursesLive: [
@@ -100,7 +101,7 @@ export const plans: Plan[] = [
       "Weekly industry insights & case studies",
       "Curated ESG jobs community access",
       "Personalised career guidance",
-      "Certifications & workshops available as add-ons",
+      "Live certifications & workshops available as add-ons",
     ],
     careerServices: [
       "LinkedIn profile enrichment",
@@ -110,7 +111,7 @@ export const plans: Plan[] = [
       "Mock interviews with industry professionals",
       "Internship & job placement support",
       "Practical career roadmap & guidance",
-      "Certifications & workshops available as add-ons",
+      "Live certifications & workshops available as add-ons",
     ],
     careerServicesValue: 25000,
     ctaLabel: "Start membership",
@@ -142,7 +143,7 @@ export const flatDiscount: {
 } = {
   discountInr: 2000,
   firstCycleOnly: true,
-  label: "Launch offer — ₹2,000 off",
+  label: "Launch offer: ₹2,000 off",
 };
 
 /**
@@ -190,7 +191,7 @@ export const valueStack: {
     { label: "Fundamentals of ESG & BRSR", value: 999 },
     { label: "GHG Accounting Mastery", value: 6999 },
     { label: "ESG Readiness", value: 6999 },
-    { label: "Live Training — Master LCA", value: 20000 },
+    { label: "Live Training: Master LCA", value: 20000 },
     { label: "Become an ESG Reporting Pro", value: 35000 },
     { label: "5 more foundational courses", value: 25000, estimated: true },
     {

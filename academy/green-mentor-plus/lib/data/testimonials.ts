@@ -20,7 +20,7 @@ export interface Testimonial {
 export const testimonials: Testimonial[] = [
   {
     quote:
-      "An incredible learning journey with Greenmentor — the ESG content, community and mentorship made all the difference.",
+      "An incredible learning journey with Greenmentor. The ESG content, community and mentorship made all the difference.",
     name: "Swetaleena Panda",
     role: "ESG Professional",
     initials: "SP",
@@ -47,7 +47,7 @@ export const testimonials: Testimonial[] = [
   },
   {
     quote:
-      "Loving the weekend sessions — practical, engaging and directly applicable to real sustainability roles.",
+      "Loving the weekend sessions: practical, engaging and directly applicable to real sustainability roles.",
     name: "Lauretta Bright",
     role: "ESG Learner",
     initials: "LB",
@@ -56,7 +56,7 @@ export const testimonials: Testimonial[] = [
   },
   {
     quote:
-      "Completed the LCA course — the depth of content and real project exposure was outstanding. Highly recommend.",
+      "Completed the LCA course. The depth of content and real project exposure was outstanding. Highly recommend.",
     name: "Prasad Aslekar",
     role: "LCA Course Graduate",
     initials: "PA",
@@ -86,5 +86,5 @@ export const testimonials: Testimonial[] = [
 export const trustStrip = {
   headline: "Powered by India's biggest ESG Community",
   subline:
-    "40,000+ learners and 5,000+ professionals — building the same muscle, faster.",
+    "40,000+ learners and 5,000+ professionals, building the same muscle, faster.",
 };

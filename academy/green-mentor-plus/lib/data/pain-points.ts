@@ -42,7 +42,7 @@ export const painPoints: PainPoint[] = [
       "No guidance on which skills matter, in which order, for which role.",
     echo: "You've started 4 courses. Finished none.",
     solution:
-      "Role-based learning tracks — ESG Analyst, Reporting Lead, Sustainability Manager.",
+      "Role-based learning tracks: ESG Analyst, Reporting Lead, Sustainability Manager.",
     icon: ClockCountdown,
   },
   {
@@ -52,7 +52,7 @@ export const painPoints: PainPoint[] = [
       "No community, no one to ask when you get stuck halfway through.",
     echo: "You Googled it. Got 12 conflicting answers.",
     solution:
-      "A 40,000+ member community plus bi-weekly live Q&A. Ask, get answered — in hours, not weeks.",
+      "A 40,000+ member community plus bi-weekly live Q&A. Ask, get answered in hours, not weeks.",
     icon: UsersThree,
   },
   {
@@ -62,7 +62,7 @@ export const painPoints: PainPoint[] = [
       "Completing courses but not landing opportunities at the firms hiring.",
     echo: "Your CV says ESG. Recruiters still pass.",
     solution:
-      "Curated jobs feed plus Career Services (annual) — mock interviews and placement support.",
+      "Curated jobs feed plus Career Services (annual): mock interviews and placement support.",
     icon: Briefcase,
   },
 ];

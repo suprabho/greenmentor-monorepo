@@ -14,7 +14,7 @@ export function ProblemSection() {
           label="Why most ESG learners plateau"
           title={
             <>
-              Most ESG learners are stuck — not because they lack effort, but
+              Most ESG learners are stuck, not because they lack effort, but
               because they lack the{" "}
               <span className="text-green-700">right structure.</span>
             </>

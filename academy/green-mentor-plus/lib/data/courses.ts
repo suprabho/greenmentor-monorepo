@@ -49,13 +49,13 @@ export const courses: Course[] = [
     title: "Fundamentals of ESG & BRSR",
     framework: "ESG & BRSR",
     description:
-      "The vocabulary, the actors, the regulations — and a working knowledge of the BRSR framework Indian listed entities file under.",
+      "The vocabulary, the actors, the regulations, and a working knowledge of the BRSR framework Indian listed entities file under.",
     duration: "23 lessons",
     lessons: 23,
     standalonePrice: 999,
     included: true,
     outcome:
-      "Master GRI, BRSR, SASB and CDP — the frameworks employers hire for.",
+      "Master GRI, BRSR, SASB and CDP, the frameworks employers hire for.",
     level: "Foundation",
     learnystUrl: `${LEARNYST_COURSES_URL}/Intro-to-ESG-and-BRSR`,
     image: "/courses/fundamentals-esg-brsr.svg",
@@ -65,7 +65,7 @@ export const courses: Course[] = [
     title: "GHG Accounting Mastery in 20 Hours",
     framework: "GHG Accounting",
     description:
-      "Scope 1, 2 and 3 from first principles — ISO 14064-aligned, with the spreadsheets and audit trail your assurance partner will accept.",
+      "Scope 1, 2 and 3 from first principles, ISO 14064-aligned, with the spreadsheets and audit trail your assurance partner will accept.",
     duration: "22 lessons",
     lessons: 22,
     standalonePrice: 6999,
@@ -81,7 +81,7 @@ export const courses: Course[] = [
     title: "ESG Readiness",
     framework: "ESG Strategy",
     description:
-      "Build an ESG program from scratch — governance, materiality, KPIs, and the rollout plan that actually survives Q1.",
+      "Build an ESG program from scratch: governance, materiality, KPIs, and the rollout plan that actually survives Q1.",
     duration: "28 lessons",
     lessons: 28,
     standalonePrice: 6999,
@@ -93,15 +93,15 @@ export const courses: Course[] = [
   },
   {
     id: "live-lca-training",
-    title: "Live Training — Master Life Cycle Assessment (LCA)",
+    title: "Live Training: Master Life Cycle Assessment (LCA)",
     framework: "LCA",
     description:
-      "Live, instructor-led LCA — work a real product system through ISO 14040/14044 (goal & scope, inventory, impact assessment, interpretation) with direct feedback on your model.",
+      "Live, instructor-led LCA: work a real product system through ISO 14040/14044 (goal & scope, inventory, impact assessment, interpretation) with direct feedback on your model.",
     duration: "1 lesson",
     lessons: 1,
     standalonePrice: 20000,
     included: true,
-    outcome: "Conduct a full life cycle assessment — ISO 14040/44 compliant.",
+    outcome: "Conduct a full life cycle assessment, ISO 14040/44 compliant.",
     level: "Advanced",
     learnystUrl: `${LEARNYST_COURSES_URL}/Live-Training---Master-Life-Cycle-Assessment-LCA-`,
     image: "/courses/live-lca-training.svg",
@@ -111,7 +111,7 @@ export const courses: Course[] = [
     title: "Become an ESG Reporting Pro",
     framework: "ESG Reporting",
     description:
-      "A four-week intensive that takes you from data to a defensible ESG report — disclosure structure, the evidence trail, and the review cycle assurance partners expect.",
+      "A four-week intensive that takes you from data to a defensible ESG report: disclosure structure, the evidence trail, and the review cycle assurance partners expect.",
     duration: "2 lessons",
     lessons: 2,
     standalonePrice: 35000,
