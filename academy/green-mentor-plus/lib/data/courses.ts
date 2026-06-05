@@ -26,6 +26,13 @@ export interface Course {
   lessons: number;
   /** Standalone INR price; null = included with subscription only. */
   standalonePrice: number | null;
+  /**
+   * True = bundled into the Plus Essential subscription; false = a paid add-on
+   * bought on top of the subscription. Drives the included/add-on badge (C-2).
+   */
+  included: boolean;
+  /** One-line outcome — what you can DO after the course, not its topic (C-3). */
+  outcome: string;
   level: "Foundation" | "Intermediate" | "Advanced";
   /** Full per-course page on academy.greenmentor.co/learn (see LEARNYST_COURSES_URL). */
   learnystUrl: string;
@@ -46,6 +53,9 @@ export const courses: Course[] = [
     duration: "23 lessons",
     lessons: 23,
     standalonePrice: 999,
+    included: true,
+    outcome:
+      "Master GRI, BRSR, SASB and CDP — the frameworks employers hire for.",
     level: "Foundation",
     learnystUrl: `${LEARNYST_COURSES_URL}/Intro-to-ESG-and-BRSR`,
     image: "/courses/fundamentals-esg-brsr.svg",
@@ -59,6 +69,9 @@ export const courses: Course[] = [
     duration: "22 lessons",
     lessons: 22,
     standalonePrice: 6999,
+    included: true,
+    outcome:
+      "Calculate Scope 1, 2 and 3 emissions and lead your org's carbon disclosure.",
     level: "Intermediate",
     learnystUrl: `${LEARNYST_COURSES_URL}/GHG-Accounting-101`,
     image: "/courses/ghg-accounting-mastery.svg",
@@ -72,6 +85,8 @@ export const courses: Course[] = [
     duration: "28 lessons",
     lessons: 28,
     standalonePrice: 6999,
+    included: true,
+    outcome: "Build a board-ready ESG strategy from scratch.",
     level: "Intermediate",
     learnystUrl: `${LEARNYST_COURSES_URL}/ESG-Readiness`,
     image: "/courses/esg-readiness.svg",
@@ -85,6 +100,8 @@ export const courses: Course[] = [
     duration: "1 lesson",
     lessons: 1,
     standalonePrice: 20000,
+    included: false,
+    outcome: "Conduct a full life cycle assessment — ISO 14040/44 compliant.",
     level: "Advanced",
     learnystUrl: `${LEARNYST_COURSES_URL}/Live-Training---Master-Life-Cycle-Assessment-LCA-`,
     image: "/courses/live-lca-training.svg",
@@ -98,6 +115,8 @@ export const courses: Course[] = [
     duration: "2 lessons",
     lessons: 2,
     standalonePrice: 35000,
+    included: false,
+    outcome: "File a GRI/BRSR report that survives external assurance.",
     level: "Advanced",
     learnystUrl: `${LEARNYST_COURSES_URL}/Become-an-ESG-Reporting-Pro`,
     image: "/courses/esg-reporting-pro.svg",

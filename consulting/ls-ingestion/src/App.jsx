@@ -52,7 +52,7 @@ export default function App() {
           {page==="review"   && <Review bills={bills} setBills={setBills} selectedId={selectedId} setSelected={setSelectedId} setPage={setPage} efdbToken={efdbToken} setEfdbSrc={setEfdbSrc}/>}
           {page==="records"  && <Records bills={bills}/>}
           {page==="sheets"   && <Sheets/>}
-          {page==="audit"    && <Audit bill={selectedBill}/>}
+          {page==="audit"    && <Audit bill={selectedBill} bills={bills} setSelected={setSelectedId}/>}
           {page==="settings" && <Settings efdbToken={efdbToken} setEfdbToken={setEfdbToken} efdbSrc={efdbSrc}/>}
         </div>
       </div>

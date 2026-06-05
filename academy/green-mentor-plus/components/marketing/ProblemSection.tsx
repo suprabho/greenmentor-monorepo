@@ -11,7 +11,7 @@ export function ProblemSection() {
     <section className="bg-white py-24 md:py-28">
       <Container width="wide">
         <SectionHeader
-          label="The problem"
+          label="Why most ESG learners plateau"
           title={
             <>
               Most ESG learners are stuck — not because they lack effort, but
@@ -44,6 +44,9 @@ export function ProblemSection() {
                 </h3>
                 <p className="mt-2 text-[15px] leading-relaxed text-green-100">
                   {p.description}
+                </p>
+                <p className="mt-4 border-t border-white/10 pt-4 text-[13px] italic leading-relaxed text-green-100/70">
+                  &ldquo;{p.echo}&rdquo;
                 </p>
               </li>
             );

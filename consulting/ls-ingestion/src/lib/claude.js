@@ -4,7 +4,7 @@
 // Model: claude-sonnet-4-6 (always pin version)
 // ─────────────────────────────────────────────────────────────────────────────
 export const CLAUDE_MODEL = "claude-sonnet-4-6";
-export const PROMPT_VERSION = "v1.0";
+export const PROMPT_VERSION = "v1.1";
 
 const SYSTEM_PROMPT = `You are a utility bill data extraction specialist for an Indian government emissions auditing platform (Maharashtra, India).
 
@@ -16,8 +16,8 @@ STRICT RULES:
 - Dates must be in ISO format: YYYY-MM-DD.
 - Numbers must be numeric — no commas, no currency symbols, no units in the value field.
 - bill_type must be exactly one of: electricity, fuel, water, other.
-- discom must be one of: MSEDCL, BEST, Tata Power, Adani Electricity, MSEDC, MAHADISCOM, other.
-- electricity_source must be one of: Grid - EB, Diesel Generator, Solar, Wind, other.
+- discom is the electricity board / DISCOM (distribution company) named on the bill. Extract its exact short name as printed — e.g. MSEDCL, BEST, Tata Power, Adani Electricity, TSSPDCL, BESCOM, TANGEDCO, CESC, TPDDL, BSES, UPPCL, etc. Use the name printed on the bill; set null if not present. This value populates the platform's "Electricity Board" column.
+- electricity_source must be EXACTLY one of the following platform dropdown values, matched verbatim (mind the spacing, hyphens, and parentheses): Grid - EB, Grid - Renewable Mix, Solar, Wind, Hydro, Nuclear, Biomass, Biodiesel, Coal, Lignite, Gas, Diesel, Diesel Generator (DG). "Grid - EB" means grid electricity supplied by the Electricity Board / DISCOM. If the bill does not state the generation source, set it to null — never invent or approximate a value, because the platform rejects any string not on this list.
 - source_type must be one of: Renewable, Non Renewable.
 - transaction_type must be one of: Captive, Purchased. Self-generated (DG/solar/captive plant) is Captive; supply drawn from the grid/utility is Purchased.
 - fuel_type must be one of: diesel, petrol, cng, lpg, hsd, furnace_oil, coal, biomass, natural_gas, kerosene, other.
@@ -31,7 +31,7 @@ const USER_PROMPT = `Extract all available fields from this utility bill. Return
   "bill_type": "electricity" | "fuel" | "water" | "other",
   "electricity": {
     "discom": string | null,
-    "electricity_source": "Grid - EB" | "Diesel Generator" | "Solar" | "Wind" | "other" | null,
+    "electricity_source": "Grid - EB" | "Grid - Renewable Mix" | "Solar" | "Wind" | "Hydro" | "Nuclear" | "Biomass" | "Biodiesel" | "Coal" | "Lignite" | "Gas" | "Diesel" | "Diesel Generator (DG)" | null,
     "source_type": "Renewable" | "Non Renewable" | null,
     "transaction_type": "Captive" | "Purchased" | null,
     "account_number": string | null,

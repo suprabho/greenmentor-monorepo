@@ -9,8 +9,8 @@ export interface HeroStat {
 }
 
 export const heroStats: HeroStat[] = [
-  { number: "5,000+", caption: "Professionals trained" },
-  { number: "40,000+", caption: "ESG learners community" },
-  { number: "10+", caption: "Live ESG courses" },
-  { number: "50+", caption: "Companies hiring" },
+  { number: "5,000+", caption: "Professionals trained across 12+ industries" },
+  { number: "40,000+", caption: "Active ESG learners — India's largest" },
+  { number: "10+", caption: "Live & self-paced ESG courses" },
+  { number: "50+", caption: "Top companies hiring from our community" },
 ];

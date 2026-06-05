@@ -61,6 +61,17 @@ const rowOne = allHiringCompanies.slice(0, half);
 const rowTwo = allHiringCompanies.slice(half);
 
 /**
+ * TODO[data]: PLACEHOLDER figures — replace with verified numbers before
+ * publishing (WL-1 / WL-2). Each is an unverified claim; the UI shows a
+ * "pending verification" note so it can't ship unnoticed.
+ */
+const PLACEMENT = {
+  countLast12mo: "200+", // PLACEHOLDER — verify against member LinkedIn data
+  avgCtc: "₹8–18L", // PLACEHOLDER — verify
+  demandMultiple: "3×", // PLACEHOLDER — verify
+};
+
+/**
  * "Where our learners go" — the hiring companies presented as a pair of
  * continuously-scrolling, natural-colour logo carousels (opposite directions),
  * pausing on hover. Scoped to companies we hold a logo for (see
@@ -74,7 +85,7 @@ export function HiringCompanies() {
           label="Where our learners go"
           title={
             <>
-              Position yourself for ESG roles at{" "}
+              Our members have gone on to ESG roles at{" "}
               <span className="text-green-700">
                 India&apos;s leading organisations.
               </span>
@@ -89,6 +100,49 @@ export function HiringCompanies() {
             <MarqueeRow companies={rowOne} duration={38} />
             <MarqueeRow companies={rowTwo} duration={46} reverse />
           </div>
+        </div>
+
+        {/* WL-1 — placement claim (figures are placeholders, see PLACEMENT) */}
+        <div className="mt-8 rounded-[16px] border border-green-100 bg-green-50 p-6 text-center md:p-8">
+          <p className="text-[18px] font-semibold leading-relaxed text-ink md:text-[20px]">
+            In the last 12 months,{" "}
+            <span className="text-green-700">{PLACEMENT.countLast12mo}</span>{" "}
+            community members moved into sustainability roles at India&apos;s top
+            companies.<sup>*</sup>
+          </p>
+          <p className="mt-2 text-[12px] text-gray-500">
+            *Based on LinkedIn activity reported by members.{" "}
+            <span className="italic text-[#946200]">
+              Figure pending verification.
+            </span>
+          </p>
+        </div>
+
+        {/* WL-2 — career-context stat strip (figures are placeholders) */}
+        <div className="mt-6 grid gap-px overflow-hidden rounded-[16px] border border-gray-200 bg-gray-200 sm:grid-cols-3">
+          {[
+            {
+              stat: PLACEMENT.avgCtc,
+              label: "avg. starting CTC for sustainability roles",
+            },
+            {
+              stat: "Weekly",
+              label: "ESG roles posted in our community jobs feed",
+            },
+            {
+              stat: PLACEMENT.demandMultiple,
+              label: "demand vs. supply for certified professionals",
+            },
+          ].map((item) => (
+            <div key={item.label} className="bg-white p-6 text-center">
+              <p className="font-numeral text-[32px] leading-none text-green-700">
+                {item.stat}
+              </p>
+              <p className="mt-2 text-[13px] leading-relaxed text-gray-600">
+                {item.label}
+              </p>
+            </div>
+          ))}
         </div>
       </Container>
     </section>

@@ -27,6 +27,10 @@ export interface Plan {
   priceAnnualTotal: number;
   badge?: string;
   features: string[];
+  /** What the subscription includes — the "included in this plan" group (PR-2). */
+  included: string[];
+  /** Paid extras bought on top of the subscription — the "add-ons" group (PR-2). */
+  addOns: string[];
   /** Courses live on the platform today — included in every membership. */
   coursesLive: string[];
   /** Courses on the roadmap; included automatically when they launch. */
@@ -58,6 +62,17 @@ export const plans: Plan[] = [
       "Weekly industry insights & case studies",
       "Curated ESG jobs community access",
       "Personalised career guidance & resume review",
+    ],
+    included: [
+      "Full library — 8 foundational courses",
+      "Bi-weekly live Q&A with practitioners",
+      "40,000+ learner WhatsApp community",
+      "Weekly industry insights & case studies",
+      "Curated ESG jobs feed",
+    ],
+    addOns: [
+      "Live intensive programs (LCA, ESG Reporting Pro)",
+      "Certification bundles",
     ],
     coursesLive: [
       "Intro to ESG & BRSR",
@@ -105,3 +120,48 @@ export const plans: Plan[] = [
  *   (4000 × 12 − 44000) / (4000 × 12) ≈ 8.33%
  */
 export const annualSavingsPercent = 8;
+
+/**
+ * Value stack shown above the pricing cards (PR-1) — "what you're getting, and
+ * what it would cost standalone."
+ *
+ * INCLUDED items only. The paid add-ons (Live LCA ₹20,000, ESG Reporting Pro
+ * ₹35,000) are deliberately excluded so the stack never implies an add-on is
+ * part of the subscription — that's the exact trust-break PR-2 / C-2 exist to
+ * fix. Counting them here would re-create it.
+ *
+ * Rows flagged `estimated` are best-effort standalone values, shown with an
+ * "est." marker in the UI and summed into a clearly-labelled *estimated* total.
+ * TODO[pricing]: confirm the real Learnyst list prices for the 5 non-foundational
+ * library courses and the annual live-Q&A value, then drop the `estimated` flags.
+ */
+export interface ValueStackRow {
+  label: string;
+  /** Standalone INR value; null renders as "Included" (no standalone SKU). */
+  value: number | null;
+  /** True = best-effort estimate pending a confirmed price. */
+  estimated?: boolean;
+}
+
+export const valueStack: {
+  rows: ValueStackRow[];
+  /** Sum of the priced rows. Labelled "estimated" because some rows are. */
+  total: number;
+} = {
+  rows: [
+    { label: "Fundamentals of ESG & BRSR", value: 999 },
+    { label: "GHG Accounting Mastery", value: 6999 },
+    { label: "ESG Readiness", value: 6999 },
+    { label: "5 more foundational courses", value: 25000, estimated: true },
+    {
+      label: "Bi-weekly live Q&A with practitioners (a year)",
+      value: 12000,
+      estimated: true,
+    },
+    {
+      label: "40,000+ community · weekly insights · curated jobs feed",
+      value: null,
+    },
+  ],
+  total: 999 + 6999 + 6999 + 25000 + 12000, // ₹51,997
+};

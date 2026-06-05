@@ -6,6 +6,7 @@ export interface NavLink {
 export const primaryNav: NavLink[] = [
   { href: "/#courses", label: "Courses" },
   { href: "/#pricing", label: "Pricing" },
+  { href: "/#teams", label: "For Teams" },
   { href: "/#about", label: "About" },
   { href: "/#faq", label: "FAQ" },
 ];
@@ -16,6 +17,7 @@ export const footerSections: Array<{ title: string; links: NavLink[] }> = [
     links: [
       { href: "/#courses", label: "Course Library" },
       { href: "/#pricing", label: "Pricing" },
+      { href: "/#teams", label: "For Teams" },
       { href: "/onboarding/intro", label: "Get Started" },
     ],
   },
