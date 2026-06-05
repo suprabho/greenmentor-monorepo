@@ -9,6 +9,8 @@ import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils/cn";
 import { heroStats } from "@/lib/data/hero-stats";
 import { instructorCompanies } from "@/lib/data/instructors";
+import { annualSavingsPercent } from "@/lib/data/plans";
+import { guarantee } from "@/lib/data/guarantee";
 import { track } from "@/lib/utils/analytics";
 
 export function Hero() {
@@ -61,16 +63,17 @@ export function Hero() {
           </h1>
 
           <p className="mt-8 max-w-2xl text-center md:text-left text-[20px] leading-relaxed text-white/85 md:text-[22px]">
-            Courses, live expert sessions, career tools, and a community of
-            40,000+ sustainability professionals — all in one place, for one
-            simple price.
+            8 courses. Bi-weekly live sessions with practitioners. Career tools.
+            A 40,000+ member community. All included — one subscription, cancel
+            anytime.
           </p>
 
-          <div className="flex justify-center md:justify-start mt-10">
+          <div className="mt-10 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:justify-center md:justify-start">
             <Button
               asChild
               variant="accent"
               size="lg"
+              className="w-full sm:w-auto"
               iconRight={<ArrowRight size={18} weight="bold" />}
             >
               <Link
@@ -79,10 +82,29 @@ export function Hero() {
                   track("cta_clicked", { location: "hero", label: "start_4000" })
                 }
               >
-                Start for just ₹4,000 / month
+                Get instant access — ₹4,000 / month
+              </Link>
+            </Button>
+            <Button
+              asChild
+              variant="ghost-dark"
+              size="lg"
+              className="w-full sm:w-auto"
+            >
+              <Link
+                href="/#pricing"
+                onClick={() =>
+                  track("cta_clicked", { location: "hero", label: "see_annual" })
+                }
+              >
+                See annual plan — save {annualSavingsPercent}% + Career Services
               </Link>
             </Button>
           </div>
+
+          <p className="mt-4 text-center md:text-left text-[13px] text-green-100/90">
+            {guarantee.short}
+          </p>
         </motion.div>
 
         {/* Stat band — four credibility numbers inline, then the instructor
@@ -102,10 +124,11 @@ export function Hero() {
           ))}
         </div>
 
+        {/* TODO[assets]: confirm the real instructor employer logos in
+            instructors.ts (deck names Tata, Nestlé, TUV Rheinland, EY,
+            McKinsey, KPMG, Siemens) and ensure each renders crisply. */}
         <div className="mt-40 rounded-md border border-white/10 bg-teal-800/40 p-5 md:p-6 backdrop-blur-3xl">
-          <p className="gm-eyebrow text-green-100">
-            Instructors with experience at
-          </p>
+          <p className="gm-eyebrow text-green-100">Instructors from</p>
           <div className="mt-5 flex flex-wrap items-center gap-x-8 gap-y-5">
             {instructorCompanies.map((co) => (
               // eslint-disable-next-line @next/next/no-img-element
@@ -120,6 +143,10 @@ export function Hero() {
               />
             ))}
           </div>
+          <p className="mt-5 text-[14px] leading-relaxed text-white/70">
+            Plus a former Big-4 sustainability partner, a Nifty-50 ESG reporting
+            head, and a TCFD-aligned climate risk advisor.
+          </p>
         </div>
       </Container>
 

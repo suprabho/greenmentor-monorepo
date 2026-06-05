@@ -1,12 +1,14 @@
 import { T, SS, pill } from "../theme.js";
+import { SPill, TPill, ConfBar } from "../components/ui.jsx";
 import { runValidation } from "../lib/validation.js";
 import { fmtD, short } from "../lib/format.js";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // AUDIT TRAIL
 // ─────────────────────────────────────────────────────────────────────────────
-export default function Audit({bill}) {
-  if (!bill) return <div style={{...SS.card,textAlign:"center",padding:60,color:T.dim}}>Select a bill from the dashboard first.</div>;
+export default function Audit({bill, bills=[], setSelected}) {
+  // No specific bill selected → show the consolidated trail of every Claude call.
+  if (!bill) return <AuditList bills={bills} setSelected={setSelected}/>;
   const val = bill.extracted ? runValidation(bill.bill_type, bill.extracted) : bill.validation;
   const steps = [
     {n:1,label:"File received",          d:`Method: ${bill.upload_method||"—"}\nFilename: ${bill.original_filename}\nSize: ${bill.file_size?(bill.file_size/1024).toFixed(1)+" KB":"—"}\nMIME: ${bill.mime_type||"—"}`},
@@ -20,6 +22,11 @@ export default function Audit({bill}) {
   ].filter(Boolean);
 
   return <>
+    {setSelected&&(
+      <div onClick={()=>setSelected(null)} style={{display:"inline-flex",alignItems:"center",gap:6,cursor:"pointer",color:T.muted,fontSize:11,fontFamily:T.mono,marginBottom:12}}>
+        ← All extractions
+      </div>
+    )}
     <div style={SS.card}>
       <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:14}}>
         <div style={SS.label}>Audit trail</div>
@@ -58,4 +65,42 @@ export default function Audit({bill}) {
       },null,2)}</pre>
     </div>
   </>;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CONSOLIDATED CLAUDE TRAIL — every extraction this session, newest first.
+// Each row drills into the per-bill audit detail above via setSelected(id).
+// ─────────────────────────────────────────────────────────────────────────────
+function AuditList({bills=[], setSelected}) {
+  const rows = [...bills].sort((a,b)=>(b.uploaded_at||"").localeCompare(a.uploaded_at||""));
+  if (!rows.length) return <div style={{...SS.card,textAlign:"center",padding:60,color:T.dim}}>No Claude extractions yet — upload a bill to start the trail.</div>;
+  const cols = ["File","Type","Extracted at","Model","Prompt","Confidence","Status","Tokens"];
+  return (
+    <div style={SS.card}>
+      <div style={SS.label}>Claude extraction trail · {rows.length} call{rows.length>1?"s":""}</div>
+      <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+        <thead><tr style={{borderBottom:`1px solid ${T.line}`}}>
+          {cols.map(h=><th key={h} style={{textAlign:"left",padding:"7px 8px",fontSize:10,color:T.dim,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.06em"}}>{h}</th>)}
+        </tr></thead>
+        <tbody>{rows.map(b=>(
+          <tr key={b.id} style={{borderBottom:`1px solid ${T.line}`,cursor:"pointer"}}
+            onClick={()=>setSelected?.(b.id)}
+            onMouseEnter={e=>{e.currentTarget.style.background=T.accentGlow;}}
+            onMouseLeave={e=>{e.currentTarget.style.background="transparent";}}>
+            <td style={{padding:"9px 8px",fontWeight:600,fontSize:11,maxWidth:160,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+              {b.original_filename}
+              {b._live&&<span style={{...pill(T.successBg,T.accent,{fontSize:8}),marginLeft:6}}>live</span>}
+            </td>
+            <td style={{padding:"9px 8px"}}><TPill t={b.bill_type}/></td>
+            <td style={{padding:"9px 8px",fontFamily:T.mono,fontSize:11,color:T.muted}}>{fmtD(b.uploaded_at)}</td>
+            <td style={{padding:"9px 8px",fontFamily:T.mono,fontSize:10,color:T.muted}}>{b.llm_model||"—"}</td>
+            <td style={{padding:"9px 8px",fontFamily:T.mono,fontSize:10,color:T.dim}}>{b.llm_prompt_version||"—"}</td>
+            <td style={{padding:"9px 8px",minWidth:100}}><ConfBar val={b.overall_confidence}/></td>
+            <td style={{padding:"9px 8px"}}><SPill s={b.status}/></td>
+            <td style={{padding:"9px 8px",fontFamily:T.mono,fontSize:10,color:T.dim}}>{b.token_usage?`${b.token_usage.input_tokens}↑ ${b.token_usage.output_tokens}↓`:"—"}</td>
+          </tr>
+        ))}</tbody>
+      </table>
+    </div>
+  );
 }

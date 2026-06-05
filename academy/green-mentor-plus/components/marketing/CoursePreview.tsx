@@ -14,6 +14,7 @@ import type { Icon } from "@phosphor-icons/react";
 import { Container } from "@/components/marketing/Container";
 import { SectionHeader } from "@/components/marketing/SectionHeader";
 import { courses } from "@/lib/data/courses";
+import { cn } from "@/lib/utils/cn";
 import { track } from "@/lib/utils/analytics";
 
 /** Standalone INR price, e.g. "₹6,999" — matches the en-IN formatting used in pricing. */
@@ -24,6 +25,9 @@ function formatINR(n: number) {
     maximumFractionDigits: 0,
   }).format(n);
 }
+
+/** The seven frameworks the curriculum aligns to — credibility signal (C-4). */
+const frameworks = ["BRSR", "GRI", "SASB", "CDP", "CBAM", "TCFD", "DJSI"];
 
 /**
  * Pick the right Phosphor icon for each course. Map keyed by course id so
@@ -49,21 +53,40 @@ export function CoursePreview() {
               <span className="text-green-700">One subscription.</span>
             </>
           }
-          description="Foundational courses are included in your Plus Essential subscription; the live and pro programs are available as paid add-ons. Bundles are curated paths combining several courses for a specific outcome."
+          description="Foundational courses are included in your Plus Essential subscription. Live intensives and certification programs are available as paid add-ons — clearly marked on every card."
           className="max-w-2xl"
         />
 
-        {/* Aligned-with-frameworks lockup from the deck */}
-        <div className="mt-10 flex flex-col items-start gap-4 rounded-[20px] border border-gray-200 bg-section-fade p-6 md:flex-row md:items-center md:gap-6 md:p-8">
-          <span className="gm-eyebrow shrink-0 border border-black/[0.06] bg-white px-[18px] py-[10px] text-green-700">
-            Aligned With
-          </span>
-          <p className="text-[15px] font-medium text-ink md:text-[17px]">
-            BRSR · GRI · SASB · CDP · CBAM · TCFD · DJSI
-          </p>
+        {/* C-2 — included vs add-on legend, made visually distinct up front */}
+        <div className="mt-10 grid gap-4 sm:grid-cols-2">
+          <div className="rounded-[16px] border border-green-100 bg-green-50 p-5">
+            <div className="flex items-center gap-2">
+              <span className="size-2.5 rounded-full bg-green-500" aria-hidden />
+              <p className="gm-eyebrow text-green-700">
+                Included in Plus Essential
+              </p>
+            </div>
+            <p className="mt-2 text-[14px] leading-relaxed text-gray-700">
+              Foundational &amp; self-paced courses — all part of your
+              subscription.
+            </p>
+          </div>
+          <div className="rounded-[16px] border border-[#FFB020]/30 bg-[#FFB020]/10 p-5">
+            <div className="flex items-center gap-2">
+              <span
+                className="size-2.5 rounded-full bg-[#FFB020]"
+                aria-hidden
+              />
+              <p className="gm-eyebrow text-[#946200]">Available as add-ons</p>
+            </div>
+            <p className="mt-2 text-[14px] leading-relaxed text-gray-700">
+              Live intensives &amp; certification programs — bought on top of the
+              plan.
+            </p>
+          </div>
         </div>
 
-        <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {courses.map((course) => {
             const Icon = courseIcons[course.id] ?? FileText;
             return (
@@ -80,37 +103,52 @@ export function CoursePreview() {
                 }
                 className="group flex flex-col overflow-hidden rounded-[14px] border border-gray-200 bg-white transition-[border-color,transform,box-shadow] duration-200 hover:-translate-y-0.5 hover:border-green-700 hover:shadow-soft"
               >
-                {/* TODO[assets]: swap the placeholder banners in /public/courses
-                    for real Learnyst thumbnails (keep the same file paths) */}
-                <div className="relative aspect-2/1 w-full overflow-hidden bg-green-900">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={course.image}
-                    alt=""
-                    loading="lazy"
-                    className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
-                  />
-                  <ArrowUpRight
-                    size={14}
-                    weight="bold"
-                    className="absolute right-3 top-3 text-white/70 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-white"
-                  />
+                {/* C-1 — branded title banner (no placeholder imagery). The card
+                    self-describes via category + icon on a forest-green field.
+                    TODO[assets]: optionally drop real Learnyst banners behind
+                    this once available. */}
+                <div className="relative flex aspect-2/1 w-full flex-col justify-between overflow-hidden bg-linear-to-br from-teal-800 to-green-900 p-4">
+                  <div className="flex items-start justify-between">
+                    <span
+                      className={cn(
+                        "rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide",
+                        course.included
+                          ? "bg-green-500 text-teal-900"
+                          : "bg-[#FFB020] text-teal-900",
+                      )}
+                    >
+                      {course.included ? "Included" : "Add-on"}
+                    </span>
+                    <ArrowUpRight
+                      size={14}
+                      weight="bold"
+                      className="text-white/70 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-white"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Icon
+                      size={22}
+                      weight="duotone"
+                      className="shrink-0 text-green-500"
+                      aria-hidden
+                    />
+                    <span className="text-[11px] font-semibold uppercase tracking-wide text-green-100/85">
+                      {course.framework}
+                    </span>
+                  </div>
                 </div>
                 <div className="flex flex-1 flex-col p-5">
-                  <Icon
-                    size={20}
-                    weight="duotone"
-                    className="text-green-700"
-                    aria-hidden
-                  />
-                  <h3 className="mt-3 text-[14px] font-bold leading-snug text-ink">
+                  <h3 className="text-[14px] font-bold leading-snug text-ink">
                     {course.title}
                   </h3>
+                  <p className="mt-1.5 text-[12.5px] leading-relaxed text-gray-600">
+                    {course.outcome}
+                  </p>
                   {course.standalonePrice !== null && (
                     <p className="mt-auto pt-3 text-[13px] font-semibold text-green-700">
                       {formatINR(course.standalonePrice)}{" "}
                       <span className="font-medium text-gray-500">
-                        standalone value
+                        {course.included ? "standalone value" : "add-on"}
                       </span>
                     </p>
                   )}
@@ -118,6 +156,27 @@ export function CoursePreview() {
               </Link>
             );
           })}
+        </div>
+
+        {/* C-4 — frameworks as credibility pills, not footnote text */}
+        <div className="mt-10 rounded-[20px] border border-gray-200 bg-section-fade p-6 md:p-8">
+          <p className="gm-section-label text-[18px] text-green-700">
+            Curriculum aligned with
+          </p>
+          <div className="mt-4 flex flex-wrap gap-2.5">
+            {frameworks.map((f) => (
+              <span
+                key={f}
+                className="rounded-full border border-green-700/20 bg-white px-4 py-1.5 text-[13px] font-semibold text-green-700"
+              >
+                {f}
+              </span>
+            ))}
+          </div>
+          <p className="mt-4 text-[14px] leading-relaxed text-gray-700">
+            India&apos;s only ESG learning platform covering all 7 major
+            frameworks in one subscription.
+          </p>
         </div>
 
         {/* Bundle callout — explains the curated paths that group courses */}

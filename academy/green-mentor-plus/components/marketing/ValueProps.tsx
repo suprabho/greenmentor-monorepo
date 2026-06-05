@@ -37,11 +37,11 @@ export function ValueProps() {
           label="Monthly vs annual"
           title={
             <>
-              Same membership.{" "}
-              <span className="text-green-700">Two things change.</span>
+              One choice.{" "}
+              <span className="text-green-700">One real difference.</span>
             </>
           }
-          description="Every course, live session, the community, weekly insights and the jobs feed come with both plans. Going annual changes exactly two things — what you pay, and whether Career Services is included."
+          description={`Everything — all ${plan.coursesLive.length} courses, bi-weekly live sessions, the 40,000+ community, weekly insights and the curated jobs feed — is identical on both plans. Go annual for one reason: Career Services, a ${formatINR(plan.careerServicesValue)} placement bundle included at no extra cost.`}
           align="center"
           className="text-center"
         />
@@ -110,7 +110,14 @@ export function ValueProps() {
             <h3 className="mt-6 text-[18px] font-bold leading-tight text-ink">
               Career Services — free on annual
             </h3>
-            <p className="mt-2 text-[15px] leading-relaxed text-gray-700">
+            <p className="mt-1 text-[13px] font-semibold uppercase tracking-wide text-green-700">
+              Valued at {formatINR(plan.careerServicesValue)} · included free
+            </p>
+            <p className="mt-3 border-l-2 border-green-500 pl-4 text-[15px] font-medium italic text-ink">
+              &ldquo;From learning ESG to getting hired in ESG — this is the
+              bridge.&rdquo;
+            </p>
+            <p className="mt-3 text-[15px] leading-relaxed text-gray-700">
               A {formatINR(plan.careerServicesValue)} bundle, included at no
               extra cost when you go annual. Not part of the monthly plan.
             </p>

@@ -1,7 +1,6 @@
 import { LinkedinLogo } from "@phosphor-icons/react/dist/ssr";
 import { Container } from "@/components/marketing/Container";
 import { SectionHeader } from "@/components/marketing/SectionHeader";
-import { StatBand } from "@/components/marketing/StatBand";
 import { testimonials } from "@/lib/data/testimonials";
 
 export function SocialProof() {
@@ -9,25 +8,29 @@ export function SocialProof() {
     <section className="bg-white py-24 md:py-28">
       <Container width="wide">
         <SectionHeader
-          label="What learners say"
+          label="What members say"
           title={
             <>
-              Real people.{" "}
-              <span className="text-green-700">Real results.</span>
+              From first course to{" "}
+              <span className="text-green-700">career momentum.</span>
             </>
           }
-          description="The community is the platform — and it shows up in the disclosure work, the placements, and the conversations our learners have on LinkedIn."
+          description="Across disclosure work, certifications, and new roles — our members show up in the ESG conversations happening on LinkedIn every week."
         />
 
-        <StatBand
-          className="mt-16"
-          stats={[
-            { number: "5,000+", caption: "Professionals trained" },
-            { number: "40,000+", caption: "ESG learners community" },
-            { number: "10+", caption: "Live ESG courses" },
-            { number: "50+", caption: "Companies hiring" },
-          ]}
-        />
+        {/* T-3 — single pull-quote replaces the repeated hero stat band. The 3×
+            demand-vs-supply line mirrors the figure used in the About section. */}
+        <figure className="mx-auto mt-16 max-w-3xl text-center">
+          <blockquote className="font-display text-[28px] leading-snug tracking-[-0.02em] text-ink md:text-[36px]">
+            &ldquo;Demand for ESG professionals in India is{" "}
+            <span className="text-green-700">3× the supply.</span> GreenMentor is
+            where that supply gets built.&rdquo;
+          </blockquote>
+          <figcaption className="mt-5 text-[14px] text-gray-500">
+            GreenMentor — built with IIM Bangalore (NSRCEL) &amp; IIT-B
+            Innovation Centre
+          </figcaption>
+        </figure>
 
         <div className="mt-16 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
           {testimonials.map((t) => (

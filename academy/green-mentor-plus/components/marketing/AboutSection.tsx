@@ -1,5 +1,27 @@
+import { LinkedinLogo } from "@phosphor-icons/react/dist/ssr";
 import { Container } from "@/components/marketing/Container";
 import { SectionHeader } from "@/components/marketing/SectionHeader";
+
+/**
+ * Mentor roster (A-1). Roles are the approved credentials already used across
+ * the site; names/photos/LinkedIn are scaffolded placeholders.
+ * TODO[About]: drop in real mentor name, photo and LinkedIn for each before
+ * publishing — the cards render obvious "pending" markers until then.
+ */
+const mentors = [
+  { role: "Former sustainability partner, Big-4 firm" },
+  { role: "Head of ESG Reporting, Nifty-50 company" },
+  { role: "TCFD-aligned climate risk advisor" },
+];
+
+/** Institutional partners for the "Backed by & built with" strip (A-2). */
+const backedBy = [
+  { name: "IIM Bangalore · NSRCEL", logo: "/brand/partner-iimb-nsrcel.png" },
+  { name: "IIT-B Innovation Centre", logo: "/brand/partner-iitb.png" },
+];
+// TODO[assets]: add real logos for these partners, then move them out of the
+// placeholder list below.
+const backedByTodo = ["EFFAS", "ASSOCHAM", "BIA", "JITO"];
 
 const subBrands = [
   {
@@ -42,6 +64,30 @@ export function AboutSection() {
           description="We work both sides of the gap. Demand for sustainability professionals is 3× the supply, and ESG compliance — CBAM, SBTi, BRSR, GRI — is complex and ever-changing. We build the talent and automate the workflows."
           className="max-w-2xl"
         />
+
+        {/* A-2 — Backed by & built with: institutional credibility, elevated */}
+        <div className="mt-12 rounded-[20px] border border-gray-200 bg-section-fade p-6 md:p-8">
+          <p className="gm-eyebrow text-green-700">Backed by &amp; built with</p>
+          <div className="mt-5 flex flex-wrap items-center gap-x-10 gap-y-5">
+            {backedBy.map((p) => (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                key={p.name}
+                src={p.logo}
+                alt={p.name}
+                className="h-9 w-auto object-contain"
+              />
+            ))}
+            {backedByTodo.map((name) => (
+              <span
+                key={name}
+                className="rounded-md border border-dashed border-gray-300 px-3 py-1.5 text-[12px] text-gray-400"
+              >
+                {name} — logo TODO
+              </span>
+            ))}
+          </div>
+        </div>
 
         {/* Sub-brand lockup */}
         <div className="mt-14 grid gap-4 md:grid-cols-3">
@@ -91,13 +137,37 @@ export function AboutSection() {
               Our Mentors
             </h3>
             <div aria-hidden className="gm-section-rule" />
-            <p>
-              {/* TODO[About]: drop in real mentor bios with photos */}
-              Our mentors include a former Big-4 sustainability partner, the
-              head of ESG reporting at a Nifty-50 company, and a TCFD-aligned
-              climate risk advisor. We name them on the course pages, not in
-              marketing copy.
+            <p className="text-[15px] text-gray-700">
+              The practitioners who teach and grade — named here, at the point of
+              purchase, not buried on a course page.
             </p>
+            <div className="grid gap-3">
+              {mentors.map((m) => (
+                <div
+                  key={m.role}
+                  className="flex items-center gap-4 rounded-[16px] border border-dashed border-gray-300 bg-white p-4"
+                >
+                  <div
+                    className="grid size-12 shrink-0 place-items-center rounded-full border border-dashed border-gray-300 text-[10px] text-gray-400"
+                    aria-hidden
+                  >
+                    Photo
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[14px] font-bold text-gray-400">
+                      Name pending
+                    </p>
+                    <p className="text-[13px] leading-snug text-gray-700">
+                      {m.role}
+                    </p>
+                    <span className="mt-1 inline-flex items-center gap-1 text-[11px] text-gray-400">
+                      <LinkedinLogo size={12} weight="fill" aria-hidden />{" "}
+                      LinkedIn — TODO
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
 
