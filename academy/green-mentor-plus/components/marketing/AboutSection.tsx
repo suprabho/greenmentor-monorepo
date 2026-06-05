@@ -1,18 +1,7 @@
 import { LinkedinLogo } from "@phosphor-icons/react/dist/ssr";
 import { Container } from "@/components/marketing/Container";
 import { SectionHeader } from "@/components/marketing/SectionHeader";
-
-/**
- * Mentor roster (A-1). Roles are the approved credentials already used across
- * the site; names/photos/LinkedIn are scaffolded placeholders.
- * TODO[About]: drop in real mentor name, photo and LinkedIn for each before
- * publishing — the cards render obvious "pending" markers until then.
- */
-const mentors = [
-  { role: "Former sustainability partner, Big-4 firm" },
-  { role: "Head of ESG Reporting, Nifty-50 company" },
-  { role: "TCFD-aligned climate risk advisor" },
-];
+import { mentors } from "@/lib/data/mentors";
 
 /** Institutional partners for the "Backed by & built with" strip (A-2). */
 const backedBy = [
@@ -144,26 +133,38 @@ export function AboutSection() {
             <div className="grid gap-3">
               {mentors.map((m) => (
                 <div
-                  key={m.role}
-                  className="flex items-center gap-4 rounded-[16px] border border-dashed border-gray-300 bg-white p-4"
+                  key={m.name}
+                  className="flex items-center gap-4 rounded-[16px] border border-gray-200 bg-white p-4"
                 >
                   <div
-                    className="grid size-12 shrink-0 place-items-center rounded-full border border-dashed border-gray-300 text-[10px] text-gray-400"
+                    className="grid size-12 shrink-0 place-items-center rounded-full bg-green-100 text-[14px] font-semibold text-green-700"
                     aria-hidden
                   >
-                    Photo
+                    {m.initials}
                   </div>
                   <div className="min-w-0">
-                    <p className="text-[14px] font-bold text-gray-400">
-                      Name pending
-                    </p>
+                    <p className="text-[14px] font-bold text-ink">{m.name}</p>
                     <p className="text-[13px] leading-snug text-gray-700">
                       {m.role}
+                      {m.company ? ` · ${m.company}` : ""}
                     </p>
-                    <span className="mt-1 inline-flex items-center gap-1 text-[11px] text-gray-400">
-                      <LinkedinLogo size={12} weight="fill" aria-hidden />{" "}
-                      LinkedIn pending
-                    </span>
+                    {m.education ? (
+                      <p className="mt-0.5 text-[12px] text-gray-500">
+                        {m.education}
+                        {m.location ? ` · ${m.location}` : ""}
+                      </p>
+                    ) : null}
+                    {m.linkedinUrl ? (
+                      <a
+                        href={m.linkedinUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="mt-1 inline-flex items-center gap-1 text-[11px] text-green-700 underline-offset-2 hover:underline"
+                      >
+                        <LinkedinLogo size={12} weight="fill" aria-hidden />{" "}
+                        LinkedIn
+                      </a>
+                    ) : null}
                   </div>
                 </div>
               ))}
