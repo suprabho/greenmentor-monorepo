@@ -124,29 +124,40 @@ export const plans: Plan[] = [
 export const annualSavingsPercent = 8;
 
 /**
- * Launch promo, as shown on the pricing surfaces (onboarding /plan step and the
- * marketing PricingSnapshot). The ACTUAL charge is driven by the Razorpay offer
- * resolved in lib/razorpay/promos.ts — whose `LAUNCH` registry entry derives its
- * numbers from here, so this is the single in-repo source for the promo's
- * customer-facing figures. Keep it equal to the live Razorpay offer.
+ * Flat launch discount — a fixed ₹ amount off the first charge of BOTH billing
+ * cycles. Single in-repo source for the promo's customer-facing figures; the
+ * Razorpay offers resolved in lib/razorpay/promos.ts (one auto-applied entry per
+ * cycle) derive their amount from here. Keep it equal to the live dashboard
+ * offers, and set `discountInr` to 0 to switch the promo off everywhere.
  *
- * It's a first-month discount on the monthly cycle only; annual is unaffected.
+ * Applies to the first billing cycle only — full price renews thereafter.
  */
-export const launchOffer: {
-  /** Billing cycle the offer applies to. */
-  cycle: BillingCycle;
-  /** Rupees off the first charge. */
+export const flatDiscount: {
+  /** Rupees off the first charge of each cycle. */
   discountInr: number;
   /** Covers the first billing cycle only; full price thereafter. */
   firstCycleOnly: boolean;
   /** Shown when the offer is applied. */
   label: string;
 } = {
-  cycle: "monthly",
   discountInr: 2000,
   firstCycleOnly: true,
-  label: "Launch offer — first month for ₹2,000",
+  label: "Launch offer — ₹2,000 off",
 };
+
+/**
+ * First-charge price for a billing cycle after the flat discount, alongside the
+ * original (struck-through) price. `active` is false when the discount is 0 (it
+ * is clamped to the price so the result never goes negative).
+ */
+export function discountedPrice(
+  plan: Plan,
+  cycle: BillingCycle,
+): { base: number; price: number; active: boolean } {
+  const base = cycle === "annual" ? plan.priceAnnualTotal : plan.priceMonthly;
+  const discount = Math.min(Math.max(flatDiscount.discountInr, 0), base);
+  return { base, price: base - discount, active: discount > 0 };
+}
 
 /**
  * Value stack shown above the pricing cards (PR-1) — "what you're getting, and

@@ -18,7 +18,8 @@ import {
   plans,
   annualSavingsPercent,
   valueStack,
-  launchOffer,
+  flatDiscount,
+  discountedPrice,
 } from "@/lib/data/plans";
 import { guarantee } from "@/lib/data/guarantee";
 import { cn } from "@/lib/utils/cn";
@@ -43,26 +44,26 @@ interface PricingSnapshotProps {
 export function PricingSnapshot({ compact = false }: PricingSnapshotProps) {
   const plan = plans[0];
 
-  // Launch promo — a first-month discount on the monthly cycle (see
-  // `launchOffer`, mirrored by the auto-applied Razorpay offer at checkout).
-  const monthlyHasLaunch = launchOffer.cycle === "monthly";
-  const monthlyFirstCharge = plan.priceMonthly - launchOffer.discountInr;
+  // Flat launch discount applied to each cycle's first charge (see
+  // `flatDiscount`, mirrored by the auto-applied Razorpay offers at checkout).
+  const monthly = discountedPrice(plan, "monthly");
+  const annual = discountedPrice(plan, "annual");
 
   const cycleCards = [
     {
       cycle: "monthly" as const,
       title: "Monthly",
       subtitle: "Billed every month. Cancel anytime.",
-      price: monthlyHasLaunch ? monthlyFirstCharge : plan.priceMonthly,
-      original: monthlyHasLaunch ? plan.priceMonthly : null,
-      priceSuffix: monthlyHasLaunch ? "first month" : "/ month",
-      footnote: monthlyHasLaunch
+      price: monthly.price,
+      original: monthly.active ? monthly.base : null,
+      priceSuffix: monthly.active ? "first month" : "/ month",
+      footnote: monthly.active
         ? `Then ${formatINR(plan.priceMonthly)} / month · cancel anytime.`
         : "Same access. Try it without the annual commit.",
       highlight: false,
-      badge: monthlyHasLaunch ? "Launch offer" : (null as string | null),
-      ctaLabel: monthlyHasLaunch
-        ? `Get instant access — first month ${formatINR(monthlyFirstCharge)}`
+      badge: monthly.active ? "Launch offer" : (null as string | null),
+      ctaLabel: monthly.active
+        ? `Get instant access — first month ${formatINR(monthly.price)}`
         : "Get instant access — ₹4,000 / month",
     },
     {
@@ -72,10 +73,14 @@ export function PricingSnapshot({ compact = false }: PricingSnapshotProps) {
       price: plan.priceAnnual,
       original: null as number | null,
       priceSuffix: "/ month, billed yearly",
-      footnote: `${formatINR(plan.priceAnnualTotal)} billed once a year · Save ${annualSavingsPercent}% vs monthly.`,
+      footnote: annual.active
+        ? `${formatINR(annual.price)} first year (was ${formatINR(annual.base)}) · then ${formatINR(plan.priceAnnualTotal)}/year.`
+        : `${formatINR(plan.priceAnnualTotal)} billed once a year · Save ${annualSavingsPercent}% vs monthly.`,
       highlight: true,
       badge: "Career Services included",
-      ctaLabel: "Get Plus Annual + Career Services — ₹44,000 / year",
+      ctaLabel: annual.active
+        ? `Get Plus Annual + Career — first year ${formatINR(annual.price)}`
+        : "Get Plus Annual + Career Services — ₹44,000 / year",
     },
   ];
 

@@ -446,10 +446,17 @@ export default function CheckoutStep() {
               </span>
             </div>
             {billingCycle === "annual" ? (
-              <p className="mt-2 text-[13px] text-gray-500">
-                Billed once a year · works out to{" "}
-                {formatINR(plan.priceAnnual * 100)} / month
-              </p>
+              appliedPromo?.firstCycleOnly ? (
+                <p className="mt-2 text-[13px] text-gray-500">
+                  First year · renews at{" "}
+                  {formatINR(plan.priceAnnualTotal * 100)} / year
+                </p>
+              ) : (
+                <p className="mt-2 text-[13px] text-gray-500">
+                  Billed once a year · works out to{" "}
+                  {formatINR(plan.priceAnnual * 100)} / month
+                </p>
+              )
             ) : appliedPromo?.firstCycleOnly ? (
               <p className="mt-2 text-[13px] text-gray-500">
                 First month only · renews at{" "}

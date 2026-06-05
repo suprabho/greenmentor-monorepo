@@ -55,20 +55,20 @@ export function Hero() {
           className="max-w-5xl"
         >
           <h1
-            className="font-display text-center md:text-left text-[clamp(44px,7.5vw,88px)] leading-[1.05] tracking-[-0.02em] text-white"
+            className="font-display text-center text-[clamp(44px,7.5vw,88px)] leading-[1.05] tracking-[-0.02em] text-white"
             style={{ textShadow: "0 2px 24px rgba(0, 0, 0, 0.35)" }}
           >
             The only subscription you need to{" "}
             <span className="text-green-500">master anything in ESG.</span>
           </h1>
 
-          <p className="mt-8 max-w-2xl text-center md:text-left text-[20px] leading-relaxed text-white/85 md:text-[22px]">
+          <p className="mt-8 mx-auto max-w-2xl text-center text-[20px] leading-relaxed text-white/85 md:text-[22px]">
             8 courses. Bi-weekly live sessions with practitioners. Career tools.
             A 40,000+ member community. All included — one subscription, cancel
             anytime.
           </p>
 
-          <div className="mt-10 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:justify-center md:justify-start">
+          <div className="mt-10 flex w-full flex-col gap-3 sm:flex-row sm:flex-wrap sm:justify-center">
             <Button
               asChild
               variant="accent"
@@ -101,7 +101,7 @@ export function Hero() {
             </Button>
           </div>
 
-          <p className="mt-4 text-center md:text-left text-[13px] text-green-100/90">
+          <p className="mt-4 text-center font-bold text-base text-green-100/90">
             {guarantee.short}
           </p>
         </motion.div>

@@ -17,7 +17,7 @@
  * silently unavailable, so shipping a code ahead of its offer is safe.
  */
 
-import { launchOffer } from "@/lib/data/plans";
+import { flatDiscount } from "@/lib/data/plans";
 import type { BillingCycle } from "@/lib/store/onboarding";
 
 export interface PromoDiscount {
@@ -57,20 +57,31 @@ interface PromoDefinition {
  *     discount: { type: "percent", value: 20 },
  *   }
  */
+// Flat launch discount — one auto-applied offer per cycle (no code to type).
+// Both entries derive their amount/label from `flatDiscount` (lib/data/plans.ts)
+// so the displayed price and these registry mirrors can't drift — keep that
+// constant equal to the dashboard offers. Razorpay offers are plan-specific, so
+// each cycle points at its own env var / offer id.
+const FLAT_VALUE_PAISE = flatDiscount.discountInr * 100; // plan amounts are in paise
+
 const PROMO_DEFINITIONS: PromoDefinition[] = [
   {
-    // "GreenMentor Plus Launch Offer" — auto-applies, no code to type. Its
-    // customer-facing numbers come from `launchOffer` (lib/data/plans.ts) so the
-    // displayed price and this registry mirror can't drift — keep that constant
-    // equal to the dashboard offer.
-    code: "LAUNCH", // internal identifier (offer auto-applies)
-    label: launchOffer.label, // shown when applied
-    offerEnvKey: "RAZORPAY_OFFER_WELCOME20", // env var holding your offer id
-    // Discount in PAISE (plan amount is in paise) — mirrors the dashboard offer.
-    discount: { type: "flat", value: launchOffer.discountInr * 100 },
-    cycles: [launchOffer.cycle],
+    code: "LAUNCHMONTHLY", // internal identifier (offer auto-applies)
+    label: flatDiscount.label,
+    offerEnvKey: "RAZORPAY_OFFER_WELCOME20", // existing monthly offer id
+    discount: { type: "flat", value: FLAT_VALUE_PAISE },
+    cycles: ["monthly"],
     autoApply: true,
-    firstCycleOnly: launchOffer.firstCycleOnly,
+    firstCycleOnly: flatDiscount.firstCycleOnly,
+  },
+  {
+    code: "LAUNCHANNUAL",
+    label: flatDiscount.label,
+    offerEnvKey: "RAZORPAY_OFFER_LAUNCH_ANNUAL", // new annual offer id
+    discount: { type: "flat", value: FLAT_VALUE_PAISE },
+    cycles: ["annual"],
+    autoApply: true,
+    firstCycleOnly: flatDiscount.firstCycleOnly,
   },
 ];
 
