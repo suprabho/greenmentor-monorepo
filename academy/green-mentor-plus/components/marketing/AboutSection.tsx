@@ -1,16 +1,22 @@
-import { LinkedinLogo } from "@phosphor-icons/react/dist/ssr";
 import { Container } from "@/components/marketing/Container";
 import { SectionHeader } from "@/components/marketing/SectionHeader";
 import { mentors } from "@/lib/data/mentors";
 
-/** Institutional partners for the "Backed by & built with" strip (A-2). */
+/**
+ * Institutional backers and accreditation badges for the "Backed by & built
+ * with" strip (A-2). Logos mirror the trust strip on the live greenmentor.co
+ * hero. SVG where available for crisp scaling; raster otherwise.
+ */
 const backedBy = [
-  { name: "IIM Bangalore · NSRCEL", logo: "/brand/partner-iimb-nsrcel.png" },
-  { name: "IIT-B Innovation Centre", logo: "/brand/partner-iitb.png" },
+  { name: "IIM Bangalore · NSRCEL", logo: "/brand/badges/iimb-nsrcel.webp" },
+  { name: "IIIT-B Innovation Centre", logo: "/brand/badges/iiit-b.svg" },
+  { name: "Somaiya Vidyavihar University", logo: "/brand/badges/somaiya.png" },
+  { name: "TÜV SÜD", logo: "/brand/badges/tuv-sud.svg" },
+  { name: "ISO", logo: "/brand/badges/iso.png" },
+  { name: "Greenhouse Gas Protocol", logo: "/brand/badges/ghg-protocol.webp" },
+  { name: "GRI Sustainability Disclosure Database", logo: "/brand/badges/gri-sdd.png" },
+  { name: "BRSR India", logo: "/brand/badges/brsr-india.png" },
 ];
-// TODO[assets]: add real logos for these partners, then move them out of the
-// placeholder list below.
-const backedByTodo = ["EFFAS", "ASSOCHAM", "BIA", "JITO"];
 
 const subBrands = [
   {
@@ -52,28 +58,23 @@ export function AboutSection() {
           }
           description="We work both sides of the gap. Demand for sustainability professionals is 3× the supply, and ESG compliance (CBAM, SBTi, BRSR, GRI) is complex and ever-changing. We build the talent and automate the workflows."
           className="max-w-2xl"
+          align="center"
         />
 
         {/* A-2 — Backed by & built with: institutional credibility, elevated */}
         <div className="mt-12 rounded-[20px] border border-gray-200 bg-section-fade p-6 md:p-8">
           <p className="gm-eyebrow text-green-700">Backed by &amp; built with</p>
-          <div className="mt-5 flex flex-wrap items-center gap-x-10 gap-y-5">
+          <div className="mt-5 flex flex-wrap items-center gap-x-10 gap-y-6">
             {backedBy.map((p) => (
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 key={p.name}
                 src={p.logo}
                 alt={p.name}
+                title={p.name}
+                loading="lazy"
                 className="h-9 w-auto object-contain"
               />
-            ))}
-            {backedByTodo.map((name) => (
-              <span
-                key={name}
-                className="rounded-md border border-dashed border-gray-300 px-3 py-1.5 text-[12px] text-gray-400"
-              >
-                {name} · logo TODO
-              </span>
             ))}
           </div>
         </div>
@@ -130,44 +131,64 @@ export function AboutSection() {
               The practitioners who teach and grade, named here at the point of
               purchase, not buried on a course page.
             </p>
-            <div className="grid gap-3">
-              {mentors.map((m) => (
-                <div
-                  key={m.name}
-                  className="flex items-center gap-4 rounded-[16px] border border-gray-200 bg-white p-4"
-                >
-                  <div
-                    className="grid size-12 shrink-0 place-items-center rounded-full bg-green-100 text-[14px] font-semibold text-green-700"
-                    aria-hidden
-                  >
-                    {m.initials}
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-[14px] font-bold text-ink">{m.name}</p>
-                    <p className="text-[13px] leading-snug text-gray-700">
-                      {m.role}
-                      {m.company ? ` · ${m.company}` : ""}
-                    </p>
-                    {m.education ? (
-                      <p className="mt-0.5 text-[12px] text-gray-500">
-                        {m.education}
-                        {m.location ? ` · ${m.location}` : ""}
-                      </p>
-                    ) : null}
-                    {m.linkedinUrl ? (
-                      <a
-                        href={m.linkedinUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="mt-1 inline-flex items-center gap-1 text-[11px] text-green-700 underline-offset-2 hover:underline"
-                      >
-                        <LinkedinLogo size={12} weight="fill" aria-hidden />{" "}
-                        LinkedIn
-                      </a>
-                    ) : null}
-                  </div>
+            {/* Auto-scrolling vertical ticker of the mentor roster. The list
+                is rendered twice for a seamless loop; the second copy is
+                aria-hidden so screen readers and the tab order see each
+                mentor once. Pauses on hover; collapses to a static first
+                frame under prefers-reduced-motion. */}
+            <div className="relative h-[440px] overflow-hidden rounded-[20px] border border-white/10 bg-teal-900 px-3">
+              <div className="gm-ticker-mask h-full overflow-hidden">
+                <div className="gm-ticker-track py-3">
+                  {[...mentors, ...mentors].map((m, i) => (
+                    <div
+                      key={`${m.name}-${i}`}
+                      aria-hidden={i >= mentors.length}
+                      className="rounded-[14px] border border-white/10 bg-white/[0.04] p-4"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div
+                          className="grid size-9 shrink-0 place-items-center rounded-full bg-green-500/15 text-[12px] font-semibold text-green-500"
+                          aria-hidden
+                        >
+                          {m.initials}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="truncate text-[14px] font-semibold text-white">
+                            {m.name}
+                          </p>
+                          <p className="truncate text-[12px] text-white/55">
+                            {m.role}
+                          </p>
+                        </div>
+                      </div>
+
+                      {m.tags.length > 0 ? (
+                        <div className="mt-3 flex flex-wrap gap-1.5">
+                          {m.tags.map((tag) => (
+                            <span
+                              key={tag}
+                              className="rounded-full border border-green-500/20 bg-green-500/10 px-2 py-0.5 text-[10px] text-green-100"
+                            >
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                      ) : null}
+
+                      <div className="mt-3 flex items-center gap-2 text-[11px] text-green-100/80">
+                        <span
+                          className="size-1.5 shrink-0 rounded-full bg-green-500"
+                          aria-hidden
+                        />
+                        <span className="truncate">
+                          {m.company}
+                          {m.location ? ` · ${m.location}` : ""}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              ))}
+              </div>
             </div>
           </div>
         </div>

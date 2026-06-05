@@ -3,10 +3,11 @@
  * point of purchase. Rendered by the "Our Mentors" block in AboutSection.
  *
  * Cleaned from LinkedIn profiles. No photos yet, so cards fall back to an
- * initials avatar (same treatment as SocialProof).
+ * initials avatar. Rendered as an auto-scrolling vertical ticker.
  *
- * TODO[mentors]: paste each `linkedinUrl` (profiles confirmed, slugs pending)
- * and add `photo` paths once headshots are supplied.
+ * TODO[mentors]: paste each `linkedinUrl` (profiles confirmed, slugs pending),
+ * add `photo` paths once headshots are supplied, and CONFIRM the `tags` — they
+ * are reasonable ESG-domain guesses, not verified specialisms.
  */
 export interface Mentor {
   name: string;
@@ -20,6 +21,8 @@ export interface Mentor {
   education?: string;
   /** 2-letter initials for the avatar circle. */
   initials: string;
+  /** Expertise chips. Placeholder guesses — confirm before publishing. */
+  tags: string[];
   /** Public LinkedIn profile URL. */
   linkedinUrl?: string;
 }
@@ -32,6 +35,7 @@ export const mentors: Mentor[] = [
     location: "United Kingdom",
     education: "The Fletcher School, Tufts University",
     initials: "KK",
+    tags: ["ESG Strategy", "Sustainability Policy", "Climate Risk"],
   },
   {
     name: "Shreya Kalra",
@@ -40,6 +44,7 @@ export const mentors: Mentor[] = [
     location: "New Delhi",
     education: "TERI School of Advanced Studies",
     initials: "SK",
+    tags: ["ESG Reporting", "BRSR", "Sustainability Strategy"],
   },
   {
     name: "Amitava Mandal",
@@ -48,6 +53,7 @@ export const mentors: Mentor[] = [
     location: "India",
     education: "TERI School of Advanced Studies",
     initials: "AM",
+    tags: ["ESG Analytics", "Consulting", "Project Management"],
   },
   {
     name: "Sumit Jugran",
@@ -56,6 +62,7 @@ export const mentors: Mentor[] = [
     location: "Gurugram",
     education: "University of Pune",
     initials: "SJ",
+    tags: ["Sustainability Strategy", "ESG Advisory", "Stakeholder Engagement"],
   },
   {
     name: "Vidya Chavan",
@@ -66,5 +73,6 @@ export const mentors: Mentor[] = [
     location: "Pune",
     education: "University of Petroleum & Energy Studies (UPES)",
     initials: "VC",
+    tags: ["ESG Strategy", "Sustainability Reporting", "Carbon Management"],
   },
 ];

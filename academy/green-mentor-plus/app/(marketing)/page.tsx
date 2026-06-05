@@ -2,8 +2,7 @@
 
 import { useEffect } from "react";
 import { Hero } from "@/components/marketing/Hero";
-import { ProblemSection } from "@/components/marketing/ProblemSection";
-import { SolutionSection } from "@/components/marketing/SolutionSection";
+import { ProblemSolutionSection } from "@/components/marketing/ProblemSolutionSection";
 import { CoursePreview } from "@/components/marketing/CoursePreview";
 import { ValueProps } from "@/components/marketing/ValueProps";
 import { SocialProof } from "@/components/marketing/SocialProof";
@@ -18,9 +17,11 @@ import { track } from "@/lib/utils/analytics";
 /**
  * Greenmentor Plus landing page. Section order follows the high-converting
  * Pain → Solution → Proof → Price → CTA sequence (G-2): we establish the
- * problem and how we solve it, prove it with courses + testimonials + hiring +
- * who-we-are, and only then ask for the commitment (pricing), with a B2B
- * on-ramp and FAQ before the final CTA.
+ * problem and how we solve it, then lead the proof with hiring credibility
+ * (HiringCompanies sits right under ProblemSolution to surface career trust
+ * early), before deepening it with courses + testimonials + who-we-are, and
+ * only then asking for the commitment (pricing), with a B2B on-ramp and FAQ
+ * before the final CTA.
  *
  * Not yet mounted (need real data / a product decision first):
  *   - UrgencyBar (G-6): "@/components/marketing/UrgencyBar". Mount above <Hero/>
@@ -38,12 +39,11 @@ export default function LandingPage() {
   return (
     <>
       <Hero />
-      <ProblemSection />
-      <SolutionSection />
+      <ProblemSolutionSection />
+      <HiringCompanies />
       <CoursePreview />
       <ValueProps />
       <SocialProof />
-      <HiringCompanies />
       <AboutSection />
       <PricingSnapshot />
       <TeamSection />

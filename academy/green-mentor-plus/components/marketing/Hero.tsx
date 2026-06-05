@@ -114,9 +114,9 @@ export function Hero() {
             <div key={stat.caption}>
               <CountUp
                 value={stat.number}
-                className="block text-center md:text-left font-numeral text-[44px] leading-none text-white md:text-[52px]"
+                className="block text-center font-numeral text-[44px] leading-none text-white md:text-[52px]"
               />
-              <div className="text-center text-bold md:text-left mt-2 text-[14px] text-green-100">
+              <div className="text-center text-bold mt-2 text-[14px] text-green-100">
                 {stat.caption}
               </div>
             </div>

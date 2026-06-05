@@ -206,4 +206,26 @@
     -webkit-mask-image: linear-gradient(to right, transparent, #000 6%, #000 94%, transparent);
     mask-image: linear-gradient(to right, transparent, #000 6%, #000 94%, transparent);
   }
+
+  /* ----- Vertical ticker (mentor roster) -----
+     Vertical sibling of the marquee above. The track stacks two identical
+     groups with a shared 12px gap; translating up by one group + one gap
+     (50% + 6px) loops seamlessly. Pauses on hover; the global reduced-motion
+     rule collapses it to its first frame (first group visible, static). */
+  @keyframes gm-ticker {
+    to { transform: translateY(calc(-50% - 6px)); }
+  }
+  .gm-ticker-track {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    animation: gm-ticker var(--gm-ticker-duration, 34s) linear infinite;
+  }
+  .gm-ticker-track:hover { animation-play-state: paused; }
+
+  /* Soft fade-out at the top and bottom edges of the ticker. */
+  .gm-ticker-mask {
+    -webkit-mask-image: linear-gradient(to bottom, transparent, #000 14%, #000 86%, transparent);
+    mask-image: linear-gradient(to bottom, transparent, #000 14%, #000 86%, transparent);
+  }
 }
