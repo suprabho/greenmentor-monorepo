@@ -1,0 +1,60 @@
+# Config for actions/labeler@v5 — maps changed paths to PR labels.
+# Each top-level key is a label name; a PR gets the label when its
+# changed files match any of the globs below.
+
+# --- Area: top-level domains ---------------------------------------
+academy:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "academy/**"
+
+consulting:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "consulting/**"
+
+efdb:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "consulting/efdb/**"
+
+ls-ingestion:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "consulting/ls-ingestion/**"
+
+# --- Layer: cross-cutting concerns ---------------------------------
+frontend:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "**/app/**"
+          - "**/components/**"
+          - "**/frontend/**"
+          - "**/src/**"
+          - "**/*.tsx"
+
+backend:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "**/backend/**"
+          - "**/api/**"
+          - "**/lib/**"
+          - "**/supabase/**"
+
+docs:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "**/*.md"
+          - "**/docs/**"
+
+ci:
+  - changed-files:
+      - any-glob-to-any-file:
+          - ".github/**"
+
+dependencies:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "**/package.json"
+          - "**/package-lock.json"
+          - "**/pnpm-lock.yaml"
