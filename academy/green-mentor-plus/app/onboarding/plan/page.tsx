@@ -1,10 +1,11 @@
 "use client";
 
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Check, Clock, CaretDown } from "@phosphor-icons/react/dist/ssr";
 import { useOnboarding, type BillingCycle } from "@/lib/store/onboarding";
-import { plans } from "@/lib/data/plans";
+import { plans, launchOffer } from "@/lib/data/plans";
 import { Badge } from "@/components/ui/Badge";
 import { BottomNav } from "@/components/onboarding/BottomNav";
 import { cn } from "@/lib/utils/cn";
@@ -109,10 +110,24 @@ export default function PlanStep() {
   const { planId, billingCycle, setPlan, setBillingCycle } = useOnboarding();
   const plan = plans[0];
 
-  // `planId` doubles as the "user has interacted" flag — until they click a
-  // card we don't have a selection. Default billingCycle stays `annual` in
-  // the store so we can show that card visually pre-highlighted.
+  // Pre-select on first arrival so a card lands already chosen and Continue is
+  // live. We only seed `planId` (not the cycle) when nothing's picked yet, so
+  // the store's default cycle wins — that's `annual`, the "Best value" card —
+  // while still respecting a monthly deep-link (?cycle=monthly) or a returning
+  // user's earlier choice.
+  useEffect(() => {
+    if (!planId) setPlan(plan.id);
+  }, [planId, plan.id, setPlan]);
+
+  // `planId` doubles as the "user has interacted" flag — seeded above so the
+  // default (annual) card shows pre-highlighted on load.
   const canContinue = !!planId;
+
+  // The launch promo only discounts the first month of the monthly cycle (see
+  // `launchOffer`); drives the strike-through + "Launch offer" pill on the
+  // monthly card. Annual is unaffected.
+  const monthlyHasLaunch = launchOffer.cycle === "monthly";
+  const monthlyFirstCharge = plan.priceMonthly - launchOffer.discountInr;
 
   function handleSelect(cycle: BillingCycle) {
     setPlan(plan.id);
@@ -190,13 +205,29 @@ export default function PlanStep() {
               </p>
             </div>
 
-            <div className="mt-5 flex items-baseline gap-2">
+            <div className="mt-5 flex flex-wrap items-baseline gap-x-2 gap-y-1">
               <span className="font-numeral text-[40px] leading-none text-green-700">
-                {formatINR(plan.priceMonthly)}
+                {formatINR(monthlyHasLaunch ? monthlyFirstCharge : plan.priceMonthly)}
               </span>
-              <span className="text-[13px] text-gray-500">/ month</span>
+              <span className="text-[13px] text-gray-500">
+                {monthlyHasLaunch ? "first month" : "/ month"}
+              </span>
+              {monthlyHasLaunch && (
+                <>
+                  <span className="font-numeral text-[18px] leading-none text-gray-400 line-through">
+                    {formatINR(plan.priceMonthly)}
+                  </span>
+                  <span className="inline-flex items-center rounded-full bg-green-100 px-2.5 py-1 text-[12px] font-bold text-green-700">
+                    Launch offer
+                  </span>
+                </>
+              )}
             </div>
-            <p className="mt-1 text-[13px] text-gray-500">Incl. GST</p>
+            <p className="mt-1 text-[13px] text-gray-500">
+              {monthlyHasLaunch
+                ? `Then ${formatINR(plan.priceMonthly)} / month · Incl. GST`
+                : "Incl. GST"}
+            </p>
 
             <div className="mt-6 border-t border-gray-200 pt-5">
               <SectionLabel>What else is included</SectionLabel>

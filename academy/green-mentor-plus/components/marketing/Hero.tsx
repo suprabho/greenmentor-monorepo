@@ -47,7 +47,7 @@ export function Hero() {
         />
       </div>
 
-      <Container width="wide" className="relative z-10 pt-16 pb-20 md:pt-24 md:pb-28">
+      <Container width="wide" className="relative z-10 pt-6 pb-20 md:pt-42 md:pb-28">
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
@@ -73,8 +73,7 @@ export function Hero() {
               asChild
               variant="accent"
               size="lg"
-              className="w-full sm:w-auto"
-              iconRight={<ArrowRight size={18} weight="bold" />}
+              className="w-full sm:w-auto rounded-full"
             >
               <Link
                 href="/onboarding/intro"
@@ -82,14 +81,14 @@ export function Hero() {
                   track("cta_clicked", { location: "hero", label: "start_4000" })
                 }
               >
-                Get instant access — ₹4,000 / month
+                Get instant @ ₹2,000 for the first month
               </Link>
             </Button>
             <Button
               asChild
               variant="ghost-dark"
               size="lg"
-              className="w-full sm:w-auto"
+              className="w-full sm:w-auto rounded-full"
             >
               <Link
                 href="/#pricing"
@@ -97,7 +96,7 @@ export function Hero() {
                   track("cta_clicked", { location: "hero", label: "see_annual" })
                 }
               >
-                See annual plan — save {annualSavingsPercent}% + Career Services
+                Save {annualSavingsPercent}% with Annual Plan
               </Link>
             </Button>
           </div>
@@ -117,7 +116,7 @@ export function Hero() {
                 value={stat.number}
                 className="block text-center md:text-left font-numeral text-[44px] leading-none text-white md:text-[52px]"
               />
-              <div className="text-center md:text-left mt-2 text-[14px] text-green-100">
+              <div className="text-center text-bold md:text-left mt-2 text-[14px] text-green-100">
                 {stat.caption}
               </div>
             </div>

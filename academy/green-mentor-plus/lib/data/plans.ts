@@ -13,6 +13,8 @@
  * lookup (`RAZORPAY_PLAN_${id.toUpperCase()}_${cycle}`). Keep it stable.
  */
 
+import type { BillingCycle } from "@/lib/store/onboarding";
+
 export interface Plan {
   id: string;
   name: string;
@@ -71,8 +73,8 @@ export const plans: Plan[] = [
       "Curated ESG jobs feed",
     ],
     addOns: [
-      "Live intensive programs (LCA, ESG Reporting Pro)",
-      "Certification bundles",
+      "Certification programs",
+      "Workshops & masterclasses",
     ],
     coursesLive: [
       "Intro to ESG & BRSR",
@@ -122,13 +124,38 @@ export const plans: Plan[] = [
 export const annualSavingsPercent = 8;
 
 /**
+ * Launch promo, as shown on the pricing surfaces (onboarding /plan step and the
+ * marketing PricingSnapshot). The ACTUAL charge is driven by the Razorpay offer
+ * resolved in lib/razorpay/promos.ts — whose `LAUNCH` registry entry derives its
+ * numbers from here, so this is the single in-repo source for the promo's
+ * customer-facing figures. Keep it equal to the live Razorpay offer.
+ *
+ * It's a first-month discount on the monthly cycle only; annual is unaffected.
+ */
+export const launchOffer: {
+  /** Billing cycle the offer applies to. */
+  cycle: BillingCycle;
+  /** Rupees off the first charge. */
+  discountInr: number;
+  /** Covers the first billing cycle only; full price thereafter. */
+  firstCycleOnly: boolean;
+  /** Shown when the offer is applied. */
+  label: string;
+} = {
+  cycle: "monthly",
+  discountInr: 2000,
+  firstCycleOnly: true,
+  label: "Launch offer — first month for ₹2,000",
+};
+
+/**
  * Value stack shown above the pricing cards (PR-1) — "what you're getting, and
  * what it would cost standalone."
  *
- * INCLUDED items only. The paid add-ons (Live LCA ₹20,000, ESG Reporting Pro
- * ₹35,000) are deliberately excluded so the stack never implies an add-on is
- * part of the subscription — that's the exact trust-break PR-2 / C-2 exist to
- * fix. Counting them here would re-create it.
+ * Counts every INCLUDED item — all five named courses (the two premium live
+ * programs, Live LCA ₹20,000 and ESG Reporting Pro ₹35,000, are now bundled
+ * into the subscription and counted here), the rest of the library, and the
+ * annual live Q&A.
  *
  * Rows flagged `estimated` are best-effort standalone values, shown with an
  * "est." marker in the UI and summed into a clearly-labelled *estimated* total.
@@ -152,6 +179,8 @@ export const valueStack: {
     { label: "Fundamentals of ESG & BRSR", value: 999 },
     { label: "GHG Accounting Mastery", value: 6999 },
     { label: "ESG Readiness", value: 6999 },
+    { label: "Live Training — Master LCA", value: 20000 },
+    { label: "Become an ESG Reporting Pro", value: 35000 },
     { label: "5 more foundational courses", value: 25000, estimated: true },
     {
       label: "Bi-weekly live Q&A with practitioners (a year)",
@@ -163,5 +192,5 @@ export const valueStack: {
       value: null,
     },
   ],
-  total: 999 + 6999 + 6999 + 25000 + 12000, // ₹51,997
+  total: 999 + 6999 + 6999 + 20000 + 35000 + 25000 + 12000, // ₹106,997
 };

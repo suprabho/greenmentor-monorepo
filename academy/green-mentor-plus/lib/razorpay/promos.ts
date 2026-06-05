@@ -17,6 +17,7 @@
  * silently unavailable, so shipping a code ahead of its offer is safe.
  */
 
+import { launchOffer } from "@/lib/data/plans";
 import type { BillingCycle } from "@/lib/store/onboarding";
 
 export interface PromoDiscount {
@@ -58,17 +59,18 @@ interface PromoDefinition {
  */
 const PROMO_DEFINITIONS: PromoDefinition[] = [
   {
-    // "GreenMentor Plus Launch Offer" — auto-applies, no code to type.
+    // "GreenMentor Plus Launch Offer" — auto-applies, no code to type. Its
+    // customer-facing numbers come from `launchOffer` (lib/data/plans.ts) so the
+    // displayed price and this registry mirror can't drift — keep that constant
+    // equal to the dashboard offer.
     code: "LAUNCH", // internal identifier (offer auto-applies)
-    label: "Launch offer — first month for ₹2,000", // shown when applied
+    label: launchOffer.label, // shown when applied
     offerEnvKey: "RAZORPAY_OFFER_WELCOME20", // env var holding your offer id
-    // ₹2,000 off, in PAISE (plan amount is in paise). Mirrors the dashboard
-    // offer's flat ₹2,000 discount.
-    discount: { type: "flat", value: 200000 },
-    // Offer terms: monthly-only, first billing cycle only.
-    cycles: ["monthly"],
+    // Discount in PAISE (plan amount is in paise) — mirrors the dashboard offer.
+    discount: { type: "flat", value: launchOffer.discountInr * 100 },
+    cycles: [launchOffer.cycle],
     autoApply: true,
-    firstCycleOnly: true,
+    firstCycleOnly: launchOffer.firstCycleOnly,
   },
 ];
 

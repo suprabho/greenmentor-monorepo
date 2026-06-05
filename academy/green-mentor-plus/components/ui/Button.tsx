@@ -39,9 +39,13 @@ const variants: Record<Variant, string> = {
   // Outline — green-700 stroke 1.5px on transparent
   outline:
     "bg-transparent text-green-700 border-[1.5px] border-green-700 hover:bg-green-50",
-  // Ghost on dark teal — subtle white border
+  // Ghost on dark teal — teal fill + gradient border (white→neon-green), green glow
   "ghost-dark":
-    "bg-teal-900 text-white border border-white/40 hover:bg-teal-800 hover:border-white/60",
+    "text-white border border-transparent " +
+    "[background:linear-gradient(to_bottom,var(--color-teal-700),var(--color-teal-900))_padding-box,linear-gradient(to_bottom,rgba(255,255,255,0.55),rgba(7,216,98,0.6))_border-box] " +
+    "shadow-[inset_0_1px_0_rgba(255,255,255,0.18),inset_0_-2px_5px_rgba(0,0,0,0.35),0_4px_20px_-2px_rgba(7,216,98,0.45)] " +
+    "hover:[background:linear-gradient(to_bottom,var(--color-teal-600),var(--color-teal-900))_padding-box,linear-gradient(to_bottom,rgba(255,255,255,0.8),rgba(7,216,98,0.85))_border-box] " +
+    "hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.24),inset_0_-2px_5px_rgba(0,0,0,0.35),0_6px_28px_0_rgba(7,216,98,0.6)]",
   // Ghost on light — minimal text button
   "ghost-light":
     "bg-transparent text-ink border border-transparent hover:bg-gray-50",
