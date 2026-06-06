@@ -15,12 +15,22 @@ function TestimonialCard({ t }: { t: Testimonial }) {
       className="group flex w-[340px] shrink-0 flex-col rounded-lg border border-gray-200 bg-white p-7 transition hover:-translate-y-0.5 hover:border-green-300 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-700 focus-visible:ring-offset-2"
     >
       <div className="flex items-center gap-3">
-        <span
-          className="grid size-10 shrink-0 place-items-center rounded-full bg-green-100 text-[13px] font-semibold text-green-700"
-          aria-hidden
-        >
-          {t.initials}
-        </span>
+        {t.photo ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={t.photo}
+            alt={t.name}
+            loading="lazy"
+            className="size-10 shrink-0 rounded-full object-cover"
+          />
+        ) : (
+          <span
+            className="grid size-10 shrink-0 place-items-center rounded-full bg-green-100 text-[13px] font-semibold text-green-700"
+            aria-hidden
+          >
+            {t.initials}
+          </span>
+        )}
         <div className="min-w-0">
           <p className="truncate text-[14px] font-bold text-ink">{t.name}</p>
           <p className="truncate text-[12px] text-gray-500">{t.role}</p>

@@ -63,8 +63,10 @@ export function AboutSection() {
 
         {/* A-2 — Backed by & built with: institutional credibility, elevated */}
         <div className="mt-12 rounded-[20px] border border-gray-200 bg-section-fade p-6 md:p-8">
-          <p className="gm-eyebrow text-green-700">Backed by &amp; built with</p>
-          <div className="mt-5 flex flex-wrap items-center gap-x-10 gap-y-6">
+          <p className="gm-eyebrow text-center text-green-700">
+            Backed by &amp; built with
+          </p>
+          <div className="mt-5 flex flex-wrap items-center justify-center gap-x-10 gap-y-6">
             {backedBy.map((p) => (
               // eslint-disable-next-line @next/next/no-img-element
               <img
@@ -146,12 +148,22 @@ export function AboutSection() {
                       className="rounded-[14px] border border-white/10 bg-white/[0.04] p-4"
                     >
                       <div className="flex items-center gap-3">
-                        <div
-                          className="grid size-9 shrink-0 place-items-center rounded-full bg-green-500/15 text-[12px] font-semibold text-green-500"
-                          aria-hidden
-                        >
-                          {m.initials}
-                        </div>
+                        {m.photo ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={m.photo}
+                            alt={m.name}
+                            loading="lazy"
+                            className="size-9 shrink-0 rounded-full object-cover"
+                          />
+                        ) : (
+                          <div
+                            className="grid size-9 shrink-0 place-items-center rounded-full bg-green-500/15 text-[12px] font-semibold text-green-500"
+                            aria-hidden
+                          >
+                            {m.initials}
+                          </div>
+                        )}
                         <div className="min-w-0">
                           <p className="truncate text-[14px] font-semibold text-white">
                             {m.name}
@@ -175,16 +187,20 @@ export function AboutSection() {
                         </div>
                       ) : null}
 
-                      <div className="mt-3 flex items-center gap-2 text-[11px] text-green-100/80">
-                        <span
-                          className="size-1.5 shrink-0 rounded-full bg-green-500"
-                          aria-hidden
-                        />
-                        <span className="truncate">
-                          {m.company}
-                          {m.location ? ` · ${m.location}` : ""}
-                        </span>
-                      </div>
+                      {m.company || m.location ? (
+                        <div className="mt-3 flex items-center gap-2 text-[11px] text-green-100/80">
+                          <span
+                            className="size-1.5 shrink-0 rounded-full bg-green-500"
+                            aria-hidden
+                          />
+                          <span className="truncate">
+                            {m.company}
+                            {m.company && m.location ? " · " : ""}
+                            {!m.company && m.location ? m.location : ""}
+                            {m.company && m.location ? m.location : ""}
+                          </span>
+                        </div>
+                      ) : null}
                     </div>
                   ))}
                 </div>

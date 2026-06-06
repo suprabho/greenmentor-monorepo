@@ -26,8 +26,20 @@ function formatINR(n: number) {
   }).format(n);
 }
 
-/** The seven frameworks the curriculum aligns to — credibility signal (C-4). */
-const frameworks = ["BRSR", "GRI", "SASB", "CDP", "CBAM", "TCFD", "DJSI"];
+/**
+ * The seven frameworks the curriculum aligns to — credibility signal (C-4).
+ * Rendered as logos (in /public/brand/frameworks) inside uniform white tiles,
+ * mirroring the "Backed by & built with" logo strip on the About section.
+ */
+const frameworks = [
+  { name: "BRSR", logo: "/brand/frameworks/brsr.png" },
+  { name: "GRI", logo: "/brand/frameworks/gri.png" },
+  { name: "SASB", logo: "/brand/frameworks/sasb.png" },
+  { name: "CDP", logo: "/brand/frameworks/cdp.png" },
+  { name: "CBAM", logo: "/brand/frameworks/cbam.png" },
+  { name: "TCFD", logo: "/brand/frameworks/tcfd.png" },
+  { name: "DJSI", logo: "/brand/frameworks/djsi.png" },
+];
 
 /**
  * Pick the right Phosphor icon for each course. Map keyed by course id so
@@ -54,6 +66,7 @@ export function CoursePreview() {
             </>
           }
           description="Every course here is included in your Plus Essential subscription, each with its own certificate of completion. Only live certifications like ISO 14064 and standalone workshops are available as paid add-ons."
+          align="center"
           className="max-w-2xl"
         />
 
@@ -158,22 +171,31 @@ export function CoursePreview() {
           })}
         </div>
 
-        {/* C-4 — frameworks as credibility pills, not footnote text */}
+        {/* C-4 — frameworks as credibility logos, not footnote text. Each logo
+            sits in a uniform white tile so the differing badge/wordmark shapes
+            read as one consistent strip (same treatment as the About strip). */}
         <div className="mt-10 rounded-[20px] border border-gray-200 bg-section-fade p-6 md:p-8">
-          <p className="gm-section-label text-[18px] text-green-700">
+          <p className="gm-section-label text-center text-[18px] text-green-700">
             Curriculum aligned with
           </p>
-          <div className="mt-4 flex flex-wrap gap-2.5">
+          <ul className="mt-5 grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-7">
             {frameworks.map((f) => (
-              <span
-                key={f}
-                className="rounded-full border border-green-700/20 bg-white px-4 py-1.5 text-[13px] font-semibold text-green-700"
+              <li
+                key={f.name}
+                className="flex h-20 items-center justify-center rounded-[14px] border border-gray-200 bg-white px-4 py-3"
               >
-                {f}
-              </span>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={f.logo}
+                  alt={`${f.name} framework`}
+                  title={f.name}
+                  loading="lazy"
+                  className="max-h-full max-w-full object-contain"
+                />
+              </li>
             ))}
-          </div>
-          <p className="mt-4 text-[14px] leading-relaxed text-gray-700">
+          </ul>
+          <p className="mt-4 text-center text-[14px] leading-relaxed text-gray-700">
             India&apos;s only ESG learning platform covering all 7 major
             frameworks in one subscription.
           </p>

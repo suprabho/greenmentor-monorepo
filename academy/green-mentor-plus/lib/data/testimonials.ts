@@ -11,8 +11,10 @@ export interface Testimonial {
   role: string;
   /** Optional company — kept for back-compat with older card layouts. */
   company?: string;
-  /** 2-letter initials shown in the avatar circle. */
+  /** 2-letter initials shown in the avatar circle when no photo is set. */
   initials: string;
+  /** Headshot path under /public. Falls back to initials when absent. */
+  photo?: string;
   /** Public LinkedIn post URL the quote was lifted from. */
   linkedinUrl: string;
 }
@@ -24,6 +26,7 @@ export const testimonials: Testimonial[] = [
     name: "Swetaleena Panda",
     role: "ESG Professional",
     initials: "SP",
+    photo: "/testimonial/swetaleena.jpeg",
     linkedinUrl:
       "https://www.linkedin.com/posts/msswetaleenapanda_esg-greenmentor-sustainabilityjourney-ugcPost-7348413937949777920-Yt3Q/",
   },
@@ -33,6 +36,7 @@ export const testimonials: Testimonial[] = [
     name: "CA Bhoomi Shah",
     role: "ESG Student",
     initials: "BS",
+    photo: "/testimonial/bhoomi.jpeg",
     linkedinUrl:
       "https://www.linkedin.com/posts/ca-bhoomi-shah-589b25235_esgstudent-continuouslearning-greenmentor-share-7434662750116818944-IHhA/",
   },
@@ -42,6 +46,7 @@ export const testimonials: Testimonial[] = [
     name: "Dr. Kathir R",
     role: "Sustainability Professional",
     initials: "KR",
+    photo: "/testimonial/kathi.jpeg",
     linkedinUrl:
       "https://www.linkedin.com/posts/dr-kathir-r-30615924_sustainability-circularity-continuouslearning-share-7389685622971666432-O5RC/",
   },
@@ -51,6 +56,7 @@ export const testimonials: Testimonial[] = [
     name: "Lauretta Bright",
     role: "ESG Learner",
     initials: "LB",
+    photo: "/testimonial/lauretta.jpeg",
     linkedinUrl:
       "https://www.linkedin.com/posts/lauretta-bright-92678123a_happysunday-share-7460715033426300928-sXMX/",
   },
@@ -60,6 +66,7 @@ export const testimonials: Testimonial[] = [
     name: "Prasad Aslekar",
     role: "LCA Course Graduate",
     initials: "PA",
+    photo: "/testimonial/prasad.jpeg",
     linkedinUrl:
       "https://www.linkedin.com/posts/prasad-aslekar-72aba415_certificate-of-completion-lca-ugcPost-7457304925635670016-StRD/",
   },
@@ -69,6 +76,7 @@ export const testimonials: Testimonial[] = [
     name: "Ravikiran Gare",
     role: "ESG & BRSR Professional",
     initials: "RG",
+    photo: "/testimonial/ravikiran.jpeg",
     linkedinUrl:
       "https://www.linkedin.com/posts/ravikiran-gare-b0b035287_esg-sustainability-brsr-share-7454789831961989120-0PsP/",
   },
@@ -78,6 +86,7 @@ export const testimonials: Testimonial[] = [
     name: "Chandramohan TS",
     role: "GHG Accounting Learner",
     initials: "CT",
+    photo: "/testimonial/chandramohan.jpeg",
     linkedinUrl:
       "https://www.linkedin.com/posts/chandramohants_ghgaccounting-iso14064-carbonneutrality-share-7452618429607612417-BWnm/",
   },
