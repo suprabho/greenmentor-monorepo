@@ -25,7 +25,7 @@ export function Footer() {
           <div className="md:col-span-1">
             <Logo variant="dark" />
             <p className="mt-5 max-w-xs text-[15px] leading-relaxed text-white/80">
-              Community-led ESG learning and compliance — built with practitioners,
+              Community-led ESG learning and compliance, built with practitioners,
               backed by IIMB (NSRCEL) and IIT-B Innovation Centre.
             </p>
           </div>

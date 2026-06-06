@@ -18,5 +18,5 @@ export const guarantee = {
   refundEmail: "help@greenmentor.co",
   /** Full plain-language policy for the FAQ and the /legal/refunds page. */
   full:
-    "If you subscribe — on any plan — and decide within 14 days that GreenMentor isn't right for you, email help@greenmentor.co and we'll refund your payment in full. No form to fill. No reason required. No back-and-forth. We'd rather you leave happy than stay resentful. After 14 days, the standard cancellation policy applies — you can cancel anytime before your next billing cycle.",
+    "If you subscribe (on any plan) and decide within 14 days that GreenMentor isn't right for you, email help@greenmentor.co and we'll refund your payment in full. No form to fill. No reason required. No back-and-forth. We'd rather you leave happy than stay resentful. After 14 days, the standard cancellation policy applies. You can cancel anytime before your next billing cycle.",
 } as const;

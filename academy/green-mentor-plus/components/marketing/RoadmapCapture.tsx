@@ -53,13 +53,13 @@ export function RoadmapCapture() {
             Not ready to subscribe yet?
           </h2>
           <p className="mx-auto mt-3 max-w-xl text-[16px] leading-relaxed text-gray-700">
-            Get our free ESG Career Roadmap — the 5 skills that get you hired at
+            Get our free ESG Career Roadmap: the 5 skills that get you hired at
             EY, KPMG, and India&apos;s top sustainability teams.
           </p>
 
           {state === "done" ? (
             <p className="mt-6 text-[15px] font-semibold text-green-700">
-              Done — check your inbox for the roadmap.
+              Done. Check your inbox for the roadmap.
             </p>
           ) : (
             <form
@@ -88,7 +88,7 @@ export function RoadmapCapture() {
           )}
           {state === "error" ? (
             <p className="mt-3 text-[13px] text-danger">
-              Something went wrong — please try again.
+              Something went wrong. Please try again.
             </p>
           ) : null}
         </div>

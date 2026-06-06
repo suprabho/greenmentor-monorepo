@@ -83,6 +83,7 @@ export function HiringCompanies() {
       <Container width="wide">
         <SectionHeader
           label="Where our learners go"
+          align="center"
           title={
             <>
               Our members have gone on to ESG roles at{" "}

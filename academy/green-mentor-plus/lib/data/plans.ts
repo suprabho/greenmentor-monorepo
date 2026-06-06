@@ -58,7 +58,7 @@ export const plans: Plan[] = [
     priceAnnualTotal: 44000,
     highlight: true,
     features: [
-      "Full library — 8 courses, all included",
+      "Full library: 8 courses, all included",
       "Bi-weekly live Q&A with practitioners",
       "40,000+ learner WhatsApp community",
       "Weekly industry insights & case studies",
@@ -66,14 +66,15 @@ export const plans: Plan[] = [
       "Personalised career guidance & resume review",
     ],
     included: [
-      "Full library — 8 foundational courses",
+      "Full library: 8 foundational courses",
+      "Certificate of completion for every course",
       "Bi-weekly live Q&A with practitioners",
       "40,000+ learner WhatsApp community",
       "Weekly industry insights & case studies",
       "Curated ESG jobs feed",
     ],
     addOns: [
-      "Certification programs",
+      "Live certifications (e.g. ISO 14064)",
       "Workshops & masterclasses",
     ],
     coursesLive: [
@@ -100,7 +101,7 @@ export const plans: Plan[] = [
       "Weekly industry insights & case studies",
       "Curated ESG jobs community access",
       "Personalised career guidance",
-      "Certifications & workshops available as add-ons",
+      "Live certifications & workshops available as add-ons",
     ],
     careerServices: [
       "LinkedIn profile enrichment",
@@ -110,7 +111,7 @@ export const plans: Plan[] = [
       "Mock interviews with industry professionals",
       "Internship & job placement support",
       "Practical career roadmap & guidance",
-      "Certifications & workshops available as add-ons",
+      "Live certifications & workshops available as add-ons",
     ],
     careerServicesValue: 25000,
     ctaLabel: "Start membership",
@@ -124,29 +125,40 @@ export const plans: Plan[] = [
 export const annualSavingsPercent = 8;
 
 /**
- * Launch promo, as shown on the pricing surfaces (onboarding /plan step and the
- * marketing PricingSnapshot). The ACTUAL charge is driven by the Razorpay offer
- * resolved in lib/razorpay/promos.ts — whose `LAUNCH` registry entry derives its
- * numbers from here, so this is the single in-repo source for the promo's
- * customer-facing figures. Keep it equal to the live Razorpay offer.
+ * Flat launch discount — a fixed ₹ amount off the first charge of BOTH billing
+ * cycles. Single in-repo source for the promo's customer-facing figures; the
+ * Razorpay offers resolved in lib/razorpay/promos.ts (one auto-applied entry per
+ * cycle) derive their amount from here. Keep it equal to the live dashboard
+ * offers, and set `discountInr` to 0 to switch the promo off everywhere.
  *
- * It's a first-month discount on the monthly cycle only; annual is unaffected.
+ * Applies to the first billing cycle only — full price renews thereafter.
  */
-export const launchOffer: {
-  /** Billing cycle the offer applies to. */
-  cycle: BillingCycle;
-  /** Rupees off the first charge. */
+export const flatDiscount: {
+  /** Rupees off the first charge of each cycle. */
   discountInr: number;
   /** Covers the first billing cycle only; full price thereafter. */
   firstCycleOnly: boolean;
   /** Shown when the offer is applied. */
   label: string;
 } = {
-  cycle: "monthly",
   discountInr: 2000,
   firstCycleOnly: true,
-  label: "Launch offer — first month for ₹2,000",
+  label: "Launch offer: ₹2,000 off",
 };
+
+/**
+ * First-charge price for a billing cycle after the flat discount, alongside the
+ * original (struck-through) price. `active` is false when the discount is 0 (it
+ * is clamped to the price so the result never goes negative).
+ */
+export function discountedPrice(
+  plan: Plan,
+  cycle: BillingCycle,
+): { base: number; price: number; active: boolean } {
+  const base = cycle === "annual" ? plan.priceAnnualTotal : plan.priceMonthly;
+  const discount = Math.min(Math.max(flatDiscount.discountInr, 0), base);
+  return { base, price: base - discount, active: discount > 0 };
+}
 
 /**
  * Value stack shown above the pricing cards (PR-1) — "what you're getting, and
@@ -179,7 +191,7 @@ export const valueStack: {
     { label: "Fundamentals of ESG & BRSR", value: 999 },
     { label: "GHG Accounting Mastery", value: 6999 },
     { label: "ESG Readiness", value: 6999 },
-    { label: "Live Training — Master LCA", value: 20000 },
+    { label: "Live Training: Master LCA", value: 20000 },
     { label: "Become an ESG Reporting Pro", value: 35000 },
     { label: "5 more foundational courses", value: 25000, estimated: true },
     {

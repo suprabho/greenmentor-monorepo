@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Check, Clock, CaretDown } from "@phosphor-icons/react/dist/ssr";
 import { useOnboarding, type BillingCycle } from "@/lib/store/onboarding";
-import { plans, launchOffer } from "@/lib/data/plans";
+import { plans, flatDiscount, discountedPrice } from "@/lib/data/plans";
 import { Badge } from "@/components/ui/Badge";
 import { BottomNav } from "@/components/onboarding/BottomNav";
 import { cn } from "@/lib/utils/cn";
@@ -102,6 +102,40 @@ function InclusionList({
   );
 }
 
+/** Price row with the flat discount shown inline when active: the discounted
+ *  first-charge amount, the original struck through, and a "₹X off" pill. Used
+ *  on both cards so the discount reads identically across cycles. */
+function PriceRow({
+  amount,
+  base,
+  active,
+  suffix,
+}: {
+  amount: number;
+  base: number;
+  active: boolean;
+  suffix: string;
+}) {
+  return (
+    <div className="mt-5 flex flex-wrap items-baseline gap-x-2 gap-y-1">
+      <span className="font-numeral text-[40px] leading-none text-green-700">
+        {formatINR(amount)}
+      </span>
+      <span className="text-[13px] text-gray-500">{suffix}</span>
+      {active && (
+        <>
+          <span className="font-numeral text-[18px] leading-none text-gray-400 line-through">
+            {formatINR(base)}
+          </span>
+          <span className="inline-flex items-center rounded-full bg-green-100 px-2.5 py-1 text-[12px] font-bold text-green-700">
+            {formatINR(base - amount)} off
+          </span>
+        </>
+      )}
+    </div>
+  );
+}
+
 // Single-membership world: the only choice on this step is the billing cycle.
 // The two cards below ARE the two cycles — monthly is Plus Essential, annual
 // bundles Career Services free, so each card carries its own full inclusions.
@@ -123,11 +157,10 @@ export default function PlanStep() {
   // default (annual) card shows pre-highlighted on load.
   const canContinue = !!planId;
 
-  // The launch promo only discounts the first month of the monthly cycle (see
-  // `launchOffer`); drives the strike-through + "Launch offer" pill on the
-  // monthly card. Annual is unaffected.
-  const monthlyHasLaunch = launchOffer.cycle === "monthly";
-  const monthlyFirstCharge = plan.priceMonthly - launchOffer.discountInr;
+  // Flat launch discount applied to each cycle's first charge (see
+  // `flatDiscount`). Drives the strike-through + "₹X off" pill on both cards.
+  const monthly = discountedPrice(plan, "monthly");
+  const annual = discountedPrice(plan, "annual");
 
   function handleSelect(cycle: BillingCycle) {
     setPlan(plan.id);
@@ -149,9 +182,10 @@ export default function PlanStep() {
     planId === plan.id && billingCycle === cycle;
 
   // Once a card is picked, surface the amount they'll be charged on the CTA so
-  // the price carries through to checkout. Annual bills the full year up front.
+  // the price carries through to checkout — the discounted first charge, matching
+  // the card and the checkout total.
   const checkoutAmount =
-    billingCycle === "annual" ? plan.priceAnnualTotal : plan.priceMonthly;
+    billingCycle === "annual" ? annual.price : monthly.price;
   const continueLabel = canContinue
     ? `Continue to Checkout · ${formatINR(checkoutAmount)}`
     : "Continue to Checkout";
@@ -205,26 +239,14 @@ export default function PlanStep() {
               </p>
             </div>
 
-            <div className="mt-5 flex flex-wrap items-baseline gap-x-2 gap-y-1">
-              <span className="font-numeral text-[40px] leading-none text-green-700">
-                {formatINR(monthlyHasLaunch ? monthlyFirstCharge : plan.priceMonthly)}
-              </span>
-              <span className="text-[13px] text-gray-500">
-                {monthlyHasLaunch ? "first month" : "/ month"}
-              </span>
-              {monthlyHasLaunch && (
-                <>
-                  <span className="font-numeral text-[18px] leading-none text-gray-400 line-through">
-                    {formatINR(plan.priceMonthly)}
-                  </span>
-                  <span className="inline-flex items-center rounded-full bg-green-100 px-2.5 py-1 text-[12px] font-bold text-green-700">
-                    Launch offer
-                  </span>
-                </>
-              )}
-            </div>
+            <PriceRow
+              amount={monthly.price}
+              base={monthly.base}
+              active={monthly.active}
+              suffix={monthly.active ? "first month" : "/ month"}
+            />
             <p className="mt-1 text-[13px] text-gray-500">
-              {monthlyHasLaunch
+              {monthly.active && flatDiscount.firstCycleOnly
                 ? `Then ${formatINR(plan.priceMonthly)} / month · Incl. GST`
                 : "Incl. GST"}
             </p>
@@ -257,18 +279,20 @@ export default function PlanStep() {
               </Badge>
             </div>
 
-            <div className="mt-5 flex items-baseline gap-2">
-              <span className="font-numeral text-[40px] leading-none text-green-700">
-                {formatINR(plan.priceAnnualTotal)}
-              </span>
-              <span className="text-[13px] text-gray-500">/ year</span>
-            </div>
+            <PriceRow
+              amount={annual.price}
+              base={annual.base}
+              active={annual.active}
+              suffix={annual.active ? "first year" : "/ year"}
+            />
             <p className="mt-1 text-[13px] font-semibold text-green-700">
               Career Services ({formatINR(plan.careerServicesValue)}) included
               free
             </p>
             <p className="text-[13px] text-gray-500">
-              Incl. GST · equiv. {formatINR(plan.priceAnnual)}/month
+              {annual.active && flatDiscount.firstCycleOnly
+                ? `Renews at ${formatINR(plan.priceAnnualTotal)} / year · Incl. GST`
+                : `Incl. GST · equiv. ${formatINR(plan.priceAnnual)}/month`}
             </p>
 
             <div className="mt-6 border-t border-gray-200 pt-5">

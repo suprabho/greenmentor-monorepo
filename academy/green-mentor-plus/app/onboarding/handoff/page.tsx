@@ -7,7 +7,7 @@ import { motion } from "framer-motion";
 import { ArrowRight, CheckCircle } from "@phosphor-icons/react/dist/ssr";
 import { useOnboarding } from "@/lib/store/onboarding";
 import { buildHandoffUrl } from "@/lib/learnyst/client";
-import { plans } from "@/lib/data/plans";
+import { plans, discountedPrice } from "@/lib/data/plans";
 import { Button } from "@/components/ui/Button";
 import { track } from "@/lib/utils/analytics";
 import { syncLead } from "@/lib/lead/sync";
@@ -30,11 +30,9 @@ export default function HandoffStep() {
   const paymentStatus = useOnboarding((s) => s.paymentStatus);
 
   const plan = planId ? plans.find((p) => p.id === planId) ?? null : null;
-  const totalRupees = plan
-    ? billingCycle === "annual"
-      ? plan.priceAnnualTotal
-      : plan.priceMonthly
-    : 0;
+  // First-charge total after the flat launch discount, so the summary matches
+  // what was actually charged.
+  const totalRupees = plan ? discountedPrice(plan, billingCycle).price : 0;
 
   const [redirectUrl, setRedirectUrl] = useState<string | null>(null);
   const [phase, setPhase] = useState<"loading" | "redirecting" | "fallback">(

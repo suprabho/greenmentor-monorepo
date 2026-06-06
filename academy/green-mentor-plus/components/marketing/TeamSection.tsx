@@ -23,7 +23,7 @@ export function TeamSection() {
                 Upskilling your team?
               </h2>
               <p className="mt-4 text-[16px] leading-relaxed text-white/85 md:text-[18px]">
-                Team plans for 5+ professionals — custom pricing, an admin
+                Team plans for 5+ professionals: custom pricing, an admin
                 dashboard, progress tracking, and dedicated onboarding.
               </p>
               {/* TODO[data]: confirm the exact client count + named logos. */}

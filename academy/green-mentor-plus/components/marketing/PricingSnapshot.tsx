@@ -18,7 +18,8 @@ import {
   plans,
   annualSavingsPercent,
   valueStack,
-  launchOffer,
+  flatDiscount,
+  discountedPrice,
 } from "@/lib/data/plans";
 import { guarantee } from "@/lib/data/guarantee";
 import { cn } from "@/lib/utils/cn";
@@ -43,39 +44,43 @@ interface PricingSnapshotProps {
 export function PricingSnapshot({ compact = false }: PricingSnapshotProps) {
   const plan = plans[0];
 
-  // Launch promo — a first-month discount on the monthly cycle (see
-  // `launchOffer`, mirrored by the auto-applied Razorpay offer at checkout).
-  const monthlyHasLaunch = launchOffer.cycle === "monthly";
-  const monthlyFirstCharge = plan.priceMonthly - launchOffer.discountInr;
+  // Flat launch discount applied to each cycle's first charge (see
+  // `flatDiscount`, mirrored by the auto-applied Razorpay offers at checkout).
+  const monthly = discountedPrice(plan, "monthly");
+  const annual = discountedPrice(plan, "annual");
 
   const cycleCards = [
     {
       cycle: "monthly" as const,
       title: "Monthly",
       subtitle: "Billed every month. Cancel anytime.",
-      price: monthlyHasLaunch ? monthlyFirstCharge : plan.priceMonthly,
-      original: monthlyHasLaunch ? plan.priceMonthly : null,
-      priceSuffix: monthlyHasLaunch ? "first month" : "/ month",
-      footnote: monthlyHasLaunch
+      price: monthly.price,
+      original: monthly.active ? monthly.base : null,
+      priceSuffix: monthly.active ? "first month" : "/ month",
+      footnote: monthly.active
         ? `Then ${formatINR(plan.priceMonthly)} / month · cancel anytime.`
         : "Same access. Try it without the annual commit.",
       highlight: false,
-      badge: monthlyHasLaunch ? "Launch offer" : (null as string | null),
-      ctaLabel: monthlyHasLaunch
-        ? `Get instant access — first month ${formatINR(monthlyFirstCharge)}`
-        : "Get instant access — ₹4,000 / month",
+      badge: monthly.active ? "Launch offer" : (null as string | null),
+      ctaLabel: monthly.active
+        ? `Get instant access · first month ${formatINR(monthly.price)}`
+        : "Get instant access · ₹4,000 / month",
     },
     {
       cycle: "annual" as const,
       title: "Annual",
-      subtitle: `Everything in monthly, plus the ${formatINR(plan.careerServicesValue)} Career Services bundle — free.`,
+      subtitle: `Everything in monthly, plus the ${formatINR(plan.careerServicesValue)} Career Services bundle, free.`,
       price: plan.priceAnnual,
       original: null as number | null,
       priceSuffix: "/ month, billed yearly",
-      footnote: `${formatINR(plan.priceAnnualTotal)} billed once a year · Save ${annualSavingsPercent}% vs monthly.`,
+      footnote: annual.active
+        ? `${formatINR(annual.price)} first year (was ${formatINR(annual.base)}) · then ${formatINR(plan.priceAnnualTotal)}/year.`
+        : `${formatINR(plan.priceAnnualTotal)} billed once a year · Save ${annualSavingsPercent}% vs monthly.`,
       highlight: true,
       badge: "Career Services included",
-      ctaLabel: "Get Plus Annual + Career Services — ₹44,000 / year",
+      ctaLabel: annual.active
+        ? `Get Plus Annual + Career · first year ${formatINR(annual.price)}`
+        : "Get Plus Annual + Career Services · ₹44,000 / year",
     },
   ];
 
@@ -218,7 +223,7 @@ export function PricingSnapshot({ compact = false }: PricingSnapshotProps) {
                       />
                       <span>
                         Career Services bundle (
-                        {formatINR(plan.careerServicesValue)}) — included free
+                        {formatINR(plan.careerServicesValue)}), included free
                       </span>
                     </li>
                   ) : null}
@@ -289,7 +294,7 @@ export function PricingSnapshot({ compact = false }: PricingSnapshotProps) {
               aria-hidden
             />
             <span className="text-[15px] font-semibold text-green-700">
-              {guarantee.label} — no questions asked
+              {guarantee.label}, no questions asked
             </span>
           </div>
           <div className="mt-3 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-[13px] text-gray-500">
@@ -310,7 +315,7 @@ export function PricingSnapshot({ compact = false }: PricingSnapshotProps) {
 
         {/* G-1 — name the delivery platform + device availability */}
         <p className="mx-auto mt-6 max-w-2xl text-center text-[13px] text-gray-500">
-          Courses delivered on GreenMentor Academy, powered by Learnyst —
+          Courses delivered on GreenMentor Academy, powered by Learnyst,
           accessible on web, iOS, and Android.
         </p>
       </Container>

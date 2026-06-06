@@ -1,5 +1,6 @@
 import { Nav } from "@/components/marketing/Nav";
 import { Footer } from "@/components/marketing/Footer";
+import { FloatingWhatsApp } from "@/components/marketing/FloatingWhatsApp";
 
 export default function MarketingLayout({
   children,
@@ -11,6 +12,7 @@ export default function MarketingLayout({
       <Nav />
       <main className="flex flex-col -mt-21 flex-1">{children}</main>
       <Footer />
+      <FloatingWhatsApp />
     </div>
   );
 }

@@ -62,7 +62,7 @@ export function FinalCta() {
                   })
                 }
               >
-                Get Plus Essential — ₹4,000 / month · Instant access
+                Get Plus Essential · ₹4,000 / month · Instant access
               </Link>
             </Button>
             <Button
@@ -80,7 +80,7 @@ export function FinalCta() {
                   })
                 }
               >
-                Annual plan — includes Career Services — ₹44,000 / year
+                Annual plan · includes Career Services · ₹44,000 / year
               </Link>
             </Button>
           </div>

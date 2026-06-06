@@ -19,7 +19,7 @@ export const introCards: IntroCard[] = [
     id: "who",
     eyebrow: "Who it's for",
     title: "Built for the next generation of ESG talent.",
-    body: "Students, working professionals, and business leaders building serious sustainability skills — without the fluff.",
+    body: "Students, working professionals, and business leaders building serious sustainability skills, without the fluff.",
     bullets: [
       "Students aiming for a recruiter-ready CV",
       "Mid-career pros pivoting into ESG",
@@ -33,7 +33,7 @@ export const introCards: IntroCard[] = [
     title: "Every course you need. One subscription.",
     body: "Plus Essential bundles the full course library, live expert sessions and career tools that map to how real ESG teams actually work.",
     bullets: [
-      "8 courses — BRSR, CBAM, GHG, LCA and more",
+      "8 courses: BRSR, CBAM, GHG, LCA and more",
       "Bi-weekly live Q&A with practitioners",
       "Weekly industry insights & case studies",
     ],
@@ -46,7 +46,7 @@ export const introCards: IntroCard[] = [
     body: "One subscription unlocks the 40,000+ learner network plus the mentorship and jobs feed that turn knowledge into outcomes.",
     bullets: [
       "40,000+ learner WhatsApp community",
-      "Curated ESG jobs feed — Tata, EY, ReNew & 50+ more",
+      "Curated ESG jobs feed: Tata, EY, ReNew & 50+ more",
       "Personalised career guidance & resume review",
     ],
     icon: Sparkle,

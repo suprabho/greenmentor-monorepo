@@ -41,7 +41,7 @@ export function ValueProps() {
               <span className="text-green-700">One real difference.</span>
             </>
           }
-          description={`Everything — all ${plan.coursesLive.length} courses, bi-weekly live sessions, the 40,000+ community, weekly insights and the curated jobs feed — is identical on both plans. Go annual for one reason: Career Services, a ${formatINR(plan.careerServicesValue)} placement bundle included at no extra cost.`}
+          description={`Everything, all ${plan.coursesLive.length} courses, bi-weekly live sessions, the 40,000+ community, weekly insights and the curated jobs feed, is identical on both plans. Go annual for one reason: Career Services, a ${formatINR(plan.careerServicesValue)} placement bundle included at no extra cost.`}
           align="center"
           className="text-center"
         />
@@ -88,8 +88,8 @@ export function ValueProps() {
               Annual saves{" "}
               <span className="font-semibold text-ink">
                 {annualSavingsPercent}%
-              </span>{" "}
-              — that&apos;s {formatINR(yearlySaving)} a year, roughly two months
+              </span>
+              , that&apos;s {formatINR(yearlySaving)} a year, roughly two months
               free.
             </p>
           </div>
@@ -108,13 +108,13 @@ export function ValueProps() {
               />
             </div>
             <h3 className="mt-6 text-[18px] font-bold leading-tight text-ink">
-              Career Services — free on annual
+              Career Services, free on annual
             </h3>
             <p className="mt-1 text-[13px] font-semibold uppercase tracking-wide text-green-700">
               Valued at {formatINR(plan.careerServicesValue)} · included free
             </p>
             <p className="mt-3 border-l-2 border-green-500 pl-4 text-[15px] font-medium italic text-ink">
-              &ldquo;From learning ESG to getting hired in ESG — this is the
+              &ldquo;From learning ESG to getting hired in ESG. This is the
               bridge.&rdquo;
             </p>
             <p className="mt-3 text-[15px] leading-relaxed text-gray-700">
@@ -138,7 +138,7 @@ export function ValueProps() {
         </div>
 
         <p className="mx-auto mt-10 max-w-2xl text-center text-[15px] leading-relaxed text-gray-500">
-          Everything else is identical — all {plan.coursesLive.length} courses,
+          Everything else is identical: all {plan.coursesLive.length} courses,
           bi-weekly live Q&amp;A, the 40,000+ community, weekly insights and the
           curated jobs feed come with both plans.
         </p>

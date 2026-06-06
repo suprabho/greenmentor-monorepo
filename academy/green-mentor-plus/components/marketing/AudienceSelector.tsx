@@ -19,7 +19,7 @@ export function AudienceSelector() {
               <span className="text-green-700">One membership.</span>
             </>
           }
-          description="We segment the library by where you are today — so you don't pay for what you won't use."
+          description="We segment the library by where you are today, so you don't pay for what you won't use."
         />
 
         <div className="mt-16 grid gap-5 md:grid-cols-3">
