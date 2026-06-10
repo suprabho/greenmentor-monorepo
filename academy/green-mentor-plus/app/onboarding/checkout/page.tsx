@@ -1,24 +1,18 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import Script from "next/script";
 import { motion } from "framer-motion";
-import { CheckCircle, CircleNotch, Lock, WarningCircle } from "@phosphor-icons/react/dist/ssr";
+import {
+  CheckCircle,
+  CircleNotch,
+  Lock,
+  WarningCircle,
+} from "@phosphor-icons/react/dist/ssr";
 import { useOnboarding } from "@/lib/store/onboarding";
 import { plans, flatDiscount, discountedPrice } from "@/lib/data/plans";
+import { useRazorpayCheckout } from "@/lib/razorpay/useRazorpayCheckout";
 import { BottomNav } from "@/components/onboarding/BottomNav";
-import { track } from "@/lib/utils/analytics";
-import { syncLead } from "@/lib/lead/sync";
-import type {
-  CreateSubscriptionRequest,
-  CreateSubscriptionResponse,
-  ErrorResponse,
-  VerifyPaymentRequest,
-  VerifyPaymentResponse,
-} from "@/lib/razorpay/types";
-
-const RAZORPAY_CHECKOUT_SRC = "https://checkout.razorpay.com/v1/checkout.js";
 
 function formatINR(paise: number): string {
   return new Intl.NumberFormat("en-IN", {
@@ -28,46 +22,31 @@ function formatINR(paise: number): string {
   }).format(paise / 100);
 }
 
-interface SubscriptionState {
-  subscriptionId: string;
-  keyId: string;
-  amountPaise: number;
-  currency: string;
-}
-
-// This step is a pass-through: it creates the subscription and immediately
-// opens Razorpay Checkout — there is no confirm screen. The page only renders
-// a status (launching / dismissed / verifying / failed) around the modal; the
-// plan step already showed the price.
+// The plan step opens the Razorpay modal in place, so in the normal flow this
+// page is never visited. It stays as the target for deep links and the
+// handoff guard (paymentStatus !== "paid" redirects here): it auto-starts the
+// same useRazorpayCheckout lifecycle and renders a status around the modal.
 export default function CheckoutStep() {
   const router = useRouter();
-  const {
-    name,
-    email,
-    planId,
-    billingCycle,
-    paymentStatus,
-    setRazorpaySubscriptionId,
-    setPaymentResult,
-    setPaymentStatus,
-    resetPayment,
-  } = useOnboarding();
+  const { name, email, planId, billingCycle, paymentStatus } = useOnboarding();
 
-  const [subscription, setSubscription] = useState<SubscriptionState | null>(
-    null,
-  );
-  const [scriptReady, setScriptReady] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [phase, setPhase] = useState<
-    "loading" | "ready" | "opening" | "verifying" | "succeeded" | "failed"
-  >("loading");
   const [hydrated, setHydrated] = useState(false);
-  const createInFlightRef = useRef(false);
   // The modal auto-opens once; after a manual dismiss we wait for the user to
   // resume via the button instead of re-opening in their face.
-  const autoOpenedRef = useRef(false);
+  const autoStartedRef = useRef(false);
 
   const plan = planId ? plans.find((p) => p.id === planId) ?? null : null;
+
+  const checkout = useRazorpayCheckout({
+    planId: planId ?? "",
+    planName: plan?.name ?? "Membership",
+    billingCycle,
+    name,
+    email,
+    // Small delay so the success state is perceivable before redirect.
+    onSuccess: () =>
+      window.setTimeout(() => router.push("/onboarding/handoff"), 700),
+  });
 
   // The store is persisted to localStorage — on first render it returns the
   // default (empty) state, then rehydrates a tick later. Without this gate the
@@ -103,213 +82,16 @@ export default function CheckoutStep() {
     }
   }, [hydrated, paymentStatus, router]);
 
-  // Create the Razorpay subscription on mount.
+  // Launch the payment as soon as the store is ready — no confirm step.
+  const startCheckout = checkout.start;
   useEffect(() => {
     if (!hydrated) return;
     if (!planId || !email || !name) return;
-    if (createInFlightRef.current) return;
-    createInFlightRef.current = true;
-
-    let cancelled = false;
-
-    (async () => {
-      try {
-        const body: CreateSubscriptionRequest = {
-          planId,
-          billingCycle,
-          name,
-          email,
-        };
-        const res = await fetch("/api/razorpay/subscription", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(body),
-        });
-        const json = (await res.json()) as
-          | CreateSubscriptionResponse
-          | ErrorResponse;
-        if (!res.ok || "error" in json) {
-          throw new Error(
-            "error" in json ? json.error : "Could not start checkout.",
-          );
-        }
-        if (cancelled) return;
-        setSubscription(json);
-        setRazorpaySubscriptionId(json.subscriptionId);
-        setPhase("ready");
-        // Record that they reached payment — the highest-intent drop-off point.
-        syncLead("checkout");
-        track("begin_checkout", {
-          currency: json.currency,
-          value: json.amountPaise / 100,
-          items: [
-            {
-              item_id: planId,
-              item_name: plan?.name,
-              item_variant: billingCycle,
-              price: json.amountPaise / 100,
-            },
-          ],
-        });
-      } catch (err) {
-        if (cancelled) return;
-        setError(
-          err instanceof Error ? err.message : "Could not start checkout.",
-        );
-        setPhase("failed");
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [
-    hydrated,
-    planId,
-    billingCycle,
-    name,
-    email,
-    plan?.name,
-    setRazorpaySubscriptionId,
-  ]);
-
-  const openCheckout = useCallback(() => {
-    if (!subscription || !scriptReady) return;
-    const { amountPaise, currency } = subscription;
-    const RazorpayCtor = window.Razorpay;
-    if (!RazorpayCtor) {
-      setError("Razorpay Checkout failed to load. Please retry.");
-      setPhase("failed");
-      return;
-    }
-
-    setPhase("opening");
-    track("checkout_opened", { planId, billingCycle });
-
-    const rzp = new RazorpayCtor({
-      key: subscription.keyId,
-      subscription_id: subscription.subscriptionId,
-      name: "GM Academy",
-      description: plan ? `${plan.name} · ${billingCycle}` : "Membership",
-      prefill: { name, email },
-      theme: { color: "#009C62" },
-      handler: async (response) => {
-        setPhase("verifying");
-        try {
-          const verifyBody: VerifyPaymentRequest = {
-            razorpay_payment_id: response.razorpay_payment_id,
-            razorpay_subscription_id: response.razorpay_subscription_id,
-            razorpay_signature: response.razorpay_signature,
-          };
-          const verifyRes = await fetch("/api/razorpay/verify", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(verifyBody),
-          });
-          const verifyJson = (await verifyRes.json()) as
-            | VerifyPaymentResponse
-            | ErrorResponse;
-
-          if (!verifyRes.ok || "error" in verifyJson) {
-            setError(
-              "error" in verifyJson
-                ? verifyJson.error
-                : "Payment could not be verified.",
-            );
-            setPaymentStatus("failed");
-            setPhase("failed");
-            track("checkout_failed", { reason: "verification" });
-            return;
-          }
-
-          setPaymentResult({
-            paymentId: response.razorpay_payment_id,
-            subscriptionId: response.razorpay_subscription_id,
-          });
-          setPhase("succeeded");
-          track("checkout_succeeded", { planId, billingCycle });
-          track("purchase", {
-            transaction_id: response.razorpay_payment_id,
-            currency,
-            value: amountPaise / 100,
-            items: [
-              {
-                item_id: planId,
-                item_name: plan?.name,
-                item_variant: billingCycle,
-                price: amountPaise / 100,
-              },
-            ],
-          });
-          // Small delay so the success state is perceivable before redirect.
-          window.setTimeout(() => router.push("/onboarding/handoff"), 700);
-        } catch (err) {
-          setError(
-            err instanceof Error
-              ? err.message
-              : "Could not verify the payment.",
-          );
-          setPaymentStatus("failed");
-          setPhase("failed");
-          track("checkout_failed", { reason: "network" });
-        }
-      },
-      modal: {
-        ondismiss: () => {
-          // Don't blow away the subscription id — they can retry without
-          // creating a new one on Razorpay's side.
-          setPhase("ready");
-          track("checkout_dismissed", { planId, billingCycle });
-        },
-      },
-    });
-
-    rzp.on("payment.failed", (response) => {
-      setError(
-        response.error?.description ??
-          "Payment failed. Please try a different method.",
-      );
-      setPaymentStatus("failed");
-      setPhase("failed");
-      track("checkout_failed", { reason: "payment.failed" });
-    });
-
-    rzp.open();
-  }, [
-    subscription,
-    scriptReady,
-    name,
-    email,
-    plan,
-    planId,
-    billingCycle,
-    router,
-    setPaymentResult,
-    setPaymentStatus,
-  ]);
-
-  // Launch the modal as soon as both the subscription and the script are
-  // ready — this page has no confirm step.
-  useEffect(() => {
-    if (phase !== "ready" || !scriptReady || !subscription) return;
-    if (autoOpenedRef.current) return;
-    autoOpenedRef.current = true;
-    openCheckout();
-  }, [phase, scriptReady, subscription, openCheckout]);
-
-  function handleRetry() {
-    setError(null);
-    if (subscription) {
-      // Subscription still valid — just reopen the modal.
-      openCheckout();
-      return;
-    }
-    // Otherwise force a re-create.
-    resetPayment();
-    createInFlightRef.current = false;
-    autoOpenedRef.current = false;
-    setPhase("loading");
-  }
+    if (paymentStatus === "paid") return;
+    if (autoStartedRef.current) return;
+    autoStartedRef.current = true;
+    void startCheckout();
+  }, [hydrated, planId, email, name, paymentStatus, startCheckout]);
 
   if (!plan) {
     // Guard effect above will redirect; render nothing in the meantime.
@@ -323,161 +105,143 @@ export default function CheckoutStep() {
   // drift from NEXT_PUBLIC_FLAT_DISCOUNT_INR.
   const preview = discountedPrice(plan, billingCycle);
   const baseAmountPaise = preview.base * 100;
-  const displayAmountPaise = subscription?.amountPaise ?? preview.price * 100;
+  const displayAmountPaise = checkout.amountPaise ?? preview.price * 100;
   const discounted = displayAmountPaise < baseAmountPaise;
   const cycleSuffix = billingCycle === "annual" ? " / year" : " / month";
 
-  const launching =
-    phase === "loading" || (phase === "ready" && !autoOpenedRef.current);
+  const { phase, dismissed, error } = checkout;
+  const busy =
+    phase === "creating" || phase === "opening" || phase === "verifying";
 
   return (
-    <>
-      <Script
-        src={RAZORPAY_CHECKOUT_SRC}
-        strategy="afterInteractive"
-        onLoad={() => setScriptReady(true)}
-        onError={() => {
-          setError("Razorpay Checkout failed to load. Check your connection.");
-          setPhase("failed");
-        }}
-      />
+    <motion.div
+      initial={{ opacity: 0, x: 16 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ duration: 0.3, ease: [0.2, 0.7, 0.2, 1] }}
+      className="flex min-h-full flex-1 flex-col"
+    >
+      <div>
+        <h1 className="font-display text-[40px] leading-tight tracking-[-0.02em] text-white md:text-[56px]">
+          {phase === "succeeded" ? "Payment confirmed." : "Almost there."}
+        </h1>
+        <p className="mt-4 text-[17px] leading-relaxed text-white/80">
+          Secure checkout powered by Razorpay. Cancel anytime from your
+          account.
+        </p>
 
-      <motion.div
-        initial={{ opacity: 0, x: 16 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ duration: 0.3, ease: [0.2, 0.7, 0.2, 1] }}
-        className="flex min-h-full flex-1 flex-col"
-      >
-        <div>
-          <h1 className="font-display text-[40px] leading-tight tracking-[-0.02em] text-white md:text-[56px]">
-            {phase === "succeeded" ? "Payment confirmed." : "Almost there."}
-          </h1>
-          <p className="mt-4 text-[17px] leading-relaxed text-white/80">
-            Secure checkout powered by Razorpay. Cancel anytime from your
-            account.
+        {/* Order summary — the numbers the user is about to pay. Shows the
+            env-driven discount preview immediately; once the subscription is
+            created the server's (offer-discounted) amount takes over. */}
+        <div className="mt-8 max-w-md rounded-[12px] border border-white/15 bg-white/10 p-6">
+          <p className="text-[12px] font-bold uppercase tracking-[0.08em] text-white/60">
+            Order summary
+          </p>
+          <p className="mt-2 text-[16px] font-semibold text-white">
+            {plan.name}
+          </p>
+          <p className="text-[13px] text-white/70">
+            {billingCycle === "annual" ? "Annual" : "Monthly"} membership ·
+            billed {billingCycle === "annual" ? "yearly" : "monthly"}
           </p>
 
-          {/* Order summary — the numbers the user is about to pay. Shows the
-              env-driven discount preview immediately; once the subscription is
-              created the server's (offer-discounted) amount takes over. */}
-          <div className="mt-8 max-w-md rounded-[12px] border border-white/15 bg-white/10 p-6">
-            <p className="text-[12px] font-bold uppercase tracking-[0.08em] text-white/60">
-              Order summary
-            </p>
-            <p className="mt-2 text-[16px] font-semibold text-white">
-              {plan.name}
-            </p>
-            <p className="text-[13px] text-white/70">
-              {billingCycle === "annual" ? "Annual" : "Monthly"} membership ·
-              billed {billingCycle === "annual" ? "yearly" : "monthly"}
-            </p>
-
-            <div className="mt-4 space-y-2 border-t border-white/15 pt-4 text-[14px]">
-              <div className="flex items-baseline justify-between text-white/80">
-                <span>
-                  {billingCycle === "annual" ? "First year" : "First month"}
-                </span>
-                <span className={discounted ? "text-white/50 line-through" : ""}>
-                  {formatINR(baseAmountPaise)}
-                </span>
-              </div>
-              {discounted && (
-                <div className="flex items-baseline justify-between font-semibold text-green-400">
-                  <span>Launch offer</span>
-                  <span>−{formatINR(baseAmountPaise - displayAmountPaise)}</span>
-                </div>
-              )}
-            </div>
-
-            <div className="mt-3 flex items-baseline justify-between border-t border-white/15 pt-3">
-              <span className="text-[14px] font-semibold text-white">
-                Due today
+          <div className="mt-4 space-y-2 border-t border-white/15 pt-4 text-[14px]">
+            <div className="flex items-baseline justify-between text-white/80">
+              <span>
+                {billingCycle === "annual" ? "First year" : "First month"}
               </span>
-              <span className="font-numeral text-[24px] leading-none text-white">
-                {formatINR(displayAmountPaise)}
+              <span className={discounted ? "text-white/50 line-through" : ""}>
+                {formatINR(baseAmountPaise)}
               </span>
             </div>
-            <p className="mt-2 text-[12px] text-white/60">
-              {discounted && flatDiscount.firstCycleOnly
-                ? `Renews at ${formatINR(baseAmountPaise)}${cycleSuffix} · Incl. GST`
-                : "Incl. GST"}
-            </p>
+            {discounted && (
+              <div className="flex items-baseline justify-between font-semibold text-green-400">
+                <span>Launch offer</span>
+                <span>−{formatINR(baseAmountPaise - displayAmountPaise)}</span>
+              </div>
+            )}
           </div>
 
-          <div className="mt-10">
-            {launching || phase === "opening" || phase === "verifying" ? (
-              <div className="flex items-center gap-3 text-[15px] text-white/80">
-                <CircleNotch
-                  size={20}
-                  className="animate-spin text-green-400"
-                  aria-hidden
-                />
-                {phase === "verifying"
-                  ? "Verifying your payment…"
-                  : phase === "opening"
-                    ? "Complete your payment in the Razorpay window."
-                    : "Opening secure checkout…"}
-              </div>
-            ) : null}
-
-            {phase === "ready" && autoOpenedRef.current ? (
-              <p className="text-[15px] text-white/80">
-                Checkout closed. Use the button below to resume your payment.
-              </p>
-            ) : null}
-
-            {error ? (
-              <div
-                role="alert"
-                className="flex items-start gap-2 rounded-[12px] border border-red-300/40 bg-red-50 p-4 text-[14px] text-red-700"
-              >
-                <WarningCircle
-                  size={18}
-                  weight="fill"
-                  className="mt-0.5 shrink-0"
-                  aria-hidden
-                />
-                <span>{error}</span>
-              </div>
-            ) : null}
-
-            {phase === "succeeded" ? (
-              <div className="flex items-center gap-2 text-[15px] font-semibold text-green-400">
-                <CheckCircle size={20} weight="fill" aria-hidden />
-                Payment confirmed. Taking you to your courses…
-              </div>
-            ) : null}
+          <div className="mt-3 flex items-baseline justify-between border-t border-white/15 pt-3">
+            <span className="text-[14px] font-semibold text-white">
+              Due today
+            </span>
+            <span className="font-numeral text-[24px] leading-none text-white">
+              {formatINR(displayAmountPaise)}
+            </span>
           </div>
-
-          <p className="mt-8 flex items-center gap-2 text-[12px] text-white/60">
-            <Lock size={14} aria-hidden />
-            PCI-DSS Level 1 checkout. We never see your card details.
+          <p className="mt-2 text-[12px] text-white/60">
+            {discounted && flatDiscount.firstCycleOnly
+              ? `Renews at ${formatINR(baseAmountPaise)}${cycleSuffix} · Incl. GST`
+              : "Incl. GST"}
           </p>
         </div>
 
-        <BottomNav
-          backHref="/onboarding/plan"
-          onContinue={phase === "failed" ? handleRetry : openCheckout}
-          continueDisabled={
-            phase === "loading" ||
-            phase === "opening" ||
-            phase === "verifying" ||
-            phase === "succeeded"
-          }
-          continueLoading={
-            phase === "loading" || phase === "opening" || phase === "verifying"
-          }
-          continueLabel={
-            phase === "failed"
-              ? "Retry"
-              : phase === "verifying"
-                ? "Verifying…"
-                : phase === "succeeded"
-                  ? "Continuing…"
-                  : `Pay ${formatINR(displayAmountPaise)}`
-          }
-        />
-      </motion.div>
-    </>
+        <div className="mt-10">
+          {busy || (phase === "idle" && !dismissed) ? (
+            <div className="flex items-center gap-3 text-[15px] text-white/80">
+              <CircleNotch
+                size={20}
+                className="animate-spin text-green-400"
+                aria-hidden
+              />
+              {phase === "verifying"
+                ? "Verifying your payment…"
+                : phase === "opening"
+                  ? "Complete your payment in the Razorpay window."
+                  : "Opening secure checkout…"}
+            </div>
+          ) : null}
+
+          {phase === "idle" && dismissed ? (
+            <p className="text-[15px] text-white/80">
+              Checkout closed. Use the button below to resume your payment.
+            </p>
+          ) : null}
+
+          {error ? (
+            <div
+              role="alert"
+              className="flex items-start gap-2 rounded-[12px] border border-red-300/40 bg-red-50 p-4 text-[14px] text-red-700"
+            >
+              <WarningCircle
+                size={18}
+                weight="fill"
+                className="mt-0.5 shrink-0"
+                aria-hidden
+              />
+              <span>{error}</span>
+            </div>
+          ) : null}
+
+          {phase === "succeeded" ? (
+            <div className="flex items-center gap-2 text-[15px] font-semibold text-green-400">
+              <CheckCircle size={20} weight="fill" aria-hidden />
+              Payment confirmed. Taking you to your courses…
+            </div>
+          ) : null}
+        </div>
+
+        <p className="mt-8 flex items-center gap-2 text-[12px] text-white/60">
+          <Lock size={14} aria-hidden />
+          PCI-DSS Level 1 checkout. We never see your card details.
+        </p>
+      </div>
+
+      <BottomNav
+        backHref="/onboarding/plan"
+        onContinue={() => void checkout.start()}
+        continueDisabled={busy || phase === "succeeded"}
+        continueLoading={busy}
+        continueLabel={
+          phase === "failed"
+            ? "Retry"
+            : phase === "verifying"
+              ? "Verifying…"
+              : phase === "succeeded"
+                ? "Continuing…"
+                : `Pay ${formatINR(displayAmountPaise)}`
+        }
+      />
+    </motion.div>
   );
 }
