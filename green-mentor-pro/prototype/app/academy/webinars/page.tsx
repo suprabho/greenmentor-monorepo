@@ -1,6 +1,11 @@
 import { VideoCamera, Coins, CheckCircle, PlayCircle } from "@phosphor-icons/react/dist/ssr";
-import { Card, Chip, PageHeader } from "@/components/ui";
+import { AvatarStack, Card, Chip, PageHeader } from "@/components/ui";
 import { webinars, libraryItems } from "@/lib/data";
+
+const recordingSpeakers: Record<string, string> = {
+  l1: "/avatars/rao.jpg",
+  l4: "/avatars/speaker-csrd.jpg",
+};
 
 export default function WebinarsPage() {
   const recordings = libraryItems.filter((l) => l.type === "Recording");
@@ -25,7 +30,10 @@ export default function WebinarsPage() {
               </div>
               <div className="min-w-0 flex-1">
                 <h3 className="text-[15px] font-semibold leading-snug text-ink">{w.title}</h3>
-                <p className="mt-1 text-[12.5px] text-gray-600">{w.time} · {w.speaker}</p>
+                <div className="mt-1.5 flex items-center gap-2">
+                  <AvatarStack srcs={w.speakerAvatars} size={24} />
+                  <p className="text-[12.5px] text-gray-600">{w.time} · {w.speaker}</p>
+                </div>
                 <div className="mt-3 flex flex-wrap items-center gap-2">
                   <Chip tone="green"><Coins size={11} weight="fill" /> +{w.credits} credits</Chip>
                   {w.rsvp ? (
@@ -44,8 +52,16 @@ export default function WebinarsPage() {
       <div className="grid gap-4 md:grid-cols-2">
         {recordings.map((r) => (
           <Card key={r.id} className="flex items-center gap-4 p-5">
-            <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-green-50 text-green-700">
-              <PlayCircle size={24} />
+            <span className="relative shrink-0">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={recordingSpeakers[r.id]}
+                alt=""
+                className="size-12 rounded-xl object-cover"
+              />
+              <span className="absolute -bottom-1 -right-1 grid size-5 place-items-center rounded-full bg-green-500 text-teal-900">
+                <PlayCircle size={14} weight="fill" />
+              </span>
             </span>
             <div className="min-w-0 flex-1">
               <div className="text-[13.5px] font-semibold leading-snug text-ink">{r.title}</div>

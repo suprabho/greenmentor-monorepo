@@ -18,6 +18,8 @@ import {
   Leaf,
 } from "@phosphor-icons/react";
 import { clsx } from "clsx";
+import { Avatar } from "@/components/ui";
+import { me } from "@/lib/data";
 
 const nav = [
   {
@@ -100,7 +102,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
             pathname.startsWith("/profile") ? "bg-white/10" : "bg-white/5 hover:bg-white/10"
           )}
         >
-          <span className="grid size-9 place-items-center rounded-full bg-green-500 text-[14px] font-bold text-teal-900">S</span>
+          <Avatar src={me.avatar} name={me.name} size={36} className="ring-2 ring-green-500/60" />
           <span className="min-w-0">
             <span className="block truncate text-[13px] font-semibold">Supro</span>
             <span className="block text-[11px] text-green-100/70">Green Learning Profile</span>

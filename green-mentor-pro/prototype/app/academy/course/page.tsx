@@ -12,8 +12,8 @@ import {
   Fire,
   FlagCheckered,
 } from "@phosphor-icons/react/dist/ssr";
-import { Card, Chip, PageHeader, ProgressBar } from "@/components/ui";
-import { fundamentalModules, courseLeaderboard } from "@/lib/data";
+import { Avatar, Card, Chip, PageHeader, ProgressBar } from "@/components/ui";
+import { fundamentalModules, courseLeaderboard, avatarFor } from "@/lib/data";
 
 export default function CoursePage() {
   return (
@@ -124,7 +124,7 @@ export default function CoursePage() {
               {courseLeaderboard.map((u) => (
                 <div key={u.rank} className={"flex items-center gap-2.5 rounded-lg px-2 py-1.5 text-[12.5px] " + (u.me ? "bg-green-50" : "")}>
                   <span className="w-4 text-right font-bold text-gray-500">{u.rank}</span>
-                  <span className="grid size-7 place-items-center rounded-full bg-green-100 text-[11px] font-bold text-teal-800">{u.name[0]}</span>
+                  <Avatar src={avatarFor(u.name)} name={u.name} size={28} />
                   <span className="font-medium text-ink">{u.name}</span>
                   <span className="ml-auto flex items-center gap-1 font-semibold text-green-700">
                     <Lightning size={12} weight="fill" /> {u.xp}

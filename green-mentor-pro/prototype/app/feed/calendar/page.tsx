@@ -1,5 +1,5 @@
 import { VideoCamera, ListChecks, Coins, CheckCircle } from "@phosphor-icons/react/dist/ssr";
-import { Card, Chip, PageHeader } from "@/components/ui";
+import { AvatarStack, Card, Chip, PageHeader } from "@/components/ui";
 import { webinars, esgTasks } from "@/lib/data";
 
 const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -73,7 +73,10 @@ export default function CalendarPage() {
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="text-[13px] font-semibold leading-snug text-ink">{w.title}</div>
-                    <div className="mt-0.5 text-[12px] text-gray-600">{w.time} · {w.speaker}</div>
+                    <div className="mt-1 flex items-center gap-1.5">
+                      <AvatarStack srcs={w.speakerAvatars} size={20} />
+                      <span className="text-[12px] text-gray-600">{w.time} · {w.speaker}</span>
+                    </div>
                     <div className="mt-2 flex items-center gap-2">
                       <Chip tone="green"><Coins size={11} weight="fill" /> +{w.credits} credits</Chip>
                       {w.rsvp ? (

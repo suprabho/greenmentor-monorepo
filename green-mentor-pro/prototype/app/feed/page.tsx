@@ -10,8 +10,8 @@ import {
   Fire,
   ArrowRight,
 } from "@phosphor-icons/react/dist/ssr";
-import { Card, Chip, PageHeader } from "@/components/ui";
-import { feedItems, webinars, esgTasks } from "@/lib/data";
+import { Avatar, Card, Chip, PageHeader } from "@/components/ui";
+import { feedItems, webinars, esgTasks, avatarFor, me } from "@/lib/data";
 
 const filters = ["All", "Regulation", "Climate", "Reporting", "Careers", "Webinars", "India", "Global"];
 
@@ -59,6 +59,14 @@ export default function FeedPage() {
                   {item.title}
                 </h2>
                 <p className="mt-1.5 text-[13.5px] leading-relaxed text-gray-700">{item.summary}</p>
+                {item.image && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={item.image}
+                    alt=""
+                    className="mt-3 h-48 w-full rounded-xl object-cover sm:h-56"
+                  />
+                )}
 
                 <div className="mt-4 flex items-center gap-1 border-t border-gray-100 pt-3 text-[12.5px] font-medium text-gray-600">
                   <button className="flex items-center gap-1.5 rounded-pill px-2.5 py-1.5 hover:bg-green-50 hover:text-green-700">
@@ -79,16 +87,14 @@ export default function FeedPage() {
                   <div className="mt-3 space-y-2.5 rounded-xl bg-gray-50 p-3.5">
                     {item.comments.map((c, i) => (
                       <div key={i} className="flex gap-2.5">
-                        <span className="grid size-7 shrink-0 place-items-center rounded-full bg-green-100 text-[11px] font-bold text-teal-800">
-                          {c.author[0]}
-                        </span>
+                        <Avatar src={avatarFor(c.author)} name={c.author} size={28} />
                         <p className="text-[12.5px] leading-relaxed text-gray-800">
                           <span className="font-semibold">{c.author}</span> {c.text}
                         </p>
                       </div>
                     ))}
                     <div className="flex items-center gap-2.5 pt-1">
-                      <span className="grid size-7 shrink-0 place-items-center rounded-full bg-green-500 text-[11px] font-bold text-teal-900">S</span>
+                      <Avatar src={me.avatar} name={me.name} size={28} />
                       <div className="flex-1 rounded-pill border border-gray-200 bg-white px-3.5 py-1.5 text-[12.5px] text-gray-400">
                         Add a comment…
                       </div>
@@ -144,7 +150,7 @@ export default function FeedPage() {
               {["Ananya Iyer", "Rohan Gupta", "Meera Krishnan"].map((n, i) => (
                 <div key={n} className="flex items-center gap-2.5 text-[12.5px]">
                   <span className="w-4 text-right font-bold text-gray-500">{i + 1}</span>
-                  <span className="grid size-7 place-items-center rounded-full bg-green-100 text-[11px] font-bold text-teal-800">{n[0]}</span>
+                  <Avatar src={avatarFor(n)} name={n} size={28} />
                   <span className="font-medium text-ink">{n}</span>
                   <span className="ml-auto flex items-center gap-1 text-[11.5px] font-semibold text-gray-600">
                     <Fire size={12} weight="fill" className="text-[#FF8A00]" />

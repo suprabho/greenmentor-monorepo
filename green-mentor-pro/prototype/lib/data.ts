@@ -4,12 +4,32 @@ export const me = {
   name: "Supro",
   handle: "@supro",
   headline: "Designer → ESG Career Transitioner",
-  avatar: "S",
+  avatar: "/avatars/supro.jpg",
   xp: 2840,
   streak: 9,
   credits: 1450,
   badges: ["Fundamentals Finisher", "7-Day Streak", "First Comment", "Quiz Ace"],
 };
+
+// Stock portraits for demo people (bundled in /public/avatars),
+// keyed by every display-name variant used in the UI.
+export const avatars: Record<string, string> = {
+  Supro: me.avatar,
+  "Ananya Iyer": "/avatars/ananya.jpg",
+  "Rohan Gupta": "/avatars/rohan.jpg",
+  "Meera Krishnan": "/avatars/meera.jpg",
+  "Meera K.": "/avatars/meera.jpg",
+  "Aditya Sharma": "/avatars/aditya.jpg",
+  "Divya Subramaniam": "/avatars/divya.jpg",
+  "Divya S.": "/avatars/divya.jpg",
+  "Karan Patel": "/avatars/karan.jpg",
+  "Tanvi Reddy": "/avatars/tanvi.jpg",
+  "Tanvi R.": "/avatars/tanvi.jpg",
+  "Vikram N.": "/avatars/vikram.jpg",
+  "Arjun P.": "/avatars/arjun.jpg",
+};
+
+export const avatarFor = (name: string) => avatars[name];
 
 export type FeedItem = {
   id: string;
@@ -21,6 +41,7 @@ export type FeedItem = {
   likes: number;
   dislikes: number;
   comments: { author: string; text: string }[];
+  image?: string;
 };
 
 export const feedItems: FeedItem[] = [
@@ -47,6 +68,7 @@ export const feedItems: FeedItem[] = [
     title: "Live next week: Scope 3 Category 1 — getting supplier data that doesn't lie",
     summary:
       "Join our practitioner session on supplier engagement, spend-based vs activity-based estimates, and data quality scoring. Attendance earns 50 credits.",
+    image: "/images/feed-webinar.jpg",
     likes: 156,
     dislikes: 2,
     comments: [{ author: "Divya S.", text: "RSVP'd. The last one on materiality was excellent." }],
@@ -71,6 +93,7 @@ export const feedItems: FeedItem[] = [
     title: "From audit associate to ESG analyst in 8 months — Ritika's transition story",
     summary:
       "Ritika (BRSR Practitioner track) shares how the Green Learning Profile + two certifications landed her interviews at three Big 4 sustainability teams.",
+    image: "/images/feed-careers.jpg",
     likes: 312,
     dislikes: 0,
     comments: [{ author: "Tanvi R.", text: "This is the push I needed. Starting the Fundamental course today." }],
@@ -102,10 +125,46 @@ export const feedItems: FeedItem[] = [
 ];
 
 export const webinars = [
-  { id: "w1", date: "Jun 16", time: "6:00 PM IST", title: "Scope 3 Category 1: supplier data that doesn't lie", speaker: "A. Krishnan, GHG practitioner", credits: 50, rsvp: true },
-  { id: "w2", date: "Jun 19", time: "5:00 PM IST", title: "BRSR Core assurance: what auditors actually check", speaker: "S. Mehta, Partner, Assurance", credits: 50, rsvp: false },
-  { id: "w3", date: "Jun 24", time: "7:00 PM IST", title: "Materiality assessments that boards take seriously", speaker: "Dr. L. Rao", credits: 50, rsvp: false },
-  { id: "w4", date: "Jul 02", time: "6:30 PM IST", title: "Careers AMA: breaking into ESG consulting", speaker: "Panel · 4 consultants", credits: 50, rsvp: false },
+  {
+    id: "w1",
+    date: "Jun 16",
+    time: "6:00 PM IST",
+    title: "Scope 3 Category 1: supplier data that doesn't lie",
+    speaker: "A. Krishnan, GHG practitioner",
+    speakerAvatars: ["/avatars/krishnan.jpg"],
+    credits: 50,
+    rsvp: true,
+  },
+  {
+    id: "w2",
+    date: "Jun 19",
+    time: "5:00 PM IST",
+    title: "BRSR Core assurance: what auditors actually check",
+    speaker: "S. Mehta, Partner, Assurance",
+    speakerAvatars: ["/avatars/mehta.jpg"],
+    credits: 50,
+    rsvp: false,
+  },
+  {
+    id: "w3",
+    date: "Jun 24",
+    time: "7:00 PM IST",
+    title: "Materiality assessments that boards take seriously",
+    speaker: "Dr. L. Rao",
+    speakerAvatars: ["/avatars/rao.jpg"],
+    credits: 50,
+    rsvp: false,
+  },
+  {
+    id: "w4",
+    date: "Jul 02",
+    time: "6:30 PM IST",
+    title: "Careers AMA: breaking into ESG consulting",
+    speaker: "Panel · 4 consultants",
+    speakerAvatars: ["/avatars/panel1.jpg", "/avatars/panel2.jpg", "/avatars/panel3.jpg", "/avatars/panel4.jpg"],
+    credits: 50,
+    rsvp: false,
+  },
 ];
 
 export const esgTasks = [
@@ -146,6 +205,7 @@ export type Course = {
   learners: number;
   tags: string[];
   blurb: string;
+  image: string;
   free?: boolean;
 };
 
@@ -162,6 +222,7 @@ export const courses: Course[] = [
     learners: 4210,
     tags: ["esg-basics", "frameworks", "reporting"],
     blurb: "The free on-ramp: what ESG is, why it pays, and how reporting actually works. Free with limitations — certificate and final assessment unlock on upgrade.",
+    image: "/images/course-fundamentals.jpg",
   },
   {
     id: "c1",
@@ -174,6 +235,7 @@ export const courses: Course[] = [
     learners: 1830,
     tags: ["brsr", "disclosure", "assurance"],
     blurb: "Section A to C, principle by principle — build a filing-ready BRSR with real disclosures.",
+    image: "/images/course-brsr.jpg",
   },
   {
     id: "c2",
@@ -186,6 +248,7 @@ export const courses: Course[] = [
     learners: 1510,
     tags: ["ghg", "scope-1", "scope-2"],
     blurb: "Emission factors, activity data, GWP math — compute a defensible corporate footprint.",
+    image: "/images/course-ghg.jpg",
   },
   {
     id: "c3",
@@ -198,6 +261,7 @@ export const courses: Course[] = [
     learners: 740,
     tags: ["scope-3", "value-chain"],
     blurb: "All 15 categories, estimation hierarchies, supplier engagement, and data quality scoring.",
+    image: "/images/course-scope3.jpg",
   },
   {
     id: "c4",
@@ -210,6 +274,7 @@ export const courses: Course[] = [
     learners: 920,
     tags: ["materiality", "strategy"],
     blurb: "Run a double-materiality assessment your board will actually use.",
+    image: "/images/course-materiality.jpg",
   },
   {
     id: "c5",
@@ -222,6 +287,7 @@ export const courses: Course[] = [
     learners: 1120,
     tags: ["tools", "longsite", "data"],
     blurb: "Hands-on with Longsite Lite: data entry, dashboards, and your first automated report.",
+    image: "/images/course-tools.jpg",
   },
 ];
 
