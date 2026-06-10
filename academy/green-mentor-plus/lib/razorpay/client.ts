@@ -16,7 +16,7 @@ import {
   getRazorpayPlanId,
   getTotalCountForCycle,
 } from "./config";
-import { applyPromoDiscount, type ResolvedPromo } from "./promos";
+import type { ResolvedOffer } from "./offers";
 import type { BillingCycle } from "@/lib/store/onboarding";
 
 let cached: Razorpay | null = null;
@@ -33,9 +33,9 @@ export interface CreateSubscriptionInput {
   billingCycle: BillingCycle;
   name: string;
   email: string;
-  /** Resolved + validated promo (the route owns validation); attaches the
-   *  Razorpay offer and drives the discounted display amount. */
-  promo?: ResolvedPromo;
+  /** Env-resolved launch offer (lib/razorpay/offers.ts); attaches the Razorpay
+   *  offer and drives the discounted display amount. */
+  offer?: ResolvedOffer;
 }
 
 export interface CreatedSubscription {
@@ -43,19 +43,9 @@ export interface CreatedSubscription {
   status: string;
   plan_id: string;
   /** Razorpay returns amount on the plan, not the subscription itself; we
-   *  fetch it via the plan lookup so the client can render a confirmed price.
-   *  When a promo is attached this is the *discounted* amount. */
+   *  fetch it via the plan lookup so the client can render a confirmed price. */
   amountPaise: number;
   currency: string;
-  /** Present only when `input.promo` was supplied. */
-  appliedPromo?: {
-    code: string;
-    label: string;
-    originalAmountPaise: number;
-    discountedAmountPaise: number;
-    auto: boolean;
-    firstCycleOnly: boolean;
-  };
 }
 
 /**
@@ -68,7 +58,7 @@ export async function createSubscription(
   const rzp = getInstance();
   const planId = getRazorpayPlanId(input.planId, input.billingCycle);
   const totalCount = getTotalCountForCycle(input.billingCycle);
-  const { promo } = input;
+  const { offer } = input;
 
   const subscription = await rzp.subscriptions.create({
     plan_id: planId,
@@ -76,14 +66,14 @@ export async function createSubscription(
     quantity: 1,
     customer_notify: 1,
     // Razorpay applies the offer's discount to the subscription's invoices.
-    ...(promo ? { offer_id: promo.offerId } : {}),
+    ...(offer ? { offer_id: offer.offerId } : {}),
     notes: {
       gm_plan_id: input.planId,
       gm_billing_cycle: input.billingCycle,
       gm_name: input.name,
       gm_email: input.email,
-      // Recorded so webhooks/reconciliation can see which code was used.
-      ...(promo ? { gm_promo_code: promo.code } : {}),
+      // Recorded so webhooks/reconciliation can see the discount was attached.
+      ...(offer ? { gm_offer_id: offer.offerId } : {}),
     },
   });
 
@@ -100,11 +90,11 @@ export async function createSubscription(
   const currency = plan.item?.currency ?? "INR";
 
   // Razorpay charges the discounted invoice, but the plan amount above is the
-  // undiscounted figure — apply the registry discount so the displayed price
-  // matches the offer. (SDK 2.9.6 has no offers resource to fetch the
-  // authoritative amount, hence the registry mirror — see promos.ts.)
-  const amountPaise = promo
-    ? applyPromoDiscount(baseAmountPaise, promo.discount)
+  // undiscounted figure — subtract the env-configured flat discount so the
+  // displayed price matches the offer. (SDK 2.9.6 has no offers resource to
+  // fetch the authoritative amount, hence the env mirror — see offers.ts.)
+  const amountPaise = offer
+    ? Math.max(0, baseAmountPaise - offer.discountPaise)
     : baseAmountPaise;
 
   return {
@@ -113,16 +103,6 @@ export async function createSubscription(
     plan_id: planId,
     amountPaise,
     currency,
-    appliedPromo: promo
-      ? {
-          code: promo.code,
-          label: promo.label,
-          originalAmountPaise: baseAmountPaise,
-          discountedAmountPaise: amountPaise,
-          auto: promo.auto,
-          firstCycleOnly: promo.firstCycleOnly,
-        }
-      : undefined,
   };
 }
 

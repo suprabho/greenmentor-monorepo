@@ -18,7 +18,6 @@ import {
   plans,
   annualSavingsPercent,
   valueStack,
-  flatDiscount,
   discountedPrice,
 } from "@/lib/data/plans";
 import { guarantee } from "@/lib/data/guarantee";
@@ -64,7 +63,7 @@ export function PricingSnapshot({ compact = false }: PricingSnapshotProps) {
       badge: monthly.active ? "Launch offer" : (null as string | null),
       ctaLabel: monthly.active
         ? `Get instant access · first month ${formatINR(monthly.price)}`
-        : "Get instant access · ₹4,000 / month",
+        : `Get instant access · ${formatINR(plan.priceMonthly)} / month`,
     },
     {
       cycle: "annual" as const,
@@ -80,7 +79,7 @@ export function PricingSnapshot({ compact = false }: PricingSnapshotProps) {
       badge: "Career Services included",
       ctaLabel: annual.active
         ? `Get Plus Annual + Career · first year ${formatINR(annual.price)}`
-        : "Get Plus Annual + Career Services · ₹44,000 / year",
+        : `Get Plus Annual + Career Services · ${formatINR(plan.priceAnnualTotal)} / year`,
     },
   ];
 

@@ -12,11 +12,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createSubscription } from "@/lib/razorpay/client";
 import { getRazorpayPublicKeyId } from "@/lib/razorpay/config";
-import {
-  resolvePromoCode,
-  resolveAutoPromo,
-  promoRejectionMessage,
-} from "@/lib/razorpay/promos";
+import { resolveOfferForCycle } from "@/lib/razorpay/offers";
 import type {
   CreateSubscriptionResponse,
   ErrorResponse,
@@ -27,8 +23,6 @@ const BodySchema = z.object({
   billingCycle: z.enum(["monthly", "annual"]),
   name: z.string().min(2).max(120),
   email: z.string().email(),
-  // Optional — empty/whitespace is treated as "no code".
-  promoCode: z.string().max(64).optional(),
 });
 
 export async function POST(
@@ -64,33 +58,18 @@ export async function POST(
     );
   }
 
-  // Resolve the promo (if any) before touching Razorpay, so an invalid code
-  // fails fast with a friendly 422 and never creates a subscription. With no
-  // typed code, fall back to any auto-applying offer for this cycle.
-  const { promoCode, ...subscriptionInput } = parsed.data;
-  const rawCode = promoCode?.trim();
-  let promo;
-  if (rawCode) {
-    const result = resolvePromoCode(rawCode, subscriptionInput.billingCycle);
-    if (!result.ok) {
-      return NextResponse.json(
-        { ok: false, error: promoRejectionMessage(result.reason) },
-        { status: 422 },
-      );
-    }
-    promo = result.promo;
-  } else {
-    promo = resolveAutoPromo(subscriptionInput.billingCycle);
-  }
+  // Env-driven launch discount: attach the cycle's Razorpay offer when one is
+  // configured (NEXT_PUBLIC_FLAT_DISCOUNT_INR + RAZORPAY_OFFER_<CYCLE>);
+  // undefined → full price.
+  const offer = resolveOfferForCycle(parsed.data.billingCycle);
 
   try {
-    const subscription = await createSubscription({ ...subscriptionInput, promo });
+    const subscription = await createSubscription({ ...parsed.data, offer });
     return NextResponse.json({
       subscriptionId: subscription.id,
       keyId: publicKey,
       amountPaise: subscription.amountPaise,
       currency: subscription.currency,
-      appliedPromo: subscription.appliedPromo,
     });
   } catch (err) {
     // Razorpay's Node SDK throws plain objects, not Error instances, so we

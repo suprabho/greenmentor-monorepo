@@ -126,24 +126,37 @@ export const annualSavingsPercent = 8;
 
 /**
  * Flat launch discount — a fixed ₹ amount off the first charge of BOTH billing
- * cycles. Single in-repo source for the promo's customer-facing figures; the
- * Razorpay offers resolved in lib/razorpay/promos.ts (one auto-applied entry per
- * cycle) derive their amount from here. Keep it equal to the live dashboard
- * offers, and set `discountInr` to 0 to switch the promo off everywhere.
+ * cycles, configured entirely via env so it can be changed (or switched off)
+ * without a code change:
  *
- * Applies to the first billing cycle only — full price renews thereafter.
+ *   NEXT_PUBLIC_FLAT_DISCOUNT_INR — rupees off the first charge. Unset or 0
+ *   disables the discount everywhere (cards render full price, no offer is
+ *   attached at checkout).
+ *
+ * This drives only the price we *display*; the actual charge is discounted by
+ * the Razorpay offers in RAZORPAY_OFFER_MONTHLY / RAZORPAY_OFFER_ANNUAL
+ * (lib/razorpay/offers.ts). Keep the env amount equal to those dashboard
+ * offers or the previewed price won't match what Razorpay charges.
+ *
+ * NEXT_PUBLIC_ vars are inlined at build time — changing the value requires a
+ * redeploy, not just an env edit on a running instance.
  */
+const rawDiscountInr = Number(process.env.NEXT_PUBLIC_FLAT_DISCOUNT_INR ?? 0);
+const envDiscountInr = Number.isFinite(rawDiscountInr)
+  ? Math.max(0, Math.round(rawDiscountInr))
+  : 0;
+
 export const flatDiscount: {
-  /** Rupees off the first charge of each cycle. */
+  /** Rupees off the first charge of each cycle (0 = discount off). */
   discountInr: number;
   /** Covers the first billing cycle only; full price thereafter. */
   firstCycleOnly: boolean;
   /** Shown when the offer is applied. */
   label: string;
 } = {
-  discountInr: 2000,
+  discountInr: envDiscountInr,
   firstCycleOnly: true,
-  label: "Launch offer: ₹2,000 off",
+  label: `Launch offer: ₹${envDiscountInr.toLocaleString("en-IN")} off`,
 };
 
 /**

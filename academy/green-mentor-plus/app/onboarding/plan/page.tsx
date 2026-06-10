@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { Check, Clock, CaretDown } from "@phosphor-icons/react/dist/ssr";
+import { Check, Clock, CaretDown, WarningCircle } from "@phosphor-icons/react/dist/ssr";
 import { useOnboarding, type BillingCycle } from "@/lib/store/onboarding";
+import { useRazorpayCheckout } from "@/lib/razorpay/useRazorpayCheckout";
 import { plans, flatDiscount, discountedPrice } from "@/lib/data/plans";
 import { Badge } from "@/components/ui/Badge";
 import { BottomNav } from "@/components/onboarding/BottomNav";
@@ -139,9 +140,12 @@ function PriceRow({
 // Single-membership world: the only choice on this step is the billing cycle.
 // The two cards below ARE the two cycles — monthly is Plus Essential, annual
 // bundles Career Services free, so each card carries its own full inclusions.
+// Paying happens right here: Continue opens the Razorpay modal in place
+// (useRazorpayCheckout) instead of routing through a separate checkout step.
 export default function PlanStep() {
   const router = useRouter();
-  const { planId, billingCycle, setPlan, setBillingCycle } = useOnboarding();
+  const { planId, billingCycle, setPlan, setBillingCycle, name, email, paymentStatus } =
+    useOnboarding();
   const plan = plans[0];
 
   // Pre-select on first arrival so a card lands already chosen and Continue is
@@ -167,28 +171,73 @@ export default function PlanStep() {
     setBillingCycle(cycle);
   }
 
+  const checkout = useRazorpayCheckout({
+    planId: plan.id,
+    planName: plan.name,
+    billingCycle,
+    name,
+    email,
+    // Small delay so the success state is perceivable before redirect.
+    onSuccess: () =>
+      window.setTimeout(() => router.push("/onboarding/handoff"), 700),
+  });
+  const paying =
+    checkout.phase === "creating" ||
+    checkout.phase === "opening" ||
+    checkout.phase === "verifying";
+
+  // Step completion = first payment attempt now that there's no checkout page
+  // hop; the ref keeps retries/resumes from double-counting.
+  const stepTrackedRef = useRef(false);
+
   function handleContinue() {
-    if (!canContinue) return;
-    track("onboarding_step_completed", {
-      step: "plan",
-      planId,
-      billingCycle,
-    });
-    syncLead("plan");
-    router.push("/onboarding/checkout");
+    if (!canContinue || paying || checkout.phase === "succeeded") return;
+    // Contact details come from the welcome step — without them the
+    // subscription create would 422, so bounce back instead.
+    if (!name || !email) {
+      router.push("/onboarding/welcome");
+      return;
+    }
+    if (paymentStatus === "paid") {
+      router.push("/onboarding/handoff");
+      return;
+    }
+    if (!stepTrackedRef.current) {
+      stepTrackedRef.current = true;
+      track("onboarding_step_completed", {
+        step: "plan",
+        planId,
+        billingCycle,
+      });
+      syncLead("plan");
+    }
+    void checkout.start();
   }
 
   const isSelected = (cycle: BillingCycle) =>
     planId === plan.id && billingCycle === cycle;
 
-  // Once a card is picked, surface the amount they'll be charged on the CTA so
-  // the price carries through to checkout — the discounted first charge, matching
-  // the card and the checkout total.
+  // Surface the amount they'll be charged on the CTA — the env-driven
+  // discounted first charge until the server confirms the (offer-discounted)
+  // subscription amount, which is authoritative.
   const checkoutAmount =
-    billingCycle === "annual" ? annual.price : monthly.price;
-  const continueLabel = canContinue
-    ? `Continue to Checkout · ${formatINR(checkoutAmount)}`
-    : "Continue to Checkout";
+    checkout.amountPaise != null
+      ? checkout.amountPaise / 100
+      : billingCycle === "annual"
+        ? annual.price
+        : monthly.price;
+  const continueLabel =
+    checkout.phase === "failed"
+      ? "Retry payment"
+      : checkout.phase === "verifying"
+        ? "Verifying…"
+        : checkout.phase === "succeeded"
+          ? "Continuing…"
+          : checkout.dismissed
+            ? `Resume payment · ${formatINR(checkoutAmount)}`
+            : canContinue
+              ? `Pay ${formatINR(checkoutAmount)}`
+              : "Continue to Checkout";
 
   const cardClass = (selected: boolean) =>
     cn(
@@ -325,12 +374,34 @@ export default function PlanStep() {
             />
           </div>
         </div>
+
+        {/* Payment status — the Razorpay modal opens over this page, so its
+            dismissed/failed states surface here, next to the CTA that resumes. */}
+        {checkout.error ? (
+          <div
+            role="alert"
+            className="mt-5 flex items-start gap-2 rounded-[12px] border border-red-300/40 bg-red-50 p-4 text-[14px] text-red-700"
+          >
+            <WarningCircle
+              size={18}
+              weight="fill"
+              className="mt-0.5 shrink-0"
+              aria-hidden
+            />
+            <span>{checkout.error}</span>
+          </div>
+        ) : checkout.dismissed && checkout.phase === "idle" ? (
+          <p className="mt-5 text-[15px] text-white/80">
+            Checkout closed. Use the button below to resume your payment.
+          </p>
+        ) : null}
       </div>
 
       <BottomNav
         backHref="/onboarding/goals"
         onContinue={handleContinue}
-        continueDisabled={!canContinue}
+        continueDisabled={!canContinue || paying || checkout.phase === "succeeded"}
+        continueLoading={paying}
         continueLabel={continueLabel}
       />
     </motion.div>
