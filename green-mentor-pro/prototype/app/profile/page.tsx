@@ -31,9 +31,12 @@ export default function ProfilePage() {
       <Card className="mb-6 overflow-hidden">
         <div className="bg-stat-band p-6 text-white md:p-8">
           <div className="flex flex-wrap items-center gap-5">
-            <span className="grid size-16 place-items-center rounded-2xl bg-white/15 text-[26px] font-bold backdrop-blur">
-              {me.avatar}
-            </span>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={me.avatar}
+              alt={me.name}
+              className="size-16 rounded-2xl object-cover ring-2 ring-white/40"
+            />
             <div className="min-w-0 flex-1">
               <h2 className="text-[20px] font-semibold tracking-tight">{me.name}</h2>
               <p className="text-[13px] text-green-100/90">{me.headline} · {me.handle}</p>

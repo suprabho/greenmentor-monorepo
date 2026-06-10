@@ -1,6 +1,6 @@
 import { Fire, Lightning, Medal, TrendUp, TrendDown } from "@phosphor-icons/react/dist/ssr";
-import { Card, Chip, PageHeader } from "@/components/ui";
-import { leaderboard } from "@/lib/data";
+import { Avatar, Card, Chip, PageHeader } from "@/components/ui";
+import { leaderboard, avatarFor } from "@/lib/data";
 
 export default function LeaderboardsPage() {
   return (
@@ -21,14 +21,12 @@ export default function LeaderboardsPage() {
         {leaderboard.slice(0, 3).map((u, i) => (
           <Card key={u.rank} className={i === 0 ? "border-green-500 p-5 ring-1 ring-green-500" : "p-5"}>
             <div className="flex items-center gap-3">
-              <span
-                className={
-                  "grid size-11 place-items-center rounded-full text-[16px] font-bold " +
-                  (i === 0 ? "bg-green-500 text-teal-900" : "bg-green-100 text-teal-800")
-                }
-              >
-                {u.name[0]}
-              </span>
+              <Avatar
+                src={avatarFor(u.name)}
+                name={u.name}
+                size={44}
+                className={i === 0 ? "ring-2 ring-green-500" : "ring-2 ring-green-100"}
+              />
               <div>
                 <div className="flex items-center gap-1.5 text-[14px] font-semibold text-ink">
                   <Medal size={15} weight="fill" className={i === 0 ? "text-[#E8B400]" : i === 1 ? "text-gray-400" : "text-[#B26B2B]"} />
@@ -56,7 +54,7 @@ export default function LeaderboardsPage() {
             }
           >
             <span className="w-6 text-right text-[14px] font-bold text-gray-500">{u.rank}</span>
-            <span className="grid size-9 place-items-center rounded-full bg-green-100 text-[13px] font-bold text-teal-800">{u.name[0]}</span>
+            <Avatar src={avatarFor(u.name)} name={u.name} size={36} />
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2 text-[13.5px] font-semibold text-ink">
                 {u.name} {u.me && <Chip tone="green">You</Chip>}

@@ -43,6 +43,59 @@ export function Chip({
   );
 }
 
+export function Avatar({
+  src,
+  name,
+  size = 28,
+  className,
+}: {
+  src?: string;
+  name: string;
+  size?: number;
+  className?: string;
+}) {
+  if (src) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={src}
+        alt={name}
+        style={{ width: size, height: size }}
+        className={clsx("shrink-0 rounded-full object-cover", className)}
+      />
+    );
+  }
+  return (
+    <span
+      style={{ width: size, height: size, fontSize: Math.round(size * 0.4) }}
+      className={clsx(
+        "grid shrink-0 place-items-center rounded-full bg-green-100 font-bold text-teal-800",
+        className
+      )}
+    >
+      {name[0]}
+    </span>
+  );
+}
+
+export function AvatarStack({
+  srcs,
+  size = 24,
+  className,
+}: {
+  srcs: string[];
+  size?: number;
+  className?: string;
+}) {
+  return (
+    <span className={clsx("flex -space-x-2", className)}>
+      {srcs.map((s) => (
+        <Avatar key={s} src={s} name="" size={size} className="ring-2 ring-white" />
+      ))}
+    </span>
+  );
+}
+
 export function PageHeader({
   title,
   sub,

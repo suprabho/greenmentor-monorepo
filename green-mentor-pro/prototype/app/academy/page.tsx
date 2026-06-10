@@ -52,8 +52,15 @@ export default function AcademyPage() {
               </div>
             </div>
           </div>
-          <div className="bg-stat-band hidden items-center justify-center p-8 md:flex">
-            <div className="text-center text-white">
+          <div className="relative hidden items-center justify-center overflow-hidden p-8 md:flex">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={fundamental.image}
+              alt=""
+              className="absolute inset-0 h-full w-full object-cover"
+            />
+            <div className="absolute inset-0 bg-gradient-to-br from-teal-900/85 via-teal-900/60 to-teal-900/40" />
+            <div className="relative text-center text-white">
               <Sparkle size={34} weight="fill" className="mx-auto text-green-100" />
               <div className="mt-3 text-[15px] font-semibold leading-snug">Finish to unlock your<br />Green Learning Profile boost</div>
               <div className="mt-1 text-[12px] text-green-100/90">+100 bonus credits on completion</div>
@@ -83,12 +90,19 @@ export default function AcademyPage() {
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {paid.map((c) => (
-          <Card key={c.id} className="flex flex-col p-5">
-            <div className="flex items-center justify-between">
-              <Chip tone={c.level === "Advanced" ? "teal" : "neutral"}>{c.level}</Chip>
-              <span className="text-[15px] font-bold text-ink">₹{c.price.toLocaleString()}</span>
+          <Card key={c.id} className="flex flex-col overflow-hidden">
+            <div className="relative">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={c.image} alt="" className="h-36 w-full object-cover" />
+              <span className="absolute left-3 top-3 rounded-pill bg-white/90 px-2.5 py-0.5 text-[11.5px] font-semibold text-gray-800 backdrop-blur">
+                {c.level}
+              </span>
+              <span className="absolute right-3 top-3 rounded-pill bg-teal-900/90 px-2.5 py-0.5 text-[12px] font-bold text-white backdrop-blur">
+                ₹{c.price.toLocaleString()}
+              </span>
             </div>
-            <h3 className="mt-3 text-[16px] font-semibold tracking-tight text-ink">{c.title}</h3>
+            <div className="flex flex-1 flex-col p-5 pt-4">
+            <h3 className="text-[16px] font-semibold tracking-tight text-ink">{c.title}</h3>
             <p className="mt-1.5 flex-1 text-[13px] leading-relaxed text-gray-700">{c.blurb}</p>
             <div className="mt-3 flex items-center gap-3 text-[12px] font-medium text-gray-600">
               <span className="flex items-center gap-1"><Star size={13} weight="fill" className="text-[#E8B400]" /> {c.rating}</span>
@@ -101,6 +115,7 @@ export default function AcademyPage() {
             >
               View course <ArrowRight size={13} />
             </Link>
+            </div>
           </Card>
         ))}
       </div>
