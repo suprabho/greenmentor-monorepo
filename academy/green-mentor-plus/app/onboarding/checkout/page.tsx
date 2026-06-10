@@ -6,7 +6,7 @@ import Script from "next/script";
 import { motion } from "framer-motion";
 import { CheckCircle, CircleNotch, Lock, WarningCircle } from "@phosphor-icons/react/dist/ssr";
 import { useOnboarding } from "@/lib/store/onboarding";
-import { plans } from "@/lib/data/plans";
+import { plans, flatDiscount, discountedPrice } from "@/lib/data/plans";
 import { BottomNav } from "@/components/onboarding/BottomNav";
 import { track } from "@/lib/utils/analytics";
 import { syncLead } from "@/lib/lead/sync";
@@ -316,14 +316,16 @@ export default function CheckoutStep() {
     return null;
   }
 
-  const baseAmountPaise =
-    (billingCycle === "annual" ? plan.priceAnnualTotal : plan.priceMonthly) *
-    100;
-  const displayAmountPaise = subscription?.amountPaise ?? baseAmountPaise;
-  // The server applies the env-configured launch offer (lib/razorpay/offers.ts)
-  // to the returned amount — when it's below the list price, label it as the
-  // first charge so the recurring price stays clear.
+  // Until the server confirms, preview the env-driven discounted first charge
+  // (same numbers the plan step showed). Once the subscription exists, its
+  // amount is authoritative — the server applies the Razorpay offer
+  // (lib/razorpay/offers.ts), so the two only differ if the offer env vars
+  // drift from NEXT_PUBLIC_FLAT_DISCOUNT_INR.
+  const preview = discountedPrice(plan, billingCycle);
+  const baseAmountPaise = preview.base * 100;
+  const displayAmountPaise = subscription?.amountPaise ?? preview.price * 100;
   const discounted = displayAmountPaise < baseAmountPaise;
+  const cycleSuffix = billingCycle === "annual" ? " / year" : " / month";
 
   const launching =
     phase === "loading" || (phase === "ready" && !autoOpenedRef.current);
@@ -351,16 +353,56 @@ export default function CheckoutStep() {
             {phase === "succeeded" ? "Payment confirmed." : "Almost there."}
           </h1>
           <p className="mt-4 text-[17px] leading-relaxed text-white/80">
-            {plan.name} · {billingCycle === "annual" ? "Annual" : "Monthly"} ·{" "}
-            {formatINR(displayAmountPaise)}
-            {discounted
-              ? `${billingCycle === "annual" ? " first year, then " : " first month, then "}${formatINR(baseAmountPaise)}${billingCycle === "annual" ? " / year" : " / month"}`
-              : billingCycle === "annual"
-                ? " / year"
-                : " / month"}{" "}
-            — secure checkout powered by Razorpay. Cancel anytime from your
+            Secure checkout powered by Razorpay. Cancel anytime from your
             account.
           </p>
+
+          {/* Order summary — the numbers the user is about to pay. Shows the
+              env-driven discount preview immediately; once the subscription is
+              created the server's (offer-discounted) amount takes over. */}
+          <div className="mt-8 max-w-md rounded-[12px] border border-white/15 bg-white/10 p-6">
+            <p className="text-[12px] font-bold uppercase tracking-[0.08em] text-white/60">
+              Order summary
+            </p>
+            <p className="mt-2 text-[16px] font-semibold text-white">
+              {plan.name}
+            </p>
+            <p className="text-[13px] text-white/70">
+              {billingCycle === "annual" ? "Annual" : "Monthly"} membership ·
+              billed {billingCycle === "annual" ? "yearly" : "monthly"}
+            </p>
+
+            <div className="mt-4 space-y-2 border-t border-white/15 pt-4 text-[14px]">
+              <div className="flex items-baseline justify-between text-white/80">
+                <span>
+                  {billingCycle === "annual" ? "First year" : "First month"}
+                </span>
+                <span className={discounted ? "text-white/50 line-through" : ""}>
+                  {formatINR(baseAmountPaise)}
+                </span>
+              </div>
+              {discounted && (
+                <div className="flex items-baseline justify-between font-semibold text-green-400">
+                  <span>Launch offer</span>
+                  <span>−{formatINR(baseAmountPaise - displayAmountPaise)}</span>
+                </div>
+              )}
+            </div>
+
+            <div className="mt-3 flex items-baseline justify-between border-t border-white/15 pt-3">
+              <span className="text-[14px] font-semibold text-white">
+                Due today
+              </span>
+              <span className="font-numeral text-[24px] leading-none text-white">
+                {formatINR(displayAmountPaise)}
+              </span>
+            </div>
+            <p className="mt-2 text-[12px] text-white/60">
+              {discounted && flatDiscount.firstCycleOnly
+                ? `Renews at ${formatINR(baseAmountPaise)}${cycleSuffix} · Incl. GST`
+                : "Incl. GST"}
+            </p>
+          </div>
 
           <div className="mt-10">
             {launching || phase === "opening" || phase === "verifying" ? (
