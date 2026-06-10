@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>GreenMentor Academy + Vizmaya — Product Scope</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/@phosphor-icons/web@2.1.1"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script>
+tailwind.config = {
+  theme: { extend: {
+    colors: {
+      forest:{900:'#13241a',800:'#1c3324',700:'#2c5f2d',600:'#367a36'},
+      moss:{600:'#6fa03c',500:'#84b54d',200:'#dce8c8',100:'#eef3e3'},
+      cream:'#f4f6f0', ink:'#1f2a22',
+      viz:{600:'#6741d9',100:'#ece6fb'},
+      amber:{600:'#c8870b',100:'#fbefd2'},
+      ocean:{600:'#1f6fb2',100:'#dbeaf6'}
+    },
+    fontFamily:{ display:['Fraunces','Georgia','serif'], sans:['Inter','system-ui','sans-serif'] }
+  }}
+}
+</script>
+<style>
+  html{scroll-padding-top:5rem}
+  .reveal{opacity:0;transform:translateY(18px);transition:all .6s cubic-bezier(.2,.7,.2,1)}
+  .reveal.in{opacity:1;transform:none}
+  .blob{filter:blur(2px)}
+</style>
+</head>
+<body class="font-sans bg-cream text-ink antialiased">
+
+<!-- NAV -->
+<header class="fixed top-0 inset-x-0 z-50 bg-cream/85 backdrop-blur border-b border-moss-200">
+  <nav class="max-w-6xl mx-auto px-5 h-16 flex items-center justify-between">
+    <a href="#top" class="flex items-center gap-2 font-display font-semibold text-forest-700">
+      <i class="ph-fill ph-leaf text-2xl text-moss-600"></i> GreenMentor
+    </a>
+    <div class="hidden md:flex items-center gap-6 text-sm font-medium text-forest-800">
+      <a href="#systems" class="hover:text-moss-600">Systems</a>
+      <a href="#academy" class="hover:text-moss-600">Academy</a>
+      <a href="#vizmaya" class="hover:text-moss-600">Vizmaya</a>
+      <a href="#delivery" class="hover:text-moss-600">Delivery</a>
+    </div>
+    <span class="text-[11px] font-semibold tracking-wide px-3 py-1 rounded-full bg-amber-100 text-amber-600">AI EXCLUDED</span>
+  </nav>
+</header>
+
+<!-- HERO -->
+<section id="top" class="relative overflow-hidden bg-forest-900 text-white">
+  <div class="absolute -right-24 -top-24 w-[28rem] h-[28rem] rounded-full bg-forest-700 blob"></div>
+  <div class="absolute right-32 bottom-0 w-72 h-72 rounded-full bg-moss-600/40 blob"></div>
+  <div class="relative max-w-6xl mx-auto px-5 pt-32 pb-24">
+    <p class="text-moss-200 font-semibold tracking-[0.25em] text-xs mb-6">PRODUCT SCOPE · INTERNAL · JUNE 2026</p>
+    <h1 class="font-display font-700 text-5xl md:text-7xl leading-[1.05]">GreenMentor Academy<br><span class="text-moss-200">+ Vizmaya</span></h1>
+    <p class="mt-7 max-w-2xl text-lg text-white/80">Bite-sized lessons and quizzes — and one content engine that authors a unit once and renders it everywhere: the Academy, the community, and exportable reports.</p>
+    <div class="mt-9 flex flex-wrap gap-3">
+      <a href="#systems" class="px-5 py-3 rounded-xl bg-moss-600 hover:bg-moss-500 font-semibold text-forest-900 transition">See how it fits <i class="ph-bold ph-arrow-down ml-1"></i></a>
+      <span class="px-5 py-3 rounded-xl border border-white/25 text-white/80 text-sm flex items-center gap-2"><i class="ph ph-prohibit"></i> No AI agents · no tooling — separate scope</span>
+    </div>
+  </div>
+</section>
+
+<!-- WHY -->
+<section class="max-w-6xl mx-auto px-5 py-20">
+  <p class="text-moss-600 font-semibold tracking-widest text-xs mb-3">WHY NOW</p>
+  <h2 class="font-display font-600 text-3xl md:text-4xl mb-12 max-w-3xl">The Academy is the credibility engine. Content is the bottleneck.</h2>
+  <div class="grid md:grid-cols-3 gap-6">
+    <div class="reveal rounded-2xl bg-white border border-moss-200 p-7 shadow-sm">
+      <i class="ph-duotone ph-gift text-3xl text-forest-700"></i>
+      <h3 class="font-display font-600 text-xl mt-4 mb-2">Knowledge is free</h3>
+      <p class="text-ink/70 leading-relaxed">Information alone won't convert. What sells is a habit, a clear path, and a credential people can show.</p>
+    </div>
+    <div class="reveal rounded-2xl bg-white border border-moss-200 p-7 shadow-sm">
+      <i class="ph-duotone ph-copy text-3xl text-viz-600"></i>
+      <h3 class="font-display font-600 text-xl mt-4 mb-2">Content authored 3× over</h3>
+      <p class="text-ink/70 leading-relaxed">Today course material, community posts, and learner reports are produced separately and drift out of sync.</p>
+    </div>
+    <div class="reveal rounded-2xl bg-white border border-moss-200 p-7 shadow-sm">
+      <i class="ph-duotone ph-broadcast text-3xl text-amber-600"></i>
+      <h3 class="font-display font-600 text-xl mt-4 mb-2">One source, many surfaces</h3>
+      <p class="text-ink/70 leading-relaxed">Author a unit once; render it as a lesson, a community card, and an exportable report. No duplication.</p>
+    </div>
+  </div>
+</section>
+
+<!-- SYSTEMS -->
+<section id="systems" class="bg-white border-y border-moss-200">
+  <div class="max-w-6xl mx-auto px-5 py-20">
+    <p class="text-moss-600 font-semibold tracking-widest text-xs mb-3">HOW IT FITS TOGETHER</p>
+    <h2 class="font-display font-600 text-3xl md:text-4xl mb-12">Three layers. One content source.</h2>
+    <div class="space-y-5">
+      <div class="reveal flex flex-col md:flex-row md:items-center gap-5 rounded-2xl overflow-hidden border border-moss-200">
+        <div class="md:w-72 shrink-0 bg-viz-600 text-white p-6">
+          <p class="font-display font-700 text-2xl">Vizmaya</p><p class="text-viz-100 italic text-sm">authoring layer · new</p>
+        </div>
+        <p class="p-6 md:py-6 text-lg">Author one structured source per unit; parse it once into a typed model; render it many ways.</p>
+      </div>
+      <div class="reveal flex flex-col md:flex-row md:items-center gap-5 rounded-2xl overflow-hidden border border-moss-200">
+        <div class="md:w-72 shrink-0 bg-forest-700 text-white p-6">
+          <p class="font-display font-700 text-xl leading-tight">Academy · Community · Reports</p><p class="text-moss-200 italic text-sm">consumption surfaces</p>
+        </div>
+        <p class="p-6 md:py-6 text-lg">Lessons + quizzes in the app, community posts &amp; challenges, and exportable certs / reports / booklets.</p>
+      </div>
+      <div class="reveal flex flex-col md:flex-row md:items-center gap-5 rounded-2xl overflow-hidden border border-moss-200">
+        <div class="md:w-72 shrink-0 bg-forest-800/80 text-white p-6">
+          <p class="font-display font-700 text-2xl">Vismay</p><p class="text-moss-200 italic text-sm">engine · existing</p>
+        </div>
+        <p class="p-6 md:py-6 text-lg">Theme, scenes, and layout primitives. A fixed substrate we configure — never redefine here.</p>
+      </div>
+    </div>
+    <p class="text-center text-moss-600 italic mt-8 text-sm">▼ author once → render through Vismay → consume everywhere</p>
+  </div>
+</section>
+
+<!-- ACADEMY: content model -->
+<section id="academy" class="max-w-6xl mx-auto px-5 py-20">
+  <p class="text-moss-600 font-semibold tracking-widest text-xs mb-3">ACADEMY · CONTENT MODEL</p>
+  <h2 class="font-display font-600 text-3xl md:text-4xl mb-12">Five levels, from Track down to Quiz.</h2>
+  <div class="space-y-3">
+    <!-- cascade -->
+    <div id="cascade"></div>
+  </div>
+  <p class="text-moss-600 italic text-sm mt-6">Plus: learning path (ordered, gated) · topic tags · credentials · per-learner progress.</p>
+</section>
+
+<!-- ACADEMY: lesson blocks -->
+<section class="bg-white border-y border-moss-200">
+  <div class="max-w-6xl mx-auto px-5 py-20">
+    <p class="text-moss-600 font-semibold tracking-widest text-xs mb-3">ACADEMY · "BITE-SIZED" DEFINED</p>
+    <h2 class="font-display font-600 text-3xl md:text-4xl mb-12">A lesson is an ordered set of typed blocks.</h2>
+    <div id="blocks" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-5"></div>
+    <p class="text-center text-forest-700 italic mt-9">One idea per screen · large headings · generous whitespace · hierarchy by size, not just color.</p>
+  </div>
+</section>
+
+<!-- ACADEMY: quiz -->
+<section class="max-w-6xl mx-auto px-5 py-20">
+  <p class="text-moss-600 font-semibold tracking-widest text-xs mb-3">ACADEMY · QUIZ ENGINE</p>
+  <h2 class="font-display font-600 text-3xl md:text-4xl mb-12">Six question types. Instant, mascot-driven feedback.</h2>
+  <div class="grid md:grid-cols-2 gap-6">
+    <div class="reveal rounded-2xl bg-white border border-moss-200 p-7">
+      <p class="font-semibold tracking-widest text-xs text-moss-600 mb-5">QUESTION TYPES</p>
+      <ul id="qtypes" class="space-y-3 text-lg"></ul>
+    </div>
+    <div class="reveal rounded-2xl bg-forest-900 text-white p-7">
+      <p class="font-semibold tracking-widest text-xs text-moss-200 mb-5">BEHAVIORS</p>
+      <ul id="qbeh" class="space-y-3 text-white/85"></ul>
+    </div>
+  </div>
+</section>
+
+<!-- ACADEMY: flow -->
+<section class="bg-forest-900 text-white">
+  <div class="max-w-6xl mx-auto px-5 py-20">
+    <p class="text-moss-200 font-semibold tracking-widest text-xs mb-3">ACADEMY · LEARNER FLOW</p>
+    <h2 class="font-display font-600 text-3xl md:text-4xl mb-12">From first tap to a credential on the profile.</h2>
+    <div id="flow" class="flex flex-wrap items-stretch gap-3"></div>
+    <div class="mt-8 rounded-xl bg-white/10 px-6 py-4 text-moss-100 italic flex items-center gap-3">
+      <i class="ph-fill ph-flame text-amber-600 text-2xl"></i> Streaks · badges · earned credits · leaderboard feed back into the loop — driving the daily-habit metric.
+    </div>
+  </div>
+</section>
+
+<!-- PERSONAS -->
+<section class="max-w-6xl mx-auto px-5 py-20">
+  <p class="text-moss-600 font-semibold tracking-widest text-xs mb-3">WHO IT SERVES</p>
+  <h2 class="font-display font-600 text-3xl md:text-4xl mb-12">Four personas, one Academy, different depth.</h2>
+  <div class="overflow-x-auto reveal rounded-2xl border border-moss-200">
+    <table class="w-full text-left">
+      <thead class="bg-forest-700 text-white text-sm">
+        <tr><th class="p-4">Persona</th><th class="p-4">In the Academy</th><th class="p-4">Depth</th><th class="p-4">Monetization</th></tr>
+      </thead>
+      <tbody id="personas" class="divide-y divide-moss-200 bg-white"></tbody>
+    </table>
+  </div>
+</section>
+
+<!-- VIZMAYA -->
+<section id="vizmaya" class="bg-white border-y border-moss-200">
+  <div class="max-w-6xl mx-auto px-5 py-20">
+    <p class="text-viz-600 font-semibold tracking-widest text-xs mb-3">VIZMAYA</p>
+    <h2 class="font-display font-600 text-3xl md:text-4xl mb-3">One source. Three jobs.</h2>
+    <p class="text-ink/60 mb-12">Built on the proven single-source → multi-output pattern.</p>
+    <div id="jobs" class="grid md:grid-cols-3 gap-6"></div>
+  </div>
+</section>
+
+<!-- REPORTS -->
+<section class="max-w-6xl mx-auto px-5 py-20">
+  <p class="text-amber-600 font-semibold tracking-widest text-xs mb-3">VIZMAYA · REPORT &amp; DOC OUTPUTS</p>
+  <h2 class="font-display font-600 text-3xl md:text-4xl mb-12">Documents are renders of content + progress — no re-authoring.</h2>
+  <div id="docs" class="grid sm:grid-cols-2 gap-5"></div>
+</section>
+
+<!-- DELIVERY -->
+<section id="delivery" class="bg-white border-y border-moss-200">
+  <div class="max-w-6xl mx-auto px-5 py-20">
+    <p class="text-moss-600 font-semibold tracking-widest text-xs mb-3">DELIVERY</p>
+    <h2 class="font-display font-600 text-3xl md:text-4xl mb-12">Three phases — Academy and Vizmaya in lockstep.</h2>
+    <div id="phases" class="space-y-5"></div>
+  </div>
+</section>
+
+<!-- METRICS -->
+<section class="max-w-6xl mx-auto px-5 py-20">
+  <p class="text-moss-600 font-semibold tracking-widest text-xs mb-3">SUCCESS</p>
+  <h2 class="font-display font-600 text-3xl md:text-4xl mb-12">What we'll measure.</h2>
+  <div id="stats" class="grid grid-cols-2 md:grid-cols-4 gap-5 mb-16"></div>
+  <p class="text-moss-600 font-semibold tracking-widest text-xs mb-5">OPEN QUESTIONS FOR SIGN-OFF</p>
+  <ol id="open" class="space-y-3 text-lg max-w-3xl"></ol>
+</section>
+
+<!-- CLOSING -->
+<section class="relative overflow-hidden bg-forest-900 text-white">
+  <div class="absolute -left-20 bottom-0 w-80 h-80 rounded-full bg-forest-700 blob"></div>
+  <div class="relative max-w-6xl mx-auto px-5 py-24">
+    <p class="text-moss-200 font-semibold tracking-[0.25em] text-xs mb-5">THE BUILD</p>
+    <h2 class="font-display font-700 text-4xl md:text-6xl leading-tight">Author once.<br>Render everywhere.</h2>
+    <ul class="mt-9 space-y-2 text-white/80 text-lg">
+      <li>→ Bite-sized lessons + quizzes, structured like myAIcademy</li>
+      <li>→ Vizmaya: one content source → Academy, Community, Reports</li>
+      <li>→ Rendered through Vismay · gamified · credentialed</li>
+      <li>→ AI &amp; tooling handled in a separate scope</li>
+    </ul>
+    <p class="mt-12 text-moss-200/60 text-sm">v1.0 · June 2026 · Confidential</p>
+  </div>
+</section>
+
+<script>
+const cascade=[
+ ['Track','ESG Foundations · BRSR Practitioner · GHG Accounting','bg-forest-700'],
+ ['Course','priced beginner / intermediate / advanced, or free','bg-moss-600'],
+ ['Module','a themed unit (~20–40 min) — the unlockable path step','bg-moss-500'],
+ ['Lesson','a bite-sized screen-set, 3–7 min — the atomic unit','bg-amber-600'],
+ ['Quiz','1–N check questions, at lesson and module gate','bg-viz-600']];
+document.getElementById('cascade').innerHTML = cascade.map((r,i)=>`
+ <div class="reveal flex items-center gap-4 bg-white border border-moss-200 rounded-xl p-4 shadow-sm" style="margin-left:${i*1.5}rem">
+   <span class="${r[2]} text-white font-display font-700 w-10 h-10 rounded-full grid place-items-center shrink-0">${i+1}</span>
+   <span class="font-display font-600 text-xl w-28 shrink-0">${r[0]}</span>
+   <span class="text-ink/60">${r[1]}</span>
+ </div>`).join('');
+
+const blocks=[
+ ['concept','One idea, one screen + visual','ph-lightbulb','text-forest-700'],
+ ['example','A concrete worked instance','ph-list-checks','text-moss-600'],
+ ['callout','A definition / regulation / "remember this"','ph-megaphone','text-amber-600'],
+ ['media','Image, diagram, short clip (pre-produced)','ph-image','text-ocean-600'],
+ ['checkpoint','Lightweight inline question','ph-check-circle','text-viz-600'],
+ ['summary','2–3 takeaways → into the quiz','ph-flag','text-moss-500']];
+document.getElementById('blocks').innerHTML = blocks.map(b=>`
+ <div class="reveal bg-white border border-moss-200 rounded-2xl p-6 shadow-sm">
+   <div class="flex items-center gap-3 mb-2"><i class="ph-duotone ${b[2]} ${b[3]} text-2xl"></i>
+   <span class="font-display font-600 text-lg">${b[0]}</span></div>
+   <p class="text-ink/65">${b[1]}</p>
+ </div>`).join('');
+
+const qtypes=["Single-select MCQ — the default","Multi-select — 'select all that apply'","True / False","Ordering / sequence (e.g. assessment steps)","Match pairs (e.g. emission → Scope)","Scenario — prompt + applied-judgement MCQ"];
+document.getElementById('qtypes').innerHTML=qtypes.map(t=>`<li class="flex gap-3"><i class="ph-bold ph-dot-outline text-moss-600 mt-1"></i><span>${t}</span></li>`).join('');
+const qbeh=["Per-question feedback + one-line explanation","Mascot reacts — encourage / gentle retry","XP + credits awarded; streak increments","Module gate quiz: pass threshold (~70%) + retry","Results feed leaderboard and badges"];
+document.getElementById('qbeh').innerHTML=qbeh.map(t=>`<li class="flex gap-3"><i class="ph-bold ph-check text-moss-200 mt-1"></i><span>${t}</span></li>`).join('');
+
+const flow=['Intro / Login','Onboard (goals)','Catalog / Course','Lesson player','Quiz + feedback','Progress / Profile'];
+document.getElementById('flow').innerHTML=flow.map((f,i)=>`
+ <div class="flex items-center gap-3">
+   <div class="bg-white/10 border border-white/20 rounded-xl px-5 py-4 font-display font-600 text-center min-w-[8rem]">${f}</div>
+   ${i<flow.length-1?'<i class="ph-bold ph-arrow-right text-moss-200 text-xl"></i>':''}
+ </div>`).join('');
+
+const personas=[
+ ['ESG Explorer','Free beginner lessons, taster quizzes','Light','Free → conversion'],
+ ['Career Transitioner','Full courses + certifications','Deep, sequential','Courses ₹2k–7k + certs'],
+ ['Corporate Operator','Upskills self + team; needs proof','Applied, role-based','Company-billed + reports'],
+ ['Consultant / Builder','Upskills, signals credibility','Advanced','Charges client / personal']];
+document.getElementById('personas').innerHTML=personas.map(r=>`<tr>
+ <td class="p-4 font-semibold">${r[0]}</td><td class="p-4 text-ink/70">${r[1]}</td>
+ <td class="p-4 text-ink/70">${r[2]}</td><td class="p-4 text-ink/70">${r[3]}</td></tr>`).join('');
+
+const jobs=[
+ ['1','Develop','Authoring workspace + versioned content library. Human-authored, schema-validated, preview-before-publish.','ph-pencil-line','bg-viz-600','text-viz-600'],
+ ['2','Distribute','Project a unit onto community: concept → "card of the day", quiz → weekly challenge, publish → announcement.','ph-share-network','bg-ocean-600','text-ocean-600'],
+ ['3','Report','Render content + progress into docs: completion certs, cohort reports, syllabus booklets, study-guide exports.','ph-file-text','bg-amber-600','text-amber-600']];
+document.getElementById('jobs').innerHTML=jobs.map(j=>`
+ <div class="reveal rounded-2xl border border-moss-200 overflow-hidden shadow-sm">
+   <div class="${j[4]} h-1.5"></div>
+   <div class="p-7">
+     <div class="flex items-center gap-3 mb-3">
+       <span class="${j[4]} text-white font-display font-700 w-11 h-11 rounded-full grid place-items-center">${j[0]}</span>
+       <i class="ph-duotone ${j[3]} ${j[5]} text-2xl"></i>
+     </div>
+     <h3 class="font-display font-600 text-2xl mb-2">${j[1]}</h3>
+     <p class="text-ink/65 leading-relaxed">${j[2]}</p>
+   </div>
+ </div>`).join('');
+
+const docs=[
+ ['Completion certificate','PDF — learner, course, credential, date, verifiable profile link','ph-certificate'],
+ ['Cohort / learning report','For Operators — team completions, scores, time invested. Proof of upskilling.','ph-chart-bar'],
+ ['Syllabus / curriculum booklet','A course rendered as polished sales &amp; enablement collateral','ph-book-open'],
+ ['Content-pack / study guide','A module\'s lessons exported as a printable offline guide','ph-printer']];
+document.getElementById('docs').innerHTML=docs.map(d=>`
+ <div class="reveal bg-white border border-moss-200 rounded-2xl p-6 shadow-sm border-l-4 border-l-amber-600 flex gap-4">
+   <i class="ph-duotone ${d[2]} text-amber-600 text-3xl shrink-0"></i>
+   <div><h3 class="font-display font-600 text-xl mb-1">${d[0]}</h3><p class="text-ink/65">${d[1]}</p></div>
+ </div>`).join('');
+
+const phases=[
+ ['P0 — Foundations','bg-forest-700','Onboarding, catalog, course detail, lesson player, single-select quiz, wallet, purchase. GreenMentor theme on Vismay.','Content schema + parser, authoring workspace, publish flow, one course authored end-to-end.'],
+ ['P1 — Engagement','bg-moss-600','Learning path, all quiz types, streaks, badges, leaderboard, ratings, WhatsApp, public profile.','Lesson→community post, quiz→challenge, completion certificate (PDF).'],
+ ['P2 — Depth & proof','bg-amber-600','Live-vs-self-paced, certification cohort enrollment surface.','Cohort report, syllabus booklet, study-guide export, webinar→recap unit.']];
+document.getElementById('phases').innerHTML=phases.map(p=>`
+ <div class="reveal flex flex-col md:flex-row gap-5 rounded-2xl border border-moss-200 overflow-hidden bg-white">
+   <div class="${p[1]} text-white p-6 md:w-56 shrink-0 font-display font-700 text-xl flex items-center">${p[0]}</div>
+   <div class="p-6 space-y-2">
+     <p><span class="font-semibold text-forest-700">Academy</span> · <span class="text-ink/70">${p[2]}</span></p>
+     <p><span class="font-semibold text-viz-600">Vizmaya</span> · <span class="text-ink/70">${p[3]}</span></p>
+   </div>
+ </div>`).join('');
+
+const stats=[['8%','free → paid conversion','text-forest-700'],['25%','7-day streak rate','text-moss-600'],['&lt;1 day','author → live everywhere','text-viz-600'],['40%','course completion','text-amber-600']];
+document.getElementById('stats').innerHTML=stats.map(s=>`
+ <div class="reveal bg-white border border-moss-200 rounded-2xl p-6 text-center shadow-sm">
+   <p class="font-display font-700 text-4xl md:text-5xl ${s[2]}">${s[0]}</p>
+   <p class="text-ink/55 text-sm mt-2">${s[1]}</p>
+ </div>`).join('');
+
+const open=["Named GreenMentor mascot — yes/no and visual direction?","Authoring schema — structured-markdown (recommended start) or block-based DB?","Per-quiz and per-challenge credit values?","Credential profile — what's public vs cohort-only?"];
+document.getElementById('open').innerHTML=open.map((t,i)=>`<li class="flex gap-3"><span class="font-display font-700 text-moss-600">${i+1}.</span><span>${t}</span></li>`).join('');
+
+// reveal on scroll
+const io=new IntersectionObserver((es)=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}}),{threshold:.12});
+document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
+</script>
+</body>
+</html>
