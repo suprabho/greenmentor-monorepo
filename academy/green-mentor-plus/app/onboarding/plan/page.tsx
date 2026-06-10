@@ -182,8 +182,8 @@ export default function PlanStep() {
     planId === plan.id && billingCycle === cycle;
 
   // Once a card is picked, surface the amount they'll be charged on the CTA so
-  // the price carries through to checkout — the discounted first charge, matching
-  // the card and the checkout total.
+  // the price carries through to checkout — the discounted first charge,
+  // matching the card and the checkout total.
   const checkoutAmount =
     billingCycle === "annual" ? annual.price : monthly.price;
   const continueLabel = canContinue

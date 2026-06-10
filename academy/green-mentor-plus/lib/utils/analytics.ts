@@ -24,8 +24,6 @@ export type AnalyticsEvent =
   | "checkout_succeeded"
   | "checkout_failed"
   | "checkout_dismissed"
-  | "promo_applied"
-  | "promo_rejected"
   | "hiring_companies_expanded"
   | "whatsapp_clicked";
 
