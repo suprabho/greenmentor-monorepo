@@ -1,4 +1,5 @@
 import { clsx } from "clsx";
+import { twMerge } from "tailwind-merge";
 
 export function Card({
   children,
@@ -8,7 +9,7 @@ export function Card({
   className?: string;
 }) {
   return (
-    <div className={clsx("rounded-[18px] border border-gray-200 bg-white shadow-soft", className)}>
+    <div className={twMerge("rounded-[18px] border border-gray-200 bg-white shadow-soft", className)}>
       {children}
     </div>
   );
