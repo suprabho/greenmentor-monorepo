@@ -64,8 +64,8 @@ export default function LongsitePage() {
 
       <div className="grid gap-4 lg:grid-cols-3">
         {/* Scope cards */}
-        <Card className="p-5 lg:col-span-2">
-          <div className="grid grid-cols-3 gap-4">
+        <Card className="min-w-0 p-5 lg:col-span-2">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
             {[
               ["Scope 1", d.scope1, "Direct — fuel, fleet"],
               ["Scope 2", d.scope2, "Purchased energy"],
@@ -108,8 +108,8 @@ export default function LongsitePage() {
               {d.categories.map((c) => (
                 <div key={c.name} className="flex items-center gap-3 rounded-lg px-2 py-1.5 hover:bg-gray-50">
                   <Chip tone={c.scope === 1 ? "teal" : c.scope === 2 ? "green" : "neutral"}>S{c.scope}</Chip>
-                  <span className="flex-1 text-[13px] font-medium text-ink">{c.name}</span>
-                  <span className="w-20 text-right text-[12.5px] font-semibold text-gray-700">{c.value.toLocaleString()}</span>
+                  <span className="min-w-0 flex-1 truncate text-[13px] font-medium text-ink">{c.name}</span>
+                  <span className="w-14 text-right text-[12.5px] font-semibold text-gray-700 sm:w-20">{c.value.toLocaleString()}</span>
                   <div className="hidden w-28 sm:block"><ProgressBar value={c.pct * 2} /></div>
                   <span className="w-9 text-right text-[12px] font-semibold text-gray-500">{c.pct}%</span>
                 </div>
@@ -119,7 +119,7 @@ export default function LongsitePage() {
         </Card>
 
         {/* Right rail */}
-        <div className="space-y-4">
+        <div className="min-w-0 space-y-4">
           <Card className="p-5">
             <h3 className="text-[14px] font-semibold text-ink">Data completeness</h3>
             <div className="mt-2 flex items-center gap-3">

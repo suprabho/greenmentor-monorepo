@@ -25,7 +25,7 @@ export default function FeedPage() {
 
       <div className="grid gap-6 xl:grid-cols-[1fr_320px]">
         {/* Feed column */}
-        <div>
+        <div className="min-w-0">
           <div className="no-scrollbar mb-4 flex gap-2 overflow-x-auto">
             {filters.map((f, i) => (
               <button
@@ -107,7 +107,7 @@ export default function FeedPage() {
         </div>
 
         {/* Right rail */}
-        <aside className="space-y-4">
+        <aside className="min-w-0 space-y-4">
           <Card className="p-4">
             <div className="flex items-center justify-between">
               <h3 className="flex items-center gap-2 text-[13.5px] font-semibold text-ink">

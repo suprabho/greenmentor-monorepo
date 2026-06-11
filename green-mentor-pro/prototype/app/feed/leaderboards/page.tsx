@@ -49,7 +49,7 @@ export default function LeaderboardsPage() {
           <div
             key={u.rank}
             className={
-              "flex items-center gap-4 border-b border-gray-100 px-5 py-3.5 last:border-0 " +
+              "flex items-center gap-3 border-b border-gray-100 px-4 py-3.5 last:border-0 sm:gap-4 sm:px-5 " +
               (u.me ? "bg-green-50/60" : "")
             }
           >
@@ -64,7 +64,7 @@ export default function LeaderboardsPage() {
             <span className="hidden sm:flex items-center gap-1 text-[12.5px] font-semibold text-[#B25E00]">
               <Fire size={13} weight="fill" /> {u.streak}d
             </span>
-            <span className="w-24 text-right text-[13.5px] font-bold text-ink">{u.xp.toLocaleString()}</span>
+            <span className="w-14 text-right text-[13.5px] font-bold text-ink sm:w-24">{u.xp.toLocaleString()}</span>
             <span
               className={
                 "flex w-12 items-center justify-end gap-0.5 text-[12px] font-semibold " +
