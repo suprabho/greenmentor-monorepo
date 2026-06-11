@@ -1,3 +1,5 @@
+import logging
+import time
 import uuid
 import os
 import shutil
@@ -27,6 +29,7 @@ from app.config import settings
 import httpx
 
 router = APIRouter(prefix="/ingestion", tags=["ingestion"])
+logger = logging.getLogger("efdb.ingestion")
 
 
 async def _save_upload(file: UploadFile, user_id: str) -> tuple[str, str]:
@@ -61,6 +64,8 @@ async def upload_and_scan(
 
     file_path, mime_type = await _save_upload(file, str(current_user.id))
     file_size = os.path.getsize(file_path)
+    logger.info("upload received: %r (%s, %.1f KB, type=%s) by %s",
+                file.filename, mime_type, file_size / 1024, document_type, current_user.email)
 
     doc = SourceDocument(
         original_filename=file.filename,
@@ -84,12 +89,16 @@ async def upload_and_scan(
     await db.refresh(session)
 
     # Scan the document to find EF tables/sections
+    t0 = time.monotonic()
     if "pdf" in mime_type or (file.filename or "").lower().endswith(".pdf"):
         scan_result = await scan_pdf(file_path, str(doc.id), str(session.id), document_type)
     elif "excel" in mime_type or "spreadsheet" in mime_type or (file.filename or "").lower().endswith((".xlsx", ".xls", ".csv")):
         scan_result = await scan_excel(file_path, str(doc.id), str(session.id), document_type)
     else:
         raise HTTPException(415, "Unsupported file type. Upload a PDF, Excel, or CSV.")
+    logger.info("scan done: session=%s %d section(s), ~%d tokens ($%.4f est), %.1fs",
+                session.id, len(scan_result.sections_found), scan_result.estimated_tokens,
+                scan_result.estimated_cost_usd, time.monotonic() - t0)
 
     # Update document with cost estimate
     doc.estimated_tokens = scan_result.estimated_tokens
@@ -127,7 +136,11 @@ async def url_scan(
     await db.refresh(doc)
     await db.refresh(session)
 
+    logger.info("url scan: %s (type=%s) by %s", url, document_type, current_user.email)
     scan_result = await fetch_and_scan_url(url, str(doc.id), str(session.id), document_type)
+    logger.info("scan done: session=%s %d section(s), ~%d tokens ($%.4f est)",
+                session.id, len(scan_result.sections_found), scan_result.estimated_tokens,
+                scan_result.estimated_cost_usd)
     doc.estimated_tokens = scan_result.estimated_tokens
     doc.estimated_cost_usd = scan_result.estimated_cost_usd
     session.status = SessionStatus.awaiting_review
@@ -163,6 +176,9 @@ async def _run_extraction(session_id: uuid.UUID, doc: SourceDocument, sections: 
     async with AsyncSessionLocal() as db:
         session = await _get_session(session_id, db)
         document_type = doc.document_type or "generic"
+        logger.info("extraction started: session=%s doc=%s sections=%s type=%s",
+                    session_id, doc.id, sections, document_type)
+        t0 = time.monotonic()
         try:
             if doc.file_path:
                 if doc.mime_type and ("pdf" in doc.mime_type or doc.file_path.endswith(".pdf")):
@@ -176,9 +192,13 @@ async def _run_extraction(session_id: uuid.UUID, doc: SourceDocument, sections: 
             session.total_extracted = len(records)
             session.review_progress = {"approved": [], "rejected": [], "pending": list(range(len(records)))}
             session.status = SessionStatus.in_review
+            logger.info("extraction done: session=%s %d record(s) in %.1fs",
+                        session_id, len(records), time.monotonic() - t0)
         except Exception as e:
             session.status = SessionStatus.failed
             session.error_message = str(e)
+            logger.exception("extraction failed: session=%s after %.1fs",
+                             session_id, time.monotonic() - t0)
         await db.commit()
 
 
@@ -354,6 +374,9 @@ async def commit_session(
     session.status = SessionStatus.completed
     session.completed_at = datetime.now(timezone.utc)
     await db.commit()
+    logger.info("commit done: session=%s approved=%d rejected=%d conflicts=%d by %s",
+                session_id, len(approved_indices), len(rejected_indices),
+                conflicts_flagged, current_user.email)
 
     return ReviewSummary(
         approved=len(approved_indices),
