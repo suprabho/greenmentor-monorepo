@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/stores/auth'
-import { Upload, MessageSquare, LogOut, User, AlertTriangle, LogIn } from 'lucide-react'
+import { Upload, MessageSquare, LogOut, User, AlertTriangle, LogIn, PieChart } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { efApi } from '@/lib/api'
 
@@ -35,6 +35,13 @@ export default function TopBar({ onChatOpen, onConflictsOpen }: TopBarProps) {
 
       {/* Actions */}
       <div className="flex items-center gap-2">
+        <button
+          onClick={() => navigate('/coverage')}
+          className="flex items-center gap-1.5 h-7 px-3 rounded-md text-xs font-medium border border-border hover:bg-muted/50 transition-colors"
+        >
+          <PieChart className="w-3.5 h-3.5" />
+          Coverage
+        </button>
         {isAdmin() && (
           <button
             onClick={() => navigate('/ingest')}

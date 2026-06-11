@@ -229,3 +229,30 @@ export interface User {
   is_active: boolean
   created_at: string
 }
+
+export interface CoverageStats {
+  totals: {
+    active: number
+    all_records: number
+    epds: number
+    source_databases: number
+    manufacturers: number
+    conflicts: number
+  }
+  sources: {
+    name: string
+    records: number
+    epds: number
+    year_min: number | null
+    year_max: number | null
+    countries: number
+  }[]
+  epd: {
+    validity: { total: number; no_expiry: number; valid: number; expired: number }
+    top_manufacturers: { name: string; records: number }[]
+    by_sector: { sector: string; records: number }[]
+  }
+  by_country: { country: string; records: number }[]
+  by_scope: { scope: string; records: number }[]
+  by_year: { year: number; records: number }[]
+}

@@ -232,6 +232,119 @@ async def list_emission_factors_public(
     return EmissionFactorListResponse(items=items, total=total, page=page, page_size=page_size)
 
 
+@router.get("/stats/coverage")
+async def coverage_stats(db: AsyncSession = Depends(get_db)):
+    """
+    Aggregate coverage statistics for the dashboard: which source databases
+    (EFDBs) and EPDs exist, broken down by sector, country, scope, reference
+    year, manufacturer, and EPD validity. Unauthenticated — exposes only
+    aggregate counts over data the /public listing already serves.
+    """
+    EF = EmissionFactor
+    active = EF.status == "active"
+    is_epd = EF.supplier_epd_reference != None
+
+    # ── Totals ──
+    totals_row = (await db.execute(
+        select(
+            func.count().filter(active),
+            func.count(),
+            func.count().filter(active, is_epd),
+            func.count(func.distinct(EF.source_database)).filter(active),
+            func.count(func.distinct(EF.supplier_name)).filter(active, is_epd),
+            func.count().filter(active, EF.has_conflict == True),
+        ).select_from(EF)
+    )).one()
+    totals = {
+        "active": totals_row[0], "all_records": totals_row[1], "epds": totals_row[2],
+        "source_databases": totals_row[3], "manufacturers": totals_row[4],
+        "conflicts": totals_row[5],
+    }
+
+    # ── Source databases (the EFDBs) ──
+    src_rows = (await db.execute(
+        select(
+            func.coalesce(EF.source_database, "(unspecified)"),
+            func.count(),
+            func.count().filter(is_epd),
+            func.min(EF.reference_year),
+            func.max(EF.reference_year),
+            func.count(func.distinct(EF.country_iso)),
+        ).where(active).group_by(EF.source_database).order_by(func.count().desc())
+    )).all()
+    sources = [
+        {"name": r[0], "records": r[1], "epds": r[2],
+         "year_min": r[3], "year_max": r[4], "countries": r[5]}
+        for r in src_rows
+    ]
+
+    # ── EPD breakdown ──
+    today = date.today()
+    epd_row = (await db.execute(
+        select(
+            func.count(),
+            func.count().filter(EF.valid_to == None),
+            func.count().filter(EF.valid_to >= today),
+            func.count().filter(EF.valid_to < today),
+        ).where(active, is_epd)
+    )).one()
+    epd_validity = {"total": epd_row[0], "no_expiry": epd_row[1],
+                    "valid": epd_row[2], "expired": epd_row[3]}
+
+    mfr_rows = (await db.execute(
+        select(EF.supplier_name, func.count())
+        .where(active, is_epd, EF.supplier_name != None)
+        .group_by(EF.supplier_name).order_by(func.count().desc()).limit(10)
+    )).all()
+    top_manufacturers = [{"name": r[0], "records": r[1]} for r in mfr_rows]
+
+    # Sector tags are a JSON list column — unnest in SQL. Guard on
+    # jsonb_typeof so a scalar/null value can never error the aggregate.
+    sector_rows = (await db.execute(text("""
+        SELECT tag, count(*) AS n
+        FROM emission_factors,
+             LATERAL jsonb_array_elements_text(sector_tags::jsonb) AS tag
+        WHERE status = 'active' AND jsonb_typeof(sector_tags::jsonb) = 'array'
+        GROUP BY tag ORDER BY n DESC LIMIT 20
+    """))).all()
+    by_sector = [{"sector": r[0], "records": r[1]} for r in sector_rows]
+
+    # ── Cross-cutting breakdowns ──
+    def rows_to_list(rows, key):
+        return [{key: r[0], "records": r[1]} for r in rows]
+
+    country_rows = (await db.execute(
+        select(func.coalesce(EF.country_iso, "(global)"), func.count())
+        .where(active).group_by(EF.country_iso).order_by(func.count().desc())
+    )).all()
+    # Normalize legacy ISO2 "IN" into ISO3 "IND" so India isn't double-counted
+    country_counts: dict[str, int] = {}
+    for code, n in country_rows:
+        code = {"IN": "IND"}.get(code, code)
+        country_counts[code] = country_counts.get(code, 0) + n
+    by_country = [{"country": c, "records": n}
+                  for c, n in sorted(country_counts.items(), key=lambda x: -x[1])]
+
+    scope_rows = (await db.execute(
+        select(EF.ghg_scope, func.count()).where(active)
+        .group_by(EF.ghg_scope).order_by(EF.ghg_scope)
+    )).all()
+    year_rows = (await db.execute(
+        select(EF.reference_year, func.count()).where(active)
+        .group_by(EF.reference_year).order_by(EF.reference_year)
+    )).all()
+
+    return {
+        "totals": totals,
+        "sources": sources,
+        "epd": {"validity": epd_validity, "top_manufacturers": top_manufacturers,
+                "by_sector": by_sector},
+        "by_country": by_country,
+        "by_scope": rows_to_list(scope_rows, "scope"),
+        "by_year": rows_to_list(year_rows, "year"),
+    }
+
+
 @router.get("/{ef_id}", response_model=EmissionFactorOut)
 async def get_emission_factor(
     ef_id: uuid.UUID,
