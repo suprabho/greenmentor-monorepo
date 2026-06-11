@@ -23,6 +23,16 @@ ls-ingestion:
       - any-glob-to-any-file:
           - "consulting/ls-ingestion/**"
 
+greenmentor-pro:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "green-mentor-pro/**"
+
+prototype:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "green-mentor-pro/prototype/**"
+
 # --- Layer: cross-cutting concerns ---------------------------------
 frontend:
   - changed-files:
