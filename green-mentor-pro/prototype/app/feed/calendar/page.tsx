@@ -16,7 +16,7 @@ export default function CalendarPage() {
 
       <div className="grid gap-6 lg:grid-cols-[1.2fr_1fr]">
         {/* Month grid */}
-        <Card className="p-5">
+        <Card className="min-w-0 p-5">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-[15px] font-semibold text-ink">June 2026</h2>
             <div className="flex gap-3 text-[11.5px] font-medium text-gray-600">
@@ -59,7 +59,7 @@ export default function CalendarPage() {
         </Card>
 
         {/* Agenda */}
-        <div className="space-y-4">
+        <div className="min-w-0 space-y-4">
           <Card className="p-5">
             <h3 className="flex items-center gap-2 text-[14px] font-semibold text-ink">
               <VideoCamera size={18} className="text-green-700" /> Upcoming webinars

@@ -31,7 +31,7 @@ export default function AgentsPage() {
 
       {/* How it works strip */}
       <Card className="mb-6 p-5">
-        <div className="grid gap-4 text-center sm:grid-cols-4">
+        <div className="grid grid-cols-2 gap-4 text-center lg:grid-cols-4">
           {[
             { icon: UploadSimple, t: "1. Brief it", d: "Guided form — files, workspace, goal" },
             { icon: Coins, t: "2. See the price", d: "Credits shown before anything runs" },

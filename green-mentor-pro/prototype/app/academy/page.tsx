@@ -40,7 +40,7 @@ export default function AcademyPage() {
               <span className="flex items-center gap-1.5"><Users size={14} /> {fundamental.learners.toLocaleString()} learners</span>
               <span>{fundamental.modules} modules</span>
             </div>
-            <div className="mt-5 flex items-center gap-4">
+            <div className="mt-5 flex flex-wrap items-center gap-4">
               <Link href="/academy/lesson" className="flex items-center gap-2 rounded-pill bg-teal-900 px-5 py-2.5 text-[13.5px] font-semibold text-white hover:bg-teal-800">
                 Continue learning <ArrowRight size={15} weight="bold" />
               </Link>
@@ -70,9 +70,9 @@ export default function AcademyPage() {
       </Card>
 
       {/* Paid catalog */}
-      <div className="mb-4 flex items-end justify-between">
+      <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
         <h2 className="text-[17px] font-semibold tracking-tight text-ink">Courses & certifications</h2>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           {["All", "Beginner", "Intermediate", "Advanced"].map((f, i) => (
             <button
               key={f}

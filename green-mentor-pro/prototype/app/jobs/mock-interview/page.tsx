@@ -44,11 +44,11 @@ export default function MockInterviewPage() {
 
           {/* Recorder */}
           <div className="mt-auto pt-8">
-            <div className="flex items-center justify-center gap-5">
-              <button className="grid size-16 place-items-center rounded-full bg-danger text-white shadow-lift">
+            <div className="flex items-center justify-center gap-3 sm:gap-5">
+              <button className="grid size-16 shrink-0 place-items-center rounded-full bg-danger text-white shadow-lift">
                 <Microphone size={28} weight="fill" />
               </button>
-              <div className="flex h-10 items-center gap-1">
+              <div className="flex h-10 min-w-0 items-center gap-1 overflow-hidden">
                 {[4, 9, 6, 12, 8, 14, 7, 11, 5, 9, 13, 6, 10, 4, 8].map((h, i) => (
                   <span key={i} className="w-1 rounded-pill bg-teal-700/60" style={{ height: `${h * 2.5}px` }} />
                 ))}

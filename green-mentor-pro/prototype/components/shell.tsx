@@ -140,7 +140,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
         <main className="px-4 py-6 pb-24 lg:px-8 lg:pb-10">{children}</main>
 
         {/* Mobile bottom nav */}
-        <nav className="fixed inset-x-0 bottom-0 z-20 flex border-t border-gray-200 bg-white lg:hidden">
+        <nav className="fixed inset-x-0 bottom-0 z-20 flex border-t border-gray-200 bg-white pb-[env(safe-area-inset-bottom)] lg:hidden">
           {nav.map((item) => (
             <Link
               key={item.href}

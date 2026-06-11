@@ -33,7 +33,7 @@ export default function AiHubPage() {
       <div className="grid gap-6 xl:grid-cols-[1.6fr_1fr]">
         {/* ESG Buddy chat */}
         <Card className="flex min-h-[560px] flex-col overflow-hidden">
-          <div className="flex items-center gap-3 border-b border-gray-100 bg-section-fade px-5 py-4">
+          <div className="flex flex-wrap items-center gap-3 border-b border-gray-100 bg-section-fade px-5 py-4">
             <span className="grid size-10 place-items-center rounded-2xl bg-teal-900 text-green-500">
               <Sparkle size={20} weight="fill" />
             </span>
