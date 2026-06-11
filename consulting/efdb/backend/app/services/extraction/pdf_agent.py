@@ -11,7 +11,9 @@ Image pages: passed as base64 images to Claude Opus 4.6 (vision).
 """
 import base64
 import json
+import logging
 import math
+import time
 from pathlib import Path
 import fitz  # PyMuPDF
 import anthropic
@@ -21,6 +23,8 @@ from app.services.extraction.prompts import (
     scan_system_prompt, extract_system_prompt, metadata_extract_prompt,
     build_scan_user_message, build_extract_user_message,
 )
+
+logger = logging.getLogger("efdb.extraction.pdf")
 
 client = anthropic.AsyncAnthropic(api_key=settings.anthropic_api_key)
 
@@ -118,6 +122,9 @@ async def scan_pdf(file_path: str, document_id: str, session_id: str, document_t
     )
 
     # Call Claude to identify tables
+    logger.info("scan: %d pages (%d sampled, %d as images), ~%d tokens",
+                page_count, len(sample_pages), image_count, estimated_tokens)
+    t0 = time.monotonic()
     response = await client.messages.create(
         model="claude-opus-4-6",
         max_tokens=2048,
@@ -129,6 +136,7 @@ async def scan_pdf(file_path: str, document_id: str, session_id: str, document_t
     )
 
     sections = _parse_scan_response(response.content[0].text)
+    logger.info("scan: Claude returned %d section(s) in %.1fs", len(sections), time.monotonic() - t0)
 
     # Extract document-level metadata from the first few pages of text
     first_page_text = " ".join(
@@ -166,8 +174,8 @@ async def _extract_pdf_metadata(text_sample: str, document_type: str = "generic"
         if start >= 0 and end > start:
             data = json.loads(raw[start:end])
             return DocumentMetadata(**{k: v for k, v in data.items() if v is not None})
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning("metadata extraction failed (continuing without): %r", e)
     return DocumentMetadata()
 
 
@@ -223,6 +231,8 @@ async def extract_from_pdf(file_path: str, section_indices: list[int], confirmed
             + "\n".join(meta_lines) + "\n\n"
         }]
 
+    logger.info("extract: sections=%s, %d content block(s)", section_indices, len(doc_content))
+    t0 = time.monotonic()
     response = await client.messages.create(
         model="claude-opus-4-6",
         max_tokens=16000,
@@ -236,7 +246,10 @@ async def extract_from_pdf(file_path: str, section_indices: list[int], confirmed
         }],
     )
 
-    return _parse_extraction_response(response.content[0].text)
+    records = _parse_extraction_response(response.content[0].text)
+    logger.info("extract: %d record(s) parsed in %.1fs (stop_reason=%s)",
+                len(records), time.monotonic() - t0, response.stop_reason)
+    return records
 
 
 def _parse_extraction_response(response_text: str) -> list[ExtractedRecord]:
