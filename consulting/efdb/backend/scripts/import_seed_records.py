@@ -44,6 +44,15 @@ def _bool(v):
     return None
 
 
+def _taglist(v):
+    """Tag columns are JSON lists; coerce a bare string so reads don't 500."""
+    if v is None or isinstance(v, list):
+        return v
+    if isinstance(v, str) and v.strip():
+        return [p.strip() for p in v.replace(";", ",").split(",") if p.strip()]
+    return None
+
+
 async def _resolve_admin_user_id(db) -> str | None:
     """Pick the first admin user as the EFDB-internal owner of imported rows."""
     r = await db.execute(
@@ -154,8 +163,8 @@ async def main(path: str):
                     # Operational
                     status=raw.get("status") or "active",
                     superseded_by_ef_id=raw.get("superseded_by_ef_id"),
-                    framework_tags=raw.get("framework_tags"),
-                    sector_tags=raw.get("sector_tags"),
+                    framework_tags=_taglist(raw.get("framework_tags")),
+                    sector_tags=_taglist(raw.get("sector_tags")),
                     is_default_ef=_bool(raw.get("is_default_ef")),
                     notes=raw.get("notes"),
                     # System

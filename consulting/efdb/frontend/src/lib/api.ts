@@ -1,10 +1,20 @@
 import type { EFFilters, EFListResponse, EmissionFactor, ScanResult, SessionStatus, ReviewSummary, User, DocumentMetadata } from '@/types/emission-factor'
+import { useAuthStore } from '@/stores/auth'
 
 const BASE = '/api'
 
 function authHeader(): HeadersInit {
   const token = localStorage.getItem('efdb_token')
   return token ? { Authorization: `Bearer ${token}` } : {}
+}
+
+function handleExpiredToken(res: Response, path: string) {
+  // A 401 on a token-bearing request means the token is stale (24h expiry) —
+  // drop it so the app falls back to public views / the login page instead of
+  // silently failing on every query.
+  if (res.status === 401 && !path.startsWith('/auth/') && localStorage.getItem('efdb_token')) {
+    useAuthStore.getState().logout()
+  }
 }
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
@@ -17,6 +27,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     },
   })
   if (!res.ok) {
+    handleExpiredToken(res, path)
     const err = await res.json().catch(() => ({ detail: res.statusText }))
     throw new Error(err.detail ?? `HTTP ${res.status}`)
   }

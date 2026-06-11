@@ -23,7 +23,7 @@ export default function MainPage() {
   const queryClient = useQueryClient()
   const token = useAuthStore(s => s.token)
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['emission-factors', filters, !!token],
     queryFn: () => token ? efApi.list(filters) : efApi.listPublic(filters),
   })
@@ -58,6 +58,13 @@ export default function MainPage() {
 
       <div className="flex-1 flex flex-col min-h-0">
         <FilterBar filters={filters} onChange={handleFiltersChange} />
+
+        {error && (
+          <div className="px-4 py-2 bg-destructive/10 text-destructive text-sm flex items-center gap-3">
+            <span>Failed to load emission factors: {error instanceof Error ? error.message : 'Unknown error'}</span>
+            <button onClick={() => refetch()} className="underline font-medium">Retry</button>
+          </div>
+        )}
 
         <div className="flex-1 flex min-h-0">
           {/* Main table */}

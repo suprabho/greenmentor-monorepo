@@ -126,7 +126,7 @@ def map_record(epd: dict) -> dict | None:
         includes_biogenic_co2=epd.get("gwp_biogenic_a1a3") is not None,
         third_party_verified=True,  # ISO 14025 EPDs are independently verified
         status="active",
-        sector_tags=epd.get("material_category"),
+        sector_tags=[epd["material_category"]] if epd.get("material_category") else None,
         notes=" ".join(notes_bits),
         source_type=SOURCE_TYPE,
         supplier_name=manufacturer or None,
