@@ -162,6 +162,20 @@ def extract_declared_unit(process):
                     ref_flow["reference_amount"] = fp.get("meanValue")
                     ref_flow["reference_unit"] = fp.get("referenceUnit")
             break
+    # functionalUnitOrOther is absent on most environdec datasets; fall back to
+    # the quantitative reference flow (reference flow property amount + unit)
+    if not unit_text and ref_flow:
+        if ref_flow.get("reference_unit"):
+            # a few datasets carry 0 in one amount field but the real value in another
+            amount = next((a for a in (ref_flow.get("reference_amount"),
+                                       ref_flow.get("resulting_amount"),
+                                       ref_flow.get("mean_amount")) if a), 1)
+            unit_text = f"{amount:g} {ref_flow['reference_unit']}"
+            ref_flow["declared_unit_source"] = "reference_flow"
+        elif ref_flow.get("reference_property"):
+            # custom flow properties embed the unit in their name, e.g. "1 Wp of <module>"
+            unit_text = ref_flow["reference_property"]
+            ref_flow["declared_unit_source"] = "reference_property_name"
     return unit_text, ref_flow
 
 
