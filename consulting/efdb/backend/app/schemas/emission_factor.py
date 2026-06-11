@@ -56,6 +56,12 @@ class EmissionFactorBase(BaseModel):
     original_ef_value: Optional[float] = None
     original_unit: Optional[str] = None
     data_origin: str
+    # Supplier / EPD provenance
+    source_type: Optional[str] = None
+    supplier_name: Optional[str] = None
+    supplier_country: Optional[str] = None
+    supplier_sector: Optional[str] = None
+    supplier_epd_reference: Optional[str] = None
     # Methodology
     calculation_method: str
     system_boundary: str
@@ -130,6 +136,11 @@ class EmissionFactorUpdate(BaseModel):
     original_ef_value: Optional[float] = None
     original_unit: Optional[str] = None
     data_origin: Optional[str] = None
+    source_type: Optional[str] = None
+    supplier_name: Optional[str] = None
+    supplier_country: Optional[str] = None
+    supplier_sector: Optional[str] = None
+    supplier_epd_reference: Optional[str] = None
     calculation_method: Optional[str] = None
     system_boundary: Optional[str] = None
     includes_biogenic_co2: Optional[bool] = None

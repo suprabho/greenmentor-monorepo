@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, Upload, Link, FileText, CheckCircle, AlertTriangle, Loader2, HelpCircle } from 'lucide-react'
+import { ArrowLeft, Upload, Link, FileText, CheckCircle, AlertTriangle, Loader2, HelpCircle, Leaf } from 'lucide-react'
 import { ingestionApi } from '@/lib/api'
-import type { ScanResult, DocumentSection, SessionStatus as SessionStatusType, ReviewSummary, DocumentMetadata } from '@/types/emission-factor'
+import type { ScanResult, DocumentSection, SessionStatus as SessionStatusType, ReviewSummary, DocumentMetadata, DocumentType } from '@/types/emission-factor'
 import { cn } from '@/lib/utils'
 
 type Step = 'upload' | 'confirm-metadata' | 'selecting' | 'extracting' | 'review' | 'done'
@@ -27,21 +27,90 @@ function emptyMetadata(): DocumentMetadata {
     notes: null,
     guidance_notes: null,
     clarifying_questions: null,
+    manufacturer: null,
+    epd_registration_number: null,
+    programme_operator: null,
+    pcr_reference: null,
+    declared_unit: null,
   }
 }
 
 interface MetadataFormProps {
   metadata: DocumentMetadata
   clarifyingAnswers: Record<number, string>
+  isEpd?: boolean
   onChange: (m: DocumentMetadata) => void
   onAnswerChange: (index: number, value: string) => void
 }
 
-function MetadataForm({ metadata: m, clarifyingAnswers, onChange, onAnswerChange }: MetadataFormProps) {
+function MetadataForm({ metadata: m, clarifyingAnswers, isEpd, onChange, onAnswerChange }: MetadataFormProps) {
   const set = (patch: Partial<DocumentMetadata>) => onChange({ ...m, ...patch })
 
   return (
     <div className="space-y-5">
+      {isEpd && (
+        <div className="space-y-4 p-4 rounded-lg bg-emerald-50/50 border border-emerald-200">
+          <div className="flex items-center gap-2">
+            <Leaf className="w-4 h-4 text-emerald-600 shrink-0" />
+            <span className="text-sm font-medium text-emerald-800">EPD details</span>
+            <span className="text-xs text-emerald-700">Auto-detected from the declaration — verify against the EPD cover page.</span>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Manufacturer (declared by)</label>
+              <input
+                type="text"
+                value={m.manufacturer ?? ''}
+                onChange={e => set({ manufacturer: e.target.value || null })}
+                placeholder="e.g. Holcim Deutschland GmbH"
+                className="w-full h-9 px-3 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">EPD registration number</label>
+              <input
+                type="text"
+                value={m.epd_registration_number ?? ''}
+                onChange={e => set({ epd_registration_number: e.target.value || null })}
+                placeholder="e.g. S-P-01234"
+                className="w-full h-9 px-3 rounded-md border border-input bg-background text-sm font-mono focus:outline-none focus:ring-2 focus:ring-ring"
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-3 gap-4">
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Programme operator</label>
+              <input
+                type="text"
+                value={m.programme_operator ?? ''}
+                onChange={e => set({ programme_operator: e.target.value || null })}
+                placeholder="e.g. The International EPD System"
+                className="w-full h-9 px-3 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">PCR reference</label>
+              <input
+                type="text"
+                value={m.pcr_reference ?? ''}
+                onChange={e => set({ pcr_reference: e.target.value || null })}
+                placeholder="e.g. PCR 2019:14 v1.11"
+                className="w-full h-9 px-3 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Declared unit</label>
+              <input
+                type="text"
+                value={m.declared_unit ?? ''}
+                onChange={e => set({ declared_unit: e.target.value || null })}
+                placeholder="e.g. 1 m³ of concrete C30/37"
+                className="w-full h-9 px-3 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              />
+            </div>
+          </div>
+        </div>
+      )}
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-1.5">
           <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Source organization</label>
@@ -246,6 +315,7 @@ export default function IngestionPage() {
   const navigate = useNavigate()
   const [step, setStep] = useState<Step>('upload')
   const [mode, setMode] = useState<'file' | 'url'>('file')
+  const [docType, setDocType] = useState<DocumentType>('generic')
   const [url, setUrl] = useState('')
   const [scanResult, setScanResult] = useState<ScanResult | null>(null)
   const [confirmedMetadata, setConfirmedMetadata] = useState<DocumentMetadata>(emptyMetadata())
@@ -271,7 +341,7 @@ export default function IngestionPage() {
     setLoading(true)
     setError('')
     try {
-      const result = await ingestionApi.uploadAndScan(file)
+      const result = await ingestionApi.uploadAndScan(file, docType)
       setScanResult(result)
       // Auto-select only data sheets (skip cover/notes pages)
       setSelectedSections(result.sections_found.filter(s => s.page_range !== 'cover/notes').map(s => s.index))
@@ -295,7 +365,7 @@ export default function IngestionPage() {
     setLoading(true)
     setError('')
     try {
-      const result = await ingestionApi.urlScan(url)
+      const result = await ingestionApi.urlScan(url, docType)
       setScanResult(result)
       // Auto-select only data sheets (skip cover/notes pages)
       setSelectedSections(result.sections_found.filter(s => s.page_range !== 'cover/notes').map(s => s.index))
@@ -534,6 +604,36 @@ export default function IngestionPage() {
               ))}
             </div>
 
+            {/* Document type */}
+            <div className="space-y-2">
+              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Document type</label>
+              <div className="flex gap-2">
+                {([
+                  { value: 'generic', label: 'Generic source' },
+                  { value: 'epd', label: 'EPD' },
+                ] as const).map(({ value, label }) => (
+                  <button
+                    key={value}
+                    onClick={() => setDocType(value)}
+                    className={cn('h-8 px-4 rounded-md text-sm font-medium transition-colors', docType === value ? 'bg-primary text-primary-foreground' : 'border border-input hover:bg-muted/50')}
+                  >
+                    {value === 'epd' && <Leaf className="w-3.5 h-3.5 inline mr-1.5" />}
+                    {label}
+                  </button>
+                ))}
+              </div>
+              {docType === 'epd' && (
+                <div className="flex items-start gap-2 p-3 rounded-md bg-emerald-50 border border-emerald-200 text-xs text-emerald-800">
+                  <Leaf className="w-3.5 h-3.5 mt-0.5 shrink-0 text-emerald-600" />
+                  <p>
+                    An <strong>Environmental Product Declaration</strong> is a verified product carbon report (EN 15804 / ISO 14025).
+                    Claude will read the declared unit, lifecycle modules (A1-A3, A4, C1-C4, D…) and GWP indicators, and auto-fill the
+                    manufacturer, EPD registration number, declared unit and supplier fields — one record per declared module.
+                  </p>
+                </div>
+              )}
+            </div>
+
             {mode === 'file' ? (
               <label className={cn('flex flex-col items-center justify-center border-2 border-dashed border-border rounded-xl p-12 cursor-pointer hover:border-primary/50 hover:bg-primary/5 transition-colors', loading && 'opacity-50 pointer-events-none')}>
                 {loading ? (
@@ -577,6 +677,7 @@ export default function IngestionPage() {
             <MetadataForm
               metadata={confirmedMetadata}
               clarifyingAnswers={clarifyingAnswers}
+              isEpd={docType === 'epd'}
               onChange={setConfirmedMetadata}
               onAnswerChange={(i, v) => setClarifyingAnswers(prev => ({ ...prev, [i]: v }))}
             />
@@ -762,6 +863,10 @@ export default function IngestionPage() {
                 const category = fld('emission_category') as string | undefined
                 const refYear = fld('reference_year') as number | undefined
                 const sourceOrg = fld('source_organization') as string | undefined
+                const supplierName = fld('supplier_name') as string | undefined
+                const epdReference = fld('supplier_epd_reference') as string | undefined
+                const declaredUnit = (fld('denominator_basis') ?? fld('denominator_unit')) as string | undefined
+                const systemBoundary = fld('system_boundary') as string | undefined
                 const hasOutlier = record.has_outlier_values as boolean
                 const hasUnitMismatch = record.has_unit_mismatch as boolean
 
@@ -801,6 +906,17 @@ export default function IngestionPage() {
                           {refYear && <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">{refYear}</span>}
                           {sourceOrg && <span className="text-[10px] text-muted-foreground">· {sourceOrg}</span>}
                         </div>
+
+                        {/* EPD provenance — surfaced so the reviewer can verify against the declaration */}
+                        {docType === 'epd' && (
+                          <div className="flex items-center gap-x-3 gap-y-1 flex-wrap p-1.5 rounded bg-emerald-50/60 border border-emerald-100 text-[11px]">
+                            <span className="flex items-center gap-1 text-emerald-700 font-medium"><Leaf className="w-3 h-3" />EPD</span>
+                            <span className="text-muted-foreground">Manufacturer: <span className="text-foreground font-medium">{supplierName ?? '—'}</span></span>
+                            <span className="text-muted-foreground">Reg. no: <span className="text-foreground font-mono">{epdReference ?? '—'}</span></span>
+                            <span className="text-muted-foreground">Declared unit: <span className="text-foreground">{declaredUnit ?? '—'}</span></span>
+                            {systemBoundary && <span className="text-muted-foreground">Boundary: <span className="text-foreground">{systemBoundary}</span></span>}
+                          </div>
+                        )}
                       </div>
 
                       <div className="flex gap-1.5 shrink-0">
@@ -849,6 +965,13 @@ export default function IngestionPage() {
                             { key: 'calculation_method', label: 'Calc method' },
                             { key: 'system_boundary', label: 'System boundary' },
                             { key: 'notes', label: 'Notes' },
+                            ...(docType === 'epd' ? [
+                              { key: 'supplier_name', label: 'Manufacturer (supplier)' },
+                              { key: 'supplier_country', label: 'Supplier country (ISO3)' },
+                              { key: 'supplier_sector', label: 'Supplier sector' },
+                              { key: 'supplier_epd_reference', label: 'EPD registration number' },
+                              { key: 'denominator_basis', label: 'Declared unit (basis)' },
+                            ] : []),
                           ].map(({ key, label, type }) => (
                             <label key={key} className="block">
                               <span className="text-[10px] text-muted-foreground">{label}</span>
@@ -951,6 +1074,7 @@ export default function IngestionPage() {
                   setSummary(null)
                   setConfirmedMetadata(emptyMetadata())
                   setClarifyingAnswers({})
+                  setDocType('generic')
                 }}
                 className="h-9 px-4 rounded-md border border-input text-sm hover:bg-muted/50"
               >

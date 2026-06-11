@@ -102,9 +102,10 @@ export const efApi = {
 
 // ── Ingestion ─────────────────────────────────────────────────────────────
 export const ingestionApi = {
-  uploadAndScan: async (file: File) => {
+  uploadAndScan: async (file: File, documentType: 'generic' | 'epd' = 'generic') => {
     const form = new FormData()
     form.append('file', file)
+    form.append('document_type', documentType)
     const r = await fetch(`${BASE}/ingestion/upload/scan`, {
       method: 'POST',
       headers: authHeader() as Record<string, string>,
@@ -117,9 +118,10 @@ export const ingestionApi = {
     return r.json() as Promise<ScanResult>
   },
 
-  urlScan: async (url: string) => {
+  urlScan: async (url: string, documentType: 'generic' | 'epd' = 'generic') => {
     const form = new FormData()
     form.append('url', url)
+    form.append('document_type', documentType)
     const r = await fetch(`${BASE}/ingestion/url/scan`, {
       method: 'POST',
       headers: authHeader() as Record<string, string>,

@@ -10,7 +10,10 @@ import httpx
 import anthropic
 from app.config import settings
 from app.schemas.ingestion import ScanResult, DocumentSection, ExtractedRecord, DocumentMetadata
-from app.services.extraction.prompts import SCAN_SYSTEM_PROMPT, EXTRACT_SYSTEM_PROMPT, METADATA_EXTRACT_PROMPT, build_scan_user_message, build_extract_user_message
+from app.services.extraction.prompts import (
+    scan_system_prompt, extract_system_prompt, metadata_extract_prompt,
+    build_scan_user_message, build_extract_user_message,
+)
 
 client = anthropic.AsyncAnthropic(api_key=settings.anthropic_api_key)
 
@@ -18,7 +21,7 @@ SONNET_INPUT_COST_PER_TOKEN = 3 / 1_000_000
 SONNET_OUTPUT_COST_PER_TOKEN = 15 / 1_000_000
 
 
-async def _extract_url_metadata(page_text: str, url: str) -> DocumentMetadata:
+async def _extract_url_metadata(page_text: str, url: str, document_type: str = "generic") -> DocumentMetadata:
     """Extract document-level metadata from a URL's page text."""
     sample = page_text[:3000]
     if not sample.strip():
@@ -27,7 +30,7 @@ async def _extract_url_metadata(page_text: str, url: str) -> DocumentMetadata:
         response = await client.messages.create(
             model="claude-sonnet-4-6",
             max_tokens=1024,
-            system=METADATA_EXTRACT_PROMPT,
+            system=metadata_extract_prompt(document_type),
             messages=[{"role": "user", "content": f"URL: {url}\n\nDOCUMENT TEXT (first portion):\n{sample}"}],
         )
         raw = response.content[0].text
@@ -41,7 +44,7 @@ async def _extract_url_metadata(page_text: str, url: str) -> DocumentMetadata:
     return DocumentMetadata()
 
 
-async def fetch_and_scan_url(url: str, document_id: str, session_id: str) -> ScanResult:
+async def fetch_and_scan_url(url: str, document_id: str, session_id: str, document_type: str = "generic") -> ScanResult:
     """Fetch a URL and scan it for EF data."""
     async with httpx.AsyncClient(follow_redirects=True, timeout=30) as http:
         response = await http.get(url)
@@ -55,7 +58,7 @@ async def fetch_and_scan_url(url: str, document_id: str, session_id: str) -> Sca
             tmp_path = tmp.name
         try:
             from app.services.extraction.pdf_agent import scan_pdf
-            result = await scan_pdf(tmp_path, document_id, session_id)
+            result = await scan_pdf(tmp_path, document_id, session_id, document_type)
             return result
         finally:
             pass  # Keep file for extraction step
@@ -80,7 +83,7 @@ async def fetch_and_scan_url(url: str, document_id: str, session_id: str) -> Sca
     response_ai = await client.messages.create(
         model="claude-opus-4-6",
         max_tokens=2048,
-        system=SCAN_SYSTEM_PROMPT,
+        system=scan_system_prompt(document_type),
         messages=[{"role": "user", "content": f"URL: {url}\n\n{page_text[:40000]}\n\n{build_scan_user_message()}"}],
     )
 
@@ -88,7 +91,7 @@ async def fetch_and_scan_url(url: str, document_id: str, session_id: str) -> Sca
     sections = _parse_scan_response(response_ai.content[0].text)
 
     # Extract document-level metadata
-    document_metadata = await _extract_url_metadata(page_text, url)
+    document_metadata = await _extract_url_metadata(page_text, url, document_type)
 
     return ScanResult(
         session_id=session_id,
@@ -99,10 +102,11 @@ async def fetch_and_scan_url(url: str, document_id: str, session_id: str) -> Sca
         page_count=1,
         has_scanned_pages=False,
         document_metadata=document_metadata,
+        document_type=document_type,
     )
 
 
-async def extract_from_url(url: str, section_indices: list[int], confirmed_metadata: DocumentMetadata | None = None) -> list[ExtractedRecord]:
+async def extract_from_url(url: str, section_indices: list[int], confirmed_metadata: DocumentMetadata | None = None, document_type: str = "generic") -> list[ExtractedRecord]:
     """Extract EF records from a URL."""
     async with httpx.AsyncClient(follow_redirects=True, timeout=30) as http:
         response = await http.get(url)
@@ -115,7 +119,7 @@ async def extract_from_url(url: str, section_indices: list[int], confirmed_metad
             tmp_path = tmp.name
         try:
             from app.services.extraction.pdf_agent import extract_from_pdf
-            return await extract_from_pdf(tmp_path, section_indices, confirmed_metadata)
+            return await extract_from_pdf(tmp_path, section_indices, confirmed_metadata, document_type)
         finally:
             os.unlink(tmp_path)
 
@@ -139,12 +143,12 @@ async def extract_from_url(url: str, section_indices: list[int], confirmed_metad
             + "\n".join(meta_lines) + "\n\n"
         )
 
-    user_content = f"URL: {url}\n\n{meta_prefix}{page_text[:40000]}\n\n{build_extract_user_message(section_indices)}"
+    user_content = f"URL: {url}\n\n{meta_prefix}{page_text[:40000]}\n\n{build_extract_user_message(section_indices, document_type)}"
 
     response_ai = await client.messages.create(
         model="claude-opus-4-6",
         max_tokens=8192,
-        system=EXTRACT_SYSTEM_PROMPT,
+        system=extract_system_prompt(document_type),
         messages=[{"role": "user", "content": user_content}],
     )
 

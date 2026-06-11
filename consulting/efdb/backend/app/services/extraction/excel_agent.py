@@ -19,7 +19,7 @@ import anthropic
 from openpyxl import load_workbook
 from app.config import settings
 from app.schemas.ingestion import ScanResult, DocumentSection, ExtractedRecord, DocumentMetadata
-from app.services.extraction.prompts import EXCEL_SCAN_SYSTEM_PROMPT, METADATA_EXTRACT_PROMPT
+from app.services.extraction.prompts import EXCEL_SCAN_SYSTEM_PROMPT, EPD_EXCEL_GUIDANCE, metadata_extract_prompt
 
 client = anthropic.AsyncAnthropic(api_key=settings.anthropic_api_key)
 
@@ -278,6 +278,7 @@ async def _extract_document_metadata(
     context_text: str,
     cover_text: str,
     preview_rows: list,
+    document_type: str = "generic",
 ) -> DocumentMetadata:
     """Call Claude to extract document-level metadata from all available text sources."""
     if not context_text and not cover_text and not preview_rows:
@@ -299,7 +300,7 @@ async def _extract_document_metadata(
         response = await client.messages.create(
             model="claude-sonnet-4-6",
             max_tokens=1024,
-            system=METADATA_EXTRACT_PROMPT,
+            system=metadata_extract_prompt(document_type),
             messages=[{"role": "user", "content": content}],
         )
         raw = response.content[0].text
@@ -313,7 +314,7 @@ async def _extract_document_metadata(
     return DocumentMetadata()
 
 
-async def scan_excel(file_path: str, document_id: str, session_id: str) -> ScanResult:
+async def scan_excel(file_path: str, document_id: str, session_id: str, document_type: str = "generic") -> ScanResult:
     """Scan an Excel/CSV file: resolve merges, extract context, identify EF sheets."""
     raw_sheets = _load_sheets_raw(file_path)
 
@@ -372,7 +373,7 @@ async def scan_excel(file_path: str, document_id: str, session_id: str) -> ScanR
 
     # Extract document-level metadata — cover pages provide the richest context
     document_metadata = await _extract_document_metadata(
-        all_context_text, all_cover_text, all_preview_rows
+        all_context_text, all_cover_text, all_preview_rows, document_type
     )
 
     estimated_tokens = total_rows * 50 + len(all_context_text) // 4
@@ -390,6 +391,7 @@ async def scan_excel(file_path: str, document_id: str, session_id: str) -> ScanR
         page_count=total_rows,
         has_scanned_pages=False,
         document_metadata=document_metadata,
+        document_type=document_type,
     )
 
 
@@ -446,7 +448,7 @@ OUTPUT FORMAT — return a JSON array. Each element is one record:
 Return ONLY the JSON array. No markdown fences. No explanatory text. No truncation."""
 
 
-async def extract_from_excel(file_path: str, section_indices: list[int], confirmed_metadata: DocumentMetadata | None = None) -> list[ExtractedRecord]:
+async def extract_from_excel(file_path: str, section_indices: list[int], confirmed_metadata: DocumentMetadata | None = None, document_type: str = "generic") -> list[ExtractedRecord]:
     """
     Extract EF records from selected sheets.
     - Resolves merged cells via openpyxl
@@ -458,6 +460,8 @@ async def extract_from_excel(file_path: str, section_indices: list[int], confirm
 
     raw_sheets = _load_sheets_raw(file_path)
     sheet_names = list(raw_sheets.keys())
+
+    system_prompt = EXCEL_EXTRACT_SYSTEM + (EPD_EXCEL_GUIDANCE if document_type == "epd" else "")
 
     all_records = []
     record_index = 0
@@ -509,7 +513,7 @@ async def extract_from_excel(file_path: str, section_indices: list[int], confirm
                     resp = await client.messages.create(
                         model="claude-sonnet-4-6",
                         max_tokens=16000,
-                        system=EXCEL_EXTRACT_SYSTEM,
+                        system=system_prompt,
                         messages=[{"role": "user", "content": msg}],
                     )
                     batch_records = _parse_extraction_response(resp.content[0].text)

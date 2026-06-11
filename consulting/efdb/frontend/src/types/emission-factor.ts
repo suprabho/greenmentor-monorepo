@@ -161,7 +161,15 @@ export interface DocumentMetadata {
   notes: string | null
   guidance_notes: string | null
   clarifying_questions: string[] | null
+  // EPD-specific (populated when document_type === 'epd')
+  manufacturer: string | null
+  epd_registration_number: string | null
+  programme_operator: string | null
+  pcr_reference: string | null
+  declared_unit: string | null
 }
+
+export type DocumentType = 'generic' | 'epd'
 
 export interface ScanResult {
   session_id: string
@@ -172,6 +180,7 @@ export interface ScanResult {
   page_count: number
   has_scanned_pages: boolean
   document_metadata: DocumentMetadata | null
+  document_type: DocumentType
 }
 
 export interface ExtractionFieldResult {

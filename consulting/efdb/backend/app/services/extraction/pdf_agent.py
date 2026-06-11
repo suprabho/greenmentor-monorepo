@@ -17,7 +17,10 @@ import fitz  # PyMuPDF
 import anthropic
 from app.config import settings
 from app.schemas.ingestion import ScanResult, DocumentSection, ExtractedRecord, DocumentMetadata
-from app.services.extraction.prompts import SCAN_SYSTEM_PROMPT, EXTRACT_SYSTEM_PROMPT, METADATA_EXTRACT_PROMPT, build_scan_user_message, build_extract_user_message
+from app.services.extraction.prompts import (
+    scan_system_prompt, extract_system_prompt, metadata_extract_prompt,
+    build_scan_user_message, build_extract_user_message,
+)
 
 client = anthropic.AsyncAnthropic(api_key=settings.anthropic_api_key)
 
@@ -78,10 +81,11 @@ def _build_document_content(doc: fitz.Document, selected_pages: list[int] | None
     return content
 
 
-async def scan_pdf(file_path: str, document_id: str, session_id: str) -> ScanResult:
+async def scan_pdf(file_path: str, document_id: str, session_id: str, document_type: str = "generic") -> ScanResult:
     """
     Step 1: Scan a PDF and return a list of identified EF tables/sections.
     Uses Claude to identify which tables contain emission factor data.
+    document_type="epd" switches to EPD-aware (EN 15804 / ISO 14025) prompts.
     """
     doc = fitz.open(file_path)
     page_count = len(doc)
@@ -117,7 +121,7 @@ async def scan_pdf(file_path: str, document_id: str, session_id: str) -> ScanRes
     response = await client.messages.create(
         model="claude-opus-4-6",
         max_tokens=2048,
-        system=SCAN_SYSTEM_PROMPT,
+        system=scan_system_prompt(document_type),
         messages=[{
             "role": "user",
             "content": doc_content + [{"type": "text", "text": build_scan_user_message()}],
@@ -130,7 +134,7 @@ async def scan_pdf(file_path: str, document_id: str, session_id: str) -> ScanRes
     first_page_text = " ".join(
         b.get("text", "") for b in doc_content[:6] if b["type"] == "text"
     )[:3000]
-    document_metadata = await _extract_pdf_metadata(first_page_text)
+    document_metadata = await _extract_pdf_metadata(first_page_text, document_type)
 
     return ScanResult(
         session_id=session_id,
@@ -141,10 +145,11 @@ async def scan_pdf(file_path: str, document_id: str, session_id: str) -> ScanRes
         page_count=page_count,
         has_scanned_pages=has_scanned_pages,
         document_metadata=document_metadata,
+        document_type=document_type,
     )
 
 
-async def _extract_pdf_metadata(text_sample: str) -> DocumentMetadata:
+async def _extract_pdf_metadata(text_sample: str, document_type: str = "generic") -> DocumentMetadata:
     """Extract document-level metadata from the first pages of a PDF."""
     if not text_sample.strip():
         return DocumentMetadata()
@@ -152,7 +157,7 @@ async def _extract_pdf_metadata(text_sample: str) -> DocumentMetadata:
         response = await client.messages.create(
             model="claude-opus-4-6",
             max_tokens=1024,
-            system=METADATA_EXTRACT_PROMPT,
+            system=metadata_extract_prompt(document_type),
             messages=[{"role": "user", "content": f"DOCUMENT TEXT (first pages):\n{text_sample}"}],
         )
         raw = response.content[0].text
@@ -198,10 +203,11 @@ def _parse_scan_response(response_text: str) -> list[DocumentSection]:
     )]
 
 
-async def extract_from_pdf(file_path: str, section_indices: list[int], confirmed_metadata: DocumentMetadata | None = None) -> list[ExtractedRecord]:
+async def extract_from_pdf(file_path: str, section_indices: list[int], confirmed_metadata: DocumentMetadata | None = None, document_type: str = "generic") -> list[ExtractedRecord]:
     """
     Step 2: Extract emission factor records from selected sections of a PDF.
     confirmed_metadata is prepended as hard context so Claude applies it to every record.
+    document_type="epd" switches to the EPD-specific extraction prompt.
     """
     doc = fitz.open(file_path)
     doc_content = _build_document_content(doc)
@@ -220,12 +226,12 @@ async def extract_from_pdf(file_path: str, section_indices: list[int], confirmed
     response = await client.messages.create(
         model="claude-opus-4-6",
         max_tokens=16000,
-        system=EXTRACT_SYSTEM_PROMPT,
+        system=extract_system_prompt(document_type),
         messages=[{
             "role": "user",
             "content": meta_prefix + doc_content + [{
                 "type": "text",
-                "text": build_extract_user_message(section_indices),
+                "text": build_extract_user_message(section_indices, document_type),
             }],
         }],
     )
@@ -302,6 +308,8 @@ def _record_from_dict(item, index, field, has_outlier, has_unit_mismatch, outlie
         "uncertainty_pct", "uncertainty_method", "dq_score_overall",
         "dq_geographic_rep", "dq_temporal_rep", "dq_tech_rep", "third_party_verified",
         "status", "framework_tags", "sector_tags", "is_default_ef", "notes",
+        "source_type", "supplier_name", "supplier_country", "supplier_sector",
+        "supplier_epd_reference",
     ]
     for key in SOURCE_FIELDS:
         if key in item:
@@ -333,4 +341,10 @@ def _confirmed_metadata_lines(m: "DocumentMetadata | None") -> list[str]:
     if m.calculation_method:    lines.append(f"calculation_method: {m.calculation_method}")
     if m.notes:                 lines.append(f"notes (apply to every record): {m.notes}")
     if m.guidance_notes:        lines.append(f"Guidance: {m.guidance_notes}")
+    # EPD-specific context (set when document_type == "epd")
+    if m.manufacturer:              lines.append(f"manufacturer (→ supplier_name AND source_organization): {m.manufacturer}")
+    if m.epd_registration_number:   lines.append(f"EPD registration number (→ supplier_epd_reference): {m.epd_registration_number}")
+    if m.programme_operator:        lines.append(f"programme operator (→ source_database): {m.programme_operator}")
+    if m.pcr_reference:             lines.append(f"PCR reference (mention in notes): {m.pcr_reference}")
+    if m.declared_unit:             lines.append(f"declared/functional unit (→ denominator_basis; derive denominator_unit from it): {m.declared_unit}")
     return lines
