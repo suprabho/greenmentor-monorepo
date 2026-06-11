@@ -1,0 +1,16 @@
+{
+ "declared_unit": "1000 kg",
+ "gwp_ghg_a1a3": 1826.14,
+ "gwp_fossil_a1a3": 1787.33,
+ "gwp_biogenic_a1a3": 43.28,
+ "gwp_total_a1a3": 1849.96,
+ "gwp_unit": "kg CO2 eq.",
+ "modules_reported": "A1-A3, C1, C2, C3, C4, D",
+ "a1a3_was_summed": false,
+ "confidence": "high",
+ "note": "Values taken from the Total A1-A3 column of the mandatory indicators table. GWP-luluc A1-A3 is 15.63 (separate indicator, not requested).",
+ "_usage": {
+  "input": 30828,
+  "output": 217
+ }
+}

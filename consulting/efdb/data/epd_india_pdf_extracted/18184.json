@@ -1,0 +1,16 @@
+{
+ "declared_unit": "One bearing unit which consists of one inner ring, one outer ring, rollers and a retainer, corresponding to 30.10 Kg.",
+ "gwp_ghg_a1a3": null,
+ "gwp_fossil_a1a3": 485,
+ "gwp_biogenic_a1a3": -18.5,
+ "gwp_total_a1a3": 467,
+ "gwp_unit": "kg CO2 eq.",
+ "modules_reported": "Upstream, Core, Downstream (cradle-to-grave, per PCR 2023:03 modular structure)",
+ "a1a3_was_summed": true,
+ "confidence": "low",
+ "note": "This EPD follows PCR 2023:03 (bearings) which reports modules as Upstream / Core / Downstream rather than EN 15804 A1-A3. No explicit A1-A3 column exists. The production-stage equivalent (A1-A3) was approximated by summing the Upstream + Core columns: GWP-fossil 1.63E+02+3.22E+02=485; GWP-biogenic -1.84E+01+-1.05E-01=-18.5; GWP-total 1.45E+02+3.22E+02=467. Downstream (end-of-life) was excluded. No separate GWP-GHG (excl. biogenic) row is reported. For reference, the cradle-to-grave TOTAL values are: fossil 4.85E+02, biogenic 0.00E+00, total 4.87E+02 kg CO2 eq.",
+ "_usage": {
+  "input": 26874,
+  "output": 2779
+ }
+}

@@ -1,0 +1,16 @@
+{
+ "declared_unit": "1 m2",
+ "gwp_ghg_a1a3": null,
+ "gwp_fossil_a1a3": 11.6,
+ "gwp_biogenic_a1a3": 0.632,
+ "gwp_total_a1a3": 12.3,
+ "gwp_unit": "kg CO2 eq.",
+ "modules_reported": "A1-A3, A4, A5, B1-B7, C1-C4, D",
+ "a1a3_was_summed": false,
+ "confidence": "high",
+ "note": "Functional unit is 1 m2 of magnetron coated glass on SGG ORAE 8mm. Results given in a combined A1/A2/A3 column. Climate Change (total)=1.23E+01, fossil=1.16E+01, biogenic=6.32E-01. No separate GWP-GHG indicator reported. A land use change component (2.94E-02) is also reported separately.",
+ "_usage": {
+  "input": 51142,
+  "output": 495
+ }
+}

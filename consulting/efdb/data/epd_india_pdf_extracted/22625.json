@@ -1,0 +1,16 @@
+{
+ "declared_unit": "1 kg",
+ "gwp_ghg_a1a3": 0.726,
+ "gwp_fossil_a1a3": 0.726,
+ "gwp_biogenic_a1a3": 8.67e-07,
+ "gwp_total_a1a3": 0.726,
+ "gwp_unit": "kg CO2 eq.",
+ "modules_reported": "A1-A3",
+ "a1a3_was_summed": false,
+ "confidence": "high",
+ "note": "Declared unit is 1 kg of product including packaging. Total (A1-A3) values taken directly from results table. GWP-biogenic A1-A3 total is 8.67E-07.",
+ "_usage": {
+  "input": 30483,
+  "output": 205
+ }
+}

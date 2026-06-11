@@ -1,0 +1,16 @@
+{
+ "declared_unit": "1 m2",
+ "gwp_ghg_a1a3": null,
+ "gwp_fossil_a1a3": null,
+ "gwp_biogenic_a1a3": null,
+ "gwp_total_a1a3": null,
+ "gwp_unit": "kg CO2-eq",
+ "modules_reported": "A1-A3, C2, C4",
+ "a1a3_was_summed": false,
+ "confidence": "low",
+ "note": "The EPD reports four distinct product variants (50mm and 75mm thickness, manufactured at MLG and JJR plants), each with its own A1-A3 GWP per 1 m2: 50mm MLG = 14.82, 75mm MLG = 20.05, 50mm JJR = 18.52, 75mm JJR = 25.05 kg CO2-eq. Only a single total Global Warming Potential (GWP) indicator is reported (CML method); no separate GWP-fossil, GWP-biogenic or GWP-GHG values are given. A single representative A1-A3 value cannot be selected, so gwp_total_a1a3 is left null.",
+ "_usage": {
+  "input": 43373,
+  "output": 747
+ }
+}

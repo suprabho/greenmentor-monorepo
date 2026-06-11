@@ -1,0 +1,16 @@
+{
+ "declared_unit": "1 m2",
+ "gwp_ghg_a1a3": 48.3,
+ "gwp_fossil_a1a3": 48.4,
+ "gwp_biogenic_a1a3": -0.479,
+ "gwp_total_a1a3": 47.9,
+ "gwp_unit": "kg CO2 eq.",
+ "modules_reported": "A1-A3, A4, A5, C1-C4, D",
+ "a1a3_was_summed": false,
+ "confidence": "high",
+ "note": "Declared unit is 1 m2 of Windor Phone Booth, weighing 16.2 kg. Values read directly from A1-A3 column. GWP-GHG=4.83E+01, GWP-fossil=4.84E+01, GWP-biogenic=-4.79E-01, GWP-total=4.79E+01.",
+ "_usage": {
+  "input": 27480,
+  "output": 265
+ }
+}

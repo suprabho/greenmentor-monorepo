@@ -1,0 +1,16 @@
+{
+ "declared_unit": "1 t",
+ "gwp_ghg_a1a3": 3110,
+ "gwp_fossil_a1a3": 2920,
+ "gwp_biogenic_a1a3": 173,
+ "gwp_total_a1a3": 3110,
+ "gwp_unit": "kg CO2 eq.",
+ "modules_reported": "A1-A3, C1, C2, C3, C4",
+ "a1a3_was_summed": false,
+ "confidence": "high",
+ "note": "Declared unit is 1 tonne of ER 1711 plus its delivery packaging. GWP-total A1-A3 = 3,11E+03; GWP-fossil = 2,92E+03; GWP-biogenic = 1,73E+02; GWP-GHG = 3,11E+03 kg CO2 eq. Module D excluded.",
+ "_usage": {
+  "input": 38819,
+  "output": 262
+ }
+}

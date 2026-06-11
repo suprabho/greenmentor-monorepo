@@ -1,0 +1,16 @@
+{
+ "declared_unit": "1 g",
+ "gwp_ghg_a1a3": 0.000383,
+ "gwp_fossil_a1a3": 0.000362,
+ "gwp_biogenic_a1a3": -3.475e-05,
+ "gwp_total_a1a3": 0.00034,
+ "gwp_unit": "kg CO2 eq.",
+ "modules_reported": "Upstream, Core, Downstream (cradle-to-grave)",
+ "a1a3_was_summed": true,
+ "confidence": "low",
+ "note": "This EPD follows the Biostimulants PCR and reports modules as Upstream/Core/Downstream rather than EN 15804 A1-A3. There is no explicit A1-A3 column. The production-stage values reported here were obtained by summing the Upstream module (raw material extraction, ~A1) and Core module (transport to plant + manufacturing/blending/packaging, ~A2-A3); Downstream (distribution + EoL) was excluded. Summed values: GWP-fossil = 1.41E-04+2.21E-04 = 3.62E-04; GWP-biogenic = -3.85E-05+3.75E-06 = -3.48E-05; GWP-total = 1.14E-04+2.26E-04 = 3.40E-04; GWP-GHG = 1.61E-04+2.22E-04 = 3.83E-04. For reference, the full cradle-to-grave TOTAL values are: GWP-fossil 4.48E-04, GWP-biogenic -3.48E-05, GWP-total 4.26E-04, GWP-GHG 4.69E-04. Confidence is low due to the non-standard module mapping.",
+ "_usage": {
+  "input": 31252,
+  "output": 1720
+ }
+}

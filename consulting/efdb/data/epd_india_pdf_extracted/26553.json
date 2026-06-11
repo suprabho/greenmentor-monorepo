@@ -1,0 +1,16 @@
+{
+ "declared_unit": "1 piece of XLAT (104 kg)",
+ "gwp_ghg_a1a3": 1450,
+ "gwp_fossil_a1a3": 1450,
+ "gwp_biogenic_a1a3": -72.1,
+ "gwp_total_a1a3": 1380,
+ "gwp_unit": "kg CO2 eq.",
+ "modules_reported": "A1-A3, A4, A5, C1-C4, D",
+ "a1a3_was_summed": false,
+ "confidence": "high",
+ "note": "Values read from the aggregated A1-A3 column. GWP-total=1.38E+03, GWP-fossil=1.45E+03, GWP-biogenic=-7.21E+01, GWP-GHG=1.45E+03.",
+ "_usage": {
+  "input": 49471,
+  "output": 242
+ }
+}

@@ -1,0 +1,16 @@
+{
+ "declared_unit": "1 m2",
+ "gwp_ghg_a1a3": null,
+ "gwp_fossil_a1a3": 30.4,
+ "gwp_biogenic_a1a3": -9.42,
+ "gwp_total_a1a3": 21.0,
+ "gwp_unit": "kg CO2 eq.",
+ "modules_reported": "A1-A3, A5, C1-C4, D",
+ "a1a3_was_summed": false,
+ "confidence": "high",
+ "note": "Values for 1 m2 of HPL (6 mm). GWP-total A1-A3 = 2.10E+01, GWP-fossil = 3.04E+01, GWP-biogenic = -9.42E+00. Note: fossil value exceeds total, consistent with negative biogenic. No separate GWP-GHG indicator reported.",
+ "_usage": {
+  "input": 32911,
+  "output": 264
+ }
+}

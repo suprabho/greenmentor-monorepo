@@ -1,0 +1,16 @@
+{
+ "declared_unit": "1 t",
+ "gwp_ghg_a1a3": 2900,
+ "gwp_fossil_a1a3": 2900,
+ "gwp_biogenic_a1a3": -0.845,
+ "gwp_total_a1a3": 2900,
+ "gwp_unit": "kg CO2 eq.",
+ "modules_reported": "A1-A3, A5, C1, C2, C3, C4, D",
+ "a1a3_was_summed": false,
+ "confidence": "high",
+ "note": "Declared unit is 1 tonne of Average Red oxide/3LPE/Epoxy coated Steel Pipe. Values from Table 14, A1-A3 column. GWP-total, GWP-fossil and GWP-GHG all reported as 2.90E+03 kg CO2 eq.; GWP-biogenic is -8.45E-01. Interpretation section gives GWP-total cradle-to-gate as 2903.91 kg CO2 eq.",
+ "_usage": {
+  "input": 45280,
+  "output": 310
+ }
+}

@@ -1,0 +1,16 @@
+{
+ "declared_unit": "1 piece of Door assembly (1 m wide, 2.7 m height opening door, glass thickness 10 mm)",
+ "gwp_ghg_a1a3": null,
+ "gwp_fossil_a1a3": 523,
+ "gwp_biogenic_a1a3": -5.22,
+ "gwp_total_a1a3": 519,
+ "gwp_unit": "kg CO2 eq.",
+ "modules_reported": "A1-A3, A4, A5, C1, C2, C3, C4, D",
+ "a1a3_was_summed": false,
+ "confidence": "medium",
+ "note": "EPD covers 7 different door models, each with its own GWP results. Values reported here are for Model 1 (Acosoft 40 Sliding Door, Single Glazed) from Table 10. GWP-total A1-A3 = 5.19E+02, GWP-fossil = 5.23E+02, GWP-biogenic = -5.22 kg CO2 eq. Other models differ: A1-A3 GWP-total ranges roughly 386 (Model 2) to 627 (Model 6) kg CO2 eq. GWP-GHG (excl. biogenic) indicator not separately reported.",
+ "_usage": {
+  "input": 87789,
+  "output": 659
+ }
+}

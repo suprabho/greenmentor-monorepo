@@ -1,0 +1,16 @@
+{
+ "declared_unit": "1 Tyre driven 1,000km",
+ "gwp_ghg_a1a3": null,
+ "gwp_fossil_a1a3": null,
+ "gwp_biogenic_a1a3": null,
+ "gwp_total_a1a3": 0.9729,
+ "gwp_unit": "kg CO2 eq.",
+ "modules_reported": "A1, A2, A3, A4, B1, C2, C3b",
+ "a1a3_was_summed": true,
+ "confidence": "high",
+ "note": "The results table reports only a single 'Global warming potential' indicator (no separate GWP-fossil/biogenic/GHG breakdown). A1-A3 given in separate columns: A1=5.86E-01, A2=6.09E-02, A3=3.26E-01, summed to 0.9729 kg CO2 eq. per declared unit (1 tyre driven 1,000 km). Total all-stages GWP was 2.09E+01.",
+ "_usage": {
+  "input": 23457,
+  "output": 481
+ }
+}

@@ -1,0 +1,16 @@
+{
+ "declared_unit": "One bearing unit which consists of one inner ring, one outer ring, balls and cage, corresponding to 0.27 Kg.",
+ "gwp_ghg_a1a3": null,
+ "gwp_fossil_a1a3": 2.68,
+ "gwp_biogenic_a1a3": -0.0166,
+ "gwp_total_a1a3": 2.66,
+ "gwp_unit": "kg CO2 eq.",
+ "modules_reported": "Upstream, Core, Downstream (cradle-to-grave)",
+ "a1a3_was_summed": true,
+ "confidence": "low",
+ "note": "This EPD follows PCR 2023:03 for bearings, which reports results by Upstream/Core/Downstream modules rather than EN 15804 A1-A3. To approximate the production stage (A1-A3), the Upstream and Core columns were summed: GWP-fossil = 1.82E0 + 8.56E-1 = 2.68; GWP-biogenic = -1.63E-2 + -2.83E-4 = -0.0166; GWP-total = 1.80E0 + 8.57E-1 = 2.66. The cradle-to-grave Totals are 2.67 (fossil), 0.00 (biogenic), 2.68 (total). No separate GWP-GHG indicator is given in the results table (the data-quality table references GWP-GHG for A1-A3 but no value is published). Values are per one bearing (0.27 kg).",
+ "_usage": {
+  "input": 26879,
+  "output": 2308
+ }
+}

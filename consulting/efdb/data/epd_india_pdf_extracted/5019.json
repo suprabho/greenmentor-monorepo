@@ -1,0 +1,16 @@
+{
+ "declared_unit": "1000 kg",
+ "gwp_ghg_a1a3": null,
+ "gwp_fossil_a1a3": 990,
+ "gwp_biogenic_a1a3": 5.07,
+ "gwp_total_a1a3": 996,
+ "gwp_unit": "kg CO2 eq.",
+ "modules_reported": "A1-A3",
+ "a1a3_was_summed": false,
+ "confidence": "medium",
+ "note": "The EPD covers four cement products, each with declared unit of 1000 kg. Values reported here are for OPC (Table 4-7): GWP-total 9.96E+02, GWP-fossil 9.90E+02, GWP-biogenic 5.07E+00 kg CO2 eq. Other products: PPC (total 710, fossil 706, biogenic 3.72), PSC (total 487, fossil 485, biogenic 2.62), PCC (total 541, fossil 538, biogenic 2.92). No separate GWP-GHG indicator reported. A1-A3 given as aggregated column.",
+ "_usage": {
+  "input": 54156,
+  "output": 695
+ }
+}

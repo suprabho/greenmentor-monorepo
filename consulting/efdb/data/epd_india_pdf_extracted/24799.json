@@ -1,0 +1,16 @@
+{
+ "declared_unit": "1 m2",
+ "gwp_ghg_a1a3": 5.08,
+ "gwp_fossil_a1a3": 4.98,
+ "gwp_biogenic_a1a3": -0.369,
+ "gwp_total_a1a3": 4.64,
+ "gwp_unit": "kg CO2 eq.",
+ "modules_reported": "A1-A3, A4, A5, B1-B7, C1-C4, D",
+ "a1a3_was_summed": false,
+ "confidence": "high",
+ "note": "Declared unit is 1 m2 of installed plasterboard 13 mm thickness, weight 13 kg/m2, RSL 50 years. GWP-total (Climate Change) = 4.64E+00, GWP-fossil = 4.98E+00, GWP-biogenic = -3.69E-01 from Environmental Impacts table; GWP-GHG = 5.08E+00 from additional voluntary indicators table. A1-A3 reported as aggregated column.",
+ "_usage": {
+  "input": 43448,
+  "output": 510
+ }
+}

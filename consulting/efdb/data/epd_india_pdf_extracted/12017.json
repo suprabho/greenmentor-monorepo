@@ -1,0 +1,16 @@
+{
+ "declared_unit": "1 kg",
+ "gwp_ghg_a1a3": 0.5184,
+ "gwp_fossil_a1a3": 0.527656,
+ "gwp_biogenic_a1a3": 0.003202,
+ "gwp_total_a1a3": 0.531133,
+ "gwp_unit": "kg CO2 eq.",
+ "modules_reported": "A1-A3",
+ "a1a3_was_summed": false,
+ "confidence": "high",
+ "note": "Declared unit is 1 kg of Seal Coat SF 150 (without packaging). GWP-luluc was 0.000191 kg CO2 eq.; GWP-total includes fossil, biogenic and luluc.",
+ "_usage": {
+  "input": 27937,
+  "output": 219
+ }
+}

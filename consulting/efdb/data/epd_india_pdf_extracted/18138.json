@@ -1,0 +1,16 @@
+{
+ "declared_unit": "One bearing unit which consists of one inner ring, one outer ring, rollers and a retainer, corresponding to 6.66 Kg.",
+ "gwp_ghg_a1a3": null,
+ "gwp_fossil_a1a3": null,
+ "gwp_biogenic_a1a3": null,
+ "gwp_total_a1a3": null,
+ "gwp_unit": "kg CO2 eq.",
+ "modules_reported": "Upstream, Core, Downstream (cradle-to-grave)",
+ "a1a3_was_summed": false,
+ "confidence": "low",
+ "note": "This EPD follows PCR 2023:03 and reports results in Upstream/Core/Downstream modules rather than the standard EN 15804 A1-A3 production stage, so no A1-A3 GWP values can be extracted directly. For reference, GWP-fossil totals 5.36E+01, GWP-biogenic 0.00E+00, and GWP-total 5.37E+01 kg CO2 eq. (cradle-to-grave) per declared bearing unit (6.66 kg); Upstream-only GWP-fossil is 3.72E+01 and GWP-total 3.69E+01. These are not equivalent to A1-A3.",
+ "_usage": {
+  "input": 28513,
+  "output": 1248
+ }
+}

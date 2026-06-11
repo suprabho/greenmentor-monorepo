@@ -1,0 +1,16 @@
+{
+ "declared_unit": "1 piece of Partition system measuring 3.0 m x 2.7 m, with 1 m wide opening door incorporated and glass thickness of 10 mm",
+ "gwp_ghg_a1a3": null,
+ "gwp_fossil_a1a3": 324,
+ "gwp_biogenic_a1a3": -0.379,
+ "gwp_total_a1a3": 324,
+ "gwp_unit": "kg CO2 eq.",
+ "modules_reported": "A1-A3, A4, A5, C1, C2, C3, C4, D",
+ "a1a3_was_summed": false,
+ "confidence": "low",
+ "note": "This EPD declares 12 different partition configurations (Models 1-12), each sharing the same declared unit (1 piece, 3.0 x 2.7 m) but with distinctly different A1-A3 GWP values. The values reported here are for Model 1 (Acosoft 40, Single Glazed): Climate Change-total A1-A3 = 3.24E+02, Climate Change-fossil = 3.24E+02, Climate Change-biogenic = -3.79E-01 kg CO2 eq. For reference, A1-A3 GWP-total of the other models ranges roughly from 2.91E+02 (Model 2) to 1.04E+03 (Model 12). No separate GWP-GHG indicator is reported. Confidence low because no single representative value exists across the 12 configurations.",
+ "_usage": {
+  "input": 123866,
+  "output": 1050
+ }
+}

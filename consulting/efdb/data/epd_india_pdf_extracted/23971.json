@@ -1,0 +1,16 @@
+{
+ "declared_unit": "1 m3",
+ "gwp_ghg_a1a3": 463,
+ "gwp_fossil_a1a3": 463,
+ "gwp_biogenic_a1a3": 2.6,
+ "gwp_total_a1a3": 466,
+ "gwp_unit": "kg CO2 eq.",
+ "modules_reported": "A1-A3, A4, A5, B1-B7, C1-C4, D",
+ "a1a3_was_summed": false,
+ "confidence": "high",
+ "note": "Declared unit stated as Ready Mix Concrete (M50,M55,M60 & M70); results reported per 1 m3 of M50 representative product. GWP-GHG (463) and GWP-fossil (463) both shown as 4.63E+02 in respective tables; GWP-total 4.66E+02, GWP-biogenic 2.60E+00.",
+ "_usage": {
+  "input": 40448,
+  "output": 274
+ }
+}

@@ -1,0 +1,16 @@
+{
+ "declared_unit": "1 t",
+ "gwp_ghg_a1a3": 5393,
+ "gwp_fossil_a1a3": 5461,
+ "gwp_biogenic_a1a3": -0.05,
+ "gwp_total_a1a3": 5461,
+ "gwp_unit": "kg CO2 eq.",
+ "modules_reported": "A1-A3, C1-C4, D",
+ "a1a3_was_summed": true,
+ "confidence": "high",
+ "note": "Declared unit is 1 tonne of Zinc Product. Table 11 reports A1, A2, A3 separately; values summed. GWP-total: 688+133+4640=5461; GWP-fossil: 688+133+4640=5461; GWP-biogenic: -0.351-0.125+0.426=-0.05; GWP-GHG: 622+131+4640=5393. Sums consistent with interpretation (Table 15) showing A1-A3 GWP-total ~5.46E+03.",
+ "_usage": {
+  "input": 39587,
+  "output": 562
+ }
+}

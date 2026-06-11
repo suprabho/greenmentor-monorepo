@@ -1,0 +1,16 @@
+{
+ "declared_unit": "1 t",
+ "gwp_ghg_a1a3": null,
+ "gwp_fossil_a1a3": 4280.87,
+ "gwp_biogenic_a1a3": -9.52,
+ "gwp_total_a1a3": 4272.88,
+ "gwp_unit": "kg CO2 eq.",
+ "modules_reported": "A1-A3, A4, A5, C2, C3, C4, D",
+ "a1a3_was_summed": true,
+ "confidence": "medium",
+ "note": "EPD covers two products. Values reported are for ZINCALUME steel (A1+A2+A3 summed): GWP-total=4026.42+16.52+229.94=4272.88; GWP-fossil=4025.87+16.51+238.49=4280.87; GWP-biogenic=-0.64+0+-8.88=-9.52. For COLORBOND steel: GWP-total=4641.47, GWP-fossil=4644.89, GWP-biogenic=-5.19. No separate GWP-GHG indicator reported. Declared unit is 1 tonne.",
+ "_usage": {
+  "input": 54723,
+  "output": 837
+ }
+}

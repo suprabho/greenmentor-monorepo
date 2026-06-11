@@ -1,0 +1,16 @@
+{
+ "declared_unit": "1 m2",
+ "gwp_ghg_a1a3": 49.5,
+ "gwp_fossil_a1a3": 49.5,
+ "gwp_biogenic_a1a3": -40.4,
+ "gwp_total_a1a3": 9.21,
+ "gwp_unit": "kg CO2 eq.",
+ "modules_reported": "A1-A3, A4, A5, C1, C2, C3, C4, D",
+ "a1a3_was_summed": false,
+ "confidence": "high",
+ "note": "Declared unit is 1 m2 of Windor Prime Wall - 100MM Modular Solid Partition, weighing 37.5 kg. GWP-GHG (4.95E+01) from additional indicators table; GWP-fossil, GWP-biogenic and GWP-total from mandatory indicators table.",
+ "_usage": {
+  "input": 27484,
+  "output": 266
+ }
+}

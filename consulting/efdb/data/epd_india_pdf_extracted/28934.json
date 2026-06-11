@@ -1,0 +1,16 @@
+{
+ "declared_unit": "A single 400 kVA Mineral Oil Filled Transformer (including packaging) operating throughout its entire service life, which is 35 years.",
+ "gwp_ghg_a1a3": 5474.1,
+ "gwp_fossil_a1a3": 5929.5,
+ "gwp_biogenic_a1a3": -119.6,
+ "gwp_total_a1a3": 5811.6,
+ "gwp_unit": "kg CO2 eq.",
+ "modules_reported": "A1, A2, A3, A4, A5, B6, C1, C2, C3, C4 (D not declared)",
+ "a1a3_was_summed": true,
+ "confidence": "high",
+ "note": "The results table reports A1, A2 and A3 in separate columns with no aggregated A1-A3 column, so the three modules were summed. GWP-total A1-A3 = 5440+83.6+288 = 5811.6; GWP-fossil = 5560+83.5+286 = 5929.5; GWP-biogenic = -120+0.0277+0.377 = -119.6; GWP-GHG = 5110+83.1+281 = 5474.1. Values are per the single transformer declared unit.",
+ "_usage": {
+  "input": 47151,
+  "output": 706
+ }
+}

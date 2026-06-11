@@ -1,0 +1,16 @@
+{
+ "declared_unit": "1000 kg",
+ "gwp_ghg_a1a3": 4060,
+ "gwp_fossil_a1a3": 4070,
+ "gwp_biogenic_a1a3": -9.13,
+ "gwp_total_a1a3": 4120,
+ "gwp_unit": "kg CO2 eq.",
+ "modules_reported": "A1-A3, C1-C4, D",
+ "a1a3_was_summed": false,
+ "confidence": "high",
+ "note": "Declared unit is 1 tonne (1000 kg) of Continuous Cast Copper Rod. Values from A1-A3 column: GWP-total 4.12E+03, GWP-fossil 4.07E+03, GWP-biogenic -9.13E+00, GWP-GHG 4.06E+03 kg CO2 eq.",
+ "_usage": {
+  "input": 27735,
+  "output": 262
+ }
+}

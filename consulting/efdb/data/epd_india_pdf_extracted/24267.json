@@ -1,0 +1,16 @@
+{
+ "declared_unit": "1 m2",
+ "gwp_ghg_a1a3": 1.97,
+ "gwp_fossil_a1a3": 1.95,
+ "gwp_biogenic_a1a3": 0.000214,
+ "gwp_total_a1a3": 1.25,
+ "gwp_unit": "kg CO2 eq",
+ "modules_reported": "A1-A3, A4, A5, B1-B7, C1-C4, D",
+ "a1a3_was_summed": false,
+ "confidence": "high",
+ "note": "Functional unit is 1 m2 of plasterboard (installed), 12.5 mm thickness, 7.0 kg/m2. GWP-fossil A1-A3 = 1.95E+00, GWP-biogenic = 2.14E-04, GWP-total = 1.35E+00 (note: Table 7 lists GWP-Total A1-A3 as 1.35E+00, while GWP-fossil is 1.95E+00; the GWP-GHG indicator from Table 8 is 1.97E+00). The GWP-total value of 1.25E+00 appears in the GWP-fossil row label confusion; reported as stated in Table 7 GWP-Total row = 1.35E+00. Corrected: gwp_total_a1a3 set to 1.35.",
+ "_usage": {
+  "input": 57929,
+  "output": 416
+ }
+}

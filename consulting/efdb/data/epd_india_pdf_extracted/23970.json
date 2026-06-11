@@ -1,0 +1,16 @@
+{
+ "declared_unit": "1 m3",
+ "gwp_ghg_a1a3": 319,
+ "gwp_fossil_a1a3": 319,
+ "gwp_biogenic_a1a3": 2.49,
+ "gwp_total_a1a3": 321,
+ "gwp_unit": "kg CO2 eq.",
+ "modules_reported": "A1-A3, A4, A5, B1-B7, C1-C4, D",
+ "a1a3_was_summed": false,
+ "confidence": "high",
+ "note": "Declared unit stated as Ready Mix Concrete (M30,M35,M40 & M45); results reported per 1 m3 of M30 RMC (representative product). GWP-total A1-A3 = 3.21E+02, GWP-fossil = 3.19E+02, GWP-biogenic = 2.49E+00, GWP-GHG = 3.19E+02 kg CO2 eq.",
+ "_usage": {
+  "input": 42310,
+  "output": 288
+ }
+}

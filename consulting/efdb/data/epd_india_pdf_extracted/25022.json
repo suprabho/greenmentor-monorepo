@@ -1,0 +1,16 @@
+{
+ "declared_unit": "1 Tyre driven 1,000km, 0.01 per tyre",
+ "gwp_ghg_a1a3": null,
+ "gwp_fossil_a1a3": null,
+ "gwp_biogenic_a1a3": null,
+ "gwp_total_a1a3": 1.4923,
+ "gwp_unit": "kg CO2 eq.",
+ "modules_reported": "A1, A2, A3, A4, B1, C2, C3b",
+ "a1a3_was_summed": true,
+ "confidence": "medium",
+ "note": "The EPD reports a single 'Global warming potential' indicator (kg CO2 eq.) with no breakdown into fossil/biogenic/GHG. A1 (9.04E-01), A2 (9.73E-02) and A3 (4.91E-01) are given in separate columns and were summed to 1.4923 for A1-A3. Total over all declared modules is 2.55E+01. Declared/functional unit is '1 Tyre driven 1,000km, 0.01 per tyre'.",
+ "_usage": {
+  "input": 23468,
+  "output": 505
+ }
+}
