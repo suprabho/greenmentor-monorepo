@@ -40,6 +40,12 @@ class DocumentMetadata(BaseModel):
     notes: Optional[str] = None
     guidance_notes: Optional[str] = None
     clarifying_questions: Optional[list[str]] = None
+    # EPD-specific (populated when document_type == "epd")
+    manufacturer: Optional[str] = None               # owner of the declaration / "declared by"
+    epd_registration_number: Optional[str] = None    # e.g. "S-P-01234"
+    programme_operator: Optional[str] = None         # e.g. "The International EPD System"
+    pcr_reference: Optional[str] = None              # PCR name + version
+    declared_unit: Optional[str] = None              # verbatim declared/functional unit
 
 
 class ScanResult(BaseModel):
@@ -52,6 +58,7 @@ class ScanResult(BaseModel):
     page_count: int
     has_scanned_pages: bool
     document_metadata: Optional[DocumentMetadata] = None
+    document_type: str = "generic"   # "generic" | "epd"
 
 
 class SectionSelection(BaseModel):
@@ -142,6 +149,12 @@ class ExtractedRecord(BaseModel):
     sector_tags: Optional[ExtractionFieldResult] = None
     is_default_ef: Optional[ExtractionFieldResult] = None
     notes: Optional[ExtractionFieldResult] = None
+    # Supplier / EPD provenance
+    source_type: Optional[ExtractionFieldResult] = None
+    supplier_name: Optional[ExtractionFieldResult] = None
+    supplier_country: Optional[ExtractionFieldResult] = None
+    supplier_sector: Optional[ExtractionFieldResult] = None
+    supplier_epd_reference: Optional[ExtractionFieldResult] = None
     # Flags
     has_outlier_values: bool = False
     has_unit_mismatch: bool = False

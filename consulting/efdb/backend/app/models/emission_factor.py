@@ -85,6 +85,12 @@ class EmissionFactor(Base):
     original_ef_value: Mapped[float | None] = mapped_column(Float, nullable=True)
     original_unit: Mapped[str | None] = mapped_column(Text, nullable=True)
     data_origin: Mapped[str] = mapped_column(Text, nullable=False)
+    # Supplier / EPD provenance (populated for EPD-sourced records)
+    source_type: Mapped[str | None] = mapped_column(Text, nullable=True)  # e.g. "Supplier-provided / EPD"
+    supplier_name: Mapped[str | None] = mapped_column(Text, nullable=True)
+    supplier_country: Mapped[str | None] = mapped_column(String(3), nullable=True)  # ISO3
+    supplier_sector: Mapped[str | None] = mapped_column(Text, nullable=True)
+    supplier_epd_reference: Mapped[str | None] = mapped_column(Text, nullable=True)  # EPD registration number
 
     # ── Methodology (6) ───────────────────────────────────────────────────
     calculation_method: Mapped[str] = mapped_column(Text, nullable=False)

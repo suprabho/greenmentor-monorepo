@@ -45,12 +45,19 @@ async def _save_upload(file: UploadFile, user_id: str) -> tuple[str, str]:
 @router.post("/upload/scan", response_model=ScanResult)
 async def upload_and_scan(
     file: UploadFile = File(...),
+    document_type: str = Form("generic"),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_admin),
 ):
-    """Upload a PDF or Excel and return the list of tables/sections found."""
+    """Upload a PDF or Excel and return the list of tables/sections found.
+
+    document_type: "generic" (default) or "epd" — EPDs use EN 15804 / ISO 14025
+    aware extraction prompts (declared unit, lifecycle modules, GWP indicators).
+    """
     if file.size and file.size > settings.max_upload_size_mb * 1024 * 1024:
         raise HTTPException(413, f"File exceeds {settings.max_upload_size_mb}MB limit")
+    if document_type not in ("generic", "epd"):
+        raise HTTPException(422, "document_type must be 'generic' or 'epd'")
 
     file_path, mime_type = await _save_upload(file, str(current_user.id))
     file_size = os.path.getsize(file_path)
@@ -61,6 +68,7 @@ async def upload_and_scan(
         mime_type=mime_type,
         file_size_bytes=file_size,
         uploaded_by=current_user.id,
+        document_type=document_type,
     )
     db.add(doc)
     await db.flush()
@@ -77,9 +85,9 @@ async def upload_and_scan(
 
     # Scan the document to find EF tables/sections
     if "pdf" in mime_type or (file.filename or "").lower().endswith(".pdf"):
-        scan_result = await scan_pdf(file_path, str(doc.id), str(session.id))
+        scan_result = await scan_pdf(file_path, str(doc.id), str(session.id), document_type)
     elif "excel" in mime_type or "spreadsheet" in mime_type or (file.filename or "").lower().endswith((".xlsx", ".xls", ".csv")):
-        scan_result = await scan_excel(file_path, str(doc.id), str(session.id))
+        scan_result = await scan_excel(file_path, str(doc.id), str(session.id), document_type)
     else:
         raise HTTPException(415, "Unsupported file type. Upload a PDF, Excel, or CSV.")
 
@@ -95,13 +103,17 @@ async def upload_and_scan(
 @router.post("/url/scan", response_model=ScanResult)
 async def url_scan(
     url: str = Form(...),
+    document_type: str = Form("generic"),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_admin),
 ):
     """Fetch a URL and scan it for EF tables."""
+    if document_type not in ("generic", "epd"):
+        raise HTTPException(422, "document_type must be 'generic' or 'epd'")
     doc = SourceDocument(
         source_url=url,
         uploaded_by=current_user.id,
+        document_type=document_type,
     )
     db.add(doc)
     await db.flush()
@@ -115,7 +127,7 @@ async def url_scan(
     await db.refresh(doc)
     await db.refresh(session)
 
-    scan_result = await fetch_and_scan_url(url, str(doc.id), str(session.id))
+    scan_result = await fetch_and_scan_url(url, str(doc.id), str(session.id), document_type)
     doc.estimated_tokens = scan_result.estimated_tokens
     doc.estimated_cost_usd = scan_result.estimated_cost_usd
     session.status = SessionStatus.awaiting_review
@@ -150,14 +162,15 @@ async def _run_extraction(session_id: uuid.UUID, doc: SourceDocument, sections: 
     from app.database import AsyncSessionLocal
     async with AsyncSessionLocal() as db:
         session = await _get_session(session_id, db)
+        document_type = doc.document_type or "generic"
         try:
             if doc.file_path:
                 if doc.mime_type and ("pdf" in doc.mime_type or doc.file_path.endswith(".pdf")):
-                    records = await extract_from_pdf(doc.file_path, sections, confirmed_metadata)
+                    records = await extract_from_pdf(doc.file_path, sections, confirmed_metadata, document_type)
                 else:
-                    records = await extract_from_excel(doc.file_path, sections, confirmed_metadata)
+                    records = await extract_from_excel(doc.file_path, sections, confirmed_metadata, document_type)
             else:
-                records = await extract_from_url(doc.source_url, sections, confirmed_metadata)
+                records = await extract_from_url(doc.source_url, sections, confirmed_metadata, document_type)
 
             session.extraction_result = [r.model_dump(mode="json") for r in records]
             session.total_extracted = len(records)
@@ -464,6 +477,12 @@ def _build_ef_from_extraction(raw: dict, session: ExtractionSession, user_id: uu
         original_ef_value=vfloat("original_ef_value"),
         original_unit=v("original_unit"),
         data_origin=v("data_origin") or "secondary",
+        # Supplier / EPD provenance
+        source_type=v("source_type"),
+        supplier_name=v("supplier_name"),
+        supplier_country=(v("supplier_country") or "").upper()[:3] or None,
+        supplier_sector=v("supplier_sector"),
+        supplier_epd_reference=v("supplier_epd_reference"),
         # Methodology
         calculation_method=v("calculation_method") or "activity-based",
         system_boundary=v("system_boundary") or "gate-to-gate",

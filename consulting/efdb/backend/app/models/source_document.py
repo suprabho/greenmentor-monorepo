@@ -10,6 +10,8 @@ class SourceDocument(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     original_filename: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    # "generic" | "epd" — drives which extraction prompts are used
+    document_type: Mapped[str] = mapped_column(Text, nullable=False, default="generic", server_default="generic")
     source_url: Mapped[str | None] = mapped_column(Text, nullable=True)
     file_path: Mapped[str | None] = mapped_column(Text, nullable=True)  # local path or object key
     mime_type: Mapped[str | None] = mapped_column(String(100), nullable=True)

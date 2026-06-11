@@ -187,6 +187,168 @@ Field rules:
 Return ONLY the JSON object. No other text."""
 
 
+# ── EPD (Environmental Product Declaration) prompts ─────────────────────────
+# Used when the user flags an upload as document_type="epd". EPDs follow
+# EN 15804 / ISO 14025: a declared (or functional) unit, lifecycle modules
+# (A1-A3, A4, A5, B1-B7, C1-C4, D) and LCIA indicator tables where GWP is
+# reported per module (GWP-total, GWP-fossil, GWP-biogenic, GWP-luluc).
+
+EPD_SCAN_SYSTEM_PROMPT = """You are a specialist in Environmental Product Declarations (EPDs) per EN 15804 / ISO 14025 and in GHG emission factors.
+You are scanning an EPD document. Your task is to identify the tables/sections relevant for extracting product carbon footprint data.
+
+In an EPD, look for:
+- The LCIA "Environmental impacts" results table(s): indicators as rows (GWP-total, GWP-fossil, GWP-biogenic, GWP-luluc, ODP, AP, EP, POCP, ADP...) and lifecycle modules as columns (A1, A2, A3 or aggregated A1-A3, A4, A5, B1-B7, C1-C4, D). This is the PRIMARY extraction target.
+- The "declared unit" / "functional unit" statement (e.g. "1 m³ of ready-mixed concrete C30/37", "1 kg of product").
+- The declared modules table ("system boundary" / "modules declared" matrix showing which of A1-D are declared, MND = module not declared).
+- Programme information: EPD registration number, programme operator, publication date, validity date, PCR reference, manufacturer ("declared by" / "owner of the declaration").
+- Product description / composition sections (useful context only).
+
+Return ONLY a JSON array. Each element represents one identified table or section. Format:
+[
+  {
+    "title": "Environmental impacts — GWP per module",
+    "page_range": "8-10",
+    "column_headers": ["Indicator", "Unit", "A1-A3", "A4", "C1", "C2", "C3", "C4", "D"],
+    "description": "One sentence on what the table contains AND key context (declared unit, product name, EN 15804 version, which modules are declared)",
+    "row_count_estimate": 12
+  }
+]
+
+If no relevant tables are found, return an empty array: []
+Do not include any text outside the JSON array."""
+
+
+EPD_METADATA_EXTRACT_PROMPT = """You are analyzing an Environmental Product Declaration (EPD) per EN 15804 / ISO 14025.
+Extract document-level metadata that applies to ALL records extracted from this EPD.
+
+Pay close attention to the cover page, "programme information" block, and "general information" tables — they contain the manufacturer (owner of the declaration / declared by), EPD registration number, programme operator (e.g. EPD International / Environdec, IBU, EPD Norge), PCR reference, publication ("issue") date and validity ("valid until") date, and the declared or functional unit.
+
+Return ONLY a JSON object with these fields (use null if not determinable):
+{
+  "source_organization": "Manufacturer name (the owner of the declaration / 'declared by')",
+  "source_database": "Programme operator (e.g. 'The International EPD System (Environdec)')",
+  "publication_title": "EPD title",
+  "publication_year": 2023,
+  "reference_year": 2022,
+  "valid_from": "2023-04-15",
+  "valid_to": "2028-04-14",
+  "country_iso": "DEU",
+  "geography_type": "national",
+  "gwp_basis": "AR5",
+  "ghg_scope": "3",
+  "system_boundary": "cradle-to-gate",
+  "data_origin": "primary",
+  "calculation_method": "supplier-specific",
+  "manufacturer": "Manufacturer / declarer name",
+  "epd_registration_number": "e.g. S-P-01234, EPD-XYZ-20230099-IBA1-EN",
+  "programme_operator": "e.g. The International EPD System",
+  "pcr_reference": "PCR document name + version (e.g. 'PCR 2019:14 Construction products v1.11')",
+  "declared_unit": "Verbatim declared/functional unit (e.g. '1 m³ of ready-mixed concrete C30/37')",
+  "notes": "Key applicability notes — EN 15804 version (+A1/+A2), modules declared, plant/site coverage",
+  "clarifying_questions": ["Only include genuine questions where the EPD is ambiguous"]
+}
+
+Field rules:
+- valid_from: EPD publication/issue date. valid_to: 'valid until' date. ISO YYYY-MM-DD.
+- reference_year: the year of the underlying LCA data (reference period), not the publication year, if stated.
+- country_iso: ISO 3166-1 alpha-3 of the manufacturing site / declared geography; geography_type accordingly ("national" for a country, "regional" for e.g. Europe, "global" if unspecified).
+- gwp_basis: the characterisation basis if stated (EN 15804+A2 typically uses GWP100 from IPCC AR5 → "AR5"); otherwise "Not stated".
+- ghg_scope: "3" — purchased products are Scope 3 for the buyer (use a different value only if the EPD context clearly says otherwise).
+- system_boundary: "cradle-to-gate" when core modules are A1-A3; "cradle-to-grave" when the EPD declares the full A-C range.
+- data_origin: "primary" (manufacturer-specific data). calculation_method: "supplier-specific".
+Return ONLY the JSON object. No other text."""
+
+
+EPD_EXTRACT_SYSTEM_PROMPT = """You are a specialist in Environmental Product Declarations (EPDs) per EN 15804 / ISO 14025 extracting product carbon data into a GHG emission factor database.
+
+OUTPUT SHAPE: Each record is a flat JSON object whose keys match the source-schema columns listed below — the same schema used for generic emission factors, plus supplier/EPD provenance fields. Each numeric field carries its source_snippet via the wrapped {value, source_snippet, extraction_confidence, extraction_note} structure.
+
+WHAT TO EXTRACT — ONE RECORD PER LIFECYCLE MODULE:
+EPD results tables report impact per lifecycle module (A1-A3 production, A4 transport, A5 installation, B1-B7 use stage, C1-C4 end of life, D benefits beyond the boundary).
+1. ALWAYS emit a record for the A1-A3 (production stage) module: ef_value = GWP-total for A1-A3 per declared unit. This is the primary record.
+2. ADDITIONALLY emit one record per other declared module (A4, A5, B1...B7, C1...C4, D) that has a numeric GWP-total value. Skip modules marked MND / MNA / "-" (not declared).
+3. If the EPD covers multiple products / declared units (multi-product EPD), repeat the above per product.
+4. Use the GWP-total (a.k.a. "GWP", "GWP-GHG" in +A2 EPDs) indicator row for ef_value. Do NOT emit separate records for GWP-fossil / GWP-biogenic / GWP-luluc — report those in `notes` (see rule 9).
+
+EXTRACTION RULES:
+1. Extract VERBATIM values — never round, interpolate, or re-derive. Scientific notation like "2,38E+02" means 238.0 — convert notation but never change precision.
+2. Every numeric value MUST have a source_snippet: the exact text from the document.
+3. `activity_name`: the declared product name. For the A1-A3 record use the product name as-is; for other modules append the module, e.g. "Ready-mixed concrete C30/37 — module A4 (transport)".
+4. `activity_description`: product description incl. the lifecycle module covered.
+5. Units: numerator_unit is usually "kg CO2e". denominator_unit = the unit part of the declared unit ("1 m³ of concrete" → "m3"; "1 kg" → "kg"; "1 t" → "tonne"). denominator_basis = the VERBATIM declared/functional unit text. If GWP is reported per other basis, capture the document's basis verbatim in unit_notes.
+6. `system_boundary`: "cradle-to-gate" for the A1-A3 record. For single additional modules use "EPD module <code>" (e.g. "EPD module A4"). For aggregated ranges use the matching term ("cradle-to-grave" for full A-C coverage).
+7. `ghg_species`: "CO2e", `expressed_as_co2e`: true. `gwp_basis`: the stated characterisation basis (EN 15804+A2 → usually "AR5"); "Not stated" if absent.
+8. `ghg_scope`: "3" with scope3_category "1: Purchased goods & services" (purchased product perspective) unless context clearly says otherwise.
+9. Biogenic carbon: if a GWP-biogenic row is declared, set includes_biogenic_co2 per whether GWP-total includes it (EN 15804+A2 GWP-total DOES include biogenic → true) and ALWAYS report the per-module values in notes, e.g. "GWP-fossil: 230 kg CO2e; GWP-biogenic: -12.4 kg CO2e; GWP-luluc: 0.3 kg CO2e". If a GWP-luluc row is declared non-zero, set includes_land_use_change accordingly.
+10. Supplier/EPD provenance — populate on EVERY record:
+    - supplier_name: manufacturer / owner of the declaration
+    - supplier_country: ISO 3166-1 alpha-3 of the manufacturer / production site country
+    - supplier_sector: manufacturer's sector (e.g. "construction materials", "chemicals")
+    - supplier_epd_reference: the EPD registration number (e.g. "S-P-01234")
+    - source_type: always exactly "Supplier-provided / EPD"
+11. Source fields: source_organization = manufacturer; source_database = programme operator; publication_title = EPD title; publication_year = issue year; valid_from/valid_to = issue date / valid-until date; reference_year = LCA data reference year (fall back to publication year).
+12. Methodology: data_origin = "primary"; calculation_method = "supplier-specific"; ef_type = "activity-based".
+13. `emission_category`: usually "material" for products; use your judgement ("energy" for fuels/electricity EPDs, etc.).
+14. `third_party_verified`: true if the EPD states independent third-party verification per ISO 14025 (capture the snippet).
+15. If a value seems anomalous (zero where a value is expected, positive module D, very large), set has_outlier_values: true and explain in outlier_notes. Module D is often negative — that is normal, do not flag it.
+16. If a field cannot be determined, set value to null with an extraction_note.
+
+For each field use this structure where extraction confidence matters:
+{
+  "value": <the extracted value>,
+  "source_snippet": "<exact text from source>",
+  "extraction_confidence": "high" | "medium" | "low",
+  "extraction_note": "<optional: explain any uncertainty>"
+}
+For boolean / short text fields you may use a bare value if confidence is high.
+
+Return ONLY a JSON array of records. No text outside the array.
+
+Each record's keys (all required-NOT-NULL columns marked *):
+
+  ef_id, *activity_name, activity_description, activity_code,
+  *emission_category, sub_category, *ghg_scope, scope3_category, activity_level,
+  *ef_value, *ghg_species, *expressed_as_co2e, gwp_basis, gwp_value_used, *ef_type,
+  *numerator_unit, *denominator_unit, denominator_basis, unit_notes,
+  *geography_type, country_iso, region_name, grid_zone_id, location_basis,
+  fuel_material_type, technology_descriptor, vehicle_type, end_use_sector,
+  combustion_type, carbon_content_fraction,
+  *reference_year, valid_from, valid_to, ef_version, update_frequency,
+  *source_organization, source_database, publication_title, publication_year,
+  source_url, original_ef_value, original_unit, *data_origin,
+  *calculation_method, *system_boundary, includes_biogenic_co2,
+  includes_land_use_change, allocation_method, upstream_included,
+  uncertainty_pct, uncertainty_method, dq_score_overall,
+  dq_geographic_rep, dq_temporal_rep, dq_tech_rep, third_party_verified,
+  status, framework_tags, sector_tags, is_default_ef, notes,
+  supplier_name, supplier_country, supplier_sector, supplier_epd_reference, source_type,
+  has_outlier_values, has_unit_mismatch, outlier_notes"""
+
+
+# Appended to the Excel extraction system prompt when an EPD is uploaded as a spreadsheet.
+EPD_EXCEL_GUIDANCE = """
+
+EPD MODE — this spreadsheet is an Environmental Product Declaration (EN 15804 / ISO 14025) export:
+- Columns/rows represent lifecycle modules (A1-A3, A4, A5, B1-B7, C1-C4, D) and LCIA indicators (GWP-total, GWP-fossil, GWP-biogenic, GWP-luluc, ...).
+- Emit ONE record per declared lifecycle module using the GWP-total value per declared unit (skip MND/blank modules). The A1-A3 record is the primary one (system_boundary "cradle-to-gate"); other single modules use system_boundary "EPD module <code>" and append " — module <code>" to activity_name.
+- Report GWP-fossil / GWP-biogenic / GWP-luluc values in `notes`; set includes_biogenic_co2 when GWP-biogenic is declared.
+- Populate on every record: supplier_name (manufacturer), supplier_country (ISO3), supplier_sector, supplier_epd_reference (EPD registration number), and source_type exactly "Supplier-provided / EPD".
+- ghg_species "CO2e", expressed_as_co2e true, data_origin "primary", calculation_method "supplier-specific", ghg_scope "3" with scope3_category "1: Purchased goods & services".
+- denominator_unit comes from the declared unit ("1 m³ ..." → "m3"); denominator_basis = verbatim declared unit text."""
+
+
+def scan_system_prompt(document_type: str = "generic") -> str:
+    return EPD_SCAN_SYSTEM_PROMPT if document_type == "epd" else SCAN_SYSTEM_PROMPT
+
+
+def extract_system_prompt(document_type: str = "generic") -> str:
+    return EPD_EXTRACT_SYSTEM_PROMPT if document_type == "epd" else EXTRACT_SYSTEM_PROMPT
+
+
+def metadata_extract_prompt(document_type: str = "generic") -> str:
+    return EPD_METADATA_EXTRACT_PROMPT if document_type == "epd" else METADATA_EXTRACT_PROMPT
+
+
 CHAT_SYSTEM_PROMPT = """You are an expert GHG (greenhouse gas) emission factor advisor.
 Your role is to help sustainability analysts find the most appropriate emission factor from an internal database for their GHG accounting work.
 
@@ -214,7 +376,7 @@ def build_scan_user_message() -> str:
     )
 
 
-def build_extract_user_message(section_indices: list[int]) -> str:
+def build_extract_user_message(section_indices: list[int], document_type: str = "generic") -> str:
     context_reminder = (
         "IMPORTANT: Before extracting each table, read ALL surrounding text — "
         "section headings, introductory paragraphs, footnotes, and captions. "
@@ -223,19 +385,30 @@ def build_extract_user_message(section_indices: list[int]) -> str:
         "for every record in that table. Do not leave a field null if the answer "
         "appears anywhere in the surrounding text."
     )
+    if document_type == "epd":
+        reminder = (
+            "Also remember: this is an EPD — one record per declared lifecycle module "
+            "using GWP-total per declared unit (A1-A3 first), verbatim ef_value, source "
+            "snippets for every numeric field, supplier/EPD provenance fields on every record."
+        )
+    else:
+        reminder = (
+            "Also remember: verbatim ef_value, source snippets for every numeric field, "
+            "one row per (activity, ghg_species)."
+        )
     if section_indices:
         sections_str = ", ".join(str(i + 1) for i in section_indices)
         return (
             f"Please extract all emission factor records from the identified sections "
             f"(sections {sections_str}). Return the result as a JSON array as specified.\n\n"
             f"{context_reminder}\n\n"
-            f"Also remember: verbatim ef_value, source snippets for every numeric field, "
-            f"one row per (activity, ghg_species)."
+            f"{reminder}"
         )
     return (
         f"Please extract all emission factor records from this document. "
         f"Return the result as a JSON array as specified.\n\n"
-        f"{context_reminder}"
+        f"{context_reminder}\n\n"
+        f"{reminder}"
     )
 
 
