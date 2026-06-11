@@ -9,6 +9,9 @@ primary_region = 'iad'
 [build]
   dockerfile = 'Dockerfile.prod'
 
+[deploy]
+  release_command = 'alembic upgrade head'
+
 [env]
   CORS_ORIGINS = 'https://efdb-kappa.vercel.app'
   UPLOAD_DIR = '/data/uploads'
