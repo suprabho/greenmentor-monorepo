@@ -1,0 +1,16 @@
+{
+ "declared_unit": "1 t",
+ "gwp_ghg_a1a3": null,
+ "gwp_fossil_a1a3": 2860.6,
+ "gwp_biogenic_a1a3": -0.61911,
+ "gwp_total_a1a3": 2859.6,
+ "gwp_unit": "kg CO2 eq.",
+ "modules_reported": "A1-A3, C1-C4, D",
+ "a1a3_was_summed": true,
+ "confidence": "high",
+ "note": "Declared unit is 1 tonne of Steel Hot Rolled Coil. Table 11 reports A1, A2, A3 separately; values summed: GWP-total = 324+95.6+2440 = 2859.6 (matches interpretation text 2859.60); GWP-fossil = 325+95.6+2440 = 2860.6; GWP-biogenic = -0.546-0.00201-0.0711 = -0.619. No separate GWP-GHG indicator reported.",
+ "_usage": {
+  "input": 45462,
+  "output": 478
+ }
+}

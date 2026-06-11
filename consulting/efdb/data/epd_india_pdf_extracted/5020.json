@@ -1,0 +1,16 @@
+{
+ "declared_unit": "1 t",
+ "gwp_ghg_a1a3": null,
+ "gwp_fossil_a1a3": 3058.3,
+ "gwp_biogenic_a1a3": -0.50648,
+ "gwp_total_a1a3": 3058.3,
+ "gwp_unit": "kg CO2 eq.",
+ "modules_reported": "A1-A3, C1-C4, D",
+ "a1a3_was_summed": true,
+ "confidence": "high",
+ "note": "Declared unit is 1 tonne. Table 11 reports A1, A2, A3 separately; summed for A1-A3. GWP-total: 3000+32.6+25.7=3058.3; GWP-fossil identical components; GWP-biogenic: -0.406-0.00668-0.0938=-0.50648. No separate GWP-GHG indicator reported (EN 15804+A2 with GWP-total/fossil/biogenic/luluc).",
+ "_usage": {
+  "input": 45474,
+  "output": 505
+ }
+}

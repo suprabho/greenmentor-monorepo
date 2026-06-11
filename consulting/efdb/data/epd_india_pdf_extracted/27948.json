@@ -1,0 +1,16 @@
+{
+ "declared_unit": "1 t",
+ "gwp_ghg_a1a3": 4420,
+ "gwp_fossil_a1a3": 4110,
+ "gwp_biogenic_a1a3": 300,
+ "gwp_total_a1a3": 4420,
+ "gwp_unit": "kg CO2 eq.",
+ "modules_reported": "A1-A3, C1, C2, C3, C4",
+ "a1a3_was_summed": false,
+ "confidence": "high",
+ "note": "Declared unit is 1 tonne of ER 1851 plus delivery packaging. GWP-total A1-A3 = 4.42E+03, GWP-fossil = 4.11E+03, GWP-biogenic = 3.00E+02, GWP-GHG = 4.42E+03 kg CO2 eq. Modules A4, A5, B1-B7 and D excluded.",
+ "_usage": {
+  "input": 38572,
+  "output": 275
+ }
+}

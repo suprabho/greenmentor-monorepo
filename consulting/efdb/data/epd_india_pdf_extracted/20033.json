@@ -1,0 +1,16 @@
+{
+ "declared_unit": "a single piece of transformer (including packaging) operating for 35 years",
+ "gwp_ghg_a1a3": null,
+ "gwp_fossil_a1a3": null,
+ "gwp_biogenic_a1a3": null,
+ "gwp_total_a1a3": null,
+ "gwp_unit": "kg CO2 eq.",
+ "modules_reported": "Upstream, Core, Downstream (cradle to grave)",
+ "a1a3_was_summed": false,
+ "confidence": "low",
+ "note": "This EPD follows PCR 2019:12 for liquid immersed transformers and reports results by Upstream / Core / Downstream modules rather than the standard EN 15804 A1-A3 production-stage modules. No A1-A3 GWP values are provided. For reference, total cradle-to-grave GWP: GWP-fossil 3.57E+04, GWP-biogenic 1.09E+02, GWP-total 3.69E+04, GWP-GHG 3.70E+04 kg CO2 eq. per declared unit (whole transformer over 35 years). A1-A3 fields set to null because they are not reported as such.",
+ "_usage": {
+  "input": 23691,
+  "output": 865
+ }
+}

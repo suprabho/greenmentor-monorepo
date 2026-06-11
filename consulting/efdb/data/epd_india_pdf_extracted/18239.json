@@ -1,0 +1,16 @@
+{
+ "declared_unit": "One bearing unit which consists of one inner ring, one outer ring, rollers, ring, seal, spacer and cage corresponding to 22.73 Kg",
+ "gwp_ghg_a1a3": null,
+ "gwp_fossil_a1a3": 157.3,
+ "gwp_biogenic_a1a3": -3.392,
+ "gwp_total_a1a3": 154.3,
+ "gwp_unit": "kg CO2 eq.",
+ "modules_reported": "Upstream, Core, Downstream (cradle-to-grave)",
+ "a1a3_was_summed": true,
+ "confidence": "medium",
+ "note": "This EPD follows PCR 2023:03 using modular stages Upstream / Core / Downstream rather than standard EN 15804 A1-A3 modules. The data-quality table labels Upstream+Core as 'A1-A3', so production-stage GWP values were obtained by summing the Upstream and Core columns: GWP-fossil = 116 + 41.3 = 157.3; GWP-total = 113 + 41.3 = 154.3; GWP-biogenic = -3.38 + (-0.012) = -3.392 kg CO2 eq. A separate GWP-GHG indicator is not reported (only the note states electricity grid GWP-GHG = 1.01 kg CO2 eq./kWh). Reported TOTAL (cradle-to-grave incl. downstream): fossil 158, biogenic 0.00, total 158 kg CO2 eq.",
+ "_usage": {
+  "input": 27066,
+  "output": 2346
+ }
+}

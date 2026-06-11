@@ -1,0 +1,16 @@
+{
+ "declared_unit": "1 litre",
+ "gwp_ghg_a1a3": null,
+ "gwp_fossil_a1a3": null,
+ "gwp_biogenic_a1a3": null,
+ "gwp_total_a1a3": null,
+ "gwp_unit": "kg CO2 eq.",
+ "modules_reported": "A1-A3",
+ "a1a3_was_summed": false,
+ "confidence": "low",
+ "note": "This EPD covers 21 separate solvent-based paint products, each with its own cradle-to-gate (A1-A3) LCIA table reporting only a single Global Warming Potential (GWP 100 years, CML) value (no fossil/biogenic/GHG split). There is no single aggregated GWP for the declaration, so no single value can be extracted. Each product table gives A1, A2, A3 and a Total column; the Total represents A1-A3. Example per-product GWP totals (kg CO2-Equiv per 1 litre): Butterfly GP Enamel 1.72, Luxol High Gloss 1.90, Luxol Lustre 2.17, Luxol Satin 1.64, Luxol Xtra 2.35, Luxol Satin Xtra 1.86, Luxol 7in1 1.96, BP Cement Primer 1.63, BP White Primer 1.38, Parrot Wood Primer 1.42, Red Oxide Primer 1.13, BP Zinc Yellow Primer 1.13, Luxol QD1K Epoxy Primer 3.07, Melamine Sealer 2.44, Melamine Fin 2.08, Woodkeeper 1.71, Imperia 5.35, Imperia Gold 5.42, Epoxy Block Primer 5.89, Melamine Matt 2.44, Melamine Gloss 2.18. Values not aggregated due to multiple products.",
+ "_usage": {
+  "input": 94925,
+  "output": 940
+ }
+}

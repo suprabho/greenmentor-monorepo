@@ -1,0 +1,16 @@
+{
+ "declared_unit": "1 t",
+ "gwp_ghg_a1a3": null,
+ "gwp_fossil_a1a3": 47.4,
+ "gwp_biogenic_a1a3": 0.424,
+ "gwp_total_a1a3": 47.9,
+ "gwp_unit": "kg CO2 eq.",
+ "modules_reported": "A1-A3, C1, C2, C3, C4, D",
+ "a1a3_was_summed": false,
+ "confidence": "high",
+ "note": "Declared unit is 1 tonne of product. GWP values taken from Table 4-7 A1-A3 column: Climate Change-total 4.79E+01, fossil 4.74E+01, biogenic 4.24E-01. GWP-GHG indicator not reported separately.",
+ "_usage": {
+  "input": 34951,
+  "output": 244
+ }
+}

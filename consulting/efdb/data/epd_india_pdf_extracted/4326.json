@@ -1,0 +1,16 @@
+{
+ "declared_unit": "1000 kg",
+ "gwp_ghg_a1a3": null,
+ "gwp_fossil_a1a3": null,
+ "gwp_biogenic_a1a3": null,
+ "gwp_total_a1a3": null,
+ "gwp_unit": "kg CO2 eq.",
+ "modules_reported": "A1-A3, C1, C2, C3, C4, D",
+ "a1a3_was_summed": false,
+ "confidence": "low",
+ "note": "Declared unit is stated as 1000 kg (1 tonne) of the 'Average of 10 Finished Long Products', but the EPD does not present a single aggregated/average GWP result. Instead it reports separate A1-A3 results for each individual product across three plants, e.g. Vijayanagar TMT Bar GWP-total = 2.42E+03, Wire Rod = 2.59E+03; Dolvi TMT Bar = 3.25E+03; Salem Hot Rolled Bar/Wire Rod Coil/Hexagon products = 2.87E+03 (GWP-fossil 2.91E+03, GWP-biogenic -3.60E+01), RCS = 3.00E+03, Heat Treated Bar/Wire Rod Coil = 3.07E+03 (kg CO2 eq.). Because no representative average value is given, single GWP figures cannot be reported unambiguously.",
+ "_usage": {
+  "input": 98433,
+  "output": 974
+ }
+}

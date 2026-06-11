@@ -1,0 +1,16 @@
+{
+ "declared_unit": "1 litre",
+ "gwp_ghg_a1a3": null,
+ "gwp_fossil_a1a3": null,
+ "gwp_biogenic_a1a3": null,
+ "gwp_total_a1a3": null,
+ "gwp_unit": "kg CO2 eq.",
+ "modules_reported": "A1-A3",
+ "a1a3_was_summed": false,
+ "confidence": "low",
+ "note": "This EPD covers 49 distinct water-based paint products, each with its own cradle-to-gate (A1-A3) LCIA table reporting a single 'Global Warming Potential (GWP 100 years)' indicator (CML method, kg CO2-Equiv.). There is no single aggregated GWP value for the declared unit (1 litre paint including packaging), so GWP fields are left null. Example individual A1-A3 'Total' GWP values: Bison Acrylic Emulsion 7.06E-01, Easy Clean 1.64E+00, Silk 2.03E+00, Weathercoat All Guard 1.49E+00 kg CO2-Equiv. per litre. Each product table already provides an aggregated 'Total' (A1+A2+A3) column. Only GWP-total is reported (no separate fossil/biogenic/GWP-GHG split, as this is an EN 15804:2012+A1 EPD using CML).",
+ "_usage": {
+  "input": 182448,
+  "output": 976
+ }
+}

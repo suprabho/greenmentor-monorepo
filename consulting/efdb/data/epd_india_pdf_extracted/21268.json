@@ -1,0 +1,16 @@
+{
+ "declared_unit": "1000 kg",
+ "gwp_ghg_a1a3": 3490,
+ "gwp_fossil_a1a3": 3490,
+ "gwp_biogenic_a1a3": 0,
+ "gwp_total_a1a3": 3490,
+ "gwp_unit": "kg CO2 eq.",
+ "modules_reported": "A1-A3, C1, C2, C3, C4, D",
+ "a1a3_was_summed": false,
+ "confidence": "high",
+ "note": "Declared unit is 1 Tonne (1000 kg) Tata Steel Average Galvanised Steel. GWP-GHG, GWP-fossil and GWP-total all reported as 3.49E+03 kg CO2 eq. for A1-A3; GWP-biogenic is 0.00E+00.",
+ "_usage": {
+  "input": 33122,
+  "output": 255
+ }
+}

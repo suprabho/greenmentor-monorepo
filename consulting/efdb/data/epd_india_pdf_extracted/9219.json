@@ -1,0 +1,16 @@
+{
+ "declared_unit": "1 m2",
+ "gwp_ghg_a1a3": null,
+ "gwp_fossil_a1a3": 2.67,
+ "gwp_biogenic_a1a3": -1.22,
+ "gwp_total_a1a3": 1.46,
+ "gwp_unit": "kg CO2 eq.",
+ "modules_reported": "A1-A3, A5, C1-C4, D",
+ "a1a3_was_summed": false,
+ "confidence": "high",
+ "note": "Declared unit is 1 m2 of 0.7 mm HPL. GWP values from Table 4-7: Climate Change total = 1.46E+00, fossil = 2.67E+00, biogenic = -1.22E+00. No separate GWP-GHG indicator reported. A land use change subcategory (1.19E-02) also exists but not the main fossil/biogenic/total split.",
+ "_usage": {
+  "input": 34543,
+  "output": 279
+ }
+}

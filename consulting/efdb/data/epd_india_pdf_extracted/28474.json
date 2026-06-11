@@ -1,0 +1,16 @@
+{
+ "declared_unit": "A single 500 kVA Vegetable Oil Filled Transformer (including packaging) operating throughout its entire service life, which is 35 years.",
+ "gwp_ghg_a1a3": 7541,
+ "gwp_fossil_a1a3": 9535,
+ "gwp_biogenic_a1a3": -1466.16,
+ "gwp_total_a1a3": 9149,
+ "gwp_unit": "kg CO2 eq.",
+ "modules_reported": "A1-A3, A4, A5, B6, C1-C4 (D not declared)",
+ "a1a3_was_summed": true,
+ "confidence": "high",
+ "note": "Results tables report A1, A2 and A3 in separate columns with no aggregated A1-A3 column, so values were summed. GWP-total: 8.78E+03+1.28E+02+2.41E+02=9149; GWP-fossil: 9.17E+03+1.28E+02+2.37E+02=9535; GWP-biogenic: -1.47E+03+4.00E-02+3.80E+00=-1466.16; GWP-GHG (additional mandatory): 7.18E+03+1.27E+02+2.34E+02=7541.",
+ "_usage": {
+  "input": 47301,
+  "output": 760
+ }
+}

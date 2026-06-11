@@ -1,0 +1,16 @@
+{
+ "declared_unit": "1 kg",
+ "gwp_ghg_a1a3": 1.26,
+ "gwp_fossil_a1a3": 1.26,
+ "gwp_biogenic_a1a3": 0.0399,
+ "gwp_total_a1a3": 1.3,
+ "gwp_unit": "kg CO2 eq.",
+ "modules_reported": "A1-A3, C1-C4, D",
+ "a1a3_was_summed": false,
+ "confidence": "high",
+ "note": "GWP-luluc A1-A3 is 2.41E-03. GWP-GHG (1.26) reported in additional indicators table; GWP-fossil also 1.26E+00.",
+ "_usage": {
+  "input": 30915,
+  "output": 211
+ }
+}

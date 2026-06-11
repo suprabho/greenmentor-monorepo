@@ -1,0 +1,16 @@
+{
+ "declared_unit": "1 m2",
+ "gwp_ghg_a1a3": null,
+ "gwp_fossil_a1a3": null,
+ "gwp_biogenic_a1a3": null,
+ "gwp_total_a1a3": 3.9,
+ "gwp_unit": "kg CO2 equiv/FU",
+ "modules_reported": "A1-A3, A4, A5, B1-B7, C1-C4, D",
+ "a1a3_was_summed": false,
+ "confidence": "high",
+ "note": "EPD reports a single Global Warming Potential (GWP 100, CML 2001) indicator for the combined A1/A2/A3 product stage = 3.9E+00 kg CO2 equiv per declared unit (1 m2 of 12.5mm plasterboard). No separate GWP-fossil/biogenic/GHG breakdown given (older EN 15804+A1 format). The summary chart rounds A1-A3 to 3.86.",
+ "_usage": {
+  "input": 40659,
+  "output": 542
+ }
+}

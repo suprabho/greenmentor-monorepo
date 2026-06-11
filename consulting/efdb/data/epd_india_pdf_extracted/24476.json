@@ -1,0 +1,16 @@
+{
+ "declared_unit": "1 t",
+ "gwp_ghg_a1a3": 3430,
+ "gwp_fossil_a1a3": 3440,
+ "gwp_biogenic_a1a3": -69.4,
+ "gwp_total_a1a3": 3370,
+ "gwp_unit": "kg CO2 eq.",
+ "modules_reported": "A1-A3, A5, C1-C4, D",
+ "a1a3_was_summed": false,
+ "confidence": "high",
+ "note": "Declared unit is 1 tonne of average High Security Safe. GWP-GHG = 3.43E+03; GWP-fossil = 3.44E+03; GWP-biogenic = -6.94E+01; GWP-total = 3.37E+03, all per 1 tonne for A1-A3.",
+ "_usage": {
+  "input": 32450,
+  "output": 249
+ }
+}

@@ -1,0 +1,16 @@
+{
+ "declared_unit": "1000 kg",
+ "gwp_ghg_a1a3": 3950,
+ "gwp_fossil_a1a3": 3950,
+ "gwp_biogenic_a1a3": 0,
+ "gwp_total_a1a3": 3950,
+ "gwp_unit": "kg CO2 eq.",
+ "modules_reported": "Upstream, Core (cradle-to-gate)",
+ "a1a3_was_summed": false,
+ "confidence": "high",
+ "note": "EPD uses PCR 2023:01 'Upstream' and 'Core' module structure rather than standard A1-A3; values reported are the 'Total' column (Upstream+Core) per 1 Tonne (1000 kg). GWP-total, GWP-fossil and GWP-GHG all equal 3.95E+03 kg CO2 eq.; GWP-biogenic is 0.",
+ "_usage": {
+  "input": 24360,
+  "output": 525
+ }
+}

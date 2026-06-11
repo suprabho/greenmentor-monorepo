@@ -1,0 +1,16 @@
+{
+ "declared_unit": "1 t",
+ "gwp_ghg_a1a3": 5270,
+ "gwp_fossil_a1a3": 5090,
+ "gwp_biogenic_a1a3": 168,
+ "gwp_total_a1a3": 5270,
+ "gwp_unit": "kg CO2 eq.",
+ "modules_reported": "A1-A3, C1, C2, C3, C4",
+ "a1a3_was_summed": false,
+ "confidence": "high",
+ "note": "Declared unit is 1 tonne of Jargal plus delivery packaging. GWP-total A1-A3 = 5,27E+03; GWP-fossil = 5,09E+03; GWP-biogenic = 1,68E+02; GWP-GHG = 5,27E+03 kg CO2 eq.",
+ "_usage": {
+  "input": 40183,
+  "output": 252
+ }
+}

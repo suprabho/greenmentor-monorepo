@@ -1,0 +1,16 @@
+{
+ "declared_unit": "1 t",
+ "gwp_ghg_a1a3": null,
+ "gwp_fossil_a1a3": 2784.1,
+ "gwp_biogenic_a1a3": -24.02,
+ "gwp_total_a1a3": 2762.88,
+ "gwp_unit": "kg CO2 eq",
+ "modules_reported": "A1-A3, C1-C4, D",
+ "a1a3_was_summed": false,
+ "confidence": "high",
+ "note": "Declared unit is 1 ton of Steel Rebar. The Total [A1+A2+A3] column is provided directly. Climate change-Total A1-A3 = 2762.88, Climate change-Fossil A1-A3 = 2784.10, Climate change-Biogenic A1-A3 = -24.02. No separate GWP-GHG indicator reported in the impact table.",
+ "_usage": {
+  "input": 35413,
+  "output": 274
+ }
+}

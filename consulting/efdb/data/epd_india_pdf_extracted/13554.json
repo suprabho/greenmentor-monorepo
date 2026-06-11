@@ -1,0 +1,16 @@
+{
+ "declared_unit": "1 t",
+ "gwp_ghg_a1a3": 2960,
+ "gwp_fossil_a1a3": 2970,
+ "gwp_biogenic_a1a3": 0,
+ "gwp_total_a1a3": 2970,
+ "gwp_unit": "kg CO2 eq.",
+ "modules_reported": "A1-A3, C1-C4, D",
+ "a1a3_was_summed": false,
+ "confidence": "high",
+ "note": "Declared unit is 1 Tonne Steel Plate. GWP-total and GWP-fossil both 2.97E+03; GWP-biogenic 0.00E+00; GWP-GHG indicator 2.96E+03 kg CO2 eq. from additional indicators table.",
+ "_usage": {
+  "input": 28858,
+  "output": 237
+ }
+}

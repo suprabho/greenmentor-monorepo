@@ -1,0 +1,16 @@
+{
+ "declared_unit": "1 piece of Entropy workstation with varying pax configuration",
+ "gwp_ghg_a1a3": null,
+ "gwp_fossil_a1a3": null,
+ "gwp_biogenic_a1a3": null,
+ "gwp_total_a1a3": null,
+ "gwp_unit": "kg CO2 eq.",
+ "modules_reported": "Upstream, Core, Downstream (cradle-to-grave per PCR 2012:19, not EN 15804 A1-A3 modular format)",
+ "a1a3_was_summed": false,
+ "confidence": "low",
+ "note": "This EPD does not report results in the standard EN 15804 A1-A3 module format. Instead it uses the PCR 2012:19 structure of Upstream / Core / Downstream modules, and presents 8 separate workstation models (Model 1-8) each with its own GWP values per declared unit (1 piece). Because there is no single A1-A3 column and no single declared product, the A1-A3 GWP values cannot be unambiguously extracted. For reference, Model 1 GWP-total = Upstream 213 + Core 15 + Downstream -106 kg CO2 eq.; GWP-fossil = 325 + 15 - 110; GWP-biogenic = -113 + ~0 + 3.71. These are not aggregated A1-A3 figures.",
+ "_usage": {
+  "input": 53177,
+  "output": 988
+ }
+}

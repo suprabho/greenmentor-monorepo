@@ -1,0 +1,16 @@
+{
+ "declared_unit": "1 m2",
+ "gwp_ghg_a1a3": null,
+ "gwp_fossil_a1a3": 9.21,
+ "gwp_biogenic_a1a3": 0.474,
+ "gwp_total_a1a3": 9.71,
+ "gwp_unit": "kg CO2 eq.",
+ "modules_reported": "A1-A3, A4, A5, B1-B7, C1-C4, D",
+ "a1a3_was_summed": false,
+ "confidence": "high",
+ "note": "Values from Environmental Impacts table, A1/A2/A3 column. 'Climate Change' total = 9.71 (= fossil 9.21 + biogenic 0.474 + land use change 0.0285). No separate GWP-GHG indicator value is reported (only referenced in primary-data share table), so gwp_ghg_a1a3 is null. A1, A2, A3 reported in a single combined column.",
+ "_usage": {
+  "input": 50261,
+  "output": 651
+ }
+}

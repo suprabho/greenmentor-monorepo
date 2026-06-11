@@ -1,0 +1,16 @@
+{
+ "declared_unit": "1000 kg",
+ "gwp_ghg_a1a3": 1949.22,
+ "gwp_fossil_a1a3": 1919.48,
+ "gwp_biogenic_a1a3": 44.48,
+ "gwp_total_a1a3": 1968.07,
+ "gwp_unit": "kg CO2 eq.",
+ "modules_reported": "A1-A3, C1, C2, C3, C4, D",
+ "a1a3_was_summed": false,
+ "confidence": "high",
+ "note": "Values taken from the Environmental Performance table (Total A1-A3 column). GWP-GHG = 1949.22, GWP-fossil = 1919.48, GWP-biogenic = 44.48, GWP-total = 1968.07.",
+ "_usage": {
+  "input": 32368,
+  "output": 239
+ }
+}

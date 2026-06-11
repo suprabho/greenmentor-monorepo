@@ -1,0 +1,16 @@
+{
+ "declared_unit": "1 kg",
+ "gwp_ghg_a1a3": 3.82,
+ "gwp_fossil_a1a3": 3.25,
+ "gwp_biogenic_a1a3": -1.16,
+ "gwp_total_a1a3": 2.62,
+ "gwp_unit": "kg CO2 eq.",
+ "modules_reported": "Upstream, Core, Downstream (cradle-to-grave)",
+ "a1a3_was_summed": false,
+ "confidence": "low",
+ "note": "This EPD does not use the standard EN 15804 A1-A3 module labelling. Instead it reports cradle-to-grave results split into Upstream, Core and Downstream modules. Declared unit is 1 kg of product including packaging. The values given here are the overall TOTAL (cradle-to-grave) column: GWP-fossil 3.25, GWP-biogenic -1.16, GWP-total 2.62, GWP-GHG 3.82 (kg CO2 eq.). These are not strictly A1-A3 production-stage values. If a production-stage equivalent (Upstream+Core) is needed: GWP-fossil ~3.03, GWP-biogenic ~-1.16, GWP-total ~2.39, GWP-GHG ~3.60.",
+ "_usage": {
+  "input": 28575,
+  "output": 1656
+ }
+}

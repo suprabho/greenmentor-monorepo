@@ -1,0 +1,16 @@
+{
+ "declared_unit": "The processing of hot rolled, pickled low carbon steel strip into cold rolled steel using a 6HI Single Stand Reversing Cold Rolling Mill during a expected lifetime of 30 years under the specified operational set-up.",
+ "gwp_ghg_a1a3": null,
+ "gwp_fossil_a1a3": null,
+ "gwp_biogenic_a1a3": null,
+ "gwp_total_a1a3": null,
+ "gwp_unit": "kg CO2 eq.",
+ "modules_reported": "Upstream, Core, Downstream (cradle-to-grave)",
+ "a1a3_was_summed": false,
+ "confidence": "high",
+ "note": "This EPD follows the PCR 2022:09 (Presses for working metal) and reports results by life-cycle phase (Upstream / Core / Downstream), not by EN 15804 modules A1-A3. There is no A1-A3 production-stage column, so A1-A3 GWP values cannot be extracted. For reference, total cradle-to-grave GWP-total is 3.12E+08 kg CO2 eq. per declared unit (Upstream 9.27E+06, Core 2.76E+06, Downstream 3.00E+08). The 'Upstream' phase (cradle-to-gate) GWP-total is 9.27E+06 and GWP-fossil 9.16E+06, but these are not equivalent to A1-A3.",
+ "_usage": {
+  "input": 43265,
+  "output": 843
+ }
+}

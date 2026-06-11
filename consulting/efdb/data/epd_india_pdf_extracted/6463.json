@@ -1,0 +1,16 @@
+{
+ "declared_unit": "1 m2",
+ "gwp_ghg_a1a3": null,
+ "gwp_fossil_a1a3": 6.29,
+ "gwp_biogenic_a1a3": -0.313,
+ "gwp_total_a1a3": 6.0,
+ "gwp_unit": "kg CO2 eq.",
+ "modules_reported": "A1-A3, A4, A5, B1-B7, C1-C4, D",
+ "a1a3_was_summed": false,
+ "confidence": "high",
+ "note": "Values from the EN 15804+A2 results table (page 12), A1/A2/A3 column. 'Climate Change' (6.00) is the total GWP (= fossil 6.29 + biogenic -0.313 + land use change 0.0232). No separate GWP-GHG indicator reported, so gwp_ghg_a1a3 is null. There is also a Climate Change (land use change) value of 0.0232 not requested here.",
+ "_usage": {
+  "input": 44236,
+  "output": 678
+ }
+}

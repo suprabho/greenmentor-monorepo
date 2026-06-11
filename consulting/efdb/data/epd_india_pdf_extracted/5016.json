@@ -1,0 +1,16 @@
+{
+ "declared_unit": "1 piece of Double Glazed Silent Box (L x W x H: 1.2 m x 1.2 m x 2.1 m)",
+ "gwp_ghg_a1a3": null,
+ "gwp_fossil_a1a3": 1950,
+ "gwp_biogenic_a1a3": -262,
+ "gwp_total_a1a3": 1690,
+ "gwp_unit": "kg CO2 eq.",
+ "modules_reported": "A1-A3, A4, A5, C1, C2, C3, D",
+ "a1a3_was_summed": false,
+ "confidence": "high",
+ "note": "Values from Table 10. GWP-total A1-A3 = 1.69E+03, GWP-fossil = 1.95E+03, GWP-biogenic = -2.62E+02 kg CO2 eq. Note GWP-fossil exceeds GWP-total because biogenic is negative. GWP-GHG indicator not separately reported. Module C4 listed in module table but not in results columns.",
+ "_usage": {
+  "input": 35607,
+  "output": 324
+ }
+}

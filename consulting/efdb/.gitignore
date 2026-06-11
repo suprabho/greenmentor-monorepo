@@ -31,3 +31,6 @@ backend/uploads/
 .vscode/
 .idea/
 *.swp
+
+# cached EPD PDF downloads (~120MB, re-fetchable from environdec)
+data/epd_india_pdfs/

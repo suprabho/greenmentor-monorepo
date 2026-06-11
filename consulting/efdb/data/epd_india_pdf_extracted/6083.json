@@ -1,0 +1,16 @@
+{
+ "declared_unit": "1 m2",
+ "gwp_ghg_a1a3": null,
+ "gwp_fossil_a1a3": null,
+ "gwp_biogenic_a1a3": null,
+ "gwp_total_a1a3": null,
+ "gwp_unit": "kg CO2-eq",
+ "modules_reported": "A1-A3, C2, C4, D",
+ "a1a3_was_summed": false,
+ "confidence": "low",
+ "note": "This EPD covers many distinct products (fiber cement boards of thicknesses 4-25 mm produced at three plants: MLG, JJR, DND), each with its own A1-A3 GWP value per 1 m2 declared unit. There is no single aggregated GWP value. The GWP (CML method, labelled 'Global warming potential (GWP)') A1-A3 values range from ~3.53 kg CO2-eq (4 mm DND) up to ~25.6 kg CO2-eq (25 mm MLG). For example, the first table (4 mm board at MLG) reports A1-A3 GWP = 4.126312048 kg CO2-eq. The EPD reports only a single total GWP indicator and does not separate GWP into fossil, biogenic, or GWP-GHG components. A single representative value cannot be selected, hence gwp_total_a1a3 is left null.",
+ "_usage": {
+  "input": 190032,
+  "output": 948
+ }
+}

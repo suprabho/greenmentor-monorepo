@@ -1,0 +1,16 @@
+{
+ "declared_unit": "1 m3",
+ "gwp_ghg_a1a3": null,
+ "gwp_fossil_a1a3": null,
+ "gwp_biogenic_a1a3": null,
+ "gwp_total_a1a3": null,
+ "gwp_unit": "kg CO2 eq.",
+ "modules_reported": "A1-A3, A4, C1-C4, D",
+ "a1a3_was_summed": false,
+ "confidence": "low",
+ "note": "This EPD declares 1 m3 of ready-mix concrete but reports separate A1-A3 results for many concrete grades (M-7.5 to M-60), with no single aggregated value, so a unique GWP cannot be given. GWP-total A1-A3 ranges by grade: M7.5=96.8, M10=100, M20=166, M25=171, M30=245, M35=257, M40=256, M45=317, M50=451, M60=480 kg CO2 eq. Corresponding GWP-fossil ranges 96.3 (M7.5) to 479 (M60) and GWP-biogenic ranges 0.446 (M7.5) to ~2.76 (M45). Values left null because no representative/aggregate grade is defined.",
+ "_usage": {
+  "input": 118556,
+  "output": 1050
+ }
+}

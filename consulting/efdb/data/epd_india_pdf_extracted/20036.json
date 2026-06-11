@@ -1,0 +1,16 @@
+{
+ "declared_unit": "a single piece of transformer (including packaging) operating for 35 years",
+ "gwp_ghg_a1a3": null,
+ "gwp_fossil_a1a3": null,
+ "gwp_biogenic_a1a3": null,
+ "gwp_total_a1a3": null,
+ "gwp_unit": "kg CO2 eq.",
+ "modules_reported": "Upstream, Core, Downstream (cradle-to-grave)",
+ "a1a3_was_summed": false,
+ "confidence": "low",
+ "note": "This EPD does not use the EN 15804 module structure (A1-A3 etc.). Instead it reports results by 'Upstream', 'Core' and 'Downstream' modules over a cradle-to-grave boundary with a 35-year life. There is no A1-A3 production-stage value. For reference, TOTAL (whole life) GWP values are: GWP-total 9.81E+04, GWP-fossil 9.47E+04, GWP-biogenic 6.79E+02, GWP-GHG 9.78E+04 kg CO2 eq. per transformer; Upstream+Core (closest to production) would be GWP-fossil ~8.64E+03, GWP-total ~8.85E+03. No proper A1-A3 indicator available.",
+ "_usage": {
+  "input": 25265,
+  "output": 825
+ }
+}

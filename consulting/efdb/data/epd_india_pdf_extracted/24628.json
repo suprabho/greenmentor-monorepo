@@ -1,0 +1,16 @@
+{
+ "declared_unit": "1 m2",
+ "gwp_ghg_a1a3": 7.53,
+ "gwp_fossil_a1a3": 7.54,
+ "gwp_biogenic_a1a3": -0.21,
+ "gwp_total_a1a3": 7.34,
+ "gwp_unit": "kg CO2 eq.",
+ "modules_reported": "A1-A3, A4, A5, C1-C4, D",
+ "a1a3_was_summed": false,
+ "confidence": "high",
+ "note": "Declared unit is 1 square meter of Acoustic Panel weighing 2.22 kg. GWP-GHG from additional indicators table; GWP-fossil, GWP-biogenic, GWP-total from mandatory EN 15804+A2 table.",
+ "_usage": {
+  "input": 32089,
+  "output": 242
+ }
+}

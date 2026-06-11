@@ -1,0 +1,16 @@
+{
+ "declared_unit": "1 kg of product, including packaging",
+ "gwp_ghg_a1a3": 1.5,
+ "gwp_fossil_a1a3": 3.09,
+ "gwp_biogenic_a1a3": -0.001488,
+ "gwp_total_a1a3": 3.09,
+ "gwp_unit": "kg CO2 eq.",
+ "modules_reported": "Upstream, Core, Downstream (cradle-to-grave)",
+ "a1a3_was_summed": true,
+ "confidence": "low",
+ "note": "This EPD uses a non-standard module structure (Upstream/Core/Downstream) rather than EN 15804 A1-A3/A4/etc. There is no explicit A1-A3 column. The production stage (closest to A1-A3) was estimated by summing the Upstream module (raw material extraction + chemical blending supply) and Core module (transport to plant, blending, packaging); the Downstream module (distribution, use-phase dilution, EoL) was excluded. Values: GWP-fossil Upstream 3.01 + Core 0.0804 = 3.09; GWP-biogenic -1.48E-3 + -8.09E-6 = -1.488E-3; GWP-total 3.01 + 0.0805 = 3.09; GWP-GHG 1.43 + 0.0706 = 1.50. This module-to-stage mapping is an assumption, hence low confidence. Full cradle-to-grave TOTALs are: GWP-fossil 3.31, GWP-biogenic -1.56E-3, GWP-total 3.31, GWP-GHG 1.66.",
+ "_usage": {
+  "input": 28930,
+  "output": 1507
+ }
+}

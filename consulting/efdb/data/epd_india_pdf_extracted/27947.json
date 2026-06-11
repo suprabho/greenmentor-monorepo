@@ -1,0 +1,16 @@
+{
+ "declared_unit": "1 t",
+ "gwp_ghg_a1a3": 2230,
+ "gwp_fossil_a1a3": 2100,
+ "gwp_biogenic_a1a3": 124,
+ "gwp_total_a1a3": 2230,
+ "gwp_unit": "kg CO2 eq.",
+ "modules_reported": "A1-A3, C1, C2, C3, C4",
+ "a1a3_was_summed": false,
+ "confidence": "high",
+ "note": "Declared unit is 1 tonne of ER 1699 plus delivery packaging. Values read directly from A1-A3 column. GWP-total and GWP-GHG both 2.23E+03.",
+ "_usage": {
+  "input": 38568,
+  "output": 212
+ }
+}

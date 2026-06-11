@@ -1,0 +1,16 @@
+{
+ "declared_unit": "1000 kg",
+ "gwp_ghg_a1a3": 3250,
+ "gwp_fossil_a1a3": 3250,
+ "gwp_biogenic_a1a3": 0,
+ "gwp_total_a1a3": 3250,
+ "gwp_unit": "kg CO2 eq.",
+ "modules_reported": "A1-A3, C1, C2, C3, C4, D",
+ "a1a3_was_summed": false,
+ "confidence": "high",
+ "note": "Values reported as 3.25E+03 for GWP-total, GWP-fossil and GWP-GHG; GWP-biogenic is 0.00E+00. Declared unit is 1 Tonne (1000 kg) Tata Steel average CRCA.",
+ "_usage": {
+  "input": 33314,
+  "output": 237
+ }
+}

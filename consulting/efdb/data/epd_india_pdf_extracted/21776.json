@@ -1,0 +1,16 @@
+{
+ "declared_unit": "1 m2",
+ "gwp_ghg_a1a3": 10.3,
+ "gwp_fossil_a1a3": 10.3,
+ "gwp_biogenic_a1a3": 0.381,
+ "gwp_total_a1a3": 10.7,
+ "gwp_unit": "kg CO2 eq.",
+ "modules_reported": "A1-A3, A4, A5, B1-B7, C1-C4, D",
+ "a1a3_was_summed": false,
+ "confidence": "high",
+ "note": "A1/A2/A3 reported as a single aggregated column. Climate Change [kg CO2 eq.] total = 1.07E+01; Climate Change (fossil) = 1.03E+01; Climate Change (biogenic) = 3.81E-01. GWP-GHG indicator from voluntary indicators table = 1.03E+01.",
+ "_usage": {
+  "input": 51210,
+  "output": 275
+ }
+}

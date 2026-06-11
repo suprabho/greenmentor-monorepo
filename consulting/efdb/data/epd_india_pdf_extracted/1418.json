@@ -1,0 +1,16 @@
+{
+ "declared_unit": null,
+ "gwp_ghg_a1a3": null,
+ "gwp_fossil_a1a3": null,
+ "gwp_biogenic_a1a3": null,
+ "gwp_total_a1a3": null,
+ "gwp_unit": null,
+ "modules_reported": null,
+ "a1a3_was_summed": false,
+ "confidence": "low",
+ "note": "The provided document is only the EPD registration certificate for Berger External Thermal Insulation & Composite Systems (ETICS), registration S-P-01418. It contains no LCA results tables, declared unit, or GWP values.",
+ "_usage": {
+  "input": 3183,
+  "output": 191
+ }
+}

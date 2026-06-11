@@ -1,0 +1,16 @@
+{
+ "declared_unit": "1 t",
+ "gwp_ghg_a1a3": 731,
+ "gwp_fossil_a1a3": 731,
+ "gwp_biogenic_a1a3": 7.86,
+ "gwp_total_a1a3": 739,
+ "gwp_unit": "kg CO2 eq.",
+ "modules_reported": "A1-A3",
+ "a1a3_was_summed": false,
+ "confidence": "high",
+ "note": "Declared unit is 1 tonne PPC. Values from A1-A3 column. GWP-GHG (7.31E+02) and GWP-fossil (7.31E+02) are identical as reported.",
+ "_usage": {
+  "input": 32140,
+  "output": 200
+ }
+}
