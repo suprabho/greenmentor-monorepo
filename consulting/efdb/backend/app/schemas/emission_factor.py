@@ -1,7 +1,17 @@
 import uuid
 from datetime import datetime, date
-from typing import Optional
-from pydantic import BaseModel
+from typing import Annotated, Optional
+from pydantic import BaseModel, BeforeValidator
+
+
+def _coerce_tag_list(v):
+    """Wrap a bare string in a list so one malformed row can't 500 a listing."""
+    if isinstance(v, str):
+        return [v]
+    return v
+
+
+TagList = Annotated[Optional[list[str]], BeforeValidator(_coerce_tag_list)]
 
 
 class EmissionFactorBase(BaseModel):
@@ -81,8 +91,8 @@ class EmissionFactorBase(BaseModel):
     status: str = "active"
     superseded_by_ef_id: Optional[str] = None
     superseded_reason: Optional[str] = None
-    framework_tags: Optional[list[str]] = None
-    sector_tags: Optional[list[str]] = None
+    framework_tags: TagList = None
+    sector_tags: TagList = None
     is_default_ef: Optional[bool] = None
     created_by: Optional[str] = None
     notes: Optional[str] = None
@@ -157,8 +167,8 @@ class EmissionFactorUpdate(BaseModel):
     status: Optional[str] = None
     superseded_by_ef_id: Optional[str] = None
     superseded_reason: Optional[str] = None
-    framework_tags: Optional[list[str]] = None
-    sector_tags: Optional[list[str]] = None
+    framework_tags: TagList = None
+    sector_tags: TagList = None
     is_default_ef: Optional[bool] = None
     notes: Optional[str] = None
     edit_summary: Optional[str] = None
