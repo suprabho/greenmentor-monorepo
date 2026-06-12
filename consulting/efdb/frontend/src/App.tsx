@@ -3,6 +3,7 @@ import { useAuthStore } from '@/stores/auth'
 import LoginPage from '@/pages/LoginPage'
 import MainPage from '@/pages/MainPage'
 import IngestionPage from '@/pages/IngestionPage'
+import CoveragePage from '@/pages/CoveragePage'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const token = useAuthStore(s => s.token)
@@ -15,6 +16,7 @@ export default function App() {
     <Routes>
       <Route path="/login" element={<LoginPage />} />
       <Route path="/" element={<MainPage />} />
+      <Route path="/coverage" element={<CoveragePage />} />
       <Route path="/ingest" element={<ProtectedRoute><IngestionPage /></ProtectedRoute>} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

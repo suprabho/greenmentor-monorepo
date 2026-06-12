@@ -1,4 +1,4 @@
-import type { EFFilters, EFListResponse, EmissionFactor, ScanResult, SessionStatus, ReviewSummary, User, DocumentMetadata } from '@/types/emission-factor'
+import type { EFFilters, EFListResponse, EmissionFactor, ScanResult, SessionStatus, ReviewSummary, User, DocumentMetadata, CoverageStats } from '@/types/emission-factor'
 import { useAuthStore } from '@/stores/auth'
 
 const BASE = '/api'
@@ -72,6 +72,8 @@ export const efApi = {
     if (maxDqScore) params.set('max_dq_score', String(maxDqScore))
     return request<EFListResponse>(`/emission-factors/search/semantic?${params}`)
   },
+
+  coverage: () => request<CoverageStats>('/emission-factors/stats/coverage'),
 
   get: (id: string) => request<EmissionFactor>(`/emission-factors/${id}`),
 
