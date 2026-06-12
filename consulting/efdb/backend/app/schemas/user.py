@@ -31,3 +31,7 @@ class TokenResponse(BaseModel):
 class LoginRequest(BaseModel):
     email: EmailStr
     password: str
+
+
+class OAuthLoginRequest(BaseModel):
+    supabase_access_token: str

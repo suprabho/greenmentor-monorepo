@@ -57,6 +57,30 @@ docker compose exec backend python -m scripts.create_admin \
 The script is idempotent — re-running it promotes an existing user to admin and
 resets their password.
 
+### 3b. (Optional) Google sign-in via Supabase Auth
+
+Google login is brokered by Supabase Auth: the frontend runs
+`signInWithOAuth({ provider: 'google' })`, lands on `/auth/callback`, and the
+backend exchanges the Supabase access token for an EFDB JWT at `POST
+/auth/oauth`. Only emails that already have an EFDB account can sign in —
+accounts are still provisioned by admins, same as passwords. Leave the
+`SUPABASE_*` vars empty to hide the Google button entirely.
+
+One-time setup:
+
+1. **Google Cloud Console** → APIs & Services → Credentials → Create OAuth
+   client ID (type: Web application). Add the authorized redirect URI:
+   `https://<project-ref>.supabase.co/auth/v1/callback`
+2. **Supabase dashboard** → Authentication → Sign In / Providers → Google →
+   enable, paste the Google client ID + secret.
+3. **Supabase dashboard** → Authentication → URL Configuration → add to the
+   redirect allowlist:
+   - `http://localhost:5173/auth/callback`
+   - `https://<your-vercel-domain>/auth/callback`
+4. Fill `SUPABASE_URL` / `SUPABASE_ANON_KEY` / `VITE_SUPABASE_URL` /
+   `VITE_SUPABASE_ANON_KEY` in `.env` (dev). For prod, set the first two as Fly
+   secrets on `efdb-api` and the `VITE_*` pair as Vercel env vars.
+
 ### 4. Open the app
 
 | Service | URL |
