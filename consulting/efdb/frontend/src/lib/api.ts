@@ -41,6 +41,12 @@ export const authApi = {
       method: 'POST',
       body: JSON.stringify({ email, password }),
     }),
+  // Exchanges a Supabase Auth access token (Google sign-in) for an EFDB JWT.
+  oauthLogin: (supabaseAccessToken: string) =>
+    request<{ access_token: string; user: User }>('/auth/oauth', {
+      method: 'POST',
+      body: JSON.stringify({ supabase_access_token: supabaseAccessToken }),
+    }),
   me: () => request<User>('/auth/me'),
 }
 

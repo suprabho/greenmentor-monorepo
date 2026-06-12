@@ -11,6 +11,10 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     jwt_expire_minutes: int = 1440  # 24 hours
 
+    # Supabase Auth (Google OAuth) — empty disables the /auth/oauth endpoint.
+    supabase_url: str = ""
+    supabase_anon_key: str = ""
+
     # Anthropic
     anthropic_api_key: str
 

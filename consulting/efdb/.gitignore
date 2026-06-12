@@ -34,3 +34,6 @@ backend/uploads/
 
 # cached EPD PDF downloads (~120MB, re-fetchable from environdec)
 data/epd_india_pdfs/
+
+# DB migration dumps (contain production data)
+*.dump
