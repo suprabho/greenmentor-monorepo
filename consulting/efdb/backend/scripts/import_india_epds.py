@@ -108,7 +108,7 @@ def map_record(epd: dict) -> dict | None:
         denominator_unit=denominator_unit,
         denominator_basis=f"declared unit: {declared_unit}",
         geography_type="country",
-        country_iso="IN",
+        country_iso="IND",
         reference_year=reference_year,
         valid_from=valid_from,
         valid_to=_parse_date(epd.get("valid_until")),

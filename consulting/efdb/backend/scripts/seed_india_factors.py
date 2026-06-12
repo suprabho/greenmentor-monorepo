@@ -18,7 +18,7 @@ consulting/ls-ingestion/src/App.jsx) so the ILIKE lookup matches:
   petrol → "petrol combustion",  CNG → "CNG combustion",
   LPG → "LPG combustion",  HSD → "HSD fuel oil combustion",
   coal → "coal combustion".
-country_iso="IN" and ghg_scope match the country/scope the app sends.
+country_iso="IND" and ghg_scope match the country/scope the app sends.
 """
 import asyncio
 import sys
@@ -188,7 +188,7 @@ async def main(admin_email: str) -> None:
                 denominator_unit=seed["denominator_unit"],
                 # Geography
                 geography_type="country",
-                country_iso="IN",
+                country_iso="IND",
                 location_basis=seed["location_basis"],
                 # Technology
                 fuel_material_type=seed["fuel_material_type"],
