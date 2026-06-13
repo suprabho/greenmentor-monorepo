@@ -14,10 +14,10 @@ project.
 ## Local setup
 
 ```bash
-cp .env.example .env.local      # fill in the publishable key
-npm install
-npx playwright install chromium # first run only (for PNG export)
-npm run dev                     # http://localhost:3200
+cp .env.example .env.local             # fill in the publishable key
+pnpm install
+pnpm exec playwright install chromium  # first run only (for PNG export)
+pnpm dev                               # http://localhost:3200
 ```
 
 `.env.local` (publishable key is safe to expose to the browser; RLS enforces access):
@@ -58,5 +58,5 @@ bar; browse/open/delete from `/library`.
 ## Header render CLI (powers the `aura-header` skill)
 
 ```bash
-echo '{"title":"…"}' | npx tsx scripts/render-header.ts --out /tmp/header.png
+echo '{"title":"…"}' | pnpm exec tsx scripts/render-header.ts --out /tmp/header.png
 ```
