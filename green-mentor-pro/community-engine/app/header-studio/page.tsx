@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, DownloadSimple, Plus, X, Spinner } from "@phosphor-icons/react";
+import { ArrowLeft, DownloadSimple, Plus, X, Spinner, Sparkle } from "@phosphor-icons/react";
 import { Card, PageHeader, Chip } from "@/components/ui";
 import { headerDocumentHTML } from "@/lib/header/render";
 import {
@@ -41,6 +41,21 @@ function useDebounced<T>(value: T, ms: number): T {
     return () => clearTimeout(id);
   }, [value, ms]);
   return v;
+}
+
+/**
+ * Merge an AI draft over the current config. Nested objects are deep-merged so a
+ * partial draft (e.g. just a new title + theme.scrim) doesn't wipe siblings; a
+ * drafted speaker replaces the block wholesale (and turns it on) so stale
+ * default role/org don't linger when the brief names a new person.
+ */
+function applyDraft(prev: HeaderConfig, draft: Partial<HeaderConfig>): HeaderConfig {
+  return {
+    ...prev,
+    ...draft,
+    theme: { ...prev.theme, ...draft.theme },
+    speaker: draft.speaker ? { ...draft.speaker, enabled: true } : prev.speaker,
+  };
 }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
@@ -88,12 +103,19 @@ export default function HeaderStudioPage() {
   const [config, setConfig] = useState<HeaderConfig>(DEFAULT_CONFIG);
   const [customSlug, setCustomSlug] = useState("");
   const [downloading, setDownloading] = useState(false);
+  // Export format. WebP is far lighter for the gradient-heavy auras; PNG stays
+  // for email/newsletter embeds where some clients don't render WebP.
+  const [format, setFormat] = useState<"png" | "webp">("webp");
   const [origin, setOrigin] = useState("");
   const [loadedId, setLoadedId] = useState<string | null>(null);
   const [loadedOwned, setLoadedOwned] = useState(false);
   // Aura background options. Seeded with the bundled presets, then replaced with
   // the live green-mentor scenes from the aura DB once they load.
   const [auraPresets, setAuraPresets] = useState<AuraPreset[]>(AURA_PRESETS);
+  // "Draft with AI" — plain-English brief → HeaderConfig via Claude Haiku.
+  const [brief, setBrief] = useState("");
+  const [drafting, setDrafting] = useState(false);
+  const [draftError, setDraftError] = useState<string | null>(null);
 
   useEffect(() => setOrigin(window.location.origin), []);
 
@@ -161,13 +183,36 @@ export default function HeaderStudioPage() {
   const PREVIEW_W = 560;
   const scale = PREVIEW_W / size.width;
 
+  async function draftWithAI() {
+    if (!brief.trim() || drafting) return;
+    setDrafting(true);
+    setDraftError(null);
+    try {
+      const res = await fetch("/api/header/draft", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ brief }),
+      });
+      if (!res.ok) {
+        setDraftError(await res.text());
+        return;
+      }
+      const { config: draft } = await res.json();
+      setConfig((c) => applyDraft(c, draft));
+    } catch (e) {
+      setDraftError((e as Error).message);
+    } finally {
+      setDrafting(false);
+    }
+  }
+
   async function download() {
     setDownloading(true);
     try {
       const res = await fetch("/api/header/export", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ config }),
+        body: JSON.stringify({ config, format }),
       });
       if (!res.ok) {
         const msg = await res.text();
@@ -178,7 +223,7 @@ export default function HeaderStudioPage() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `header-${config.sizeId}.png`;
+      a.download = `header-${config.sizeId}.${format}`;
       a.click();
       URL.revokeObjectURL(url);
     } catch (e) {
@@ -195,7 +240,7 @@ export default function HeaderStudioPage() {
     <div>
       <PageHeader
         title="Aura Header Studio"
-        sub="Compose a webinar / newsletter header over a live aura background, then export a pixel-perfect PNG."
+        sub="Compose a webinar / newsletter header over a live aura background, then export a pixel-perfect image."
         action={
           <div className="flex items-center gap-2">
             <Link
@@ -204,6 +249,23 @@ export default function HeaderStudioPage() {
             >
               <ArrowLeft size={14} /> Tools
             </Link>
+            {/* Format toggle. WebP first — it's the lighter default; PNG for
+                email/newsletter embeds where some clients don't render WebP. */}
+            <div className="flex items-center rounded-pill border border-gray-200 bg-white p-0.5 text-[11.5px] font-semibold">
+              {(["webp", "png"] as const).map((f) => (
+                <button
+                  key={f}
+                  onClick={() => setFormat(f)}
+                  disabled={downloading}
+                  aria-pressed={format === f}
+                  className={`rounded-pill px-3 py-1.5 uppercase tracking-wide transition disabled:opacity-60 ${
+                    format === f ? "bg-teal-900 text-white" : "text-gray-600 hover:text-gray-900"
+                  }`}
+                >
+                  {f}
+                </button>
+              ))}
+            </div>
             <button
               onClick={download}
               disabled={downloading}
@@ -214,7 +276,7 @@ export default function HeaderStudioPage() {
               ) : (
                 <DownloadSimple size={14} weight="bold" />
               )}
-              {downloading ? "Rendering…" : "Download PNG"}
+              {downloading ? "Rendering…" : `Download ${format.toUpperCase()}`}
             </button>
           </div>
         }
@@ -225,6 +287,44 @@ export default function HeaderStudioPage() {
       <div className="grid gap-6 lg:grid-cols-[1fr_minmax(0,600px)]">
         {/* ---- Form ---- */}
         <div className="space-y-5">
+          <Card className="space-y-3 p-5">
+            <div className="flex items-center gap-2">
+              <Sparkle size={16} weight="fill" className="text-green-600" />
+              <span className="text-[12px] font-semibold uppercase tracking-wide text-gray-500">
+                Draft with AI
+              </span>
+            </div>
+            <p className="text-[12px] leading-relaxed text-gray-500">
+              Describe the header in plain English — Claude Haiku fills in the
+              badge, title, chips, speaker, and picks an aura. Tweak anything
+              below afterwards.
+            </p>
+            <textarea
+              rows={3}
+              className={inputCls}
+              placeholder="e.g. Fireside chat with Ankit Todi on energy transition, 4 June 2026, 4–5pm IST, virtual"
+              value={brief}
+              onChange={(e) => setBrief(e.target.value)}
+            />
+            <div className="flex items-center gap-3">
+              <button
+                onClick={draftWithAI}
+                disabled={drafting || !brief.trim()}
+                className="flex items-center gap-1.5 rounded-pill bg-green-600 px-4 py-2 text-[12.5px] font-semibold text-white disabled:opacity-50"
+              >
+                {drafting ? (
+                  <Spinner size={14} className="animate-spin" />
+                ) : (
+                  <Sparkle size={14} weight="fill" />
+                )}
+                {drafting ? "Drafting…" : "Draft with AI"}
+              </button>
+              {draftError && (
+                <span className="text-[11.5px] text-red-600">{draftError}</span>
+              )}
+            </div>
+          </Card>
+
           <Card className="space-y-4 p-5">
             <div className="grid grid-cols-2 gap-3">
               <Field label="Size">
@@ -611,7 +711,7 @@ export default function HeaderStudioPage() {
               />
             </div>
             <p className="mt-3 text-[11.5px] leading-relaxed text-gray-500">
-              The preview embeds the real animated aura. The downloaded PNG is a
+              The preview embeds the real animated aura. The download is a
               server-side screenshot of this exact markup, so what you see is what
               you get.
             </p>

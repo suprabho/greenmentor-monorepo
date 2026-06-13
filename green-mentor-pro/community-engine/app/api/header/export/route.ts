@@ -1,4 +1,4 @@
-import { renderHeaderPng } from "@/lib/header/screenshot";
+import { renderHeader, type ImageFormat } from "@/lib/header/screenshot";
 import { DEFAULT_CONFIG, type HeaderConfig } from "@/lib/header/types";
 
 // Playwright needs the Node runtime (not Edge) and time to drive a browser.
@@ -7,9 +7,11 @@ export const maxDuration = 60;
 
 export async function POST(req: Request) {
   let config: HeaderConfig;
+  let format: ImageFormat = "png";
   try {
     const body = await req.json();
     config = { ...DEFAULT_CONFIG, ...(body?.config ?? {}) };
+    if (body?.format === "webp") format = "webp";
   } catch {
     return new Response("Invalid JSON body", { status: 400 });
   }
@@ -20,12 +22,13 @@ export async function POST(req: Request) {
 
   try {
     const origin = new URL(req.url).origin;
-    const png = await renderHeaderPng(config, { origin, scale: 2 });
-    return new Response(new Uint8Array(png), {
+    const buf = await renderHeader(config, { origin, scale: 2, format });
+    const contentType = format === "webp" ? "image/webp" : "image/png";
+    return new Response(new Uint8Array(buf), {
       status: 200,
       headers: {
-        "Content-Type": "image/png",
-        "Content-Disposition": `inline; filename="header-${config.sizeId}.png"`,
+        "Content-Type": contentType,
+        "Content-Disposition": `inline; filename="header-${config.sizeId}.${format}"`,
         "Cache-Control": "no-store",
       },
     });

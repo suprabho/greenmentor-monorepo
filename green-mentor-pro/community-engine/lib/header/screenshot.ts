@@ -10,6 +10,9 @@
 import { headerDocumentHTML } from "./render";
 import { sizeFor, type HeaderConfig } from "./types";
 
+/** Output formats. Playwright only screenshots PNG/JPEG, so WebP is a post-pass. */
+export type ImageFormat = "png" | "webp";
+
 export type ScreenshotOpts = {
   /** Origin used to resolve app-relative asset paths (speaker photo). */
   origin?: string;
@@ -17,13 +20,24 @@ export type ScreenshotOpts = {
   scale?: number;
   /** ms to let the aura animation + fonts settle before the shot. */
   settleMs?: number;
+  /** Encoded output format. Default "png". */
+  format?: ImageFormat;
+  /** WebP quality (1–100). Ignored for PNG. Default 90. */
+  quality?: number;
 };
 
-export async function renderHeaderPng(
+/**
+ * Render a header to an encoded image buffer.
+ *
+ * Always screenshots PNG first (Playwright can't emit WebP); when format is
+ * "webp" we transcode the lossless PNG with sharp. The buffer's encoding
+ * matches `opts.format` — callers set Content-Type / filename accordingly.
+ */
+export async function renderHeader(
   config: HeaderConfig,
   opts: ScreenshotOpts = {}
 ): Promise<Buffer> {
-  const { origin, scale = 2, settleMs = 2600 } = opts;
+  const { origin, scale = 2, settleMs = 2600, format = "png", quality = 90 } = opts;
   const size = sizeFor(config.sizeId);
   const html = headerDocumentHTML(config, { origin });
 
@@ -43,10 +57,17 @@ export async function renderHeaderPng(
     await page.waitForTimeout(settleMs);
 
     const el = await page.$("#header");
-    const buf = el
+    const png = (el
       ? await el.screenshot({ type: "png" })
-      : await page.screenshot({ type: "png" });
-    return buf as Buffer;
+      : await page.screenshot({ type: "png" })) as Buffer;
+
+    if (format === "webp") {
+      // Lazy import so the PNG path (and the Next build) never hard-depends on
+      // sharp's native binary.
+      const sharp = (await import("sharp")).default;
+      return await sharp(png).webp({ quality }).toBuffer();
+    }
+    return png;
   } finally {
     await browser.close();
   }
