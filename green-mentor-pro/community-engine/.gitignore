@@ -4,3 +4,7 @@ out
 next-env.d.ts
 *.tsbuildinfo
 .DS_Store
+
+# env (publishable key is public, but never commit env files)
+.env*
+!.env.example

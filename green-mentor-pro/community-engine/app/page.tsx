@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ImageSquare, ArrowRight } from "@phosphor-icons/react/dist/ssr";
+import { ImageSquare, FolderOpen, ArrowRight } from "@phosphor-icons/react/dist/ssr";
 import { Card, Chip, PageHeader } from "@/components/ui";
 
 const tools = [
@@ -9,6 +9,13 @@ const tools = [
     name: "Aura Header Studio",
     desc: "Compose webinar & newsletter headers over live aura backgrounds and export pixel-perfect PNGs.",
     tag: "New",
+  },
+  {
+    href: "/library",
+    icon: FolderOpen,
+    name: "Saved headers",
+    desc: "Open your personal library or headers the team has shared.",
+    tag: "",
   },
 ];
 
