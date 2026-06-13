@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { createClient } from "@/lib/supabase/server";
+import { SiteHeader } from "@/components/site-header";
 
 export const metadata: Metadata = {
   title: "GreenMentor — Community Engine",
@@ -7,7 +9,12 @@ export const metadata: Metadata = {
     "Standalone maker tools for the GreenMentor community team, built on the GreenMentor design system.",
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
   return (
     <html lang="en">
       <head>
@@ -19,6 +26,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body>
+        {user && <SiteHeader email={user.email ?? ""} />}
         <main className="mx-auto max-w-6xl px-5 py-8">{children}</main>
       </body>
     </html>

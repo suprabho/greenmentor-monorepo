@@ -16,6 +16,9 @@ import {
   type HeaderConfig,
 } from "@/lib/header/types";
 import { listBrands, getBrand } from "@/lib/header/brands";
+import { createClient } from "@/lib/supabase/client";
+import { getHeader } from "@/lib/db/headers";
+import { SaveBar } from "./save-bar";
 
 const BUNDLED_AVATARS = [
   "/avatars/aditya.jpg",
@@ -85,8 +88,36 @@ export default function HeaderStudioPage() {
   const [customSlug, setCustomSlug] = useState("");
   const [downloading, setDownloading] = useState(false);
   const [origin, setOrigin] = useState("");
+  const [loadedId, setLoadedId] = useState<string | null>(null);
+  const [loadedOwned, setLoadedOwned] = useState(false);
 
   useEffect(() => setOrigin(window.location.origin), []);
+
+  // Load a saved header when opened from the library (/header-studio?load=<id>).
+  useEffect(() => {
+    const id = new URLSearchParams(window.location.search).get("load");
+    if (!id) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const supabase = createClient();
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        const row = await getHeader(supabase, id);
+        if (!cancelled && row) {
+          setConfig({ ...DEFAULT_CONFIG, ...row.config });
+          setLoadedId(row.id);
+          setLoadedOwned(!!user && user.id === row.user_id);
+        }
+      } catch {
+        // Ignore — fall back to the default config.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const debounced = useDebounced(config, 300);
   const srcDoc = useMemo(
@@ -166,6 +197,8 @@ export default function HeaderStudioPage() {
           </div>
         }
       />
+
+      <SaveBar config={config} loadedId={loadedId} loadedOwned={loadedOwned} />
 
       <div className="grid gap-6 lg:grid-cols-[1fr_minmax(0,600px)]">
         {/* ---- Form ---- */}
