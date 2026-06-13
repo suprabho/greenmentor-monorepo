@@ -1,7 +1,7 @@
 // Aura Header Studio — shared config contract.
 //
 // A single HeaderConfig drives three surfaces that must never drift:
-//   1. the live editor preview      (app/community/tools/header-studio)
+//   1. the live editor preview      (app/header-studio)
 //   2. the server export route       (app/api/header/export)
 //   3. the CLI renderer for the skill (scripts/render-header.ts)
 //

@@ -4,7 +4,7 @@ import { Card, Chip, PageHeader } from "@/components/ui";
 
 const tools = [
   {
-    href: "/community/tools/header-studio",
+    href: "/header-studio",
     icon: ImageSquare,
     name: "Aura Header Studio",
     desc: "Compose webinar & newsletter headers over live aura backgrounds and export pixel-perfect PNGs.",

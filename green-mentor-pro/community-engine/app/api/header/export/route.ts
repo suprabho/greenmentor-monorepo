@@ -33,7 +33,7 @@ export async function POST(req: Request) {
     const msg = (e as Error).message ?? "render failed";
     // Most common cause: Playwright browser binary not installed.
     const hint = /Executable doesn't exist|launch/i.test(msg)
-      ? " — run `npx playwright install chromium` in green-mentor-pro/prototype."
+      ? " — run `npx playwright install chromium` in green-mentor-pro/community-engine."
       : "";
     return new Response(`Export failed: ${msg}${hint}`, { status: 500 });
   }

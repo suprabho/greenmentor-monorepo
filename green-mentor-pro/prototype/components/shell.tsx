@@ -16,7 +16,6 @@ import {
   Trophy,
   Books,
   Leaf,
-  UsersThree,
 } from "@phosphor-icons/react";
 import { clsx } from "clsx";
 import { Avatar } from "@/components/ui";
@@ -36,7 +35,6 @@ const nav = [
   { label: "Academy", href: "/academy", icon: GraduationCap, children: [] },
   { label: "Jobs", href: "/jobs", icon: Briefcase, children: [] },
   { label: "AI Hub", href: "/ai-hub", icon: Sparkle, children: [] },
-  { label: "Community", href: "/community/tools", icon: UsersThree, children: [] },
   { label: "Longsite Lite", href: "/longsite", icon: SquaresFour, children: [] },
 ];
 
