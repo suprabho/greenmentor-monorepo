@@ -13,6 +13,7 @@ import {
   LOGO_SIZE_PRESETS,
   SIZE_PRESETS,
   sizeFor,
+  type AuraPreset,
   type HeaderConfig,
 } from "@/lib/header/types";
 import { listBrands, getBrand } from "@/lib/header/brands";
@@ -90,8 +91,29 @@ export default function HeaderStudioPage() {
   const [origin, setOrigin] = useState("");
   const [loadedId, setLoadedId] = useState<string | null>(null);
   const [loadedOwned, setLoadedOwned] = useState(false);
+  // Aura background options. Seeded with the bundled presets, then replaced with
+  // the live green-mentor scenes from the aura DB once they load.
+  const [auraPresets, setAuraPresets] = useState<AuraPreset[]>(AURA_PRESETS);
 
   useEffect(() => setOrigin(window.location.origin), []);
+
+  // Pull the current green-mentor aura scenes so the picker lists every brand
+  // background. New scenes linked in the aura tool appear here automatically
+  // (the API caches for an hour). Falls back to the bundled presets on failure.
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/aura-scenes")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (!cancelled && d?.presets?.length) setAuraPresets(d.presets);
+      })
+      .catch(() => {
+        // Keep the AURA_PRESETS fallback already in state.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Load a saved header when opened from the library (/header-studio?load=<id>).
   useEffect(() => {
@@ -167,7 +189,7 @@ export default function HeaderStudioPage() {
   }
 
   const activePresetId =
-    AURA_PRESETS.find((p) => p.slug === config.auraSlug)?.id ?? "custom";
+    auraPresets.find((p) => p.slug === config.auraSlug)?.id ?? "custom";
 
   return (
     <div>
@@ -223,11 +245,11 @@ export default function HeaderStudioPage() {
                   className={inputCls}
                   value={activePresetId}
                   onChange={(e) => {
-                    const p = AURA_PRESETS.find((x) => x.id === e.target.value);
+                    const p = auraPresets.find((x) => x.id === e.target.value);
                     if (p) set("auraSlug", p.slug);
                   }}
                 >
-                  {AURA_PRESETS.map((p) => (
+                  {auraPresets.map((p) => (
                     <option key={p.id} value={p.id}>
                       {p.label}
                     </option>
