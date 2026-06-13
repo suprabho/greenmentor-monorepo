@@ -16,6 +16,11 @@ export type HeaderSpeaker = {
   org?: string;
   /** Absolute URL or app-relative path (e.g. "/avatars/supro.jpg"). */
   photo?: string;
+  /**
+   * Whether the speaker card renders. Undefined is treated as enabled so
+   * older configs keep working; the studio toggle sets it explicitly.
+   */
+  enabled?: boolean;
 };
 
 /** A small pill in the meta row (mode / date / time). `icon` is an emoji glyph. */
@@ -34,8 +39,10 @@ export type SizePreset = {
 
 export const SIZE_PRESETS: SizePreset[] = [
   { id: "newsletter", label: "Newsletter / LinkedIn (1200×627)", width: 1200, height: 627 },
+  { id: "newsletter-strip", label: "Newsletter strip (1100×220)", width: 1100, height: 220 },
+  { id: "webinar-wide", label: "Webinar 16:9 (1600×900)", width: 1600, height: 900 },
   { id: "wide", label: "Wide banner (1500×500)", width: 1500, height: 500 },
-  { id: "square", label: "Square post (1080×1080)", width: 1080, height: 1080 },
+  { id: "square", label: "Square / Webinar (1080×1080)", width: 1080, height: 1080 },
   { id: "story", label: "Story / Reel (1080×1350)", width: 1080, height: 1350 },
 ];
 
@@ -87,7 +94,39 @@ export type HeaderTheme = {
   accent: string;
   /** Body/heading text color (hex). */
   text: string;
+  /**
+   * Draw a frosted-glass card behind the headline block for extra legibility
+   * over busy auras. Undefined/false = no card (the default look).
+   */
+  card?: boolean;
 };
+
+/** The GreenMentor brand green — the wordmark's native stroke color. */
+export const BRAND_GREEN = "#07D862";
+
+/** Appearance of the bottom-right GreenMentor wordmark lockup. */
+export type BrandLogo = {
+  /** Wordmark color (hex) — stroke when outline, fill when filled. */
+  color: string;
+  /** Size multiplier on each layout's base logo height. 1 = default. */
+  scale: number;
+  /** Solid-filled wordmark instead of the default hollow outline. */
+  fill: boolean;
+};
+
+/** Brand-safe wordmark colors for the studio swatches (custom hex still allowed). */
+export const LOGO_COLOR_PRESETS: { id: string; label: string; value: string }[] = [
+  { id: "green", label: "Brand green", value: BRAND_GREEN },
+  { id: "white", label: "White", value: "#FFFFFF" },
+  { id: "teal", label: "Deep teal", value: "#014A50" },
+];
+
+/** Discrete wordmark sizes — a multiplier on each layout's base logo height. */
+export const LOGO_SIZE_PRESETS: { id: string; label: string; scale: number }[] = [
+  { id: "s", label: "S", scale: 0.75 },
+  { id: "m", label: "M", scale: 1 },
+  { id: "l", label: "L", scale: 1.4 },
+];
 
 export type HeaderConfig = {
   sizeId: string;
@@ -99,9 +138,21 @@ export type HeaderConfig = {
   subtitle?: string;
   chips: HeaderChip[];
   speaker?: HeaderSpeaker;
-  /** Brand lockup text shown bottom-right (e.g. "GreenMentor"). Empty hides it. */
-  brand?: string;
+  /**
+   * Which brand lockup to show bottom-right — a brand id from the catalog
+   * (lib/header/brands.ts), e.g. "greenmentor". Resolved via getBrand(), which
+   * falls back to the default brand, so an unknown/missing id still renders.
+   */
+  brandId?: string;
+  /** Override the brand's default subline. Empty string hides the subline. */
   brandSub?: string;
+  /**
+   * @deprecated Legacy free-text brand name. Superseded by {@link brandId};
+   * kept only so older saved configs keep parsing. Not used by the renderer.
+   */
+  brand?: string;
+  /** Wordmark color + size. Omitted -> brand green at 1×. */
+  logo?: BrandLogo;
   theme: HeaderTheme;
 };
 
@@ -121,15 +172,27 @@ export const DEFAULT_CONFIG: HeaderConfig = {
     role: "Chief Sustainability Officer",
     org: "Mahindra Group",
     photo: "/avatars/aditya.jpg",
+    enabled: true,
   },
-  brand: "GreenMentor",
+  brandId: "greenmentor",
   brandSub: "Sustainability Simplified",
+  logo: { color: BRAND_GREEN, scale: 1, fill: false },
   theme: {
     scrim: 0.55,
-    accent: "#07D862",
+    accent: BRAND_GREEN,
     text: "#FFFFFF",
+    card: false,
   },
 };
+
+/** Resolve the logo config with defaults so partial/older configs stay valid. */
+export function logoFor(config: HeaderConfig): BrandLogo {
+  return {
+    color: config.logo?.color?.trim() || BRAND_GREEN,
+    scale: config.logo?.scale ?? 1,
+    fill: config.logo?.fill ?? false,
+  };
+}
 
 export function sizeFor(id: string): SizePreset {
   return SIZE_PRESETS.find((s) => s.id === id) ?? SIZE_PRESETS[0];

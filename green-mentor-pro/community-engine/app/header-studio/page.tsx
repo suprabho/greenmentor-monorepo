@@ -7,11 +7,15 @@ import { Card, PageHeader, Chip } from "@/components/ui";
 import { headerDocumentHTML } from "@/lib/header/render";
 import {
   AURA_PRESETS,
+  BRAND_GREEN,
   DEFAULT_CONFIG,
+  LOGO_COLOR_PRESETS,
+  LOGO_SIZE_PRESETS,
   SIZE_PRESETS,
   sizeFor,
   type HeaderConfig,
 } from "@/lib/header/types";
+import { listBrands, getBrand } from "@/lib/header/brands";
 
 const BUNDLED_AVATARS = [
   "/avatars/aditya.jpg",
@@ -44,6 +48,35 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
+function Toggle({
+  checked,
+  onChange,
+  label,
+}: {
+  checked: boolean;
+  onChange: (v: boolean) => void;
+  label?: string;
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      aria-label={label}
+      onClick={() => onChange(!checked)}
+      className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${
+        checked ? "bg-green-500" : "bg-gray-300"
+      }`}
+    >
+      <span
+        className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${
+          checked ? "translate-x-[22px]" : "translate-x-0.5"
+        }`}
+      />
+    </button>
+  );
+}
+
 const inputCls =
   "w-full rounded-[10px] border border-gray-200 bg-white px-3 py-2 text-[13px] text-ink outline-none focus:border-green-500 focus:ring-2 focus:ring-green-500/20";
 
@@ -64,6 +97,12 @@ export default function HeaderStudioPage() {
   const size = sizeFor(config.sizeId);
   const set = <K extends keyof HeaderConfig>(k: K, v: HeaderConfig[K]) =>
     setConfig((c) => ({ ...c, [k]: v }));
+
+  // Undefined `enabled` is treated as on, matching the renderer.
+  const speakerOn = !!config.speaker && config.speaker.enabled !== false;
+
+  // Logo color/size, with the same defaults the renderer's logoFor() applies.
+  const logo = config.logo ?? { color: BRAND_GREEN, scale: 1, fill: false };
 
   // Preview is scaled to fit the panel width.
   const PREVIEW_W = 560;
@@ -252,10 +291,26 @@ export default function HeaderStudioPage() {
           </Card>
 
           <Card className="space-y-4 p-5">
-            <span className="block text-[12px] font-semibold uppercase tracking-wide text-gray-500">
-              Speaker
-            </span>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="flex items-center justify-between">
+              <span className="block text-[12px] font-semibold uppercase tracking-wide text-gray-500">
+                Speaker
+              </span>
+              <Toggle
+                label="Show speaker"
+                checked={speakerOn}
+                onChange={(on) =>
+                  set("speaker", {
+                    ...(config.speaker ?? { name: "" }),
+                    enabled: on,
+                  })
+                }
+              />
+            </div>
+            <div
+              className={`grid grid-cols-2 gap-3 ${
+                speakerOn ? "" : "pointer-events-none opacity-50"
+              }`}
+            >
               <Field label="Name">
                 <input
                   className={inputCls}
@@ -304,11 +359,25 @@ export default function HeaderStudioPage() {
           <Card className="space-y-4 p-5">
             <div className="grid grid-cols-2 gap-3">
               <Field label="Brand lockup">
-                <input
+                <select
                   className={inputCls}
-                  value={config.brand ?? ""}
-                  onChange={(e) => set("brand", e.target.value)}
-                />
+                  value={config.brandId ?? ""}
+                  onChange={(e) => {
+                    const brand = getBrand(e.target.value);
+                    // Switching brand also resets the subline to its default.
+                    setConfig((c) => ({
+                      ...c,
+                      brandId: brand.id,
+                      brandSub: brand.sub ?? "",
+                    }));
+                  }}
+                >
+                  {listBrands().map((b) => (
+                    <option key={b.id} value={b.id}>
+                      {b.name}
+                    </option>
+                  ))}
+                </select>
               </Field>
               <Field label="Brand subline">
                 <input
@@ -317,6 +386,94 @@ export default function HeaderStudioPage() {
                   onChange={(e) => set("brandSub", e.target.value)}
                 />
               </Field>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Logo color">
+                <div className="flex items-center gap-2">
+                  {LOGO_COLOR_PRESETS.map((p) => {
+                    const active =
+                      logo.color.toLowerCase() === p.value.toLowerCase();
+                    return (
+                      <button
+                        key={p.id}
+                        type="button"
+                        title={p.label}
+                        aria-label={p.label}
+                        aria-pressed={active}
+                        onClick={() => set("logo", { ...logo, color: p.value })}
+                        className={`h-8 w-8 rounded-full border-2 transition ${
+                          active
+                            ? "border-ink ring-2 ring-green-500/30"
+                            : "border-gray-200"
+                        }`}
+                        style={{ background: p.value }}
+                      />
+                    );
+                  })}
+                  <label
+                    className="ml-1 flex h-8 cursor-pointer items-center gap-1.5 rounded-pill border border-gray-200 px-2.5 text-[11.5px] font-semibold text-gray-600"
+                    title="Custom color"
+                  >
+                    <input
+                      type="color"
+                      className="h-5 w-5 cursor-pointer rounded border-0 bg-transparent p-0"
+                      value={logo.color}
+                      onChange={(e) =>
+                        set("logo", { ...logo, color: e.target.value })
+                      }
+                    />
+                    Custom
+                  </label>
+                </div>
+              </Field>
+              <Field label="Logo size">
+                <div className="flex gap-2">
+                  {LOGO_SIZE_PRESETS.map((p) => {
+                    const active = Math.abs(logo.scale - p.scale) < 0.001;
+                    return (
+                      <button
+                        key={p.id}
+                        type="button"
+                        onClick={() => set("logo", { ...logo, scale: p.scale })}
+                        className={`flex-1 rounded-[10px] border px-3 py-2 text-[12.5px] font-semibold transition ${
+                          active
+                            ? "border-green-500 bg-green-50 text-green-700"
+                            : "border-gray-200 text-gray-700"
+                        }`}
+                      >
+                        {p.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </Field>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Logo style">
+                <div className="flex gap-2">
+                  {[
+                    { fill: false, label: "Outline" },
+                    { fill: true, label: "Filled" },
+                  ].map((p) => {
+                    const active = logo.fill === p.fill;
+                    return (
+                      <button
+                        key={p.label}
+                        type="button"
+                        onClick={() => set("logo", { ...logo, fill: p.fill })}
+                        className={`flex-1 rounded-[10px] border px-3 py-2 text-[12.5px] font-semibold transition ${
+                          active
+                            ? "border-green-500 bg-green-50 text-green-700"
+                            : "border-gray-200 text-gray-700"
+                        }`}
+                      >
+                        {p.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </Field>
+              <div />
             </div>
             <div className="grid grid-cols-3 gap-3">
               <Field label={`Scrim (${config.theme.scrim.toFixed(2)})`}>
@@ -352,6 +509,21 @@ export default function HeaderStudioPage() {
                   }
                 />
               </Field>
+            </div>
+            <div className="flex items-center justify-between border-t border-gray-100 pt-3">
+              <div>
+                <span className="block text-[12px] font-semibold text-gray-700">
+                  Card behind text
+                </span>
+                <span className="text-[11px] text-gray-500">
+                  Frosted panel behind the headline for extra legibility
+                </span>
+              </div>
+              <Toggle
+                label="Card behind text"
+                checked={!!config.theme.card}
+                onChange={(on) => set("theme", { ...config.theme, card: on })}
+              />
             </div>
           </Card>
         </div>
