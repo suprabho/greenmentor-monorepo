@@ -89,7 +89,7 @@ All paths are under the community-engine app:
     "org": "Mahindra Group",
     "photo": "https://example.com/ankit.jpg"
   },
-  "brand": "GreenMentor",
+  "brandId": "greenmentor",
   "brandSub": "Sustainability Simplified",
   "theme": { "scrim": 0.55, "accent": "#07D862", "text": "#FFFFFF" }
 }
@@ -97,11 +97,18 @@ All paths are under the community-engine app:
 
 ## Defaults to infer (don't pester the user)
 
-- `sizeId`: `newsletter` (1200×627) unless they say square/story/wide.
+- `sizeId`: `newsletter` (1200×627) unless they ask otherwise. Other presets
+  (see `SIZE_PRESETS`): `newsletter-strip` (1100×220 thin banner),
+  `webinar-wide` (1600×900, 16:9), `square` (1080×1080 — also the webinar
+  square), `wide` (1500×500), `story` (1080×1350). For a webinar that needs
+  both a 16:9 and a square, render `webinar-wide` and `square` from the same
+  config (just change `sizeId`).
 - `auraSlug`: the `green-vibrant` preset.
 - `theme`: scrim 0.55, accent `#07D862`, text white. Raise scrim toward 0.75
   for busy backgrounds or long titles; lower toward 0.3 for airy ones.
-- `brand` / `brandSub`: "GreenMentor" / "Sustainability Simplified".
+- `brandId` / `brandSub`: `greenmentor` / "Sustainability Simplified". `brandId`
+  picks a lockup from the brand catalog (`lib/header/brands.ts`); GreenMentor is
+  the only brand today. Omit `brandSub` to use the brand's own default subline.
 - Chip icons: 🎥 virtual · 📍 in-person · 📅 date · ⏰ time · 🎙️ speaker series.
 - Omit the speaker block entirely if no person is named.
 
@@ -109,6 +116,9 @@ All paths are under the community-engine app:
 
 - Keep titles under ~90 chars — the renderer drops the title size automatically
   past that, but very long titles still crowd the speaker row.
+- `newsletter-strip` (1100×220) uses a horizontal layout (badge + title + chips
+  on the left, speaker + brand on the right) and clamps the title to 2 lines —
+  keep its title short (≤ ~55 chars) and use 1–2 chips so it reads as a banner.
 - The in-app editor renders the **identical** markup (`headerDocumentHTML`), so
   if a user wants to fine-tune by hand, point them to
   `/header-studio`.
