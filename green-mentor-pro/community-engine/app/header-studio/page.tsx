@@ -107,7 +107,7 @@ export default function HeaderStudioPage() {
         action={
           <div className="flex items-center gap-2">
             <Link
-              href="/community/tools"
+              href="/"
               className="flex items-center gap-1.5 rounded-pill border border-gray-200 bg-white px-3.5 py-2 text-[12.5px] font-semibold text-gray-700"
             >
               <ArrowLeft size={14} /> Tools

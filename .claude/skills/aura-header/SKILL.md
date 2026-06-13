@@ -19,8 +19,8 @@ Aura Header Studio** page.
 
 ## Where things live
 
-All paths are under the prototype app:
-`green-mentor-pro/prototype/` (run commands from there).
+All paths are under the community-engine app:
+`green-mentor-pro/community-engine/` (run commands from there).
 
 | Thing | Path |
 |---|---|
@@ -28,7 +28,7 @@ All paths are under the prototype app:
 | Canonical HTML renderer | `lib/header/render.ts` |
 | Screenshot helper | `lib/header/screenshot.ts` |
 | CLI renderer (this skill calls it) | `scripts/render-header.ts` |
-| In-app editor | `app/community/tools/header-studio/page.tsx` |
+| In-app editor | `app/header-studio/page.tsx` |
 
 ## Workflow
 
@@ -56,13 +56,13 @@ All paths are under the prototype app:
    Only include fields you're overriding; the script merges over
    `DEFAULT_CONFIG`.
 
-5. **Render** from `green-mentor-pro/prototype/`:
+5. **Render** from `green-mentor-pro/community-engine/`:
    ```bash
    npx tsx scripts/render-header.ts --config /tmp/header-config.json --out /tmp/header.png
    ```
    - First run needs the browser: `npx playwright install chromium`.
    - Speaker photo: use an absolute `https://…` URL, OR a `/avatars/…` path
-     **with** `--origin http://localhost:3100` while `npm run dev` is running,
+     **with** `--origin http://localhost:3200` while `npm run dev` is running,
      OR a `file://` path. A bare `/avatars/…` path with no origin won't load.
    - Sizes: `--scale 2` (default) is retina-crisp. `--settle 3000` if the aura
      looks flat (gives the animation longer to warm up).
@@ -111,6 +111,6 @@ All paths are under the prototype app:
   past that, but very long titles still crowd the speaker row.
 - The in-app editor renders the **identical** markup (`headerDocumentHTML`), so
   if a user wants to fine-tune by hand, point them to
-  `/community/tools/header-studio`.
+  `/header-studio`.
 - For a batch (e.g. a webinar series), loop the render command over multiple
   config files.
