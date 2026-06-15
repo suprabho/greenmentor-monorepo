@@ -10,6 +10,33 @@
 import { headerDocumentHTML } from "./render";
 import { sizeFor, type HeaderConfig } from "./types";
 
+/**
+ * Launch a headless Chromium that works both locally and on serverless (Vercel).
+ *
+ * Locally (and for the CLI render script) we use the full `playwright` package
+ * and the Chromium it downloaded via `npx playwright install`. On Vercel / AWS
+ * Lambda that binary doesn't exist and the filesystem is read-only, so we drive
+ * a serverless-packaged Chromium from `@sparticuz/chromium` via `playwright-core`.
+ */
+async function launchBrowser() {
+  const onServerless =
+    !!process.env.AWS_LAMBDA_FUNCTION_VERSION || !!process.env.VERCEL_ENV;
+
+  if (onServerless) {
+    const chromium = (await import("@sparticuz/chromium")).default;
+    const { chromium: playwright } = await import("playwright-core");
+    return playwright.launch({
+      args: chromium.args,
+      executablePath: await chromium.executablePath(),
+      headless: true,
+    });
+  }
+
+  // Lazy import so the Next build never hard-depends on the local browser binary.
+  const { chromium } = await import("playwright");
+  return chromium.launch({ headless: true });
+}
+
 /** Output formats. Playwright only screenshots PNG/JPEG, so WebP is a post-pass. */
 export type ImageFormat = "png" | "webp";
 
@@ -41,10 +68,7 @@ export async function renderHeader(
   const size = sizeFor(config.sizeId);
   const html = headerDocumentHTML(config, { origin });
 
-  // Lazy import so the Next build never hard-depends on the browser binary.
-  const { chromium } = await import("playwright");
-
-  const browser = await chromium.launch({ headless: true });
+  const browser = await launchBrowser();
   try {
     const page = await browser.newPage({
       viewport: { width: size.width, height: size.height },
