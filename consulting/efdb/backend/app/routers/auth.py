@@ -35,6 +35,15 @@ def create_access_token(user_id: str, role: str) -> str:
     )
 
 
+# Everyone in the Green Mentor org is an admin: accounts on this domain are
+# created (or promoted) as admins automatically — see /register and /oauth.
+GREENMENTOR_ADMIN_DOMAIN = "greenmentor.co"
+
+
+def is_greenmentor_email(email: str) -> bool:
+    return email.strip().lower().endswith(f"@{GREENMENTOR_ADMIN_DOMAIN}")
+
+
 async def get_current_user(
     token: str = Depends(oauth2_scheme),
     db: AsyncSession = Depends(get_db),
@@ -74,11 +83,13 @@ async def register(
     existing = await db.execute(select(User).where(User.email == data.email))
     if existing.scalar_one_or_none():
         raise HTTPException(status_code=400, detail="Email already registered")
+    # Green Mentor accounts are always admins, regardless of the role requested.
+    role = UserRole.admin if is_greenmentor_email(data.email) else data.role
     user = User(
         email=data.email,
         full_name=data.full_name,
         hashed_password=hash_password(data.password),
-        role=data.role,
+        role=role,
     )
     db.add(user)
     await db.commit()
@@ -120,17 +131,35 @@ async def oauth_login(data: OAuthLoginRequest, db: AsyncSession = Depends(get_db
     if resp.status_code != 200:
         raise HTTPException(status_code=401, detail="Invalid OAuth token")
 
-    email = (resp.json().get("email") or "").strip().lower()
+    profile = resp.json()
+    email = (profile.get("email") or "").strip().lower()
     if not email:
         raise HTTPException(status_code=401, detail="OAuth token carries no email")
 
     result = await db.execute(select(User).where(func.lower(User.email) == email))
     user = result.scalar_one_or_none()
-    if not user or not user.is_active:
-        raise HTTPException(
-            status_code=403,
-            detail=f"No EFDB account for {email}. Ask an admin to create one.",
+    if user and not user.is_active:
+        raise HTTPException(status_code=403, detail=f"Account for {email} is disabled.")
+    if not user:
+        # Green Mentor staff are auto-provisioned as admins on first Google
+        # sign-in; everyone else still needs an admin to create their account.
+        if not is_greenmentor_email(email):
+            raise HTTPException(
+                status_code=403,
+                detail=f"No EFDB account for {email}. Ask an admin to create one.",
+            )
+        metadata = profile.get("user_metadata") or {}
+        full_name = metadata.get("full_name") or metadata.get("name") or email.split("@")[0]
+        user = User(
+            email=email,
+            full_name=full_name,
+            # OAuth users sign in through Google; store an unusable random
+            # password hash so the password login path can never match.
+            hashed_password=hash_password(uuid.uuid4().hex),
+            role=UserRole.admin,
         )
+        db.add(user)
+        await db.flush()
 
     user.last_login_at = datetime.now(timezone.utc)
     await db.commit()
