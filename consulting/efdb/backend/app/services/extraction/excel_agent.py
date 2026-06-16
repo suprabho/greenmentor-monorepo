@@ -25,7 +25,8 @@ client = anthropic.AsyncAnthropic(api_key=settings.anthropic_api_key)
 
 SONNET_INPUT_COST_PER_TOKEN = 3 / 1_000_000
 SONNET_OUTPUT_COST_PER_TOKEN = 15 / 1_000_000
-BATCH_SIZE = 10      # rows per Claude call
+BATCH_SIZE = 10      # rows per Claude call (common-case fast path; auto-split shrinks it on truncation)
+EXTRACT_MAX_TOKENS = 16000  # output cap per extraction call — stays under the SDK's non-streaming timeout (<~16K)
 PARALLEL_BATCHES = 1  # sequential — avoids bursting past org rate limits
 
 
@@ -463,6 +464,69 @@ async def extract_from_excel(file_path: str, section_indices: list[int], confirm
 
     system_prompt = EXCEL_EXTRACT_SYSTEM + (EPD_EXCEL_GUIDANCE if document_type == "epd" else "")
 
+    async def _extract_rows(rows, row_start, total_rows, sheet_name, columns, context_block):
+        """Run one extraction call for `rows`. If the model hits the output token
+        ceiling (stop_reason == "max_tokens") the JSON comes back truncated, so we
+        split the row span in half and recurse — big/dense batches degrade
+        gracefully instead of corrupting the parse. A single row that still
+        truncates can't be split and raises a clear, actionable error.
+
+        Returns (records, max_ok_size): the largest contiguous span (in rows)
+        that came back without truncation, so the caller can shrink the batch
+        size for the rest of a dense sheet instead of re-hitting the ceiling."""
+        msg = (
+            f"{context_block}"
+            f"DATA — Sheet: {sheet_name} | "
+            f"Rows {row_start + 1}–{row_start + len(rows)} of {total_rows}\n"
+            f"Columns: {columns}\n\n"
+            f"{json.dumps(rows, indent=2, default=str)}\n\n"
+            "Extract all emission factor records from this batch. "
+            "Apply the document context to every record. "
+            "Return a JSON array — one element per data row."
+        )
+        # Retry up to 4 times on rate-limit (429) errors with exponential backoff
+        resp = None
+        for attempt in range(4):
+            try:
+                resp = await client.messages.create(
+                    model="claude-sonnet-4-6",
+                    max_tokens=EXTRACT_MAX_TOKENS,
+                    system=system_prompt,
+                    messages=[{"role": "user", "content": msg}],
+                )
+                break
+            except Exception as e:
+                if "429" in str(e) and attempt < 3:
+                    wait = 60 * (2 ** attempt)  # 60s, 120s, 240s
+                    print(f"[extract]   Rate limited, waiting {wait}s (attempt {attempt+1})", flush=True)
+                    await asyncio.sleep(wait)
+                else:
+                    raise
+
+        # Output hit the token ceiling → the JSON is truncated. Re-extract the
+        # span in two halves rather than parsing a broken array.
+        if resp.stop_reason == "max_tokens":
+            if len(rows) == 1:
+                raise ValueError(
+                    f"[{sheet_name}] row {row_start + 1} alone exceeds the "
+                    f"{EXTRACT_MAX_TOKENS}-token extraction output limit and cannot be "
+                    f"split further — it likely fans out into too many GHG-species "
+                    f"records. Raise EXTRACT_MAX_TOKENS (switching this call to "
+                    f"streaming, which is required above ~16K) to handle it."
+                )
+            mid = len(rows) // 2
+            print(f"[extract]   [{sheet_name}] rows {row_start + 1}–{row_start + len(rows)} "
+                  f"truncated at {EXTRACT_MAX_TOKENS} tokens; splitting into "
+                  f"{mid}+{len(rows) - mid} rows", flush=True)
+            left_recs, left_ok = await _extract_rows(rows[:mid], row_start, total_rows, sheet_name, columns, context_block)
+            right_recs, right_ok = await _extract_rows(rows[mid:], row_start + mid, total_rows, sheet_name, columns, context_block)
+            return left_recs + right_recs, max(left_ok, right_ok)
+
+        records = _parse_extraction_response(resp.content[0].text)
+        # Pause between calls to stay within per-minute token rate limits
+        await asyncio.sleep(15)
+        return records, len(rows)
+
     all_records = []
     record_index = 0
 
@@ -490,46 +554,34 @@ async def extract_from_excel(file_path: str, section_indices: list[int], confirm
         )
         context_block = confirmed_block + raw_context_block
 
-        n_batches = -(-len(rows_json) // BATCH_SIZE)
-        print(f"[extract] Sheet '{sheet_name}': {len(rows_json)} rows → {n_batches} batches", flush=True)
+        total_rows = len(rows_json)
+        est_batches = -(-total_rows // BATCH_SIZE)
+        print(f"[extract] Sheet '{sheet_name}': {total_rows} rows → ~{est_batches} batches "
+              f"(batch size adapts down on dense sheets)", flush=True)
 
-        for batch_num in range(n_batches):
-            batch_start = batch_num * BATCH_SIZE
-            batch = rows_json[batch_start: batch_start + BATCH_SIZE]
-            print(f"[extract]   [{sheet_name}] batch {batch_num+1}/{n_batches}: rows {batch_start+1}–{batch_start+len(batch)}", flush=True)
-            msg = (
-                f"{context_block}"
-                f"DATA — Sheet: {sheet_name} | "
-                f"Rows {batch_start + 1}–{batch_start + len(batch)} of {len(rows_json)}\n"
-                f"Columns: {[str(c) for c in data_df.columns]}\n\n"
-                f"{json.dumps(batch, indent=2, default=str)}\n\n"
-                "Extract all emission factor records from this batch. "
-                "Apply the document context to every record. "
-                "Return a JSON array — one element per data row."
-            )
-            # Retry up to 4 times on rate-limit (429) errors with exponential backoff
-            for attempt in range(4):
-                try:
-                    resp = await client.messages.create(
-                        model="claude-sonnet-4-6",
-                        max_tokens=16000,
-                        system=system_prompt,
-                        messages=[{"role": "user", "content": msg}],
-                    )
-                    batch_records = _parse_extraction_response(resp.content[0].text)
-                    for rec in batch_records:
-                        rec.index = record_index
-                        record_index += 1
-                    all_records.extend(batch_records)
-                    # Pause between batches to stay within per-minute token rate limits
-                    await asyncio.sleep(15)
-                    break
-                except Exception as e:
-                    if "429" in str(e) and attempt < 3:
-                        wait = 60 * (2 ** attempt)  # 60s, 120s, 240s
-                        print(f"[extract]   Rate limited, waiting {wait}s (attempt {attempt+1})", flush=True)
-                        await asyncio.sleep(wait)
-                    else:
-                        raise
+        columns = [str(c) for c in data_df.columns]
+        # Dense sheets (many GHG-species records per row) overflow the output
+        # ceiling. Once a batch truncates we drop the batch size to the largest
+        # span that survived, so the rest of the sheet doesn't keep hitting +
+        # splitting the limit (which wastes a full EXTRACT_MAX_TOKENS generation
+        # each time). effective only ratchets down, never back up.
+        cursor = 0
+        effective = BATCH_SIZE
+        batch_num = 0
+        while cursor < total_rows:
+            batch_num += 1
+            batch = rows_json[cursor: cursor + effective]
+            print(f"[extract]   [{sheet_name}] batch {batch_num}: rows {cursor+1}–{cursor+len(batch)} "
+                  f"(size {len(batch)})", flush=True)
+            batch_records, ok_size = await _extract_rows(batch, cursor, total_rows, sheet_name, columns, context_block)
+            for rec in batch_records:
+                rec.index = record_index
+                record_index += 1
+            all_records.extend(batch_records)
+            cursor += len(batch)
+            if ok_size < effective:
+                effective = max(1, ok_size)
+                print(f"[extract]   [{sheet_name}] dense sheet — shrinking batch size to "
+                      f"{effective} for remaining rows", flush=True)
 
     return all_records
