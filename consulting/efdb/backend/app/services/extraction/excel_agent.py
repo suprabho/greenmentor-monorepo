@@ -74,16 +74,18 @@ EF_HEADER_KEYWORDS = {"activity", "fuel", "unit", "kg", "co2", "emission", "scop
 
 
 def _row_has_numbers(row_values: list) -> bool:
-    """Return True if a row contains at least 3 numeric values (data row, not metadata)."""
-    count = 0
+    """Return True if a row contains at least one numeric value.
+
+    Used by header detection to spot the text->data transition. A fixed
+    higher threshold breaks sparse tables that have only one or two numeric
+    columns (e.g. "Fuel | CO2 EF"); the "is this a data row?" judgement is made
+    separately via the filled-cell count, so a single number is enough here."""
     for v in row_values:
         if v is None:
             continue
         try:
             float(str(v).replace(",", "").strip())
-            count += 1
-            if count >= 3:
-                return True
+            return True
         except (ValueError, TypeError):
             pass
     return False
@@ -91,8 +93,14 @@ def _row_has_numbers(row_values: list) -> bool:
 
 def _find_first_header_row(df: pd.DataFrame) -> int:
     """
-    Find the real column-header row by scanning the first 60 rows and looking for
-    the LAST short-string row before the first row that contains actual numbers.
+    Find the real column-header row by scanning the first 60 rows for the
+    text->data transition: the last all-text row (no numeric cells) with >=2
+    labels sitting immediately above the first genuine data row.
+
+    A "genuine data row" is the first row that carries a number AND has >=3
+    filled cells — the filled-cell count (not a numeric-count threshold) is what
+    separates data from stray numbers in titles/footnotes, so sparse tables with
+    only one numeric column (e.g. "Region | Fuel | CO2 EF") are found correctly.
 
     This handles DEFRA-style sheets where:
     - Rows 1–21: title, metadata, guidance text
@@ -101,21 +109,28 @@ def _find_first_header_row(df: pd.DataFrame) -> int:
     """
     n = min(60, len(df))
 
-    # Find the first row that has real numeric data values
+    # First genuine data row: carries a number and has several filled cells.
     first_data_row = n  # default: no data found
     for i in range(n):
-        if _row_has_numbers(list(df.iloc[i])):
+        row = list(df.iloc[i])
+        filled = sum(1 for v in row if v is not None and str(v).strip())
+        if filled >= 3 and _row_has_numbers(row):
             first_data_row = i
             break
 
     if first_data_row == 0:
         return 0
 
-    # The header is the last non-empty row before the first data row
-    # that has multiple filled columns (i.e. not a title/blank row)
+    # Header = last all-text row (no numbers) with >=2 labels before the data.
     for i in range(first_data_row - 1, -1, -1):
-        row_vals = list(df.iloc[i])
-        non_null = [v for v in row_vals if v is not None and str(v).strip()]
+        row = list(df.iloc[i])
+        non_null = [v for v in row if v is not None and str(v).strip()]
+        if len(non_null) >= 2 and not _row_has_numbers(row):
+            return i
+
+    # Fallback: last non-empty row with multiple filled columns before the data.
+    for i in range(first_data_row - 1, -1, -1):
+        non_null = [v for v in list(df.iloc[i]) if v is not None and str(v).strip()]
         if len(non_null) >= 2:
             return i
 
