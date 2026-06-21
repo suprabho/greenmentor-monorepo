@@ -3,6 +3,7 @@
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
 import { useEffect, useRef, useState } from "react";
+import DataRequestCard, { type DataRequestData } from "./DataRequestCard";
 
 const ACCENT = "#1f8a5b";
 const BORDER = "#e3e8e5";
@@ -32,9 +33,6 @@ export default function BuddyPage() {
     sendMessage({ text: t });
     setInput("");
   };
-
-  const textOf = (m: { parts: { type: string; text?: string }[] }) =>
-    m.parts.filter((p) => p.type === "text").map((p) => p.text).join("");
 
   return (
     <div style={{ minHeight: "100vh", background: "#f6f8f7", color: "#1a2420", fontFamily: "ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto" }}>
@@ -73,20 +71,44 @@ export default function BuddyPage() {
               {messages.map((m) => {
                 const isUser = m.role === "user";
                 return (
-                  <div key={m.id} style={{ display: "flex", justifyContent: isUser ? "flex-end" : "flex-start" }}>
-                    <div
-                      style={{
-                        maxWidth: "82%", whiteSpace: "pre-wrap", lineHeight: 1.55, fontSize: 14.5,
-                        padding: "11px 14px", borderRadius: 14,
-                        background: isUser ? ACCENT : "#fff",
-                        color: isUser ? "#fff" : "#1a2420",
-                        border: isUser ? "none" : `1px solid ${BORDER}`,
-                        borderBottomRightRadius: isUser ? 4 : 14,
-                        borderBottomLeftRadius: isUser ? 14 : 4,
-                      }}
-                    >
-                      {textOf(m) || (busy ? "…" : "")}
-                    </div>
+                  <div key={m.id} style={{ display: "flex", flexDirection: "column", gap: 8, alignItems: isUser ? "flex-end" : "flex-start" }}>
+                    {(m.parts as { type: string; text?: string; state?: string; input?: unknown; output?: unknown; errorText?: string }[]).map((part, i) => {
+                      if (part.type === "text") {
+                        if (!part.text) return null;
+                        return (
+                          <div key={i} style={{ display: "flex", justifyContent: isUser ? "flex-end" : "flex-start", width: "100%" }}>
+                            <div
+                              style={{
+                                maxWidth: "82%", whiteSpace: "pre-wrap", lineHeight: 1.55, fontSize: 14.5,
+                                padding: "11px 14px", borderRadius: 14,
+                                background: isUser ? ACCENT : "#fff",
+                                color: isUser ? "#fff" : "#1a2420",
+                                border: isUser ? "none" : `1px solid ${BORDER}`,
+                                borderBottomRightRadius: isUser ? 4 : 14,
+                                borderBottomLeftRadius: isUser ? 14 : 4,
+                              }}
+                            >
+                              {part.text}
+                            </div>
+                          </div>
+                        );
+                      }
+                      // Generative UI: render the draftDataRequest tool as a card.
+                      if (part.type === "tool-draftDataRequest") {
+                        switch (part.state) {
+                          case "input-streaming":
+                          case "input-available":
+                            return <DataRequestCard key={i} data={(part.input as DataRequestData) ?? {}} loading />;
+                          case "output-available":
+                            return <DataRequestCard key={i} data={part.output as DataRequestData} />;
+                          case "output-error":
+                            return <div key={i} style={{ fontSize: 13, color: "#c2410c" }}>Couldn&apos;t draft the request: {part.errorText}</div>;
+                          default:
+                            return null;
+                        }
+                      }
+                      return null;
+                    })}
                   </div>
                 );
               })}
