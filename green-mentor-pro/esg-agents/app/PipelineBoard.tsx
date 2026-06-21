@@ -136,7 +136,10 @@ export default function PipelineBoard() {
             <div style={{ width: 10, height: 10, borderRadius: 3, background: ACCENT }} />
             <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: 0.3, color: ACCENT }}>GREENMENTOR · ESG-AGENTS</span>
           </div>
-          <a href="/agents" style={{ fontSize: 13, color: ACCENT, fontWeight: 600, textDecoration: "none" }}>Agent Studio →</a>
+          <div style={{ display: "flex", gap: 16 }}>
+            <a href="/buddy" style={{ fontSize: 13, color: ACCENT, fontWeight: 600, textDecoration: "none" }}>🌱 ESG Buddy →</a>
+            <a href="/agents" style={{ fontSize: 13, color: ACCENT, fontWeight: 600, textDecoration: "none" }}>Agent Studio →</a>
+          </div>
         </div>
         <h1 style={{ fontSize: 24, margin: "6px 0 4px", fontWeight: 750 }}>{DEMO_ENGAGEMENT.name}</h1>
         <div style={{ color: C.sub, fontSize: 14, marginBottom: 10 }}>
