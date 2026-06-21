@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "1.0.0",
+  "engagement_id": "eng_acme_fy2526",
+  "submission_id": "sub_8f1c",
+  "channel": "portal",
+  "request_id": "req_grid_elec",
+  "submitted_by": { "user_id": "u_acme_facilities", "email": "facilities@acme.example" },
+  "submitted_at": "2026-07-02T09:12:00Z",
+  "site_id": "site_pune",
+  "period_label": "FY2025-26",
+  "form_values": { "reporting_basis": "billed", "notes": "April bill estimated, see attachment" },
+  "files": [
+    {
+      "file_id": "f_001",
+      "storage_path": "engagements/eng_acme_fy2526/req_grid_elec/site_pune/apr2025_bill.pdf",
+      "filename": "apr2025_bill.pdf",
+      "mime": "application/pdf",
+      "bytes": 184320,
+      "doc_type": "electricity_bill",
+      "extraction_status": "queued"
+    }
+  ],
+  "routing": { "target_agent": "data-collection", "tool": "extract_document" },
+  "receipt": { "status": "received", "logged_at": "2026-07-02T09:12:03Z" }
+}

@@ -1,0 +1,73 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "esg-agents/agents/report-drafting/io.schema.json",
+  "title": "ReportDraftingIO",
+  "$defs": {
+    "input": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "tenant_id": { "type": "string" },
+        "engagement_id": { "type": "string" },
+        "frameworks_in_scope": { "type": "array", "items": { "type": "string" } },
+        "calc_result": { "type": "object", "description": "Phase 6 output: emission_results, kpis, disclosure_mappings, trends, risks_opportunities." },
+        "materiality_matrix": { "type": ["object", "null"] },
+        "scope_charter": { "type": ["object", "null"] },
+        "assumptions_log": { "type": "array", "items": { "type": "object" } }
+      },
+      "required": ["tenant_id", "engagement_id", "frameworks_in_scope", "calc_result"]
+    },
+    "output": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "report_outline": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "section_id": { "type": "string" },
+              "title": { "type": "string" },
+              "order": { "type": "integer" }
+            },
+            "required": ["section_id", "title", "order"]
+          }
+        },
+        "report_sections": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "section_id": { "type": "string" },
+              "title": { "type": "string" },
+              "body_markdown": { "type": "string" },
+              "chart_refs": { "type": "array", "items": { "type": "string" } },
+              "data_refs": { "type": "array", "items": { "type": "string" } }
+            },
+            "required": ["section_id", "title", "body_markdown"]
+          }
+        },
+        "disclosure_drafts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "disclosure_code": { "type": "string" },
+              "question_id": { "type": ["string", "null"] },
+              "answer": { "type": "string" },
+              "comment": { "type": ["string", "null"] },
+              "note": { "type": ["string", "null"] },
+              "status": { "type": "string", "enum": ["Pending", "Drafted"], "default": "Pending" }
+            },
+            "required": ["disclosure_code", "answer"]
+          }
+        },
+        "qa_notes": { "type": "array", "items": { "type": "string" } }
+      },
+      "required": ["report_outline", "report_sections"]
+    }
+  }
+}

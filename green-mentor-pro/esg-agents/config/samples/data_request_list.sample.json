@@ -1,0 +1,52 @@
+{
+  "schemaVersion": "1.0.0",
+  "engagement_id": "eng_acme_fy2526",
+  "generated_by": "data-requirement-planner",
+  "generated_at": "2026-06-21T10:00:00Z",
+  "status": "pending_approval",
+  "requests": [
+    {
+      "request_id": "req_grid_elec",
+      "dp_id": "grid_electricity_kwh",
+      "label": "Grid electricity consumption",
+      "metric_ids": ["scope2_location_tco2e"],
+      "disclosure_codes": ["BRSR:P6-E7", "GRI:305-2"],
+      "unit": "kWh",
+      "granularity": "per_site_per_month",
+      "sites": ["site_pune", "site_chennai", "site_hq"],
+      "period": "FY2025-26",
+      "data_definition": "Total electricity drawn from the grid (DISCOM) per site, summed monthly. Excludes captive/renewable generation.",
+      "calc_methodology": "kWh from DISCOM bills × regional grid emission factor (location-based).",
+      "evidence_required": ["monthly electricity bills (PDF)"],
+      "source_system": "DISCOM portal / accounts payable",
+      "owner_role": "Site EHS / Facilities",
+      "channel": "portal",
+      "form_schema_ref": "fs_grid_elec",
+      "quality_params": { "expected_min": 0, "outlier_factor": 3, "required": true },
+      "deadline": "2026-07-15",
+      "status": "open"
+    },
+    {
+      "request_id": "req_diesel",
+      "dp_id": "diesel_litres",
+      "label": "Diesel consumption (DG sets + vehicles)",
+      "metric_ids": ["scope1_tco2e"],
+      "disclosure_codes": ["BRSR:P6-E7", "GRI:305-1"],
+      "unit": "litres",
+      "granularity": "per_site_per_month",
+      "sites": ["site_pune", "site_chennai"],
+      "period": "FY2025-26",
+      "data_definition": "Diesel consumed in stationary (DG) and mobile combustion, per site.",
+      "calc_methodology": "litres × diesel emission factor → CO2/CH4/N2O split → tCO2e.",
+      "evidence_required": ["fuel purchase invoices", "DG run-hour logs"],
+      "source_system": "Stores / procurement",
+      "owner_role": "Site Maintenance",
+      "channel": "upload",
+      "form_schema_ref": null,
+      "quality_params": { "expected_min": 0, "outlier_factor": 3, "required": true },
+      "deadline": "2026-07-15",
+      "status": "open"
+    }
+  ],
+  "hitl": { "gate": "data_request_approval", "approver_role": "lead_consultant", "decision": "pending" }
+}

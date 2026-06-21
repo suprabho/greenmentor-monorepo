@@ -1,0 +1,125 @@
+[
+  {
+    "name": "extract_dataset",
+    "description": "Return the structured datasets extracted from the uploaded document, with per-field provenance, plus any qualitative captures. Call this exactly once.",
+    "strict": true,
+    "input_schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "document_type_detected": {
+          "type": "string",
+          "enum": ["utility_bill", "fuel_invoice", "waste_manifest", "water_bill", "hr_spreadsheet", "spend_ledger", "policy", "certificate", "other"]
+        },
+        "dataset_rows": {
+          "type": "array",
+          "description": "One row per (metric, site, period). reported_value is numeric-only in the document's native unit.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "request_id": { "type": ["string", "null"] },
+              "metric_code": { "type": "string" },
+              "disclosure_code": { "type": ["string", "null"] },
+              "site_id": { "type": "string" },
+              "period_start": { "$ref": "#/$defs/provenance" },
+              "period_end": { "$ref": "#/$defs/provenance" },
+              "reported_value": { "$ref": "#/$defs/provenance" },
+              "reported_unit": { "$ref": "#/$defs/provenance" },
+              "normalized_value": { "type": ["number", "null"] },
+              "normalized_unit": { "type": ["string", "null"] },
+              "activity_descriptor": { "$ref": "#/$defs/provenance" },
+              "enum_fields": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "field": { "type": "string" },
+                    "selected": { "$ref": "#/$defs/provenance" }
+                  },
+                  "required": ["field", "selected"]
+                }
+              },
+              "unit_mismatch": { "type": "boolean" },
+              "period_mismatch": { "type": "boolean" },
+              "is_outlier": { "type": "boolean" },
+              "outlier_note": { "type": ["string", "null"] },
+              "overall_confidence": { "type": "string", "enum": ["high", "medium", "low"] }
+            },
+            "required": ["metric_code", "site_id", "reported_value", "reported_unit", "overall_confidence"]
+          }
+        },
+        "qualitative_capture": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "disclosure_code": { "type": ["string", "null"] },
+              "summary": { "type": "string" },
+              "evidence_ref": { "type": "string" },
+              "coverage_note": { "type": ["string", "null"] }
+            },
+            "required": ["summary", "evidence_ref"]
+          }
+        }
+      },
+      "required": ["document_type_detected", "dataset_rows"],
+      "$defs": {
+        "provenance": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "value": { "type": ["string", "number", "boolean", "null"] },
+            "source_snippet": { "type": ["string", "null"] },
+            "extraction_confidence": { "type": "string", "enum": ["high", "medium", "low"] },
+            "extraction_note": { "type": ["string", "null"] }
+          },
+          "required": ["value", "extraction_confidence"]
+        }
+      }
+    }
+  },
+  {
+    "name": "flag_collection_status",
+    "description": "Return the fulfilment status of every data-request line item and drafted follow-up messages for the unfulfilled ones. Call when a collection status sweep is requested.",
+    "strict": true,
+    "input_schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "fulfillment": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "request_id": { "type": "string" },
+              "status": { "type": "string", "enum": ["fulfilled", "partial", "missing", "expired", "rejected", "anomalous"] },
+              "reason": { "type": ["string", "null"] }
+            },
+            "required": ["request_id", "status"]
+          }
+        },
+        "followups": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "request_id": { "type": "string" },
+              "data_owner": { "type": "string" },
+              "channel": { "type": "string", "enum": ["portal", "email", "whatsapp"] },
+              "subject": { "type": "string" },
+              "message": { "type": "string" }
+            },
+            "required": ["request_id", "data_owner", "message"]
+          }
+        },
+        "coverage_pct": { "type": "number" }
+      },
+      "required": ["fulfillment", "coverage_pct"]
+    }
+  }
+]

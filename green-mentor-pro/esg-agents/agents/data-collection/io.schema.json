@@ -1,0 +1,180 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "esg-agents/agents/data-collection/io.schema.json",
+  "title": "DataCollectionAgentIO",
+  "$defs": {
+    "ProvenanceField": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "value": { "type": ["string", "number", "boolean", "null"] },
+        "source_snippet": { "type": ["string", "null"], "description": "Exact text/cell from the document." },
+        "extraction_confidence": { "type": "string", "enum": ["high", "medium", "low"] },
+        "extraction_note": { "type": ["string", "null"] }
+      },
+      "required": ["value", "extraction_confidence"]
+    },
+    "FieldSpec": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "A requested metric/field and its platform-dropdown constraints.",
+      "properties": {
+        "metric_code": { "type": "string", "description": "e.g. 'energy.electricity.grid'." },
+        "label": { "type": "string" },
+        "data_type": { "type": "string", "enum": ["number", "enum", "date", "text", "boolean"] },
+        "required_unit": { "type": ["string", "null"], "description": "e.g. 'kWh', 'kL', 'tonnes', 'INR'." },
+        "enum": { "type": ["array", "null"], "items": { "type": "string" }, "description": "Allowed dropdown values." },
+        "disclosure_code": { "type": ["string", "null"], "description": "BRSR/GRI code this feeds." },
+        "expected_magnitude": { "type": ["number", "null"], "description": "Prior-period or peer value for outlier sanity." }
+      },
+      "required": ["metric_code", "data_type"]
+    },
+    "input": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "tenant_id": { "type": "string" },
+        "engagement_id": { "type": "string" },
+        "financial_year": { "type": "string", "description": "e.g. 'FY2025-26'." },
+        "quarter": { "type": ["string", "null"], "enum": ["Q1", "Q2", "Q3", "Q4", null] },
+        "site": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "site_id": { "type": "string" },
+            "site_name": { "type": "string" },
+            "site_combination_id": { "type": ["string", "null"] }
+          },
+          "required": ["site_id"]
+        },
+        "field_catalog": { "type": "array", "items": { "$ref": "#/$defs/FieldSpec" } },
+        "data_request_list": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "request_id": { "type": "string" },
+              "metric_code": { "type": "string" },
+              "data_owner": { "type": "string", "description": "Name/role of responsible person." },
+              "data_owner_contact": { "type": ["string", "null"] },
+              "period_start": { "type": "string", "format": "date" },
+              "period_end": { "type": "string", "format": "date" },
+              "deadline": { "type": ["string", "null"], "format": "date" },
+              "prior_status": { "type": "string", "enum": ["open", "fulfilled", "partial", "missing", "rejected"] }
+            },
+            "required": ["request_id", "metric_code", "period_start", "period_end"]
+          }
+        },
+        "document": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "The uploaded artifact under review (image/PDF/spreadsheet text passed as content blocks).",
+          "properties": {
+            "storage_path": { "type": "string" },
+            "document_hint": {
+              "type": "string",
+              "enum": ["utility_bill", "fuel_invoice", "waste_manifest", "water_bill", "hr_spreadsheet", "spend_ledger", "policy", "certificate", "other"]
+            },
+            "uploaded_by": { "type": "string" },
+            "uploaded_at": { "type": "string", "format": "date-time" }
+          },
+          "required": ["storage_path"]
+        }
+      },
+      "required": ["tenant_id", "engagement_id", "financial_year", "field_catalog", "data_request_list"]
+    },
+    "DatasetRow": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "request_id": { "type": ["string", "null"] },
+        "metric_code": { "type": "string" },
+        "disclosure_code": { "type": ["string", "null"] },
+        "site_id": { "type": "string" },
+        "period_start": { "$ref": "#/$defs/ProvenanceField" },
+        "period_end": { "$ref": "#/$defs/ProvenanceField" },
+        "reported_value": { "$ref": "#/$defs/ProvenanceField", "description": "Numeric-only, native unit." },
+        "reported_unit": { "$ref": "#/$defs/ProvenanceField" },
+        "normalized_value": { "type": ["number", "null"], "description": "Value in required_unit if an exact conversion was applied." },
+        "normalized_unit": { "type": ["string", "null"] },
+        "activity_descriptor": { "$ref": "#/$defs/ProvenanceField", "description": "For GHG: fuel/energy/vehicle/grid descriptor for EF selection." },
+        "enum_fields": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "field": { "type": "string" },
+              "selected": { "$ref": "#/$defs/ProvenanceField" }
+            },
+            "required": ["field", "selected"]
+          }
+        },
+        "unit_mismatch": { "type": "boolean", "default": false },
+        "period_mismatch": { "type": "boolean", "default": false },
+        "is_outlier": { "type": "boolean", "default": false },
+        "outlier_note": { "type": ["string", "null"] },
+        "overall_confidence": { "type": "string", "enum": ["high", "medium", "low"] },
+        "review_status": { "type": "string", "enum": ["pending_review"], "default": "pending_review" }
+      },
+      "required": ["metric_code", "site_id", "reported_value", "reported_unit", "overall_confidence"]
+    },
+    "output": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "document_type_detected": {
+          "type": "string",
+          "enum": ["utility_bill", "fuel_invoice", "waste_manifest", "water_bill", "hr_spreadsheet", "spend_ledger", "policy", "certificate", "other"]
+        },
+        "dataset_rows": { "type": "array", "items": { "$ref": "#/$defs/DatasetRow" } },
+        "qualitative_capture": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "disclosure_code": { "type": ["string", "null"] },
+              "summary": { "type": "string" },
+              "evidence_ref": { "type": "string" },
+              "coverage_note": { "type": ["string", "null"] }
+            },
+            "required": ["summary", "evidence_ref"]
+          }
+        },
+        "fulfillment": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "request_id": { "type": "string" },
+              "status": { "type": "string", "enum": ["fulfilled", "partial", "missing", "expired", "rejected", "anomalous"] },
+              "reason": { "type": ["string", "null"] }
+            },
+            "required": ["request_id", "status"]
+          }
+        },
+        "followups": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "request_id": { "type": "string" },
+              "data_owner": { "type": "string" },
+              "channel": { "type": "string", "enum": ["portal", "email", "whatsapp"], "default": "portal" },
+              "subject": { "type": "string" },
+              "message": { "type": "string" }
+            },
+            "required": ["request_id", "data_owner", "message"]
+          }
+        },
+        "coverage_pct": { "type": "number", "minimum": 0, "maximum": 100 },
+        "run_confidence": { "type": "string", "enum": ["high", "medium", "low"], "description": "Min over all dataset_rows.overall_confidence." }
+      },
+      "required": ["document_type_detected", "dataset_rows", "fulfillment", "coverage_pct", "run_confidence"]
+    }
+  }
+}
