@@ -11,6 +11,7 @@ import {
   type ReviewItem,
   type Confidence,
 } from "@/lib/demo/fixtures";
+import { buildCollectionInput, rowsToReviewItems } from "@/lib/demo/collectionRunInput";
 
 const ACCENT = "#1f8a5b";
 const C = {
@@ -51,6 +52,37 @@ export default function PipelineBoard() {
   const [phaseStatus, setPhaseStatus] = useState<Record<PhaseKey, DemoPhaseStatus>>(INITIAL_PHASE_STATUS);
   const [items, setItems] = useState<ReviewItem[]>(INITIAL_REVIEW_ITEMS);
   const [openPhase, setOpenPhase] = useState<PhaseKey | null>("data_collection");
+  const [running, setRunning] = useState(false);
+  const [liveMeta, setLiveMeta] = useState<string | null>(null);
+  const [runError, setRunError] = useState<string | null>(null);
+
+  // Run the real data-collection agent (live Claude call) and replace the
+  // fixtures with its extracted rows. Hits the generic /api/agents/<key>/run route.
+  const runLive = async () => {
+    setRunning(true);
+    setRunError(null);
+    try {
+      const res = await fetch("/api/agents/data-collection/run", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          input: buildCollectionInput(),
+          ctx: { orgId: "org_acme", engagementId: "eng_acme_fy2526", financialYear: "FY2025-26" },
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error ?? `HTTP ${res.status}`);
+      const live = rowsToReviewItems(data.output);
+      if (!live.length) throw new Error("agent returned no dataset rows");
+      setItems(live);
+      setPhaseStatus((p) => ({ ...p, data_collection: "awaiting_human_review" }));
+      setLiveMeta(`live · ${data.meta?.model ?? "claude"} · ${live.length} row${live.length > 1 ? "s" : ""} extracted`);
+    } catch (e) {
+      setRunError(e instanceof Error ? e.message : "run failed");
+    } finally {
+      setRunning(false);
+    }
+  };
 
   // Linear DAG: the next runnable phase is the first not_started/changes_requested
   // whose predecessor is complete.
@@ -99,9 +131,12 @@ export default function PipelineBoard() {
     <div style={{ minHeight: "100vh", background: C.bg, color: C.text, fontFamily: "ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto" }}>
       <div style={{ maxWidth: 1080, margin: "0 auto", padding: "28px 24px 64px" }}>
         {/* header */}
-        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
-          <div style={{ width: 10, height: 10, borderRadius: 3, background: ACCENT }} />
-          <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: 0.3, color: ACCENT }}>GREENMENTOR · ESG-AGENTS</span>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 4 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{ width: 10, height: 10, borderRadius: 3, background: ACCENT }} />
+            <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: 0.3, color: ACCENT }}>GREENMENTOR · ESG-AGENTS</span>
+          </div>
+          <a href="/agents" style={{ fontSize: 13, color: ACCENT, fontWeight: 600, textDecoration: "none" }}>Agent Studio →</a>
         </div>
         <h1 style={{ fontSize: 24, margin: "6px 0 4px", fontWeight: 750 }}>{DEMO_ENGAGEMENT.name}</h1>
         <div style={{ color: C.sub, fontSize: 14, marginBottom: 10 }}>
@@ -162,11 +197,28 @@ export default function PipelineBoard() {
             <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: 18 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 4 }}>
                 <div style={{ fontWeight: 750, fontSize: 16 }}>Phase 4 · Collection review</div>
-                <button onClick={() => setOpenPhase(null)} style={{ ...btnGhost, fontSize: 13 }}>Close</button>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <button onClick={runLive} disabled={running} style={{ ...btn(ACCENT), opacity: running ? 0.6 : 1, cursor: running ? "wait" : "pointer" }}>
+                    {running ? "Running agent…" : liveMeta ? "↻ Re-run live" : "▸ Run live"}
+                  </button>
+                  <button onClick={() => setOpenPhase(null)} style={{ ...btnGhost, fontSize: 13 }}>Close</button>
+                </div>
               </div>
+              {liveMeta && (
+                <div style={{ fontSize: 12, fontWeight: 600, color: C.high, background: "#e6f4ec", padding: "5px 9px", borderRadius: 6, marginBottom: 10 }}>
+                  ● {liveMeta} — extracted from the sample MSEDCL bill by a real Claude run
+                </div>
+              )}
+              {runError && (
+                <div style={{ fontSize: 12.5, fontWeight: 600, color: C.low, background: "#fde8de", padding: "7px 10px", borderRadius: 6, marginBottom: 10 }}>
+                  Run failed: {runError}
+                  {runError.toLowerCase().includes("anthropic") && " — add ANTHROPIC_API_KEY to green-mentor-pro/esg-agents/.env.local and restart."}
+                </div>
+              )}
               <div style={{ fontSize: 13, color: C.sub, marginBottom: 16 }}>
-                The <code>data-collection</code> agent extracted these as <strong>drafts</strong>. You verify before Phase 5.
-                Low-confidence / outlier items are flagged and sorted first.
+                The <code>data-collection</code> agent extracted these{liveMeta ? "" : " (sample)"} as <strong>drafts</strong>.
+                You verify before Phase 5. Low-confidence / outlier items are flagged and sorted first.
+                {!liveMeta && <> Hit <strong>▸ Run live</strong> to extract from a real bill via Claude.</>}
               </div>
 
               {[...items].sort((a, b) => Number(b.reviewRequired) - Number(a.reviewRequired)).map((it) => {
