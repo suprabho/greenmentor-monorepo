@@ -1,12 +1,30 @@
+import { anthropic } from "@ai-sdk/anthropic";
+import type { LanguageModel } from "ai";
+import { MODELS } from "@/lib/anthropic/models";
+
 /**
- * Vercel AI Gateway config for ESG Buddy.
+ * Model config for ESG Buddy.
  *
  * The AI SDK routes a plain "creator/model" string through the Vercel AI Gateway
  * automatically when AI_GATEWAY_API_KEY is set (or via Vercel OIDC on deploy) —
- * one key, hundreds of models, with failover + spend monitoring and no per-provider
- * keys. Swap providers by changing the string (e.g. "openai/gpt-5").
+ * one key, hundreds of models, with failover + spend monitoring. Swap providers by
+ * changing the string (e.g. "openai/gpt-5").
  */
-export const BUDDY_MODEL = process.env.AI_GATEWAY_MODEL ?? "anthropic/claude-sonnet-4.5";
+export const BUDDY_GATEWAY_MODEL = process.env.AI_GATEWAY_MODEL ?? "anthropic/claude-sonnet-4.5";
+
+export type BuddyVia = "gateway" | "anthropic-direct" | "gateway-oidc";
+
+/**
+ * Pick the model + how it's reached, in priority order:
+ *  1. AI_GATEWAY_API_KEY present → Vercel AI Gateway (preferred: observability + failover)
+ *  2. else ANTHROPIC_API_KEY present → call Claude directly (fallback, same key the agents use)
+ *  3. else → the gateway string, relying on a Vercel OIDC token (last resort on Vercel)
+ */
+export function resolveBuddyModel(): { model: LanguageModel; via: BuddyVia } {
+  if (process.env.AI_GATEWAY_API_KEY) return { model: BUDDY_GATEWAY_MODEL, via: "gateway" };
+  if (process.env.ANTHROPIC_API_KEY) return { model: anthropic(MODELS.sonnet), via: "anthropic-direct" };
+  return { model: BUDDY_GATEWAY_MODEL, via: "gateway-oidc" };
+}
 
 export const ESG_BUDDY_SYSTEM = `You are **ESG Buddy**, GreenMentor's friendly, rigorous assistant for ESG and sustainability reporting. Your audience is sustainability managers, consultants, and learners — often working on India's BRSR (Business Responsibility & Sustainability Reporting), and also GRI, ISSB/IFRS S1-S2, SASB, TCFD, and the EU's ESRS/CSRD.
 
