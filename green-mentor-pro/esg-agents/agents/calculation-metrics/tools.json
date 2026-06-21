@@ -1,0 +1,140 @@
+[
+  {
+    "name": "search_emission_factors",
+    "description": "Query the GreenMentor emission-factor database (EFDB) for candidate factors matching an activity. Returns ranked candidates with ef_id, ef_value, numerator/denominator units, ghg scope/species, country, reference year, source authority, pedigree DQ score, and status. Call once per activity row that needs a factor; refine the query if no good match is returned.",
+    "strict": true,
+    "input_schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "activity_query": { "type": "string", "description": "Natural-language activity description, e.g. 'grid electricity consumption India'." },
+        "country_iso": { "type": ["string", "null"], "description": "ISO 3166-1 alpha-3, e.g. 'IND'. Null for global." },
+        "year": { "type": ["integer", "null"], "description": "Reporting/reference year to prefer the closest-vintage factor." },
+        "ghg_scope": { "type": ["string", "null"], "enum": ["1", "2", "3", null] }
+      },
+      "required": ["activity_query"]
+    }
+  },
+  {
+    "name": "emit_calc_result",
+    "description": "Return the complete Phase 6 calculation artifact: per-row emission results with full provenance, scope totals, KPIs, framework disclosure mappings, trends, and risks/opportunities. Call exactly once after all emission-factor lookups are done.",
+    "strict": true,
+    "input_schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "emission_results": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "row_ref": { "type": "string" },
+              "metric_code": { "type": "string" },
+              "ghg_scope": { "type": ["string", "null"], "enum": ["1", "2", "3", null] },
+              "site_id": { "type": "string" },
+              "quantity": { "type": "number" },
+              "unit": { "type": "string" },
+              "total_co2e_kg": { "type": ["number", "null"] },
+              "co2_kg": { "type": ["number", "null"] },
+              "ch4_kg": { "type": ["number", "null"] },
+              "n2o_kg": { "type": ["number", "null"] },
+              "scope2_basis": { "type": ["string", "null"], "enum": ["location-based", "market-based", null] },
+              "provenance": { "$ref": "#/$defs/provenance" },
+              "calc_confidence": { "type": "string", "enum": ["high", "medium", "low"] },
+              "status": { "type": "string", "enum": ["calculated", "unresolved"] },
+              "route_to_human": { "type": "boolean" }
+            },
+            "required": ["row_ref", "metric_code", "site_id", "provenance", "calc_confidence", "status"]
+          }
+        },
+        "scope_totals": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "scope1_co2e_kg": { "type": ["number", "null"] },
+            "scope2_location_co2e_kg": { "type": ["number", "null"] },
+            "scope2_market_co2e_kg": { "type": ["number", "null"] },
+            "scope3_co2e_kg": { "type": ["number", "null"] }
+          }
+        },
+        "kpis": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "kpi_code": { "type": "string" },
+              "label": { "type": "string" },
+              "value": { "type": ["number", "null"] },
+              "unit": { "type": "string" },
+              "normalization_basis": { "type": ["string", "null"], "enum": ["revenue", "production", "fte", "area", null] },
+              "yoy_change_pct": { "type": ["number", "null"] },
+              "vs_target_pct": { "type": ["number", "null"] },
+              "target_status": { "type": ["string", "null"], "enum": ["on_track", "off_track", "achieved", null] },
+              "benchmark_position": { "type": ["string", "null"], "enum": ["below_peer", "at_peer", "above_peer", null] },
+              "provenance": { "$ref": "#/$defs/provenance" },
+              "calc_confidence": { "type": "string", "enum": ["high", "medium", "low"] }
+            },
+            "required": ["kpi_code", "value", "unit", "calc_confidence"]
+          }
+        },
+        "disclosure_mappings": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "framework": { "type": "string", "enum": ["BRSR", "GRI", "ESRS", "ISSB", "TCFD"] },
+              "disclosure_code": { "type": "string" },
+              "question_id": { "type": ["string", "null"] },
+              "answer": { "type": ["string", "number", "null"] },
+              "unit": { "type": ["string", "null"] },
+              "comment": { "type": ["string", "null"] },
+              "note": { "type": ["string", "null"] },
+              "provenance": { "$ref": "#/$defs/provenance" },
+              "status": { "type": "string", "enum": ["mapped", "unresolved"] }
+            },
+            "required": ["framework", "disclosure_code", "status"]
+          }
+        },
+        "trends": { "type": "array", "items": { "type": "string" } },
+        "risks_opportunities": { "type": "array", "items": { "type": "string" } },
+        "human_queue": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "row_ref": { "type": "string" },
+              "reason": { "type": "string" }
+            },
+            "required": ["row_ref", "reason"]
+          }
+        },
+        "run_confidence": { "type": "string", "enum": ["high", "medium", "low"] }
+      },
+      "required": ["emission_results", "scope_totals", "kpis", "disclosure_mappings", "run_confidence"],
+      "$defs": {
+        "provenance": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "ef_id": { "type": ["string", "null"] },
+            "ef_value": { "type": ["number", "null"] },
+            "ef_numerator_unit": { "type": ["string", "null"] },
+            "ef_denominator_unit": { "type": ["string", "null"] },
+            "source_organization": { "type": ["string", "null"] },
+            "reference_year": { "type": ["integer", "null"] },
+            "calculation_method": { "type": ["string", "null"] },
+            "gwp_basis": { "type": ["string", "null"], "enum": ["AR4", "AR5", "AR6", "GWP100", "GWP20", "Not stated", null] },
+            "unit_conversion": { "type": ["string", "null"] },
+            "input_source_snippet": { "type": ["string", "null"] },
+            "formula": { "type": ["string", "null"] }
+          },
+          "required": ["calculation_method"]
+        }
+      }
+    }
+  }
+]

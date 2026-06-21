@@ -1,0 +1,6 @@
+@import "tailwindcss";
+
+/* Per-org theme tokens are injected at runtime in app/layout.tsx (M3). */
+:root {
+  --gm-accent: #1f8a5b;
+}

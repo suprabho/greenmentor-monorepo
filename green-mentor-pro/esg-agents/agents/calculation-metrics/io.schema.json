@@ -1,0 +1,196 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "esg-agents/agents/calculation-metrics/io.schema.json",
+  "title": "CalculationMetricsAgentIO",
+  "$defs": {
+    "Provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Full audit trail for one computed number.",
+      "properties": {
+        "ef_id": { "type": ["string", "null"] },
+        "ef_value": { "type": ["number", "null"] },
+        "ef_numerator_unit": { "type": ["string", "null"] },
+        "ef_denominator_unit": { "type": ["string", "null"] },
+        "source_organization": { "type": ["string", "null"] },
+        "reference_year": { "type": ["integer", "null"] },
+        "calculation_method": { "type": ["string", "null"] },
+        "gwp_basis": { "type": ["string", "null"], "enum": ["AR4", "AR5", "AR6", "GWP100", "GWP20", "Not stated", null] },
+        "unit_conversion": { "type": ["string", "null"], "description": "e.g. 'kWh→MWh ÷1000'." },
+        "input_source_snippet": { "type": ["string", "null"] },
+        "formula": { "type": ["string", "null"], "description": "e.g. 'total_co2e_kg = 48210 kWh × 0.716 kgCO2e/kWh'." }
+      },
+      "required": ["calculation_method"]
+    },
+    "EmissionResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "row_ref": { "type": "string" },
+        "metric_code": { "type": "string" },
+        "ghg_scope": { "type": ["string", "null"], "enum": ["1", "2", "3", null] },
+        "site_id": { "type": "string" },
+        "quantity": { "type": "number" },
+        "unit": { "type": "string" },
+        "total_co2e_kg": { "type": ["number", "null"] },
+        "co2_kg": { "type": ["number", "null"] },
+        "ch4_kg": { "type": ["number", "null"] },
+        "n2o_kg": { "type": ["number", "null"] },
+        "scope2_basis": { "type": ["string", "null"], "enum": ["location-based", "market-based", null] },
+        "provenance": { "$ref": "#/$defs/Provenance" },
+        "calc_confidence": { "type": "string", "enum": ["high", "medium", "low"] },
+        "status": { "type": "string", "enum": ["calculated", "unresolved"], "default": "calculated" },
+        "route_to_human": { "type": "boolean", "default": false }
+      },
+      "required": ["row_ref", "metric_code", "site_id", "calc_confidence", "status"]
+    },
+    "Kpi": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "kpi_code": { "type": "string" },
+        "label": { "type": "string" },
+        "value": { "type": ["number", "null"] },
+        "unit": { "type": "string" },
+        "normalization_basis": { "type": ["string", "null"], "enum": ["revenue", "production", "fte", "area", null] },
+        "yoy_change_pct": { "type": ["number", "null"] },
+        "vs_target_pct": { "type": ["number", "null"] },
+        "target_status": { "type": ["string", "null"], "enum": ["on_track", "off_track", "achieved", null] },
+        "benchmark_position": { "type": ["string", "null"], "enum": ["below_peer", "at_peer", "above_peer", null] },
+        "provenance": { "$ref": "#/$defs/Provenance" },
+        "calc_confidence": { "type": "string", "enum": ["high", "medium", "low"] }
+      },
+      "required": ["kpi_code", "value", "unit", "calc_confidence"]
+    },
+    "DisclosureMapping": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "framework": { "type": "string", "enum": ["BRSR", "GRI", "ESRS", "ISSB", "TCFD"] },
+        "disclosure_code": { "type": "string" },
+        "question_id": { "type": ["string", "null"] },
+        "answer": { "type": ["string", "number", "null"] },
+        "unit": { "type": ["string", "null"] },
+        "comment": { "type": ["string", "null"] },
+        "note": { "type": ["string", "null"] },
+        "provenance": { "$ref": "#/$defs/Provenance" },
+        "status": { "type": "string", "enum": ["mapped", "unresolved"], "default": "mapped" }
+      },
+      "required": ["framework", "disclosure_code", "status"]
+    },
+    "input": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "tenant_id": { "type": "string" },
+        "engagement_id": { "type": "string" },
+        "financial_year": { "type": "string" },
+        "frameworks_in_scope": { "type": "array", "items": { "type": "string", "enum": ["BRSR", "GRI", "ESRS", "ISSB", "TCFD"] } },
+        "activity_rows": {
+          "type": "array",
+          "description": "Validated, signed-off rows from Phase 5.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "row_ref": { "type": "string" },
+              "metric_code": { "type": "string" },
+              "activity_descriptor": { "type": "string" },
+              "quantity": { "type": "number" },
+              "unit": { "type": "string" },
+              "ghg_scope": { "type": ["string", "null"], "enum": ["1", "2", "3", null] },
+              "scope3_category": { "type": ["string", "null"] },
+              "site_id": { "type": "string" },
+              "country_iso": { "type": ["string", "null"], "description": "ISO 3166-1 alpha-3." },
+              "period_start": { "type": "string", "format": "date" },
+              "period_end": { "type": "string", "format": "date" },
+              "input_confidence": { "type": "string", "enum": ["high", "medium", "low"] },
+              "source_snippet": { "type": ["string", "null"] }
+            },
+            "required": ["row_ref", "metric_code", "activity_descriptor", "quantity", "unit", "site_id"]
+          }
+        },
+        "denominators": {
+          "type": "array",
+          "description": "Normalization bases (revenue, production, FTE, area).",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "basis": { "type": "string", "enum": ["revenue", "production", "fte", "area"] },
+              "value": { "type": "number" },
+              "unit": { "type": "string" },
+              "source_snippet": { "type": ["string", "null"] }
+            },
+            "required": ["basis", "value", "unit"]
+          }
+        },
+        "prior_year_results": { "type": "array", "items": { "type": "object" } },
+        "targets": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "metric_code": { "type": "string" },
+              "target_value": { "type": "number" },
+              "target_unit": { "type": "string" },
+              "target_year": { "type": "integer" }
+            },
+            "required": ["metric_code", "target_value"]
+          }
+        },
+        "benchmarks": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "metric_code": { "type": "string" },
+              "peer_median": { "type": "number" },
+              "unit": { "type": "string" },
+              "source": { "type": "string" }
+            },
+            "required": ["metric_code", "peer_median"]
+          }
+        }
+      },
+      "required": ["tenant_id", "engagement_id", "financial_year", "frameworks_in_scope", "activity_rows"]
+    },
+    "output": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "emission_results": { "type": "array", "items": { "$ref": "#/$defs/EmissionResult" } },
+        "scope_totals": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "scope1_co2e_kg": { "type": ["number", "null"] },
+            "scope2_location_co2e_kg": { "type": ["number", "null"] },
+            "scope2_market_co2e_kg": { "type": ["number", "null"] },
+            "scope3_co2e_kg": { "type": ["number", "null"] }
+          }
+        },
+        "kpis": { "type": "array", "items": { "$ref": "#/$defs/Kpi" } },
+        "disclosure_mappings": { "type": "array", "items": { "$ref": "#/$defs/DisclosureMapping" } },
+        "trends": { "type": "array", "items": { "type": "string" } },
+        "risks_opportunities": { "type": "array", "items": { "type": "string" } },
+        "human_queue": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "row_ref": { "type": "string" },
+              "reason": { "type": "string" }
+            },
+            "required": ["row_ref", "reason"]
+          }
+        },
+        "run_confidence": { "type": "string", "enum": ["high", "medium", "low"] }
+      },
+      "required": ["emission_results", "scope_totals", "kpis", "disclosure_mappings", "run_confidence"]
+    }
+  }
+}

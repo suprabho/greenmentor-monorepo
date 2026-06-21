@@ -1,0 +1,47 @@
+{
+  "name": "green-mentor-pro-esg-agents",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --turbopack -p 3300",
+    "build": "next build",
+    "start": "next start -p 3300",
+    "lint": "next lint",
+    "agent:run": "tsx scripts/run-agent.ts",
+    "engagement:seed": "tsx scripts/seed-engagement.ts",
+    "phase:advance": "tsx scripts/advance-phase.ts",
+    "packages:validate": "tsx scripts/validate-packages.ts",
+    "registry:build": "tsx scripts/build-registry.ts"
+  },
+  "dependencies": {
+    "@ai-sdk/react": "^3.0.210",
+    "@anthropic-ai/sdk": "^0.104.1",
+    "@phosphor-icons/react": "^2.1.7",
+    "@sparticuz/chromium": "^149.0.0",
+    "@supabase/ssr": "^0.12.0",
+    "@supabase/supabase-js": "^2.108.1",
+    "ai": "^6.0.208",
+    "ajv": "^8.17.1",
+    "ajv-formats": "^3.0.1",
+    "clsx": "^2.1.1",
+    "gray-matter": "^4.0.3",
+    "next": "^15.5.4",
+    "playwright-core": "^1.49.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "sharp": "^0.34.5",
+    "tailwind-merge": "^2.6.0",
+    "xlsx": "^0.18.5",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.0.0",
+    "@types/node": "^22",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "playwright": "^1.49.0",
+    "tailwindcss": "^4.0.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5"
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "esg-agents",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": ["-c", "cd green-mentor-pro/esg-agents && npm run dev"],
+      "port": 3300
+    }
+  ]
+}

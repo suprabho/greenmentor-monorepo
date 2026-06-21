@@ -1,0 +1,58 @@
+[
+  {
+    "name": "draft_section",
+    "description": "Draft one report section's prose integrating the relevant metrics and disclosure answers.",
+    "strict": true,
+    "input_schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "section_id": { "type": "string" },
+        "title": { "type": "string" },
+        "data_refs": { "type": "array", "items": { "type": "string" } }
+      },
+      "required": ["section_id", "title"]
+    }
+  },
+  {
+    "name": "integrate_chart",
+    "description": "Produce a chart spec (type, series, axis) for a metric to embed in a section; returns a chart_ref.",
+    "strict": true,
+    "input_schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "metric_code": { "type": "string" },
+        "chart_type": { "type": "string", "enum": ["bar", "line", "stacked_bar", "donut"] }
+      },
+      "required": ["metric_code", "chart_type"]
+    }
+  },
+  {
+    "name": "qa_consistency_check",
+    "description": "Cross-check numbers/narrative for internal consistency and standard alignment; returns qa_notes.",
+    "strict": true,
+    "input_schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": { "scope": { "type": "string" } },
+      "required": []
+    }
+  },
+  {
+    "name": "emit_report_draft",
+    "description": "Return the report draft artifact (outline + sections + disclosure_drafts + qa_notes). Call exactly once.",
+    "strict": true,
+    "input_schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "report_outline": { "type": "array", "items": { "type": "object" } },
+        "report_sections": { "type": "array", "items": { "type": "object" } },
+        "disclosure_drafts": { "type": "array", "items": { "type": "object" } },
+        "qa_notes": { "type": "array", "items": { "type": "string" } }
+      },
+      "required": ["report_outline", "report_sections"]
+    }
+  }
+]

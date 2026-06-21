@@ -1,0 +1,83 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "esg-agents/agents/materiality/io.schema.json",
+  "title": "MaterialityIO",
+  "$defs": {
+    "input": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "tenant_id": { "type": "string" },
+        "engagement_id": { "type": "string" },
+        "sector": { "type": "string" },
+        "frameworks_in_scope": { "type": "array", "items": { "type": "string" } },
+        "stakeholders": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "group": { "type": "string", "enum": ["management", "ehs", "hr", "finance", "investor", "customer", "supplier", "community", "regulator"] },
+              "internal": { "type": "boolean" }
+            },
+            "required": ["group", "internal"]
+          }
+        },
+        "questionnaire_responses": { "type": ["array", "null"], "items": { "type": "object" } },
+        "candidate_topics": { "type": "array", "items": { "type": "string" } }
+      },
+      "required": ["tenant_id", "engagement_id", "sector", "frameworks_in_scope"]
+    },
+    "output": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "questionnaire": {
+          "type": ["array", "null"],
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "topic_id": { "type": "string" },
+              "question": { "type": "string" },
+              "audience": { "type": "string", "enum": ["internal", "external", "both"] }
+            },
+            "required": ["topic_id", "question"]
+          }
+        },
+        "scored_topics": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "topic_id": { "type": "string" },
+              "label": { "type": "string" },
+              "impact_score": { "type": "number", "minimum": 0, "maximum": 5 },
+              "financial_score": { "type": "number", "minimum": 0, "maximum": 5 },
+              "rationale": { "type": "string" },
+              "likely_disclosures": { "type": "array", "items": { "type": "string" } }
+            },
+            "required": ["topic_id", "label", "impact_score", "financial_score", "rationale"]
+          }
+        },
+        "material_topics": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "topic_id": { "type": "string" },
+              "label": { "type": "string" },
+              "rank": { "type": "integer" },
+              "status": { "type": "string", "enum": ["proposed", "borderline"] }
+            },
+            "required": ["topic_id", "label", "rank", "status"]
+          }
+        },
+        "materiality_threshold": { "type": "number" }
+      },
+      "required": ["scored_topics", "material_topics"]
+    }
+  }
+}

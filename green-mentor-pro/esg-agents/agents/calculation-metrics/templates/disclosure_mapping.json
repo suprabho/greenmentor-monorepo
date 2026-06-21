@@ -1,0 +1,54 @@
+{
+  "$comment": "Disclosure-mapping reference table the agent uses to map computed metrics onto framework codes. Loaded as a template; the agent fills `answer`, `unit`, and `provenance` per (metric, site, period). Mirrors the legacy brsr_response shape (disclosure_code, question_id, answer, comment, note, status default 'Pending').",
+  "mappings": [
+    {
+      "metric_code": "energy.electricity.grid",
+      "kpi_code": "energy_intensity",
+      "frameworks": {
+        "BRSR": { "disclosure_code": "P6-E1", "question_id": "P6_L1_Q1", "label": "Total electricity consumption (Scope 2)", "unit": "GJ" },
+        "GRI": { "disclosure_code": "302-1", "label": "Energy consumption within the organization", "unit": "GJ" },
+        "ESRS": { "disclosure_code": "E1-5", "label": "Energy consumption and mix", "unit": "MWh" }
+      },
+      "scope": "2",
+      "ef_query_hint": "grid electricity consumption {country}",
+      "note": "Report both location-based and market-based Scope 2 where inputs allow."
+    },
+    {
+      "metric_code": "fuel.diesel.stationary",
+      "kpi_code": "scope1_combustion",
+      "frameworks": {
+        "BRSR": { "disclosure_code": "P6-E1", "question_id": "P6_L1_Q1", "label": "Fuel consumption (Scope 1)", "unit": "GJ" },
+        "GRI": { "disclosure_code": "305-1", "label": "Direct (Scope 1) GHG emissions", "unit": "tCO2e" },
+        "ESRS": { "disclosure_code": "E1-6", "label": "Gross Scope 1 GHG emissions", "unit": "tCO2e" }
+      },
+      "scope": "1",
+      "ef_query_hint": "diesel stationary combustion gross CV {country}",
+      "note": "Confirm gross vs net calorific value basis from the validation methodology note."
+    },
+    {
+      "metric_code": "water.withdrawal.total",
+      "kpi_code": "water_intensity",
+      "frameworks": {
+        "BRSR": { "disclosure_code": "P6-E3", "question_id": "P6_L1_Q3", "label": "Water withdrawal by source", "unit": "kL" },
+        "GRI": { "disclosure_code": "303-3", "label": "Water withdrawal", "unit": "ML" },
+        "ESRS": { "disclosure_code": "E3-4", "label": "Water consumption", "unit": "m3" }
+      },
+      "scope": null,
+      "ef_query_hint": null,
+      "note": "No emission factor; KPI only. Normalize per revenue / production."
+    },
+    {
+      "metric_code": "safety.ltifr",
+      "kpi_code": "ltifr",
+      "frameworks": {
+        "BRSR": { "disclosure_code": "P3-E1", "question_id": "P3_L1_Q11", "label": "Lost Time Injury Frequency Rate", "unit": "per million hours" },
+        "GRI": { "disclosure_code": "403-9", "label": "Work-related injuries", "unit": "rate" },
+        "ESRS": { "disclosure_code": "S1-14", "label": "Health and safety metrics", "unit": "rate" }
+      },
+      "scope": null,
+      "ef_query_hint": null,
+      "note": "Social KPI; computed from recordable injuries × 1,000,000 / hours worked."
+    }
+  ],
+  "default_status": "Pending"
+}

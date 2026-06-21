@@ -1,0 +1,33 @@
+[
+  {
+    "name": "send_via_channel",
+    "description": "STUB — dispatch a drafted message via a channel adapter. Disabled in v1 (whatsapp/email adapters throw NotImplemented).",
+    "strict": true,
+    "input_schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "channel": { "type": "string", "enum": ["whatsapp", "email"] },
+        "data_owner": { "type": "string" },
+        "message": { "type": "string" }
+      },
+      "required": ["channel", "data_owner", "message"]
+    }
+  },
+  {
+    "name": "emit_comms_result",
+    "description": "Return the queued/disabled outbound message result. Call exactly once.",
+    "strict": true,
+    "input_schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "channel": { "type": "string", "enum": ["whatsapp", "email"] },
+        "subject": { "type": ["string", "null"] },
+        "message": { "type": "string" },
+        "status": { "type": "string", "enum": ["queued", "disabled"] }
+      },
+      "required": ["channel", "message", "status"]
+    }
+  }
+]

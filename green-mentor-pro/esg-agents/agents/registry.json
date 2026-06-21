@@ -1,0 +1,17 @@
+{
+  "version": "1.0.0",
+  "generatedAt": "2026-06-21",
+  "$comment": "Denormalized projection of each package's skill.md frontmatter. Regenerate with: tsx scripts/build-registry.ts. Do not hand-edit.",
+  "agents": [
+    { "key": "kickoff-scoping",          "name": "Kickoff & Scoping Agent",         "phase": 1, "family": "planning",     "model": "claude-sonnet-4-6", "path": "agents/kickoff-scoping",          "emit_tool": "emit_scope_plan",            "hitl_gate": "scope_approval",          "depth": "light", "version": "1.0.0" },
+    { "key": "materiality",              "name": "Materiality Agent",               "phase": 2, "family": "stakeholder",  "model": "claude-sonnet-4-6", "path": "agents/materiality",              "emit_tool": "emit_materiality_matrix",    "hitl_gate": "material_topics_validated","depth": "light", "version": "1.0.0" },
+    { "key": "data-requirement-planner", "name": "Data Requirement Planner",        "phase": 3, "family": "requirement",  "model": "claude-opus-4-8",   "path": "agents/data-requirement-planner", "emit_tool": "emit_data_request_list",     "hitl_gate": "data_request_approval",   "depth": "deep",  "version": "1.0.0" },
+    { "key": "data-collection",          "name": "Data Collection Agent",           "phase": 4, "family": "collection",   "model": "claude-opus-4-8",   "path": "agents/data-collection",          "emit_tool": "extract_dataset",            "hitl_gate": "collection_complete",     "depth": "deep",  "version": "1.0.0" },
+    { "key": "data-validation",          "name": "Data Validation Agent",           "phase": 5, "family": "validation",   "model": "claude-opus-4-8",   "path": "agents/data-validation",          "emit_tool": "emit_validation_report",     "hitl_gate": "data_quality_signoff",    "depth": "deep",  "version": "1.0.0" },
+    { "key": "calculation-metrics",      "name": "Calculation & Metrics Agent",     "phase": 6, "family": "calculation",  "model": "claude-opus-4-8",   "path": "agents/calculation-metrics",      "emit_tool": "emit_calc_result",           "hitl_gate": "calculation_review",      "depth": "deep",  "version": "1.0.0" },
+    { "key": "report-drafting",          "name": "Report Drafting Agent",           "phase": 7, "family": "drafting",     "model": "claude-sonnet-4-6", "path": "agents/report-drafting",          "emit_tool": "emit_report_draft",          "hitl_gate": "management_legal_review", "depth": "light", "version": "1.0.0" },
+    { "key": "finalization-publishing",  "name": "Finalization & Publishing Agent", "phase": 8, "family": "publication",  "model": "claude-haiku-4-5",  "path": "agents/finalization-publishing",  "emit_tool": "emit_publication_package",   "hitl_gate": "board_approval",          "depth": "light", "version": "1.0.0" },
+    { "key": "orchestrator",             "name": "Engagement Orchestrator",         "phase": 0, "family": "orchestrator", "model": "claude-sonnet-4-6", "path": "agents/orchestrator",             "emit_tool": "emit_orchestration_decision","hitl_gate": null,                      "depth": "light", "version": "1.0.0" },
+    { "key": "comms-outreach",           "name": "Comms Outreach (stub)",           "phase": 4, "family": "comms",        "model": "claude-haiku-4-5",  "path": "agents/comms-outreach",           "emit_tool": "emit_comms_result",          "hitl_gate": null,                      "depth": "stub",  "version": "0.0.1", "enabled": false }
+  ]
+}

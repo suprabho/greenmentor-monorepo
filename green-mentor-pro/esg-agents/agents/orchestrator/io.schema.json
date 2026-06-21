@@ -1,0 +1,43 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "esg-agents/agents/orchestrator/io.schema.json",
+  "title": "OrchestratorIO",
+  "$defs": {
+    "input": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "engagement_id": { "type": "string" },
+        "phases": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "phase_key": { "type": "string" },
+              "phase_no": { "type": "integer" },
+              "status": { "type": "string" },
+              "agent_family": { "type": "string" }
+            },
+            "required": ["phase_key", "phase_no", "status"]
+          }
+        },
+        "open_review_items": { "type": "integer" },
+        "last_run": { "type": ["object", "null"] }
+      },
+      "required": ["engagement_id", "phases"]
+    },
+    "output": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "next_phase": { "type": ["string", "null"] },
+        "agent_key": { "type": ["string", "null"] },
+        "gate_status": { "type": "string", "enum": ["clear", "blocked_awaiting_review", "blocked_dependency"] },
+        "handoff_summary": { "type": "string" },
+        "recommended_action": { "type": "string", "enum": ["run_agent", "await_human_review", "request_changes", "engagement_complete"] }
+      },
+      "required": ["gate_status", "handoff_summary", "recommended_action"]
+    }
+  }
+}
