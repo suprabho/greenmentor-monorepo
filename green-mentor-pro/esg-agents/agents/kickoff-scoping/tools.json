@@ -22,7 +22,16 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "reporting_period": { "type": "object" }
+        "reporting_period": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "fy": { "type": "string", "description": "Reporting financial year label, e.g. FY2025-26" },
+            "start_date": { "type": "string", "description": "Period start, ISO date YYYY-MM-DD" },
+            "end_date": { "type": "string", "description": "Period end, ISO date YYYY-MM-DD" }
+          },
+          "required": ["fy"]
+        }
       },
       "required": ["reporting_period"]
     }

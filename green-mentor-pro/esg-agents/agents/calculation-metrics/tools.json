@@ -10,7 +10,7 @@
         "activity_query": { "type": "string", "description": "Natural-language activity description, e.g. 'grid electricity consumption India'." },
         "country_iso": { "type": ["string", "null"], "description": "ISO 3166-1 alpha-3, e.g. 'IND'. Null for global." },
         "year": { "type": ["integer", "null"], "description": "Reporting/reference year to prefer the closest-vintage factor." },
-        "ghg_scope": { "type": ["string", "null"], "enum": ["1", "2", "3", null] }
+        "ghg_scope": { "type": ["string", "null"], "description": "GHG scope as a string: '1', '2', or '3'; null if not scope-specific." }
       },
       "required": ["activity_query"]
     }

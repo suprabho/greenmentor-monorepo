@@ -102,7 +102,25 @@
               "form_schema_ref": { "type": "string" },
               "request_id": { "type": "string" },
               "title": { "type": "string" },
-              "fields": { "type": "array", "items": { "type": "object" } }
+              "fields": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "type": { "type": "string", "enum": ["number", "text", "select", "date", "file"] },
+                    "name": { "type": "string" },
+                    "label": { "type": "string" },
+                    "unit": { "type": ["string", "null"] },
+                    "min": { "type": ["number", "null"] },
+                    "enum": { "type": "array", "items": { "type": "string" } },
+                    "accept": { "type": "array", "items": { "type": "string" } },
+                    "multiple": { "type": "boolean" },
+                    "required": { "type": "boolean" }
+                  },
+                  "required": ["type", "name", "label", "required"]
+                }
+              }
             },
             "required": ["form_schema_ref", "request_id", "fields"]
           }

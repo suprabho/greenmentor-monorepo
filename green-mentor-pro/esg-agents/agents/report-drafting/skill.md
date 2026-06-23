@@ -31,7 +31,7 @@ hitl_gate:
   gate: management_legal_review
   blocks_phase: 8
 version: 1.0.0
-max_tokens: 8192
+max_tokens: 16384
 temperature: 0.3
 ---
 

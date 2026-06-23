@@ -6,7 +6,7 @@ description: >-
   and an investor summary deck, and produces the publication checklist. Trigger when
   report sections are management/legal-approved and the report is heading to board
   sign-off and publication.
-model: claude-haiku-4-5
+model: claude-sonnet-4-6
 phase: 8
 family: publication
 when_to_use: >-
@@ -30,7 +30,7 @@ hitl_gate:
   gate: board_approval
   blocks_phase: 8
 version: 1.0.0
-max_tokens: 4096
+max_tokens: 16384
 temperature: 0
 ---
 
