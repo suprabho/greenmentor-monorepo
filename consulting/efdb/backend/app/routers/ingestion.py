@@ -19,9 +19,10 @@ from app.routers.auth import get_current_user, require_admin
 from app.schemas.ingestion import (
     ScanResult, SectionSelection, SessionStatusOut, ReviewAction, BulkReviewAction, ReviewSummary,
 )
-from app.services.extraction.pdf_agent import scan_pdf, extract_from_pdf
+from app.services.extraction.pdf_agent import scan_document, extract_from_document
 from app.services.extraction.excel_agent import scan_excel, extract_from_excel
 from app.services.extraction.url_agent import fetch_and_scan_url, extract_from_url
+from app.services.extraction.document_parser import route_for
 from app.services.confidence_score import calculate_confidence
 from app.services.conflict_detection import detect_and_flag_conflicts
 from app.services.embeddings import generate_embedding
@@ -41,6 +42,13 @@ async def _save_upload(file: UploadFile, user_id: str) -> tuple[str, str]:
     with open(file_path, "wb") as f:
         shutil.copyfileobj(file.file, f)
     return file_path, file.content_type or "application/octet-stream"
+
+
+def _is_spreadsheet(path: str | None, mime: str | None) -> bool:
+    """Spreadsheets go to excel_agent (its merged-cell pipeline beats markdown)."""
+    if path and path.lower().endswith((".xlsx", ".xls", ".csv")):
+        return True
+    return bool(mime and ("excel" in mime or "spreadsheet" in mime))
 
 
 # ── Step 1: Upload and scan ────────────────────────────────────────────────
@@ -88,14 +96,21 @@ async def upload_and_scan(
     await db.refresh(doc)
     await db.refresh(session)
 
-    # Scan the document to find EF tables/sections
+    # Scan the document to find EF tables/sections. Spreadsheets use excel_agent;
+    # PDFs/images/office/html go through the unified document agent.
     t0 = time.monotonic()
-    if "pdf" in mime_type or (file.filename or "").lower().endswith(".pdf"):
-        scan_result = await scan_pdf(file_path, str(doc.id), str(session.id), document_type)
-    elif "excel" in mime_type or "spreadsheet" in mime_type or (file.filename or "").lower().endswith((".xlsx", ".xls", ".csv")):
+    if _is_spreadsheet(file_path, mime_type):
         scan_result = await scan_excel(file_path, str(doc.id), str(session.id), document_type)
     else:
-        raise HTTPException(415, "Unsupported file type. Upload a PDF, Excel, or CSV.")
+        try:
+            route_for(file_path)  # raises ValueError on unsupported extension
+        except ValueError:
+            raise HTTPException(
+                415,
+                "Unsupported file type. Upload a PDF, Excel/CSV, Word, PowerPoint, "
+                "OpenDocument, RTF, HTML, or image file.",
+            )
+        scan_result = await scan_document(file_path, str(doc.id), str(session.id), document_type)
     logger.info("scan done: session=%s %d section(s), ~%d tokens ($%.4f est), %.1fs",
                 session.id, len(scan_result.sections_found), scan_result.estimated_tokens,
                 scan_result.estimated_cost_usd, time.monotonic() - t0)
@@ -181,10 +196,10 @@ async def _run_extraction(session_id: uuid.UUID, doc: SourceDocument, sections: 
         t0 = time.monotonic()
         try:
             if doc.file_path:
-                if doc.mime_type and ("pdf" in doc.mime_type or doc.file_path.endswith(".pdf")):
-                    records = await extract_from_pdf(doc.file_path, sections, confirmed_metadata, document_type)
-                else:
+                if _is_spreadsheet(doc.file_path, doc.mime_type):
                     records = await extract_from_excel(doc.file_path, sections, confirmed_metadata, document_type)
+                else:
+                    records = await extract_from_document(doc.file_path, sections, confirmed_metadata, document_type)
             else:
                 records = await extract_from_url(doc.source_url, sections, confirmed_metadata, document_type)
 

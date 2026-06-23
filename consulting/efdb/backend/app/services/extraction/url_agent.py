@@ -10,10 +10,28 @@ import httpx
 import anthropic
 from app.config import settings
 from app.schemas.ingestion import ScanResult, DocumentSection, ExtractedRecord, DocumentMetadata
+from app.services.extraction.document_parser import parse_html
 from app.services.extraction.prompts import (
     scan_system_prompt, extract_system_prompt, metadata_extract_prompt,
     build_scan_user_message, build_extract_user_message,
 )
+
+
+def _html_to_text(response) -> str:
+    """Convert an httpx HTML response to markdown via markitdown (preserves
+    tables); fall back to a BeautifulSoup text scrape if markitdown is
+    unavailable or returns raw HTML."""
+    page_text = parse_html(response.text)
+    if page_text.strip() and not page_text.lstrip().startswith("<"):
+        return page_text
+    try:
+        from bs4 import BeautifulSoup
+        soup = BeautifulSoup(response.content, "html.parser")
+        for tag in soup(["script", "style", "nav", "footer", "header"]):
+            tag.decompose()
+        return soup.get_text(separator="\n", strip=True)
+    except Exception:
+        return response.text[:50000]
 
 client = anthropic.AsyncAnthropic(api_key=settings.anthropic_api_key)
 
@@ -63,15 +81,8 @@ async def fetch_and_scan_url(url: str, document_id: str, session_id: str, docume
         finally:
             pass  # Keep file for extraction step
 
-    # HTML page — extract text content
-    try:
-        from bs4 import BeautifulSoup
-        soup = BeautifulSoup(response.content, "html.parser")
-        for tag in soup(["script", "style", "nav", "footer", "header"]):
-            tag.decompose()
-        page_text = soup.get_text(separator="\n", strip=True)
-    except Exception:
-        page_text = response.text[:50000]
+    # HTML page — convert to markdown (preserves tables) via markitdown.
+    page_text = _html_to_text(response)
 
     estimated_tokens = len(page_text) // 4
     estimated_cost = (
@@ -123,14 +134,7 @@ async def extract_from_url(url: str, section_indices: list[int], confirmed_metad
         finally:
             os.unlink(tmp_path)
 
-    try:
-        from bs4 import BeautifulSoup
-        soup = BeautifulSoup(response.content, "html.parser")
-        for tag in soup(["script", "style", "nav", "footer", "header"]):
-            tag.decompose()
-        page_text = soup.get_text(separator="\n", strip=True)
-    except Exception:
-        page_text = response.text[:50000]
+    page_text = _html_to_text(response)
 
     # Build confirmed metadata block (source-schema field names).
     from app.services.extraction.pdf_agent import _confirmed_metadata_lines
