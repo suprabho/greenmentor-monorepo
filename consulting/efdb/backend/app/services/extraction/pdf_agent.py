@@ -1,24 +1,32 @@
 """
-PDF extraction agent.
+Document extraction agent (PDFs, images, and office/html files).
 
 Flow:
-  1. scan_pdf()      → identifies tables/sections containing EF data
-  2. extract_from_pdf() → extracts records from selected sections
+  1. scan_document() / scan_pdf()       → identifies tables/sections with EF data
+  2. extract_from_document() / extract_from_pdf() → extracts records from sections
 
-Handles both text-based and scanned (image) PDFs.
-Text pages: extracted with PyMuPDF (preserves layout).
-Image pages: passed as base64 images to Claude Opus 4.6 (vision).
+Text is normalized to markdown by document_parser:
+  - liteparse  for PDFs/images (local Tesseract OCR, spatial markdown, bboxes)
+  - markitdown for docx/pptx/odt/rtf/html
+Pages liteparse can't read (no embedded text AND OCR produced nothing) fall back
+to Claude vision via liteparse screenshots. Bounding boxes from liteparse are
+matched back onto each extracted field for provenance.
+
+`scan_pdf` / `extract_from_pdf` are kept as names for backward-compatible imports;
+they are aliases of the format-agnostic scan_document / extract_from_document.
 """
 import base64
 import json
 import logging
-import math
 import time
-from pathlib import Path
-import fitz  # PyMuPDF
 import anthropic
 from app.config import settings
-from app.schemas.ingestion import ScanResult, DocumentSection, ExtractedRecord, DocumentMetadata
+from app.schemas.ingestion import (
+    ScanResult, DocumentSection, ExtractedRecord, DocumentMetadata, ExtractionFieldResult,
+)
+from app.services.extraction.document_parser import (
+    ParsedDocument, parse_document, liteparse_screenshots,
+)
 from app.services.extraction.prompts import (
     scan_system_prompt, extract_system_prompt, metadata_extract_prompt,
     build_scan_user_message, build_extract_user_message,
@@ -33,83 +41,129 @@ OPUS_INPUT_COST_PER_TOKEN = 15 / 1_000_000
 OPUS_OUTPUT_COST_PER_TOKEN = 75 / 1_000_000
 AVG_CHARS_PER_TOKEN = 4
 
+# A page whose normalized markdown is shorter than this is treated as unreadable
+# (scanned with failed OCR, or image-only) and handed to Claude vision instead.
+MIN_PAGE_TEXT_CHARS = 40
+
 
 def _estimate_tokens(text: str) -> int:
     return max(1, len(text) // AVG_CHARS_PER_TOKEN)
 
 
-def _page_is_image(page: fitz.Page) -> bool:
-    """Return True if the page contains no extractable text (likely scanned)."""
-    text = page.get_text("text").strip()
-    return len(text) < 50
-
-
-def _extract_page_text(page: fitz.Page) -> str:
-    """Extract text with layout preservation."""
-    return page.get_text("text")
-
-
-def _page_to_base64_image(page: fitz.Page, dpi: int = 150) -> str:
-    """Render a page to a PNG image and return base64 encoded string."""
-    mat = fitz.Matrix(dpi / 72, dpi / 72)
-    pix = page.get_pixmap(matrix=mat)
-    img_bytes = pix.tobytes("png")
-    return base64.standard_b64encode(img_bytes).decode()
-
-
-def _build_document_content(doc: fitz.Document, selected_pages: list[int] | None = None) -> list[dict]:
+def _build_document_content(parsed: ParsedDocument, file_path: str,
+                            selected_pages: list[int] | None = None) -> list[dict]:
     """
-    Build the Claude message content for a PDF document.
-    Returns a list of content blocks (text or image_url).
-    """
-    content = []
-    pages = selected_pages if selected_pages else range(len(doc))
+    Build the Claude message content from a ParsedDocument.
 
-    for page_num in pages:
-        page = doc[page_num]
-        content.append({"type": "text", "text": f"\n--- Page {page_num + 1} ---\n"})
-        if _page_is_image(page):
-            img_b64 = _page_to_base64_image(page)
-            content.append({
-                "type": "image",
-                "source": {
-                    "type": "base64",
-                    "media_type": "image/png",
-                    "data": img_b64,
-                },
-            })
-        else:
-            page_text = _extract_page_text(page)
-            content.append({"type": "text", "text": page_text})
+    Two modes:
+      - whole document (selected_pages=None): lead with the document-level
+        markdown, which carries the best table/heading reconstruction. Used for
+        extraction and small-document scans.
+      - sampled pages (selected_pages set): emit per-page text blocks for just
+        the sampled 1-based page numbers, to cap tokens on large-document scans.
+
+    Either way, any page whose text came back essentially empty (OCR produced
+    nothing) is rendered to a PNG and sent as a Claude-vision image block.
+    """
+    all_nums = [p.page_num for p in parsed.pages]
+    considered = selected_pages if selected_pages else all_nums
+
+    # Pages we genuinely couldn't read get the (more expensive) vision fallback —
+    # render just those, and only when liteparse can screenshot them.
+    need_vision = [n for n in considered
+                   if len(parsed.page_markdown(n).strip()) < MIN_PAGE_TEXT_CHARS]
+    shots: dict[int, bytes] = {}
+    if need_vision and parsed.parser == "liteparse":
+        shots = liteparse_screenshots(file_path, need_vision)
+
+    def _vision_block(page_num: int) -> dict:
+        img_b64 = base64.standard_b64encode(shots[page_num]).decode()
+        return {"type": "image",
+                "source": {"type": "base64", "media_type": "image/png", "data": img_b64}}
+
+    content: list[dict] = []
+
+    if not selected_pages:
+        # Whole-document mode: doc-level markdown first (best tables), then any
+        # vision images for pages OCR couldn't read.
+        if parsed.markdown.strip():
+            content.append({"type": "text", "text": parsed.markdown})
+        for page_num in need_vision:
+            if page_num in shots:
+                content.append({"type": "text", "text": f"\n--- Page {page_num} (image) ---\n"})
+                content.append(_vision_block(page_num))
+        return content
+
+    # Sampled-pages mode: per-page text (or vision fallback) for the sample.
+    for page_num in selected_pages:
+        content.append({"type": "text", "text": f"\n--- Page {page_num} ---\n"})
+        md = parsed.page_markdown(page_num).strip()
+        if len(md) >= MIN_PAGE_TEXT_CHARS:
+            content.append({"type": "text", "text": md})
+        elif page_num in shots:
+            content.append(_vision_block(page_num))
+        elif md:
+            content.append({"type": "text", "text": md})  # short but non-empty
 
     return content
 
 
-async def scan_pdf(file_path: str, document_id: str, session_id: str, document_type: str = "generic") -> ScanResult:
+def _attach_provenance(records: list[ExtractedRecord], parsed: ParsedDocument) -> list[ExtractedRecord]:
+    """Match each extracted field's source_snippet back to a liteparse block to
+    set source_page / source_bbox. Best-effort: markitdown docs (no coords) and
+    unmatched snippets are left without provenance."""
+    if parsed.parser != "liteparse":
+        return records
+    blocks = [(b.text.lower(), b.page, b.bbox)
+              for p in parsed.pages for b in p.blocks if b.bbox]
+    if not blocks:
+        return records
+
+    for rec in records:
+        for fname in type(rec).model_fields:
+            val = getattr(rec, fname, None)
+            if not isinstance(val, ExtractionFieldResult):
+                continue
+            if not val.source_snippet or val.source_page is not None:
+                continue
+            snip = val.source_snippet.strip().lower()
+            if len(snip) < 2:
+                continue
+            for text, page, bbox in blocks:
+                # snippet inside a block, or a short block inside the snippet
+                if snip in text or (len(text) > 3 and text in snip):
+                    val.source_page = page
+                    val.source_bbox = bbox
+                    break
+    return records
+
+
+async def scan_document(file_path: str, document_id: str, session_id: str, document_type: str = "generic") -> ScanResult:
     """
-    Step 1: Scan a PDF and return a list of identified EF tables/sections.
+    Step 1: Scan a document and return a list of identified EF tables/sections.
     Uses Claude to identify which tables contain emission factor data.
     document_type="epd" switches to EPD-aware (EN 15804 / ISO 14025) prompts.
     """
-    doc = fitz.open(file_path)
-    page_count = len(doc)
-    has_scanned_pages = any(_page_is_image(doc[i]) for i in range(min(page_count, 10)))
+    parsed = parse_document(file_path)
+    page_count = parsed.page_count
+    has_scanned_pages = parsed.used_ocr
 
-    # For scan, we sample pages to keep cost low
-    # If < 50 pages: scan all. If > 50: sample every 3rd page + first/last 5
+    # For scan, the local parse already covered the whole doc cheaply. Small
+    # docs (<=50 pages) go to Claude as one document-level markdown blob (best
+    # tables); large docs are sampled per-page (~40 evenly + first/last 5) to
+    # cap Claude tokens.
+    all_page_nums = [p.page_num for p in parsed.pages]
     if page_count <= 50:
-        sample_pages = list(range(page_count))
+        doc_content = _build_document_content(parsed, file_path)
+        sampled_count = page_count
     else:
         step = max(1, page_count // 40)
-        sample_pages = list(range(0, page_count, step))
-        # Ensure first and last 5 pages are included
-        for i in list(range(5)) + list(range(max(0, page_count - 5), page_count)):
-            if i not in sample_pages:
-                sample_pages.append(i)
-        sample_pages = sorted(set(sample_pages))
-
-    doc_content = _build_document_content(doc, sample_pages)
-    doc.close()
+        sampled = set(all_page_nums[::step])
+        sampled.update(all_page_nums[:5])
+        sampled.update(all_page_nums[-5:])
+        sample_pages = sorted(sampled)
+        doc_content = _build_document_content(parsed, file_path, sample_pages)
+        sampled_count = len(sample_pages)
 
     # Estimate tokens for cost estimate
     text_chars = sum(len(b.get("text", "")) for b in doc_content if b["type"] == "text")
@@ -122,8 +176,8 @@ async def scan_pdf(file_path: str, document_id: str, session_id: str, document_t
     )
 
     # Call Claude to identify tables
-    logger.info("scan: %d pages (%d sampled, %d as images), ~%d tokens",
-                page_count, len(sample_pages), image_count, estimated_tokens)
+    logger.info("scan: %d pages (%d sampled, %d via vision fallback) parser=%s, ~%d tokens",
+                page_count, sampled_count, image_count, parsed.parser, estimated_tokens)
     t0 = time.monotonic()
     response = await client.messages.create(
         model="claude-opus-4-6",
@@ -155,6 +209,10 @@ async def scan_pdf(file_path: str, document_id: str, session_id: str, document_t
         document_metadata=document_metadata,
         document_type=document_type,
     )
+
+
+# Backward-compatible alias (router and url_agent import scan_pdf).
+scan_pdf = scan_document
 
 
 async def _extract_pdf_metadata(text_sample: str, document_type: str = "generic") -> DocumentMetadata:
@@ -211,15 +269,15 @@ def _parse_scan_response(response_text: str) -> list[DocumentSection]:
     )]
 
 
-async def extract_from_pdf(file_path: str, section_indices: list[int], confirmed_metadata: DocumentMetadata | None = None, document_type: str = "generic") -> list[ExtractedRecord]:
+async def extract_from_document(file_path: str, section_indices: list[int], confirmed_metadata: DocumentMetadata | None = None, document_type: str = "generic") -> list[ExtractedRecord]:
     """
-    Step 2: Extract emission factor records from selected sections of a PDF.
+    Step 2: Extract emission factor records from selected sections of a document.
     confirmed_metadata is prepended as hard context so Claude applies it to every record.
     document_type="epd" switches to the EPD-specific extraction prompt.
+    Handles PDFs/images (liteparse) and office/html files (markitdown).
     """
-    doc = fitz.open(file_path)
-    doc_content = _build_document_content(doc)
-    doc.close()
+    parsed = parse_document(file_path)
+    doc_content = _build_document_content(parsed, file_path)
 
     # Build confirmed metadata block (source-schema field names).
     meta_lines = _confirmed_metadata_lines(confirmed_metadata)
@@ -231,7 +289,8 @@ async def extract_from_pdf(file_path: str, section_indices: list[int], confirmed
             + "\n".join(meta_lines) + "\n\n"
         }]
 
-    logger.info("extract: sections=%s, %d content block(s)", section_indices, len(doc_content))
+    logger.info("extract: sections=%s, %d content block(s), parser=%s",
+                section_indices, len(doc_content), parsed.parser)
     t0 = time.monotonic()
     response = await client.messages.create(
         model="claude-opus-4-6",
@@ -247,9 +306,15 @@ async def extract_from_pdf(file_path: str, section_indices: list[int], confirmed
     )
 
     records = _parse_extraction_response(response.content[0].text)
+    # Attach page/bbox provenance from liteparse blocks (best-effort).
+    records = _attach_provenance(records, parsed)
     logger.info("extract: %d record(s) parsed in %.1fs (stop_reason=%s)",
                 len(records), time.monotonic() - t0, response.stop_reason)
     return records
+
+
+# Backward-compatible alias (router and url_agent import extract_from_pdf).
+extract_from_pdf = extract_from_document
 
 
 def _parse_extraction_response(response_text: str) -> list[ExtractedRecord]:

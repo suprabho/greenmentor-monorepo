@@ -1,9 +1,9 @@
 from datetime import datetime, timedelta, timezone
 import httpx
+import bcrypt
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jose import JWTError, jwt
-from passlib.context import CryptContext
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from app.database import get_db
@@ -14,16 +14,28 @@ import uuid
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/token")
+
+# bcrypt directly (not passlib): passlib 1.7.4 is dormant and its backend
+# self-test breaks against bcrypt >= 5.0 (which is the only line shipping
+# Python 3.14 wheels). Output is the same "$2b$" format passlib produced, so
+# password hashes already stored in the DB keep verifying. bcrypt only considers
+# the first 72 bytes and bcrypt 5.0 *raises* on longer secrets, so we truncate
+# to match passlib's historical silent-truncation behaviour.
+_BCRYPT_MAX_BYTES = 72
 
 
 def hash_password(password: str) -> str:
-    return pwd_context.hash(password)
+    pw = password.encode("utf-8")[:_BCRYPT_MAX_BYTES]
+    return bcrypt.hashpw(pw, bcrypt.gensalt()).decode("utf-8")
 
 
 def verify_password(plain: str, hashed: str) -> bool:
-    return pwd_context.verify(plain, hashed)
+    try:
+        pw = plain.encode("utf-8")[:_BCRYPT_MAX_BYTES]
+        return bcrypt.checkpw(pw, hashed.encode("utf-8"))
+    except (ValueError, TypeError):
+        return False
 
 
 def create_access_token(user_id: str, role: str) -> str:
