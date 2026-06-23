@@ -3,30 +3,45 @@
  *
  *   tsx scripts/seed-engagement.ts [config/engagement.template.json]
  *
- * Requires SUPABASE_SERVICE_ROLE_KEY. STUB for M1 — wire to lib/db once the access
- * layer lands; for now it prints the rows it would insert.
+ * Requires NEXT_PUBLIC_SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY in the environment.
+ * Provisions a CLI dev org (slug "cli:dev") and creates the engagement under it.
  */
 import fs from "node:fs";
 import path from "node:path";
-import { PHASES, PHASE_ORDER } from "../lib/orchestrator/pipeline";
+import { createAdminClient } from "../lib/supabase/admin";
+import { createEngagement } from "../lib/db/engagements";
 
-const cfgPath = process.argv[2] ?? path.join(process.cwd(), "config", "engagement.template.json");
-const cfg = JSON.parse(fs.readFileSync(cfgPath, "utf8"));
+const DEV_USER_UUID = "00000000-0000-0000-0000-000000000001";
+const DEV_ORG_SLUG = process.env.CLI_ORG_SLUG ?? "cli:dev";
 
-const engagement = {
-  client_name: cfg.engagement.client.legal_name,
-  financial_year: cfg.engagement.reporting_period.label,
-  framework: cfg.engagement.frameworks,
-  config: cfg,
-};
+async function devOrgId(): Promise<string> {
+  const admin = createAdminClient();
+  const { data, error } = await admin
+    .from("esg_organizations")
+    .upsert({ name: "CLI Dev Org", slug: DEV_ORG_SLUG, config: {} }, { onConflict: "slug" })
+    .select("id")
+    .single();
+  if (error || !data) throw new Error(`dev org upsert failed: ${error?.message}`);
+  return data.id as string;
+}
 
-const phases = PHASE_ORDER.map((key) => ({
-  phase_key: key,
-  phase_no: PHASES[key].phaseNo,
-  agent_family: PHASES[key].agentKey,
-  status: "not_started",
-}));
+async function main() {
+  const cfgPath = process.argv[2] ?? path.join(process.cwd(), "config", "engagement.template.json");
+  const cfg = JSON.parse(fs.readFileSync(cfgPath, "utf8"));
+  const orgId = await devOrgId();
+  const eng = await createEngagement(orgId, {
+    clientName: cfg.engagement.client.legal_name,
+    financialYear: cfg.engagement.reporting_period.label,
+    framework: cfg.engagement.frameworks,
+    config: cfg.engagement,
+    createdBy: DEV_USER_UUID,
+  });
+  console.log(`created engagement ${eng.id}`);
+  console.log(`org ${orgId} · FY ${eng.financial_year} · ${eng.framework.join(", ")}`);
+  console.log(`\nrun the next phase with:\n  tsx scripts/advance-phase.ts ${eng.id}`);
+}
 
-console.log("engagement:", JSON.stringify(engagement, null, 2));
-console.log("phases:", JSON.stringify(phases, null, 2));
-console.log("\n(STUB) wire to lib/db.insertEngagement + insertPhases in M1.");
+main().catch((e) => {
+  console.error(e instanceof Error ? e.message : e);
+  process.exit(1);
+});
