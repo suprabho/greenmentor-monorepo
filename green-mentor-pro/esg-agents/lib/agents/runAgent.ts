@@ -4,6 +4,7 @@ import addFormats from "ajv-formats";
 import type { LoadedAgent, AgentRunResult, ToolContext } from "./types";
 import { runCallableTool } from "./toolHandlers";
 import { getClient } from "../anthropic/client";
+import { supportsTemperature } from "../anthropic/models";
 
 const ajv = addFormats(new Ajv({ allErrors: true, strict: false }));
 
@@ -44,7 +45,8 @@ export async function runAgent<I, O>(
     const msg = await client.messages.create({
       model: agent.model,
       max_tokens: agent.maxTokens,
-      temperature: agent.temperature,
+      // Some newer models (e.g. Opus 4.8) reject the deprecated `temperature` param.
+      ...(supportsTemperature(agent.model) ? { temperature: agent.temperature } : {}),
       system: agent.system,
       tools: [...agent.tools, emitTool],
       tool_choice: forceEmit ? { type: "tool", name: agent.emitToolName } : { type: "auto" },
@@ -52,17 +54,22 @@ export async function runAgent<I, O>(
     });
     messages.push({ role: "assistant", content: msg.content });
 
-    const emit = msg.content.find(
-      (b): b is Anthropic.Messages.ToolUseBlock =>
-        b.type === "tool_use" && b.name === agent.emitToolName,
+    const toolUses = msg.content.filter(
+      (b): b is Anthropic.Messages.ToolUseBlock => b.type === "tool_use",
     );
 
+    // No tool call this turn — nudge the model to emit on the next turn.
+    if (toolUses.length === 0) {
+      forceEmit = true;
+      continue;
+    }
+
+    // Valid emit → done. Check first so we can return without running other tools.
+    const emit = toolUses.find((b) => b.name === agent.emitToolName);
     if (emit) {
-      const output = emit.input as O; // strict tool-use guarantees schema shape
-      const valid = ajv.validate(agent.outputSchema, output);
-      if (valid) {
+      if (ajv.validate(agent.outputSchema, emit.input)) {
         return {
-          output,
+          output: emit.input as O, // strict tool-use + Ajv validation guarantee the shape
           raw: msg,
           meta: {
             agent: agent.key,
@@ -73,34 +80,31 @@ export async function runAgent<I, O>(
           },
         };
       }
-      // Semantic validation failed — retry with the Ajv errors appended.
       lastErrors = ajv.errorsText(ajv.errors);
-      messages.push({
-        role: "user",
-        content: `These fields failed validation, return a corrected ${agent.emitToolName} call: ${lastErrors}`,
-      });
-      forceEmit = true;
-      continue;
     }
 
-    // Run any callable tools the model invoked, append results, continue.
-    const calls = msg.content.filter(
-      (b): b is Anthropic.Messages.ToolUseBlock => b.type === "tool_use",
+    // Anthropic requires every tool_use to be answered by a tool_result in the next
+    // message. Run callable tools; turn an invalid emit into an error result that
+    // asks for a corrected call (instead of a stray text message, which would leave
+    // the emit tool_use unpaired and 400).
+    const toolResults = await Promise.all(
+      toolUses.map(async (b) =>
+        b.name === agent.emitToolName
+          ? {
+              type: "tool_result" as const,
+              tool_use_id: b.id,
+              is_error: true,
+              content: `These fields failed validation; call ${agent.emitToolName} again with corrections: ${lastErrors}`,
+            }
+          : {
+              type: "tool_result" as const,
+              tool_use_id: b.id,
+              content: JSON.stringify(await runCallableTool(b.name, b.input, ctx)),
+            },
+      ),
     );
-    if (calls.length) {
-      const results = await Promise.all(
-        calls.map(async (c) => ({
-          type: "tool_result" as const,
-          tool_use_id: c.id,
-          content: JSON.stringify(await runCallableTool(c.name, c.input, ctx)),
-        })),
-      );
-      messages.push({ role: "user", content: results });
-      continue;
-    }
-
-    // Model ended its turn without emitting — force the emit tool next turn.
-    forceEmit = true;
+    messages.push({ role: "user", content: toolResults });
+    if (emit) forceEmit = true; // an invalid emit was present — force a clean retry next turn
   }
 
   throw new Error(

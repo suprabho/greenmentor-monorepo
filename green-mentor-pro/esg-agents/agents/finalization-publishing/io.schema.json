@@ -49,7 +49,21 @@
           "type": "object",
           "additionalProperties": false,
           "properties": {
-            "headline_metrics": { "type": "array", "items": { "type": "object" } },
+            "headline_metrics": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "label": { "type": "string", "description": "Metric name, e.g. 'Scope 1+2 emissions'" },
+                  "value": { "type": ["string", "number"], "description": "Reported value" },
+                  "unit": { "type": ["string", "null"], "description": "e.g. 'tCO2e', 'kWh', '%'" },
+                  "period": { "type": ["string", "null"], "description": "Reporting period, e.g. 'FY2025-26'" },
+                  "yoy_change": { "type": ["string", "null"], "description": "Year-over-year change, e.g. '-12%'" }
+                },
+                "required": ["label", "value"]
+              }
+            },
             "highlights": { "type": "array", "items": { "type": "string" } }
           }
         },

@@ -24,8 +24,11 @@ export function loadAgent(packageDirOrKey: string): LoadedAgent {
   const fm = data as AgentFrontmatter;
 
   const io = readJson<IoSchema>(path.join(packageDir, "io.schema.json"));
-  const inputSchema = io.$defs.input;
-  const outputSchema = io.$defs.output;
+  // Schemas use sibling $defs (e.g. #/$defs/DataRequest, #/$defs/DatasetRow). We
+  // hand Ajv (and the emit tool) only the input/output subschema, so re-attach the
+  // full $defs map to each so those internal $ref pointers still resolve.
+  const inputSchema = { ...io.$defs.input, $defs: io.$defs };
+  const outputSchema = { ...io.$defs.output, $defs: io.$defs };
 
   // Callable tools the agent may invoke mid-run (NOT the final emit tool).
   const allTools = readJson<Anthropic.Messages.Tool[]>(path.join(packageDir, "tools.json"));

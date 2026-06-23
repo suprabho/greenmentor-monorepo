@@ -1,0 +1,2514 @@
+{
+  "kickoff": {
+    "scope_charter": {
+      "objectives": [
+        "Prepare and file the first-time BRSR Core report for FY2025-26 in compliance with SEBI's mandatory disclosure requirements for listed Indian entities.",
+        "Achieve voluntary alignment with GRI Standards to meet international stakeholder and investor expectations for a steel-sector manufacturer.",
+        "Map material BRSR/GRI disclosures to ESRS topical standards to future-proof reporting for European supply-chain due-diligence requirements (CSRD/CSDDD).",
+        "Embed TCFD-aligned climate risk and opportunity disclosures (governance, strategy, risk management, metrics & targets) within the annual report narrative.",
+        "Establish a repeatable, audit-ready ESG data collection and assurance process across both manufacturing plants and the Mumbai HQ.",
+        "Build internal capacity — data owners, controls, and workflows — so that FY2026-27 reporting can be executed with reduced external support."
+      ],
+      "frameworks_in_scope": [
+        {
+          "framework": "BRSR",
+          "mandatory": true,
+          "rationale": "SEBI mandates BRSR filing for the top 1,000 listed entities by market capitalisation (effective FY2022-23) and BRSR Core assurance for the top 150 (phasing to top 1,000 by FY2026-27). As a listed Indian steel manufacturer, Acme Manufacturing Pvt Ltd is in scope. This is the primary regulatory deliverable for the engagement."
+        },
+        {
+          "framework": "GRI",
+          "mandatory": false,
+          "rationale": "GRI Standards are the globally dominant voluntary ESG framework and are widely referenced by institutional investors, ESG rating agencies (MSCI, Sustainalytics), and steel-sector customers. GRI 11 (Mining & Metals) provides sector-specific disclosures directly applicable to steel manufacturing. Voluntary adoption strengthens credibility and satisfies international stakeholder expectations flagged in the client brief."
+        },
+        {
+          "framework": "ESRS",
+          "mandatory": false,
+          "rationale": "Although ESRS (EU CSRD) is not directly mandatory for an Indian-incorporated entity, Acme's steel products are likely exported to or used by EU-based customers subject to CSRD/CSDDD value-chain disclosure obligations. Mapping BRSR/GRI outputs to ESRS topical standards (E1 Climate, E2 Pollution, S1 Own Workforce, G1 Governance) now avoids costly re-work when EU customer requests escalate. Scoped as a mapping/gap exercise, not a full ESRS report."
+        },
+        {
+          "framework": "TCFD",
+          "mandatory": false,
+          "rationale": "SEBI's BRSR Core incorporates TCFD-aligned climate disclosures, and TCFD is referenced in ESRS E1. Steel is a high-emissions, transition-risk-exposed sector; scenario analysis and physical risk assessment are material. Completing a standalone TCFD disclosure (or TCFD-aligned section in the Annual Report) satisfies investor expectations and provides the analytical foundation for both BRSR and ESRS climate disclosures. Scoped as an integrated workstream, not a separate report."
+        }
+      ],
+      "reporting_boundary": "Consolidation approach: Operational Control. Boundary covers all three entities — Pune Plant (site_pune, MH), Chennai Plant (site_chennai, TN), and Mumbai HQ (site_hq, MH) — as 100%-controlled operations of Acme Manufacturing Pvt Ltd. Scope 1 & 2 GHG emissions boundary = operational control. Scope 3 categories to be determined in Phase 3 materiality/requirement planning (at minimum: purchased goods & services [Cat 1], downstream processing [Cat 10], and end-of-life treatment [Cat 12] are expected material for a steel manufacturer). Financial boundary = standalone financials of Acme Manufacturing Pvt Ltd (CIN: U27100MH2008PTC000000). Any subsidiaries, JVs, or associate entities are out of scope unless confirmed otherwise.",
+      "out_of_scope": [
+        "Full ESRS-compliant report (double-materiality assessment to ESRS depth, ESRS XBRL tagging, and statutory assurance under CSRD) — scoped as mapping/gap analysis only.",
+        "Consolidated group-level reporting for any subsidiaries or associate companies of Acme Manufacturing Pvt Ltd (to be confirmed via open question).",
+        "Scope 3 categories beyond those identified as material in Phase 3 (full 15-category Scope 3 inventory is out of scope for FY2025-26).",
+        "Product-level lifecycle assessment (LCA) or Environmental Product Declarations (EPDs).",
+        "Social audit / third-party labour-rights audit of the supply chain.",
+        "Carbon credit origination, verification, or trading advisory.",
+        "Legal or regulatory compliance advice beyond ESG disclosure obligations."
+      ]
+    },
+    "project_plan": [
+      {
+        "phase_no": 1,
+        "phase": "Kick-off & Governance Setup",
+        "milestone": "Signed scope charter, engagement letter executed, steering committee constituted, data-owner RACI confirmed",
+        "target_date": "2025-04-30",
+        "depends_on": []
+      },
+      {
+        "phase_no": 2,
+        "phase": "Materiality Assessment",
+        "milestone": "Double-materiality matrix approved by management; top material topics list finalised and signed off by CFO/CSO",
+        "target_date": "2025-06-15",
+        "depends_on": [
+          1
+        ]
+      },
+      {
+        "phase_no": 3,
+        "phase": "Requirement Planning & Disclosure Mapping",
+        "milestone": "Master disclosure register completed (BRSR Core + GRI + ESRS gap map + TCFD pillars); data templates issued to all site data owners",
+        "target_date": "2025-07-31",
+        "depends_on": [
+          2
+        ]
+      },
+      {
+        "phase_no": 4,
+        "phase": "Data Collection & Validation",
+        "milestone": "100% of BRSR Core KPIs collected and first-pass validated across Pune Plant, Chennai Plant, and Mumbai HQ; GHG inventory (Scope 1, 2, material Scope 3) draft complete",
+        "target_date": "2025-10-31",
+        "depends_on": [
+          3
+        ]
+      },
+      {
+        "phase_no": 5,
+        "phase": "TCFD Climate Risk Analysis",
+        "milestone": "Physical and transition risk scenario analysis complete; TCFD four-pillar narrative drafted and reviewed by Risk Committee",
+        "target_date": "2025-11-30",
+        "depends_on": [
+          4
+        ]
+      },
+      {
+        "phase_no": 6,
+        "phase": "Report Drafting",
+        "milestone": "Full BRSR Core draft (including BRSR Core assured KPIs), GRI Content Index, ESRS gap-mapping annex, and TCFD section submitted to client for internal review",
+        "target_date": "2026-01-15",
+        "depends_on": [
+          4,
+          5
+        ]
+      },
+      {
+        "phase_no": 7,
+        "phase": "Assurance & Review",
+        "milestone": "Limited assurance engagement on BRSR Core KPIs completed by appointed assurance provider; all management review comments resolved; Board/Audit Committee sign-off obtained",
+        "target_date": "2026-02-28",
+        "depends_on": [
+          6
+        ]
+      },
+      {
+        "phase_no": 8,
+        "phase": "Filing, Publication & Lessons Learned",
+        "milestone": "BRSR filed on BSE/NSE within statutory deadline; Annual Report ESG chapter published; lessons-learned workshop held; FY2026-27 improvement roadmap delivered",
+        "target_date": "2026-03-31",
+        "depends_on": [
+          7
+        ]
+      }
+    ],
+    "raci_matrix": [
+      {
+        "activity": "Scope charter approval & engagement governance",
+        "responsible": "Lead ESG Consultant",
+        "accountable": "Engagement Partner",
+        "consulted": "CFO, Company Secretary",
+        "informed": "Board Audit Committee"
+      },
+      {
+        "activity": "Materiality assessment facilitation (stakeholder surveys, workshops)",
+        "responsible": "ESG Analyst",
+        "accountable": "Lead ESG Consultant",
+        "consulted": "CSO / Sustainability Head, HR Director, Supply Chain Head",
+        "informed": "CFO, MD"
+      },
+      {
+        "activity": "Disclosure mapping — BRSR Core requirements",
+        "responsible": "Lead ESG Consultant",
+        "accountable": "Engagement Partner",
+        "consulted": "Company Secretary, Legal Counsel",
+        "informed": "CFO"
+      },
+      {
+        "activity": "Disclosure mapping — GRI Standards (incl. GRI 11 Sector)",
+        "responsible": "ESG Analyst",
+        "accountable": "Lead ESG Consultant",
+        "consulted": "CSO / Sustainability Head",
+        "informed": "Engagement Partner"
+      },
+      {
+        "activity": "ESRS gap-mapping exercise",
+        "responsible": "ESG Analyst",
+        "accountable": "Lead ESG Consultant",
+        "consulted": "Legal Counsel, Supply Chain Head",
+        "informed": "CFO, Engagement Partner"
+      },
+      {
+        "activity": "TCFD climate risk & scenario analysis",
+        "responsible": "Climate Risk Specialist",
+        "accountable": "Lead ESG Consultant",
+        "consulted": "Plant Operations Heads (Pune & Chennai), Risk Manager",
+        "informed": "Board Risk Committee, CFO"
+      },
+      {
+        "activity": "GHG inventory data collection — Pune Plant",
+        "responsible": "Pune Plant EHS Manager",
+        "accountable": "CSO / Sustainability Head",
+        "consulted": "ESG Analyst",
+        "informed": "Lead ESG Consultant"
+      },
+      {
+        "activity": "GHG inventory data collection — Chennai Plant",
+        "responsible": "Chennai Plant EHS Manager",
+        "accountable": "CSO / Sustainability Head",
+        "consulted": "ESG Analyst",
+        "informed": "Lead ESG Consultant"
+      },
+      {
+        "activity": "Social & governance KPI data collection (HR, S&H, ethics)",
+        "responsible": "HR Director",
+        "accountable": "CSO / Sustainability Head",
+        "consulted": "ESG Analyst, Company Secretary",
+        "informed": "Lead ESG Consultant"
+      },
+      {
+        "activity": "Data validation & quality review",
+        "responsible": "ESG Analyst",
+        "accountable": "Lead ESG Consultant",
+        "consulted": "Plant EHS Managers, Finance Controller",
+        "informed": "Engagement Partner"
+      },
+      {
+        "activity": "BRSR Core report drafting",
+        "responsible": "Lead ESG Consultant",
+        "accountable": "Engagement Partner",
+        "consulted": "CFO, Company Secretary, CSO / Sustainability Head",
+        "informed": "MD, Board Audit Committee"
+      },
+      {
+        "activity": "GRI Content Index & TCFD section drafting",
+        "responsible": "ESG Analyst",
+        "accountable": "Lead ESG Consultant",
+        "consulted": "Climate Risk Specialist",
+        "informed": "Engagement Partner"
+      },
+      {
+        "activity": "Internal management review of draft report",
+        "responsible": "CFO",
+        "accountable": "MD",
+        "consulted": "Lead ESG Consultant, Company Secretary",
+        "informed": "Board Audit Committee"
+      },
+      {
+        "activity": "Limited assurance engagement coordination",
+        "responsible": "Lead ESG Consultant",
+        "accountable": "Engagement Partner",
+        "consulted": "Appointed Assurance Provider, CFO, Finance Controller",
+        "informed": "Board Audit Committee, MD"
+      },
+      {
+        "activity": "BRSR filing on BSE/NSE & Annual Report publication",
+        "responsible": "Company Secretary",
+        "accountable": "CFO",
+        "consulted": "Lead ESG Consultant, Legal Counsel",
+        "informed": "Engagement Partner, MD"
+      },
+      {
+        "activity": "Lessons-learned workshop & FY2026-27 roadmap",
+        "responsible": "Lead ESG Consultant",
+        "accountable": "Engagement Partner",
+        "consulted": "CSO / Sustainability Head, CFO",
+        "informed": "MD, Board Audit Committee"
+      }
+    ],
+    "open_questions": [
+      "BRSR Core assurance tier: Has Acme Manufacturing Pvt Ltd confirmed its market-cap ranking relative to SEBI's phased BRSR Core assurance threshold (top 150 → top 500 → top 1,000)? This determines whether limited assurance is mandatory for FY2025-26 or voluntary.",
+      "Group boundary: Does Acme Manufacturing Pvt Ltd have any subsidiaries, joint ventures, or associate companies whose operations should be included within the reporting boundary? The CIN suggests a private limited structure; please confirm whether any group entities exist.",
+      "Assurance provider: Has an external limited-assurance provider been appointed or shortlisted? If not, procurement should begin no later than Phase 3 to avoid a bottleneck ahead of the Phase 7 deadline.",
+      "ESRS scope depth: The brief requests 'ESRS alignment' — please confirm whether the deliverable is (a) a gap-mapping annex only, or (b) a fuller double-materiality assessment to ESRS depth. The latter would materially increase effort and timeline.",
+      "Scope 3 GHG boundary: Which Scope 3 categories does management consider material beyond the three identified (Cat 1 Purchased Goods, Cat 10 Processing of Sold Products, Cat 12 End-of-Life Treatment)? Confirmation is needed before data templates are issued in Phase 3.",
+      "GRI Sector Standard applicability: GRI 11 (Mining & Metals) covers iron and steel. Please confirm whether Acme's operations include any mining/extraction activities (e.g., iron ore, coal) that would trigger additional GRI 11 disclosures beyond downstream steel manufacturing.",
+      "Reporting language & format: Will the BRSR be filed as a standalone report or embedded in the Annual Report? Is a separate sustainability report (PDF + XBRL) required for BSE/NSE filing?",
+      "Data readiness: Has any prior ESG/sustainability data collection been undertaken for FY2024-25 or earlier? Availability of baseline data will significantly affect Phase 4 effort and the Phase 2 materiality baseline."
+    ]
+  },
+  "materiality": {
+    "scored_topics": [
+      {
+        "topic_id": "ghg_emissions",
+        "label": "GHG Emissions",
+        "impact_score": 5,
+        "financial_score": 5,
+        "rationale": "Steel is one of the most carbon-intensive industries globally (~1.8 t CO₂/t steel via BF-BOF route). GHG emissions drive severe environmental impact (climate change, air quality) and face escalating financial exposure via carbon pricing, EU CBAM, transition risk, and investor/lender covenant requirements. BRSR Core mandates Scope 1 & 2 disclosure; TCFD scenario analysis is in scope; ESRS E1 and GRI 305 apply. Sector materiality maps (GRI 11, SASB Iron & Steel) universally flag this as the #1 topic.",
+        "likely_disclosures": [
+          "BRSR Core — Principle 6: Scope 1, 2 & 3 GHG emissions (tCO₂e); emission intensity per tonne of steel",
+          "TCFD — Strategy (scenario analysis, transition & physical risk); Metrics & Targets (net-zero pathway, SBTi alignment)",
+          "GRI 305-1/2/3 — Direct, energy-indirect, and other indirect GHG emissions",
+          "GRI 305-4 — GHG emission intensity",
+          "ESRS E1-6 — Gross Scope 1/2/3 GHG emissions and related targets",
+          "EU CBAM — Embedded carbon in exported steel products (customer pass-through obligation)"
+        ]
+      },
+      {
+        "topic_id": "ohs",
+        "label": "Occupational Health & Safety",
+        "impact_score": 5,
+        "financial_score": 4,
+        "rationale": "Steel manufacturing is among the highest-risk industrial sectors (molten metal, confined spaces, heavy machinery, heat stress). Fatal and serious injury rates are a direct, severe impact on workers and contractors. Financial exposure includes regulatory penalties under Factories Act/OSHA, compensation liabilities, productivity loss, and reputational damage affecting talent attraction and customer/investor relationships. BRSR Core mandates OHS KPIs; GRI 403 and ESRS S1 apply. Impact score is maximum given severity and breadth of workforce affected.",
+        "likely_disclosures": [
+          "BRSR Core — Principle 3: LTIFR, fatalities, near-miss rate, OHS management system coverage (employees & contractors)",
+          "GRI 403-2 — Types of injury, injury rate, occupational diseases, fatalities",
+          "GRI 403-8 — Workers covered by OHS management system",
+          "ESRS S1-14 — Health & safety metrics for own workforce",
+          "ESRS S1-15 — Work-life balance and related indicators",
+          "Factories Act 1948 / BOCW Act — Statutory accident reporting to Inspector of Factories"
+        ]
+      },
+      {
+        "topic_id": "water_effluents",
+        "label": "Water & Effluents",
+        "impact_score": 4,
+        "financial_score": 4,
+        "rationale": "Integrated steel plants are large freshwater consumers (2–6 m³/t steel) and generate process effluents (phenols, cyanides, heavy metals from coke ovens and pickling). India's water-stressed geography amplifies community and regulatory risk. Financial exposure arises from water tariffs, regulatory shutdowns, and customer/investor ESG screens. BRSR mandates water withdrawal/discharge disclosure; GRI 303/306 and ESRS E3 apply. Slightly below GHG on financial score as carbon pricing is more acute near-term.",
+        "likely_disclosures": [
+          "BRSR Core — Principle 6: Total water withdrawal by source, water intensity per tonne of steel, water recycling rate",
+          "GRI 303-3/4/5 — Water withdrawal, discharge, and consumption by source",
+          "GRI 306-3/4/5 — Waste generated, diverted, directed to disposal (effluent sludge)",
+          "ESRS E3-4 — Water consumption and intensity metrics",
+          "ESRS E2-4 — Pollutants discharged to water (heavy metals, COD, phenols)",
+          "CPCB/SPCB consent conditions — Effluent discharge limits and zero-liquid-discharge compliance"
+        ]
+      }
+    ],
+    "material_topics": [
+      {
+        "topic_id": "ghg_emissions",
+        "label": "GHG Emissions",
+        "rank": 1,
+        "status": "proposed"
+      },
+      {
+        "topic_id": "ohs",
+        "label": "Occupational Health & Safety",
+        "rank": 2,
+        "status": "proposed"
+      },
+      {
+        "topic_id": "water_effluents",
+        "label": "Water & Effluents",
+        "rank": 3,
+        "status": "proposed"
+      }
+    ],
+    "materiality_threshold": 3.5,
+    "questionnaire": [
+      {
+        "topic_id": "ghg_emissions",
+        "question": "How significant are our Scope 1, 2, and 3 GHG emissions in terms of their contribution to climate change, and how do you rate the urgency of setting science-based reduction targets for our steel operations?",
+        "audience": "both"
+      },
+      {
+        "topic_id": "ghg_emissions",
+        "question": "To what extent do you believe carbon pricing mechanisms (e.g., India carbon market, EU CBAM) or transition regulations will materially affect our cost base or market access within the next 3–5 years?",
+        "audience": "internal"
+      },
+      {
+        "topic_id": "ghg_emissions",
+        "question": "Does our company's GHG emission profile and decarbonisation roadmap influence your investment, lending, or procurement decisions? If yes, what specific metrics or targets do you require?",
+        "audience": "external"
+      },
+      {
+        "topic_id": "ghg_emissions",
+        "question": "How important is it that we disclose Scope 3 (value-chain) emissions — including those from iron ore and coal procurement and downstream steel use — in addition to Scope 1 and 2?",
+        "audience": "both"
+      },
+      {
+        "topic_id": "water_effluents",
+        "question": "How concerned are you about the volume of freshwater our steel plant withdraws from local sources, particularly given water stress in the operating region?",
+        "audience": "both"
+      },
+      {
+        "topic_id": "water_effluents",
+        "question": "How significant is the risk of effluent discharge (heavy metals, phenols, suspended solids) from our coke ovens, blast furnaces, and pickling lines to local water bodies and communities?",
+        "audience": "both"
+      },
+      {
+        "topic_id": "water_effluents",
+        "question": "To what degree does our water recycling rate and progress toward zero-liquid-discharge (ZLD) compliance affect your confidence in our regulatory and operational resilience?",
+        "audience": "external"
+      },
+      {
+        "topic_id": "water_effluents",
+        "question": "What is your assessment of the financial risk to the business from potential regulatory action (CPCB/SPCB) or community opposition related to water use and effluent management?",
+        "audience": "internal"
+      },
+      {
+        "topic_id": "ohs",
+        "question": "How do you rate the severity and frequency of occupational health and safety risks — including fatalities, lost-time injuries, and occupational diseases — in our steel manufacturing operations?",
+        "audience": "both"
+      },
+      {
+        "topic_id": "ohs",
+        "question": "To what extent does our OHS performance (LTIFR, fatality rate, near-miss reporting culture) influence your decision to work with, invest in, or supply to our company?",
+        "audience": "external"
+      },
+      {
+        "topic_id": "ohs",
+        "question": "How adequate do you consider our current OHS management systems, training programmes, and contractor safety oversight in preventing serious incidents?",
+        "audience": "internal"
+      },
+      {
+        "topic_id": "ohs",
+        "question": "How important is it that we extend the same OHS standards and reporting to contract workers and third-party labour as we do to permanent employees?",
+        "audience": "both"
+      }
+    ]
+  },
+  "data_requirements": {
+    "requests": [
+      {
+        "request_id": "req_ghg_diesel_pune",
+        "dp_id": "diesel_litres",
+        "label": "Diesel consumed — Pune Plant (monthly)",
+        "metric_ids": [
+          "scope1_tco2e"
+        ],
+        "unit": "litres",
+        "granularity": "per_site_per_month",
+        "sites": [
+          "site_pune"
+        ],
+        "data_definition": "Total diesel consumed on-site per month, in litres. INCLUDES diesel used in DG sets and owned/leased on-site mobile equipment. EXCLUDES petrol, fuel in employee personal vehicles, and contractor-owned equipment unless under operational control.",
+        "calc_methodology": "Diesel litres × density × NCV × CO2/CH4/N2O emission factors → tCO2e (GWP100, gross CV). Aggregated to Scope 1.",
+        "disclosure_codes": [
+          "P6-E7",
+          "305-1",
+          "E1-6",
+          "Metrics-a"
+        ],
+        "evidence_required": [
+          "fuel purchase invoices",
+          "DG run-hour / fuel logs"
+        ],
+        "source_system": "fuel invoices, DG logs",
+        "owner_role": "Plant EHS / Facilities Manager",
+        "channel": "portal",
+        "form_schema_ref": "fs_diesel_litres_monthly",
+        "period": "FY2025-26",
+        "deadline": "2026-04-15",
+        "quality_params": {
+          "expected_min": 0,
+          "outlier_factor": 3,
+          "required": true
+        }
+      },
+      {
+        "request_id": "req_ghg_diesel_chennai",
+        "dp_id": "diesel_litres",
+        "label": "Diesel consumed — Chennai Plant (monthly)",
+        "metric_ids": [
+          "scope1_tco2e"
+        ],
+        "unit": "litres",
+        "granularity": "per_site_per_month",
+        "sites": [
+          "site_chennai"
+        ],
+        "data_definition": "Total diesel consumed on-site per month, in litres. INCLUDES diesel used in DG sets and owned/leased on-site mobile equipment. EXCLUDES petrol, fuel in employee personal vehicles, and contractor-owned equipment unless under operational control.",
+        "calc_methodology": "Diesel litres × density × NCV × CO2/CH4/N2O emission factors → tCO2e (GWP100, gross CV). Aggregated to Scope 1.",
+        "disclosure_codes": [
+          "P6-E7",
+          "305-1",
+          "E1-6",
+          "Metrics-a"
+        ],
+        "evidence_required": [
+          "fuel purchase invoices",
+          "DG run-hour / fuel logs"
+        ],
+        "source_system": "fuel invoices, DG logs",
+        "owner_role": "Plant EHS / Facilities Manager",
+        "channel": "portal",
+        "form_schema_ref": "fs_diesel_litres_monthly",
+        "period": "FY2025-26",
+        "deadline": "2026-04-15",
+        "quality_params": {
+          "expected_min": 0,
+          "outlier_factor": 3,
+          "required": true
+        }
+      },
+      {
+        "request_id": "req_ghg_diesel_hq",
+        "dp_id": "diesel_litres",
+        "label": "Diesel consumed — Mumbai HQ (monthly)",
+        "metric_ids": [
+          "scope1_tco2e"
+        ],
+        "unit": "litres",
+        "granularity": "per_site_per_month",
+        "sites": [
+          "site_hq"
+        ],
+        "data_definition": "Total diesel consumed on-site per month, in litres (primarily backup DG sets at the office). EXCLUDES petrol and fuel in employee personal vehicles. Enter 0 if no diesel consumed.",
+        "calc_methodology": "Diesel litres × density × NCV × CO2/CH4/N2O emission factors → tCO2e (GWP100, gross CV). Aggregated to Scope 1.",
+        "disclosure_codes": [
+          "P6-E7",
+          "305-1",
+          "E1-6",
+          "Metrics-a"
+        ],
+        "evidence_required": [
+          "fuel purchase invoices",
+          "DG run-hour / fuel logs"
+        ],
+        "source_system": "fuel invoices, DG logs",
+        "owner_role": "Facilities / Admin Manager",
+        "channel": "portal",
+        "form_schema_ref": "fs_diesel_litres_monthly",
+        "period": "FY2025-26",
+        "deadline": "2026-04-15",
+        "quality_params": {
+          "expected_min": 0,
+          "outlier_factor": 3,
+          "required": true
+        }
+      },
+      {
+        "request_id": "req_ghg_grid_pune",
+        "dp_id": "grid_electricity_kwh",
+        "label": "Grid electricity — Pune Plant (monthly)",
+        "metric_ids": [
+          "scope2_location_tco2e"
+        ],
+        "unit": "kWh",
+        "granularity": "per_site_per_month",
+        "sites": [
+          "site_pune"
+        ],
+        "data_definition": "Total kWh drawn from the DISCOM per site, per month. EXCLUDES captive/rooftop solar generation and DG-set generation (those are accounted elsewhere). Use billed kWh from the utility bill.",
+        "calc_methodology": "kWh × location-based regional grid emission factor (CEA) → tCO2e. Aggregated to Scope 2 (location-based).",
+        "disclosure_codes": [
+          "P6-E7",
+          "305-2",
+          "E1-6",
+          "Metrics-a"
+        ],
+        "evidence_required": [
+          "DISCOM electricity bills"
+        ],
+        "source_system": "DISCOM bills",
+        "owner_role": "Plant Facilities Manager",
+        "channel": "portal",
+        "form_schema_ref": "fs_grid_kwh_monthly",
+        "period": "FY2025-26",
+        "deadline": "2026-04-15",
+        "quality_params": {
+          "expected_min": 0,
+          "outlier_factor": 3,
+          "required": true
+        }
+      },
+      {
+        "request_id": "req_ghg_grid_chennai",
+        "dp_id": "grid_electricity_kwh",
+        "label": "Grid electricity — Chennai Plant (monthly)",
+        "metric_ids": [
+          "scope2_location_tco2e"
+        ],
+        "unit": "kWh",
+        "granularity": "per_site_per_month",
+        "sites": [
+          "site_chennai"
+        ],
+        "data_definition": "Total kWh drawn from the DISCOM per site, per month. EXCLUDES captive/rooftop solar generation and DG-set generation. Use billed kWh from the utility bill.",
+        "calc_methodology": "kWh × location-based regional grid emission factor (CEA) → tCO2e. Aggregated to Scope 2 (location-based).",
+        "disclosure_codes": [
+          "P6-E7",
+          "305-2",
+          "E1-6",
+          "Metrics-a"
+        ],
+        "evidence_required": [
+          "DISCOM electricity bills"
+        ],
+        "source_system": "DISCOM bills",
+        "owner_role": "Plant Facilities Manager",
+        "channel": "portal",
+        "form_schema_ref": "fs_grid_kwh_monthly",
+        "period": "FY2025-26",
+        "deadline": "2026-04-15",
+        "quality_params": {
+          "expected_min": 0,
+          "outlier_factor": 3,
+          "required": true
+        }
+      },
+      {
+        "request_id": "req_ghg_grid_hq",
+        "dp_id": "grid_electricity_kwh",
+        "label": "Grid electricity — Mumbai HQ (monthly)",
+        "metric_ids": [
+          "scope2_location_tco2e"
+        ],
+        "unit": "kWh",
+        "granularity": "per_site_per_month",
+        "sites": [
+          "site_hq"
+        ],
+        "data_definition": "Total kWh drawn from the DISCOM for the office per month. EXCLUDES captive/rooftop solar and DG generation. For leased/shared premises, report apportioned kWh per sub-meter or area share. Use billed kWh.",
+        "calc_methodology": "kWh × location-based regional grid emission factor (CEA) → tCO2e. Aggregated to Scope 2 (location-based).",
+        "disclosure_codes": [
+          "P6-E7",
+          "305-2",
+          "E1-6",
+          "Metrics-a"
+        ],
+        "evidence_required": [
+          "DISCOM electricity bills",
+          "apportionment basis (if shared premises)"
+        ],
+        "source_system": "DISCOM bills",
+        "owner_role": "Facilities / Admin Manager",
+        "channel": "portal",
+        "form_schema_ref": "fs_grid_kwh_monthly",
+        "period": "FY2025-26",
+        "deadline": "2026-04-15",
+        "quality_params": {
+          "expected_min": 0,
+          "outlier_factor": 3,
+          "required": true
+        }
+      },
+      {
+        "request_id": "req_ghg_revenue_org",
+        "dp_id": "revenue_inr_cr",
+        "label": "Revenue (audited) — organisation annual",
+        "metric_ids": [
+          "ghg_intensity_rev"
+        ],
+        "unit": "INR_cr",
+        "granularity": "org_annual",
+        "sites": [],
+        "data_definition": "Total revenue for FY2025-26 in INR crore, from audited financial statements. Use the same revenue figure disclosed in the annual report (consolidated, unless engagement scope is standalone).",
+        "calc_methodology": "GHG intensity = total Scope 1 + Scope 2 (location-based) tCO2e ÷ revenue (INR crore).",
+        "disclosure_codes": [
+          "E1-6",
+          "Metrics-a"
+        ],
+        "evidence_required": [
+          "audited financial statements",
+          "auditor-signed P&L"
+        ],
+        "source_system": "audited financials",
+        "owner_role": "Finance Controller / CFO office",
+        "channel": "upload",
+        "form_schema_ref": null,
+        "period": "FY2025-26",
+        "deadline": "2026-05-31",
+        "quality_params": {
+          "expected_min": 0,
+          "outlier_factor": 3,
+          "required": true
+        }
+      },
+      {
+        "request_id": "req_water_groundwater_pune",
+        "dp_id": "groundwater_kl",
+        "label": "Groundwater withdrawn — Pune Plant (monthly)",
+        "metric_ids": [
+          "water_withdrawal_kl"
+        ],
+        "unit": "kL",
+        "granularity": "per_site_per_month",
+        "sites": [
+          "site_pune"
+        ],
+        "data_definition": "Volume of groundwater withdrawn via borewells per site, per month, in kL. Measured at borewell flow meters. EXCLUDES municipal/third-party water, tanker water, and rainwater harvesting.",
+        "calc_methodology": "Summed by source into total water withdrawal (kL).",
+        "disclosure_codes": [
+          "P6-E3",
+          "303-3"
+        ],
+        "evidence_required": [
+          "borewell flow-meter logs",
+          "groundwater extraction (NOC/CGWA) records"
+        ],
+        "source_system": "borewell flow meters",
+        "owner_role": "Plant Utilities / EHS Manager",
+        "channel": "portal",
+        "form_schema_ref": "fs_water_kl_monthly",
+        "period": "FY2025-26",
+        "deadline": "2026-04-15",
+        "quality_params": {
+          "expected_min": 0,
+          "outlier_factor": 3,
+          "required": true
+        }
+      },
+      {
+        "request_id": "req_water_groundwater_chennai",
+        "dp_id": "groundwater_kl",
+        "label": "Groundwater withdrawn — Chennai Plant (monthly)",
+        "metric_ids": [
+          "water_withdrawal_kl"
+        ],
+        "unit": "kL",
+        "granularity": "per_site_per_month",
+        "sites": [
+          "site_chennai"
+        ],
+        "data_definition": "Volume of groundwater withdrawn via borewells per site, per month, in kL. Measured at borewell flow meters. EXCLUDES municipal/third-party water, tanker water, and rainwater harvesting.",
+        "calc_methodology": "Summed by source into total water withdrawal (kL).",
+        "disclosure_codes": [
+          "P6-E3",
+          "303-3"
+        ],
+        "evidence_required": [
+          "borewell flow-meter logs",
+          "groundwater extraction (NOC/CGWA) records"
+        ],
+        "source_system": "borewell flow meters",
+        "owner_role": "Plant Utilities / EHS Manager",
+        "channel": "portal",
+        "form_schema_ref": "fs_water_kl_monthly",
+        "period": "FY2025-26",
+        "deadline": "2026-04-15",
+        "quality_params": {
+          "expected_min": 0,
+          "outlier_factor": 3,
+          "required": true
+        }
+      },
+      {
+        "request_id": "req_water_municipal_pune",
+        "dp_id": "municipal_kl",
+        "label": "Municipal water — Pune Plant (monthly)",
+        "metric_ids": [
+          "water_withdrawal_kl"
+        ],
+        "unit": "kL",
+        "granularity": "per_site_per_month",
+        "sites": [
+          "site_pune"
+        ],
+        "data_definition": "Volume of municipal/third-party (incl. tanker) water received per site, per month, in kL. Per water-utility bills/tanker invoices. EXCLUDES groundwater and rainwater.",
+        "calc_methodology": "Summed by source into total water withdrawal (kL).",
+        "disclosure_codes": [
+          "P6-E3",
+          "303-3"
+        ],
+        "evidence_required": [
+          "water utility bills",
+          "tanker delivery invoices"
+        ],
+        "source_system": "water utility bills",
+        "owner_role": "Plant Utilities / EHS Manager",
+        "channel": "portal",
+        "form_schema_ref": "fs_water_kl_monthly",
+        "period": "FY2025-26",
+        "deadline": "2026-04-15",
+        "quality_params": {
+          "expected_min": 0,
+          "outlier_factor": 3,
+          "required": true
+        }
+      },
+      {
+        "request_id": "req_water_municipal_chennai",
+        "dp_id": "municipal_kl",
+        "label": "Municipal water — Chennai Plant (monthly)",
+        "metric_ids": [
+          "water_withdrawal_kl"
+        ],
+        "unit": "kL",
+        "granularity": "per_site_per_month",
+        "sites": [
+          "site_chennai"
+        ],
+        "data_definition": "Volume of municipal/third-party (incl. tanker) water received per site, per month, in kL. Per water-utility bills/tanker invoices. EXCLUDES groundwater and rainwater.",
+        "calc_methodology": "Summed by source into total water withdrawal (kL).",
+        "disclosure_codes": [
+          "P6-E3",
+          "303-3"
+        ],
+        "evidence_required": [
+          "water utility bills",
+          "tanker delivery invoices"
+        ],
+        "source_system": "water utility bills",
+        "owner_role": "Plant Utilities / EHS Manager",
+        "channel": "portal",
+        "form_schema_ref": "fs_water_kl_monthly",
+        "period": "FY2025-26",
+        "deadline": "2026-04-15",
+        "quality_params": {
+          "expected_min": 0,
+          "outlier_factor": 3,
+          "required": true
+        }
+      },
+      {
+        "request_id": "req_water_municipal_hq",
+        "dp_id": "municipal_kl",
+        "label": "Municipal water — Mumbai HQ (monthly)",
+        "metric_ids": [
+          "water_withdrawal_kl"
+        ],
+        "unit": "kL",
+        "granularity": "per_site_per_month",
+        "sites": [
+          "site_hq"
+        ],
+        "data_definition": "Volume of municipal/third-party (incl. tanker) water received at the office per month, in kL. Per water-utility bills. For shared premises, report apportioned volume. EXCLUDES groundwater and rainwater.",
+        "calc_methodology": "Summed by source into total water withdrawal (kL).",
+        "disclosure_codes": [
+          "P6-E3",
+          "303-3"
+        ],
+        "evidence_required": [
+          "water utility bills",
+          "apportionment basis (if shared premises)"
+        ],
+        "source_system": "water utility bills",
+        "owner_role": "Facilities / Admin Manager",
+        "channel": "portal",
+        "form_schema_ref": "fs_water_kl_monthly",
+        "period": "FY2025-26",
+        "deadline": "2026-04-15",
+        "quality_params": {
+          "expected_min": 0,
+          "outlier_factor": 3,
+          "required": true
+        }
+      },
+      {
+        "request_id": "req_water_effluent_pune",
+        "dp_id": "effluent_kl",
+        "label": "Effluent discharged — Pune Plant (monthly)",
+        "metric_ids": [
+          "water_discharge_kl"
+        ],
+        "unit": "kL",
+        "granularity": "per_site_per_month",
+        "sites": [
+          "site_pune"
+        ],
+        "data_definition": "Volume of effluent/wastewater discharged per site, per month, in kL, measured at the ETP outlet meter. INCLUDES discharge to environment/sewer/third party. EXCLUDES water recycled and reused within the plant.",
+        "calc_methodology": "Summed by destination into total water discharge (kL); consumption = withdrawal − discharge.",
+        "disclosure_codes": [
+          "P6-E3"
+        ],
+        "evidence_required": [
+          "ETP outlet meter logs",
+          "discharge consent / monitoring records"
+        ],
+        "source_system": "ETP outlet meter",
+        "owner_role": "Plant Utilities / EHS Manager",
+        "channel": "portal",
+        "form_schema_ref": "fs_water_kl_monthly",
+        "period": "FY2025-26",
+        "deadline": "2026-04-15",
+        "quality_params": {
+          "expected_min": 0,
+          "outlier_factor": 3,
+          "required": true
+        }
+      },
+      {
+        "request_id": "req_water_effluent_chennai",
+        "dp_id": "effluent_kl",
+        "label": "Effluent discharged — Chennai Plant (monthly)",
+        "metric_ids": [
+          "water_discharge_kl"
+        ],
+        "unit": "kL",
+        "granularity": "per_site_per_month",
+        "sites": [
+          "site_chennai"
+        ],
+        "data_definition": "Volume of effluent/wastewater discharged per site, per month, in kL, measured at the ETP outlet meter. INCLUDES discharge to environment/sewer/third party. EXCLUDES water recycled and reused within the plant.",
+        "calc_methodology": "Summed by destination into total water discharge (kL); consumption = withdrawal − discharge.",
+        "disclosure_codes": [
+          "P6-E3"
+        ],
+        "evidence_required": [
+          "ETP outlet meter logs",
+          "discharge consent / monitoring records"
+        ],
+        "source_system": "ETP outlet meter",
+        "owner_role": "Plant Utilities / EHS Manager",
+        "channel": "portal",
+        "form_schema_ref": "fs_water_kl_monthly",
+        "period": "FY2025-26",
+        "deadline": "2026-04-15",
+        "quality_params": {
+          "expected_min": 0,
+          "outlier_factor": 3,
+          "required": true
+        }
+      },
+      {
+        "request_id": "req_ohs_lti_pune",
+        "dp_id": "lti_count",
+        "label": "Lost-time injuries — Pune Plant (quarterly)",
+        "metric_ids": [
+          "ltifr",
+          "fatalities"
+        ],
+        "unit": "count",
+        "granularity": "per_site_per_quarter",
+        "sites": [
+          "site_pune"
+        ],
+        "data_definition": "Count of lost-time injuries (LTIs) recorded per site per quarter (employees + workers under operational control). An LTI is a work-related injury resulting in ≥1 lost day beyond the day of incident. Record fatalities separately in the dedicated field. EXCLUDES first-aid-only cases.",
+        "calc_methodology": "LTIFR = (LTI count × 1,000,000) ÷ hours worked. Fatalities summed across the period.",
+        "disclosure_codes": [
+          "P3-E11",
+          "403-9"
+        ],
+        "evidence_required": [
+          "EHS incident register",
+          "investigation reports"
+        ],
+        "source_system": "EHS incident register",
+        "owner_role": "Plant EHS Manager",
+        "channel": "portal",
+        "form_schema_ref": "fs_ohs_incidents_quarterly",
+        "period": "FY2025-26",
+        "deadline": "2026-04-10",
+        "quality_params": {
+          "expected_min": 0,
+          "outlier_factor": 3,
+          "required": true
+        }
+      },
+      {
+        "request_id": "req_ohs_lti_chennai",
+        "dp_id": "lti_count",
+        "label": "Lost-time injuries — Chennai Plant (quarterly)",
+        "metric_ids": [
+          "ltifr",
+          "fatalities"
+        ],
+        "unit": "count",
+        "granularity": "per_site_per_quarter",
+        "sites": [
+          "site_chennai"
+        ],
+        "data_definition": "Count of lost-time injuries (LTIs) recorded per site per quarter (employees + workers under operational control). An LTI is a work-related injury resulting in ≥1 lost day beyond the day of incident. Record fatalities separately. EXCLUDES first-aid-only cases.",
+        "calc_methodology": "LTIFR = (LTI count × 1,000,000) ÷ hours worked. Fatalities summed across the period.",
+        "disclosure_codes": [
+          "P3-E11",
+          "403-9"
+        ],
+        "evidence_required": [
+          "EHS incident register",
+          "investigation reports"
+        ],
+        "source_system": "EHS incident register",
+        "owner_role": "Plant EHS Manager",
+        "channel": "portal",
+        "form_schema_ref": "fs_ohs_incidents_quarterly",
+        "period": "FY2025-26",
+        "deadline": "2026-04-10",
+        "quality_params": {
+          "expected_min": 0,
+          "outlier_factor": 3,
+          "required": true
+        }
+      },
+      {
+        "request_id": "req_ohs_lti_hq",
+        "dp_id": "lti_count",
+        "label": "Lost-time injuries — Mumbai HQ (quarterly)",
+        "metric_ids": [
+          "ltifr",
+          "fatalities"
+        ],
+        "unit": "count",
+        "granularity": "per_site_per_quarter",
+        "sites": [
+          "site_hq"
+        ],
+        "data_definition": "Count of lost-time injuries (LTIs) recorded for the office per quarter (employees + workers under operational control). An LTI is a work-related injury resulting in ≥1 lost day. Record fatalities separately. EXCLUDES first-aid-only cases. Enter 0 where none.",
+        "calc_methodology": "LTIFR = (LTI count × 1,000,000) ÷ hours worked. Fatalities summed across the period.",
+        "disclosure_codes": [
+          "P3-E11",
+          "403-9"
+        ],
+        "evidence_required": [
+          "EHS/HR incident register"
+        ],
+        "source_system": "EHS incident register",
+        "owner_role": "HR / Admin Manager",
+        "channel": "portal",
+        "form_schema_ref": "fs_ohs_incidents_quarterly",
+        "period": "FY2025-26",
+        "deadline": "2026-04-10",
+        "quality_params": {
+          "expected_min": 0,
+          "outlier_factor": 3,
+          "required": true
+        }
+      },
+      {
+        "request_id": "req_ohs_hours_pune",
+        "dp_id": "hours_worked",
+        "label": "Total hours worked — Pune Plant (quarterly)",
+        "metric_ids": [
+          "ltifr"
+        ],
+        "unit": "hours",
+        "granularity": "per_site_per_quarter",
+        "sites": [
+          "site_pune"
+        ],
+        "data_definition": "Total actual hours worked per site per quarter by employees and workers under operational control, from attendance/payroll records. EXCLUDES paid leave, holidays and unworked overtime. Used as the LTIFR denominator.",
+        "calc_methodology": "LTIFR = (LTI count × 1,000,000) ÷ total hours worked.",
+        "disclosure_codes": [
+          "P3-E11",
+          "403-9"
+        ],
+        "evidence_required": [
+          "HR/attendance system export",
+          "payroll hours report"
+        ],
+        "source_system": "HR/attendance system",
+        "owner_role": "HR Manager",
+        "channel": "portal",
+        "form_schema_ref": "fs_hours_worked_quarterly",
+        "period": "FY2025-26",
+        "deadline": "2026-04-10",
+        "quality_params": {
+          "expected_min": 0,
+          "outlier_factor": 3,
+          "required": true
+        }
+      },
+      {
+        "request_id": "req_ohs_hours_chennai",
+        "dp_id": "hours_worked",
+        "label": "Total hours worked — Chennai Plant (quarterly)",
+        "metric_ids": [
+          "ltifr"
+        ],
+        "unit": "hours",
+        "granularity": "per_site_per_quarter",
+        "sites": [
+          "site_chennai"
+        ],
+        "data_definition": "Total actual hours worked per site per quarter by employees and workers under operational control, from attendance/payroll records. EXCLUDES paid leave, holidays and unworked overtime. Used as the LTIFR denominator.",
+        "calc_methodology": "LTIFR = (LTI count × 1,000,000) ÷ total hours worked.",
+        "disclosure_codes": [
+          "P3-E11",
+          "403-9"
+        ],
+        "evidence_required": [
+          "HR/attendance system export",
+          "payroll hours report"
+        ],
+        "source_system": "HR/attendance system",
+        "owner_role": "HR Manager",
+        "channel": "portal",
+        "form_schema_ref": "fs_hours_worked_quarterly",
+        "period": "FY2025-26",
+        "deadline": "2026-04-10",
+        "quality_params": {
+          "expected_min": 0,
+          "outlier_factor": 3,
+          "required": true
+        }
+      },
+      {
+        "request_id": "req_ohs_hours_hq",
+        "dp_id": "hours_worked",
+        "label": "Total hours worked — Mumbai HQ (quarterly)",
+        "metric_ids": [
+          "ltifr"
+        ],
+        "unit": "hours",
+        "granularity": "per_site_per_quarter",
+        "sites": [
+          "site_hq"
+        ],
+        "data_definition": "Total actual hours worked for the office per quarter by employees and workers under operational control, from attendance/payroll records. EXCLUDES paid leave, holidays and unworked overtime. Used as the LTIFR denominator.",
+        "calc_methodology": "LTIFR = (LTI count × 1,000,000) ÷ total hours worked.",
+        "disclosure_codes": [
+          "P3-E11",
+          "403-9"
+        ],
+        "evidence_required": [
+          "HR/attendance system export",
+          "payroll hours report"
+        ],
+        "source_system": "HR/attendance system",
+        "owner_role": "HR Manager",
+        "channel": "portal",
+        "form_schema_ref": "fs_hours_worked_quarterly",
+        "period": "FY2025-26",
+        "deadline": "2026-04-10",
+        "quality_params": {
+          "expected_min": 0,
+          "outlier_factor": 3,
+          "required": true
+        }
+      }
+    ],
+    "form_schemas": [
+      {
+        "form_schema_ref": "fs_diesel_litres_monthly",
+        "request_id": "req_ghg_diesel_pune",
+        "title": "Diesel consumption (monthly)",
+        "fields": [
+          {
+            "type": "select",
+            "name": "month",
+            "label": "Reporting month",
+            "required": true,
+            "enum": [
+              "2025-04",
+              "2025-05",
+              "2025-06",
+              "2025-07",
+              "2025-08",
+              "2025-09",
+              "2025-10",
+              "2025-11",
+              "2025-12",
+              "2026-01",
+              "2026-02",
+              "2026-03"
+            ]
+          },
+          {
+            "type": "number",
+            "name": "diesel_litres",
+            "label": "Diesel consumed",
+            "required": true,
+            "unit": "litres",
+            "min": 0
+          },
+          {
+            "type": "file",
+            "name": "evidence",
+            "label": "Fuel invoice / DG log",
+            "required": true,
+            "accept": [
+              "application/pdf",
+              "image/jpeg",
+              "image/png"
+            ],
+            "multiple": true
+          }
+        ]
+      },
+      {
+        "form_schema_ref": "fs_grid_kwh_monthly",
+        "request_id": "req_ghg_grid_pune",
+        "title": "Grid electricity (monthly)",
+        "fields": [
+          {
+            "type": "select",
+            "name": "month",
+            "label": "Reporting month",
+            "required": true,
+            "enum": [
+              "2025-04",
+              "2025-05",
+              "2025-06",
+              "2025-07",
+              "2025-08",
+              "2025-09",
+              "2025-10",
+              "2025-11",
+              "2025-12",
+              "2026-01",
+              "2026-02",
+              "2026-03"
+            ]
+          },
+          {
+            "type": "number",
+            "name": "grid_electricity_kwh",
+            "label": "Grid electricity drawn (billed)",
+            "required": true,
+            "unit": "kWh",
+            "min": 0
+          },
+          {
+            "type": "file",
+            "name": "evidence",
+            "label": "DISCOM electricity bill",
+            "required": true,
+            "accept": [
+              "application/pdf",
+              "image/jpeg",
+              "image/png"
+            ],
+            "multiple": true
+          }
+        ]
+      },
+      {
+        "form_schema_ref": "fs_water_kl_monthly",
+        "request_id": "req_water_groundwater_pune",
+        "title": "Water volume (monthly)",
+        "fields": [
+          {
+            "type": "select",
+            "name": "month",
+            "label": "Reporting month",
+            "required": true,
+            "enum": [
+              "2025-04",
+              "2025-05",
+              "2025-06",
+              "2025-07",
+              "2025-08",
+              "2025-09",
+              "2025-10",
+              "2025-11",
+              "2025-12",
+              "2026-01",
+              "2026-02",
+              "2026-03"
+            ]
+          },
+          {
+            "type": "number",
+            "name": "volume_kl",
+            "label": "Volume",
+            "required": true,
+            "unit": "kL",
+            "min": 0
+          },
+          {
+            "type": "file",
+            "name": "evidence",
+            "label": "Meter log / utility bill",
+            "required": true,
+            "accept": [
+              "application/pdf",
+              "image/jpeg",
+              "image/png",
+              "text/csv"
+            ],
+            "multiple": true
+          }
+        ]
+      },
+      {
+        "form_schema_ref": "fs_ohs_incidents_quarterly",
+        "request_id": "req_ohs_lti_pune",
+        "title": "Safety incidents (quarterly)",
+        "fields": [
+          {
+            "type": "select",
+            "name": "quarter",
+            "label": "Reporting quarter",
+            "required": true,
+            "enum": [
+              "Q1_Apr-Jun_2025",
+              "Q2_Jul-Sep_2025",
+              "Q3_Oct-Dec_2025",
+              "Q4_Jan-Mar_2026"
+            ]
+          },
+          {
+            "type": "number",
+            "name": "lti_count",
+            "label": "Lost-time injuries (count)",
+            "required": true,
+            "unit": "count",
+            "min": 0
+          },
+          {
+            "type": "number",
+            "name": "fatalities",
+            "label": "Fatalities (count)",
+            "required": true,
+            "unit": "count",
+            "min": 0
+          },
+          {
+            "type": "file",
+            "name": "evidence",
+            "label": "Incident register extract",
+            "required": false,
+            "accept": [
+              "application/pdf",
+              "application/vnd.ms-excel",
+              "text/csv"
+            ],
+            "multiple": true
+          }
+        ]
+      },
+      {
+        "form_schema_ref": "fs_hours_worked_quarterly",
+        "request_id": "req_ohs_hours_pune",
+        "title": "Hours worked (quarterly)",
+        "fields": [
+          {
+            "type": "select",
+            "name": "quarter",
+            "label": "Reporting quarter",
+            "required": true,
+            "enum": [
+              "Q1_Apr-Jun_2025",
+              "Q2_Jul-Sep_2025",
+              "Q3_Oct-Dec_2025",
+              "Q4_Jan-Mar_2026"
+            ]
+          },
+          {
+            "type": "number",
+            "name": "hours_worked",
+            "label": "Total hours worked",
+            "required": true,
+            "unit": "hours",
+            "min": 0
+          },
+          {
+            "type": "file",
+            "name": "evidence",
+            "label": "Attendance/payroll export",
+            "required": false,
+            "accept": [
+              "application/vnd.ms-excel",
+              "text/csv",
+              "application/pdf"
+            ],
+            "multiple": true
+          }
+        ]
+      }
+    ],
+    "coverage_note": "GHG: Scope 1 (diesel) and Scope 2 location-based (grid electricity) fully covered across all 3 sites; revenue captured for GHG intensity. PARTIAL: Scope 2 market-based (no supplier/contract data point in mapping) and Scope 3 categories 1/4/6 (no data points supplied in mapping) are NOT yet collectable — additional data points needed to fully satisfy GRI 305-3 / E1-6 Scope 3 and market-based Scope 2. Water: withdrawal (groundwater + municipal) and discharge (effluent) covered for manufacturing sites; HQ covers municipal only (no borewell/ETP at office); consumption derived. OHS: LTIFR (LTI count + hours worked) and fatalities covered across all sites for P3-E11 / 403-9. All quantitative items are portal forms; revenue is upload. Deadlines sequence OHS and operational data ahead of audited revenue.",
+    "unmapped_topics": []
+  },
+  "data_collection": {
+    "document_type_detected": "utility_bill",
+    "dataset_rows": [
+      {
+        "metric_code": "energy.electricity.grid",
+        "site_id": "site_pune",
+        "request_id": "req_grid_elec",
+        "reported_value": {
+          "value": 48210,
+          "extraction_confidence": "high",
+          "source_snippet": "Units Consumed (kWh) : 48,210"
+        },
+        "reported_unit": {
+          "value": "kWh",
+          "extraction_confidence": "high",
+          "source_snippet": "Units Consumed (kWh) : 48,210"
+        },
+        "normalized_value": 48210,
+        "normalized_unit": "kWh",
+        "period_start": {
+          "value": "2025-04-01",
+          "extraction_confidence": "high",
+          "source_snippet": "Billing Period  : 01-Apr-2025 to 30-Apr-2025"
+        },
+        "period_end": {
+          "value": "2025-04-30",
+          "extraction_confidence": "high",
+          "source_snippet": "Billing Period  : 01-Apr-2025 to 30-Apr-2025"
+        },
+        "activity_descriptor": {
+          "value": "HT-I Industrial grid electricity, MSEDCL (Maharashtra grid)",
+          "extraction_confidence": "high",
+          "source_snippet": "MAHARASHTRA STATE ELECTRICITY DISTRIBUTION CO. LTD (MSEDCL) ... Tariff Category : HT-I Industrial"
+        },
+        "disclosure_code": "BRSR:P6-E7",
+        "unit_mismatch": false,
+        "period_mismatch": false,
+        "is_outlier": false,
+        "overall_confidence": "high",
+        "review_status": "pending_review"
+      }
+    ],
+    "fulfillment": [
+      {
+        "request_id": "req_grid_elec",
+        "status": "fulfilled",
+        "reason": "Grid electricity consumption of 48,210 kWh for billing period 01-Apr-2025 to 30-Apr-2025 extracted from MSEDCL bill; matches requested metric, site, unit and period. Within expected magnitude (~50,000 kWh)."
+      }
+    ],
+    "coverage_pct": 100,
+    "followups": [],
+    "qualitative_capture": [],
+    "run_confidence": "high"
+  },
+  "data_validation": {
+    "verdict": "fail",
+    "data_quality_score": 42,
+    "check_results": [
+      {
+        "check": "completeness",
+        "scope": "energy.electricity.grid / site_pune / FY2025-26",
+        "status": "fail",
+        "detail": "Only April 2025 bill present (1 of 12 months). Annual disclosure cannot be computed."
+      },
+      {
+        "check": "completeness",
+        "scope": "energy.diesel / site_pune / FY2025-26",
+        "status": "warn",
+        "detail": "Single value tagged FY2025-26 but snippet references 'Apr-25' DG log; coverage period ambiguous."
+      },
+      {
+        "check": "completeness",
+        "scope": "water.municipal / site_pune / FY2025-26",
+        "status": "warn",
+        "detail": "Value present but no period_start/period_end to confirm full-year coverage."
+      },
+      {
+        "check": "accuracy",
+        "scope": "energy.electricity.grid / site_pune",
+        "status": "pass",
+        "detail": "High confidence; snippet matches value 48,210 kWh."
+      },
+      {
+        "check": "accuracy",
+        "scope": "energy.diesel / site_pune",
+        "status": "warn",
+        "detail": "overall_confidence=medium; value 12,400 L supported by snippet."
+      },
+      {
+        "check": "accuracy",
+        "scope": "water.municipal / site_pune",
+        "status": "pass",
+        "detail": "High confidence; snippet '3,250 KL' matches value."
+      },
+      {
+        "check": "methodology",
+        "scope": "energy.electricity.grid / site_pune",
+        "status": "warn",
+        "detail": "Metric defs specify no approved methodology (location- vs market-based). Assumed location-based grid; value is gross consumption (kWh) consistent with location-based."
+      },
+      {
+        "check": "methodology",
+        "scope": "energy.diesel / site_pune",
+        "status": "not_applicable",
+        "detail": "No CV basis required for litres of fuel input."
+      },
+      {
+        "check": "unit_integrity",
+        "scope": "energy.electricity.grid / site_pune",
+        "status": "pass",
+        "detail": "Reported kWh = required kWh; unit_mismatch=false."
+      },
+      {
+        "check": "unit_integrity",
+        "scope": "energy.diesel / site_pune",
+        "status": "pass",
+        "detail": "Reported 'litres' = required 'litres'."
+      },
+      {
+        "check": "unit_integrity",
+        "scope": "water.municipal / site_pune",
+        "status": "pass",
+        "detail": "Reported 'kL' = required 'kL'. Note: snippet uses 'KL' (case variant), equivalent."
+      },
+      {
+        "check": "reconciliation",
+        "scope": "all metrics",
+        "status": "not_applicable",
+        "detail": "No cross_source_refs provided; cross-source reconciliation could not be run."
+      },
+      {
+        "check": "consistency",
+        "scope": "all metrics / site_pune",
+        "status": "not_applicable",
+        "detail": "Single site, single (or partial) period; no sub-total/roll-up or split data to test."
+      },
+      {
+        "check": "yoy",
+        "scope": "all metrics",
+        "status": "not_applicable",
+        "detail": "No prior_year_values supplied; YoY change cannot be computed."
+      },
+      {
+        "check": "outlier",
+        "scope": "all metrics",
+        "status": "pass",
+        "detail": "No values flagged is_outlier; single-period data insufficient for median-based 3x test. April grid 48,210 kWh is consistent with expected_magnitude ~50,000."
+      },
+      {
+        "check": "gap",
+        "scope": "engagement",
+        "status": "fail",
+        "detail": "Grid electricity annual total uncomputable (11 months missing); diesel and water periods unconfirmed."
+      }
+    ],
+    "issues": [
+      {
+        "issue_id": "ISS-001",
+        "metric_code": "energy.electricity.grid",
+        "site_id": "site_pune",
+        "row_ref": "req_grid_elec",
+        "check": "completeness",
+        "finding": "Only the April 2025 MSEDCL bill (48,210 kWh) is present; 11 of 12 FY2025-26 months are missing.",
+        "severity": "high",
+        "suggested_fix": "Collect the remaining 11 monthly grid-electricity bills (May 2025–Mar 2026) for site_pune and re-submit; do not annualise from a single month.",
+        "confidence": "high",
+        "route_to_human": true,
+        "evidence": [
+          {
+            "row_ref": "req_grid_elec",
+            "source_snippet": "Units Consumed (kWh) : 48,210 ... Billing Period : 01-Apr-2025 to 30-Apr-2025"
+          }
+        ]
+      },
+      {
+        "issue_id": "ISS-002",
+        "metric_code": "energy.diesel",
+        "site_id": "site_pune",
+        "check": "completeness",
+        "finding": "Diesel 12,400 L is tagged FY2025-26 but the source snippet cites only the April 2025 DG run-hour log; the reporting period is ambiguous and may understate the year.",
+        "severity": "high",
+        "suggested_fix": "Confirm whether 12,400 L is full-year or April-only. If April-only, collect the full-year DG fuel log and replace the value.",
+        "confidence": "medium",
+        "route_to_human": true,
+        "evidence": [
+          {
+            "row_ref": "energy.diesel|site_pune|FY2025-26",
+            "source_snippet": "Diesel 12,400 Ltr — DG run-hour log, Apr-25"
+          }
+        ]
+      },
+      {
+        "issue_id": "ISS-003",
+        "metric_code": "energy.diesel",
+        "site_id": "site_pune",
+        "check": "accuracy",
+        "finding": "Diesel row carries overall_confidence=medium with no period_start/period_end fields and a partial snippet.",
+        "severity": "medium",
+        "suggested_fix": "Obtain dated supporting fuel log/invoices to raise extraction confidence and fix the reporting period.",
+        "confidence": "medium",
+        "route_to_human": false,
+        "evidence": [
+          {
+            "row_ref": "energy.diesel|site_pune|FY2025-26",
+            "source_snippet": "Diesel 12,400 Ltr — DG run-hour log, Apr-25"
+          }
+        ]
+      },
+      {
+        "issue_id": "ISS-004",
+        "metric_code": "water.municipal",
+        "site_id": "site_pune",
+        "check": "completeness",
+        "finding": "Municipal water 3,250 kL has no period_start/period_end; full-year coverage for FY2025-26 is unconfirmed.",
+        "severity": "medium",
+        "suggested_fix": "Confirm the billing period covered by 3,250 kL and attach the supporting bill(s) with dates.",
+        "confidence": "medium",
+        "route_to_human": false,
+        "evidence": [
+          {
+            "row_ref": "water.municipal|site_pune|FY2025-26",
+            "source_snippet": "Water charges for 3,250 KL"
+          }
+        ]
+      }
+    ],
+    "gaps": [
+      {
+        "metric_code": "energy.electricity.grid",
+        "site_id": "site_pune",
+        "reason": "11 of 12 monthly bills missing (only Apr-2025 present); FY annual total cannot be computed."
+      },
+      {
+        "metric_code": "energy.diesel",
+        "site_id": "site_pune",
+        "reason": "Reporting period ambiguous — value may represent only April 2025; full-year DG fuel data unconfirmed."
+      },
+      {
+        "metric_code": "water.municipal",
+        "site_id": "site_pune",
+        "reason": "Coverage period unconfirmed; cannot verify the 3,250 kL spans the full financial year."
+      }
+    ],
+    "yoy_summary": [
+      {
+        "metric_code": "energy.electricity.grid",
+        "site_id": "site_pune",
+        "current": 48210,
+        "prior": null,
+        "yoy_change_pct": null,
+        "flagged": false
+      },
+      {
+        "metric_code": "energy.diesel",
+        "site_id": "site_pune",
+        "current": 12400,
+        "prior": null,
+        "yoy_change_pct": null,
+        "flagged": false
+      },
+      {
+        "metric_code": "water.municipal",
+        "site_id": "site_pune",
+        "current": 3250,
+        "prior": null,
+        "yoy_change_pct": null,
+        "flagged": false
+      }
+    ],
+    "human_queue": [
+      {
+        "issue_id": "ISS-001",
+        "why": "High-severity completeness failure: grid electricity has only 1 of 12 months; blocks Scope 2 annual computation."
+      },
+      {
+        "issue_id": "ISS-002",
+        "why": "High-severity period ambiguity on diesel; risk of materially understating Scope 1 if Apr-only is treated as full year."
+      }
+    ],
+    "data_owner_queries": [
+      {
+        "issue_id": "ISS-001",
+        "question": "Grid electricity for site_pune only has the April 2025 bill (48,210 kWh). Please provide the remaining 11 monthly MSEDCL bills (May 2025–Mar 2026) so the FY2025-26 annual total can be computed."
+      },
+      {
+        "issue_id": "ISS-002",
+        "question": "Diesel is reported as 12,400 litres tagged FY2025-26, but the source references the 'DG run-hour log, Apr-25' (a single month). Is 12,400 L the full-year figure or only April 2025? Provide the full-year DG fuel log if April-only."
+      },
+      {
+        "issue_id": "ISS-004",
+        "question": "Municipal water is reported as 3,250 kL for FY2025-26 with no billing period shown. Please confirm this covers the full financial year (Apr 2025–Mar 2026) and provide the period dates / supporting bills."
+      }
+    ],
+    "assumptions": [
+      "No approved_methodology was supplied for grid electricity; assumed location-based grid consumption (gross kWh), consistent with the reported value.",
+      "'KL' in the water snippet is treated as equivalent to the required unit 'kL' (kilolitres).",
+      "Diesel value treated provisionally as a FY figure for tabulation only, pending period confirmation (ISS-002)."
+    ],
+    "limitations": [
+      "No prior_year_values provided — Year-over-Year checks (battery item 7) could not be performed for any metric.",
+      "No cross_source_refs provided — cross-source reconciliation (battery item 5) could not be performed.",
+      "Single-site, single/partial-period dataset — internal-consistency roll-ups and median-based outlier tests (items 6 & 8) have insufficient comparators.",
+      "raise_data_owner_query tool was unavailable in this run; queries are captured in data_owner_queries[] for manual dispatch."
+    ]
+  },
+  "calculation": {
+    "emission_results": [
+      {
+        "row_ref": "row_1_electricity_pune",
+        "metric_code": "energy.electricity.grid",
+        "site_id": "site_pune",
+        "quantity": 48210,
+        "unit": "kWh",
+        "ghg_scope": "2",
+        "scope2_basis": "location-based",
+        "status": "unresolved",
+        "calc_confidence": "low",
+        "route_to_human": true,
+        "total_co2e_kg": null,
+        "co2_kg": null,
+        "ch4_kg": null,
+        "n2o_kg": null,
+        "provenance": {
+          "calculation_method": "Not calculated — no emission factor available. EFDB search returned zero candidates (service not wired, M2). Per policy, no factor was invented.",
+          "input_source_snippet": "grid electricity 48210 kWh, site_pune, IN, FY2025-26, scope 2",
+          "ef_id": null,
+          "ef_value": null,
+          "reference_year": null,
+          "source_organization": null,
+          "gwp_basis": null,
+          "formula": null
+        }
+      },
+      {
+        "row_ref": "row_2_diesel_pune",
+        "metric_code": "energy.diesel",
+        "site_id": "site_pune",
+        "quantity": 12400,
+        "unit": "litres",
+        "ghg_scope": "1",
+        "status": "unresolved",
+        "calc_confidence": "low",
+        "route_to_human": true,
+        "total_co2e_kg": null,
+        "co2_kg": null,
+        "ch4_kg": null,
+        "n2o_kg": null,
+        "provenance": {
+          "calculation_method": "Not calculated — no emission factor available. EFDB search returned zero candidates (service not wired, M2). Per policy, no factor was invented.",
+          "input_source_snippet": "diesel 12400 litres, site_pune, IN, FY2025-26, scope 1",
+          "ef_id": null,
+          "ef_value": null,
+          "reference_year": null,
+          "source_organization": null,
+          "gwp_basis": null,
+          "formula": null
+        }
+      },
+      {
+        "row_ref": "row_3_water_pune",
+        "metric_code": "water.municipal",
+        "site_id": "site_pune",
+        "quantity": 3250,
+        "unit": "kL",
+        "ghg_scope": "3",
+        "status": "unresolved",
+        "calc_confidence": "low",
+        "route_to_human": true,
+        "total_co2e_kg": null,
+        "co2_kg": null,
+        "ch4_kg": null,
+        "n2o_kg": null,
+        "provenance": {
+          "calculation_method": "Not calculated — no emission factor available for municipal water supply. EFDB search returned zero candidates (service not wired, M2). Water withdrawal volume is reportable as a non-GHG metric regardless.",
+          "input_source_snippet": "municipal water 3250 kL, site_pune, IN, FY2025-26",
+          "ef_id": null,
+          "ef_value": null,
+          "reference_year": null,
+          "source_organization": null,
+          "gwp_basis": null,
+          "formula": null
+        }
+      }
+    ],
+    "scope_totals": {
+      "scope1_co2e_kg": null,
+      "scope2_location_co2e_kg": null,
+      "scope2_market_co2e_kg": null,
+      "scope3_co2e_kg": null
+    },
+    "kpis": [
+      {
+        "kpi_code": "water.withdrawal.total",
+        "label": "Total water withdrawal (municipal)",
+        "value": 3250,
+        "unit": "kL",
+        "calc_confidence": "high",
+        "normalization_basis": null,
+        "provenance": {
+          "calculation_method": "Direct from validated activity input; no emission factor required.",
+          "input_source_snippet": "municipal water 3250 kL, site_pune, FY2025-26"
+        }
+      },
+      {
+        "kpi_code": "water.intensity.production",
+        "label": "Water intensity per production",
+        "value": 0.0386905,
+        "unit": "kL/tonne",
+        "calc_confidence": "high",
+        "normalization_basis": "production",
+        "provenance": {
+          "calculation_method": "water.intensity = total water withdrawal ÷ production",
+          "formula": "0.0386905 kL/tonne = 3250 kL ÷ 84000 tonnes",
+          "input_source_snippet": "water 3250 kL; production 84000 tonnes"
+        }
+      },
+      {
+        "kpi_code": "water.intensity.revenue",
+        "label": "Water intensity per revenue",
+        "value": 2.6,
+        "unit": "kL/₹ crore",
+        "calc_confidence": "high",
+        "normalization_basis": "revenue",
+        "provenance": {
+          "calculation_method": "water.intensity = total water withdrawal ÷ revenue",
+          "formula": "2.6 kL/₹cr = 3250 kL ÷ 1250 ₹cr",
+          "input_source_snippet": "water 3250 kL; revenue ₹1250 cr"
+        }
+      },
+      {
+        "kpi_code": "energy.electricity.grid.total",
+        "label": "Grid electricity consumed",
+        "value": 48210,
+        "unit": "kWh",
+        "calc_confidence": "high",
+        "normalization_basis": null,
+        "provenance": {
+          "calculation_method": "Direct from validated activity input.",
+          "input_source_snippet": "grid electricity 48210 kWh, site_pune"
+        }
+      },
+      {
+        "kpi_code": "energy.diesel.total",
+        "label": "Diesel consumed",
+        "value": 12400,
+        "unit": "litres",
+        "calc_confidence": "high",
+        "normalization_basis": null,
+        "provenance": {
+          "calculation_method": "Direct from validated activity input.",
+          "input_source_snippet": "diesel 12400 litres, site_pune"
+        }
+      }
+    ],
+    "disclosure_mappings": [
+      {
+        "framework": "BRSR",
+        "disclosure_code": "Principle 6, Q1 — Energy consumption (electricity)",
+        "question_id": "P6Q1",
+        "status": "mapped",
+        "answer": 48210,
+        "unit": "kWh",
+        "comment": "Grid electricity consumption, site_pune, FY2025-26.",
+        "note": "Energy quantity reportable; associated Scope 2 GHG unresolved pending emission factor.",
+        "provenance": {
+          "calculation_method": "Activity quantity passed through; no EF.",
+          "input_source_snippet": "48210 kWh grid electricity"
+        }
+      },
+      {
+        "framework": "BRSR",
+        "disclosure_code": "Principle 6, Q1 — Energy consumption (diesel)",
+        "question_id": "P6Q1",
+        "status": "mapped",
+        "answer": 12400,
+        "unit": "litres",
+        "comment": "Diesel consumption, site_pune, FY2025-26.",
+        "note": "Scope 1 GHG unresolved pending emission factor.",
+        "provenance": {
+          "calculation_method": "Activity quantity passed through; no EF.",
+          "input_source_snippet": "12400 litres diesel"
+        }
+      },
+      {
+        "framework": "BRSR",
+        "disclosure_code": "Principle 6, Q3 — Water withdrawal by source (third-party/municipal)",
+        "question_id": "P6Q3",
+        "status": "mapped",
+        "answer": 3250,
+        "unit": "kL",
+        "comment": "Municipal water withdrawal, site_pune, FY2025-26.",
+        "provenance": {
+          "calculation_method": "Activity quantity passed through.",
+          "input_source_snippet": "3250 kL municipal water"
+        }
+      },
+      {
+        "framework": "GRI",
+        "disclosure_code": "302-1",
+        "status": "mapped",
+        "answer": null,
+        "unit": "GJ",
+        "comment": "Energy consumption within the organization. Electricity 48210 kWh and diesel 12400 L available; GJ conversion and renewable split not provided.",
+        "note": "Convertible energy totals available; GHG-linked figures unresolved.",
+        "provenance": {
+          "calculation_method": "Awaiting energy-content conversion factors / fuel NCV.",
+          "input_source_snippet": "electricity 48210 kWh; diesel 12400 L"
+        }
+      },
+      {
+        "framework": "GRI",
+        "disclosure_code": "305-1",
+        "status": "unresolved",
+        "note": "Scope 1 gross GHG (diesel) cannot be computed — no emission factor available from EFDB.",
+        "provenance": {
+          "calculation_method": "Blocked: no EF for diesel combustion.",
+          "input_source_snippet": "diesel 12400 litres"
+        }
+      },
+      {
+        "framework": "GRI",
+        "disclosure_code": "305-2",
+        "status": "unresolved",
+        "note": "Scope 2 gross GHG (grid electricity) cannot be computed — no grid emission factor available from EFDB.",
+        "provenance": {
+          "calculation_method": "Blocked: no EF for India grid electricity.",
+          "input_source_snippet": "electricity 48210 kWh"
+        }
+      },
+      {
+        "framework": "GRI",
+        "disclosure_code": "303-3",
+        "status": "mapped",
+        "answer": 3250,
+        "unit": "kL",
+        "comment": "Water withdrawal — third-party (municipal) water.",
+        "provenance": {
+          "calculation_method": "Activity quantity passed through.",
+          "input_source_snippet": "3250 kL municipal water"
+        }
+      },
+      {
+        "framework": "ESRS",
+        "disclosure_code": "E1-6",
+        "status": "unresolved",
+        "note": "Gross Scopes 1 and 2 GHG emissions cannot be computed — no emission factors available from EFDB.",
+        "provenance": {
+          "calculation_method": "Blocked: no EFs retrieved.",
+          "input_source_snippet": "electricity 48210 kWh; diesel 12400 L"
+        }
+      },
+      {
+        "framework": "ESRS",
+        "disclosure_code": "E3-4",
+        "status": "mapped",
+        "answer": 3250,
+        "unit": "kL",
+        "comment": "Water consumption/withdrawal — municipal source.",
+        "provenance": {
+          "calculation_method": "Activity quantity passed through.",
+          "input_source_snippet": "3250 kL municipal water"
+        }
+      },
+      {
+        "framework": "TCFD",
+        "disclosure_code": "Metrics & Targets (a) — GHG emissions",
+        "status": "unresolved",
+        "note": "Scope 1 and Scope 2 GHG metrics unresolved pending emission factors.",
+        "provenance": {
+          "calculation_method": "Blocked: no EFs retrieved.",
+          "input_source_snippet": "electricity 48210 kWh; diesel 12400 L"
+        }
+      }
+    ],
+    "human_queue": [
+      {
+        "row_ref": "row_1_electricity_pune",
+        "reason": "No emission factor returned by EFDB for India grid electricity (service not wired / zero candidates). Scope 2 location- and market-based emissions cannot be calculated without inventing a factor, which policy prohibits. Analyst must supply/select the appropriate CEA or IEA grid EF."
+      },
+      {
+        "row_ref": "row_2_diesel_pune",
+        "reason": "No emission factor returned by EFDB for diesel stationary combustion. Scope 1 emissions and gas split cannot be calculated. Analyst must supply/select a diesel combustion EF (e.g. IPCC/DEFRA) with gas species for GWP application."
+      },
+      {
+        "row_ref": "row_3_water_pune",
+        "reason": "No emission factor returned by EFDB for municipal water supply (Scope 3). Water volume is reported as a non-GHG metric, but any GHG attribution is unresolved pending an EF."
+      }
+    ],
+    "trends": [],
+    "risks_opportunities": [
+      "Emission-factor database returned no candidates for any activity row; all GHG figures (Scope 1 diesel, Scope 2 electricity) are blocked. Resolving EFDB connectivity/coverage is a prerequisite for any GHG disclosure (BRSR P6, GRI 305, ESRS E1-6, TCFD Metrics)."
+    ],
+    "run_confidence": "low"
+  },
+  "report_drafting": {
+    "report_outline": [
+      {
+        "section_id": "S1_company_overview",
+        "title": "Company Overview",
+        "order": 1
+      },
+      {
+        "section_id": "S2_esg_strategy_governance",
+        "title": "ESG Strategy & Governance",
+        "order": 2
+      },
+      {
+        "section_id": "S3_materiality",
+        "title": "Materiality Assessment",
+        "order": 3
+      },
+      {
+        "section_id": "S4_brsr_a",
+        "title": "BRSR Section A — General Disclosures",
+        "order": 4
+      },
+      {
+        "section_id": "S5_brsr_b",
+        "title": "BRSR Section B — Management & Process Disclosures",
+        "order": 5
+      },
+      {
+        "section_id": "S6_brsr_p6_energy",
+        "title": "BRSR Section C — Principle 6: Energy Consumption",
+        "order": 6
+      },
+      {
+        "section_id": "S7_brsr_p6_ghg",
+        "title": "BRSR Section C — Principle 6: GHG Emissions",
+        "order": 7
+      },
+      {
+        "section_id": "S8_brsr_p6_water",
+        "title": "BRSR Section C — Principle 6: Water Withdrawal & Intensity",
+        "order": 8
+      },
+      {
+        "section_id": "S9_brsr_p3_ohs",
+        "title": "BRSR Section C — Principle 3: Occupational Health & Safety",
+        "order": 9
+      },
+      {
+        "section_id": "S10_gri_index",
+        "title": "GRI Content Index (GRI 302-1 / 303-3 / 305-1 / 305-2)",
+        "order": 10
+      },
+      {
+        "section_id": "S11_esrs_mapping",
+        "title": "ESRS Mapping Summary (E1-6 / E3-4)",
+        "order": 11
+      },
+      {
+        "section_id": "S12_tcfd",
+        "title": "TCFD Climate Risk Disclosure",
+        "order": 12
+      },
+      {
+        "section_id": "S13_methodology",
+        "title": "Methodology, Assumptions & Data Limitations",
+        "order": 13
+      },
+      {
+        "section_id": "S14_human_queue",
+        "title": "Open Items & Human Review Queue",
+        "order": 14
+      }
+    ],
+    "report_sections": [
+      {
+        "section_id": "S1_company_overview",
+        "title": "Company Overview",
+        "body_markdown": "## Company Overview\n\n**Entity:** Acme Manufacturing Pvt Ltd (CIN: U27100MH2008PTC000000)\n\n**Sector:** Iron & Steel Manufacturing\n\n**Reporting Period:** FY2025-26 (1 April 2025 – 31 March 2026)\n\n**Reporting Boundary:** Operational Control. The boundary covers three 100%-controlled operating entities:\n\n| Site | Location | State |\n|---|---|---|\n| Pune Plant (site_pune) | Pune | Maharashtra |\n| Chennai Plant (site_chennai) | Chennai | Tamil Nadu |\n| Mumbai HQ (site_hq) | Mumbai | Maharashtra |\n\nFinancial data referenced in this report is drawn from the standalone financials of Acme Manufacturing Pvt Ltd. Revenue for FY2025-26: **₹1,250 crore**. Production volume: **84,000 tonnes** of steel.\n\n> **Note to reviewer:** Chennai Plant (site_chennai) and Mumbai HQ (site_hq) activity data were not included in the FY2025-26 Phase 6 calculation run. All quantitative metrics in this report currently reflect site_pune only. Data collection for the remaining sites must be completed before this report can be filed. This is flagged as a critical open item (see Section 14).\n\n**Frameworks in Scope:**\n- **BRSR** (mandatory — SEBI listed-entity requirement)\n- **GRI Standards** (voluntary — investor and customer alignment)\n- **ESRS** (voluntary mapping/gap exercise — EU supply-chain readiness)\n- **TCFD** (voluntary — climate risk disclosure, integrated into BRSR Core and Annual Report)\n",
+        "data_refs": [
+          "scope_charter.reporting_boundary",
+          "calc_result.kpis.water.intensity.revenue",
+          "calc_result.kpis.water.intensity.production"
+        ]
+      },
+      {
+        "section_id": "S2_esg_strategy_governance",
+        "title": "ESG Strategy & Governance",
+        "body_markdown": "## ESG Strategy & Governance\n\n### Strategic Intent\n\nAcme Manufacturing Pvt Ltd is committed to embedding environmental, social, and governance (ESG) considerations into its core business strategy. As an integrated steel manufacturer operating in one of the most carbon- and resource-intensive industrial sectors, the Company recognises that its long-term licence to operate, access to capital, and customer relationships are increasingly contingent on credible, transparent, and improving ESG performance.\n\nThis FY2025-26 report marks the Company's **first-time BRSR Core filing** and establishes the baseline data infrastructure, governance accountabilities, and reporting processes that will underpin continuous improvement through FY2026-27 and beyond.\n\n### Governance Structure\n\n> **⚠ Placeholder — Legal/Compliance Review Required:** The following governance narrative must be validated and expanded by management before publication. Board committee names, ESG policy references, and individual role titles should be confirmed against the Company's constitutional documents and board resolutions.\n\nThe Board of Directors holds ultimate accountability for ESG strategy and risk oversight. [*Insert: name of Board committee with ESG/sustainability mandate, e.g. Risk & Sustainability Committee*] meets [*insert frequency*] to review material ESG risks and performance against targets. Executive accountability for ESG data quality and disclosure rests with [*insert: CFO / Chief Sustainability Officer / designated BRSR signatory*].\n\nInternal data owners have been designated for each material topic and site, with data flows governed by the ESG data collection protocol established during this engagement.\n\n### Reporting Objectives (FY2025-26)\n\n1. Prepare and file the first-time BRSR Core report in compliance with SEBI's mandatory disclosure requirements.\n2. Achieve voluntary alignment with GRI Standards to meet international stakeholder and investor expectations.\n3. Map material BRSR/GRI disclosures to ESRS topical standards to future-proof reporting for European supply-chain due-diligence requirements (CSRD/CSDDD).\n4. Embed TCFD-aligned climate risk and opportunity disclosures within the Annual Report narrative.\n5. Establish a repeatable, audit-ready ESG data collection and assurance process across all three sites.\n6. Build internal capacity — data owners, controls, and workflows — so that FY2026-27 reporting can be executed with reduced external support.\n",
+        "data_refs": [
+          "scope_charter.objectives",
+          "scope_charter.frameworks_in_scope"
+        ]
+      },
+      {
+        "section_id": "S3_materiality",
+        "title": "Materiality Assessment",
+        "body_markdown": "## Materiality Assessment\n\nA structured materiality assessment was conducted to identify and prioritise the ESG topics most significant to Acme Manufacturing Pvt Ltd's business and stakeholders. Topics were scored on two axes — **Impact Score** (severity and breadth of environmental/social impact) and **Financial Score** (magnitude of financial risk or opportunity to the business) — each on a scale of 1–5. Topics scoring above the materiality threshold of **3.5** on either axis are considered material.\n\n### Materiality Matrix Summary\n\n| Rank | Topic | Impact Score | Financial Score | Status |\n|---|---|---|---|---|\n| 1 | GHG Emissions | 5 / 5 | 5 / 5 | **Material** |\n| 2 | Occupational Health & Safety | 5 / 5 | 4 / 5 | **Material** |\n| 3 | Water & Effluents | 4 / 5 | 4 / 5 | **Material** |\n\n*All three topics exceed the materiality threshold of 3.5 on both axes.*\n\n### Topic Rationales\n\n**GHG Emissions (Rank 1 — Impact: 5, Financial: 5)**\nSteel manufacturing is among the most carbon-intensive industries globally, with blast furnace–basic oxygen furnace (BF-BOF) routes emitting approximately 1.8 tCO₂ per tonne of steel. GHG emissions drive severe environmental impact through climate change and air quality degradation, and face escalating financial exposure via carbon pricing mechanisms, the EU Carbon Border Adjustment Mechanism (CBAM), transition risk, and investor/lender covenant requirements. BRSR Core mandates Scope 1 & 2 disclosure; TCFD scenario analysis, ESRS E1, and GRI 305 are all in scope. Sector materiality maps (GRI 11 Mining & Metals, SASB Iron & Steel) universally identify this as the highest-priority topic.\n\n**Occupational Health & Safety (Rank 2 — Impact: 5, Financial: 4)**\nSteel manufacturing is among the highest-risk industrial sectors, with hazards including molten metal handling, confined spaces, heavy machinery, and heat stress. Fatal and serious injury rates represent a direct, severe impact on workers and contractors. Financial exposure includes regulatory penalties under the Factories Act 1948 and OSHA-equivalent statutes, compensation liabilities, productivity loss, and reputational damage affecting talent attraction and customer/investor relationships. BRSR Core mandates OHS KPIs; GRI 403 and ESRS S1 apply.\n\n**Water & Effluents (Rank 3 — Impact: 4, Financial: 4)**\nIntegrated steel plants are large freshwater consumers (typically 2–6 m³ per tonne of steel) and generate process effluents containing phenols, cyanides, and heavy metals from coke ovens and pickling lines. India's water-stressed geography amplifies community and regulatory risk. Financial exposure arises from water tariffs, potential regulatory shutdowns, and customer/investor ESG screens. BRSR mandates water withdrawal and discharge disclosure; GRI 303/306 and ESRS E3 apply.\n\n### Stakeholder Engagement\n\nThe materiality questionnaire covered both internal stakeholders (management, operations, finance) and external stakeholders (investors, customers, lenders, community representatives). Key questions addressed the urgency of science-based GHG targets, carbon pricing exposure, water stress risk, effluent management, and OHS system adequacy. Full questionnaire responses are available in the supporting workpapers.\n\n> **⚠ Placeholder — Management Review Required:** Confirm that the materiality assessment methodology and topic rankings have been reviewed and approved by the Board or designated committee before publication. Document the stakeholder engagement process (number of respondents, engagement method, dates) in the supporting annex.\n",
+        "data_refs": [
+          "materiality_matrix.scored_topics",
+          "materiality_matrix.material_topics",
+          "materiality_matrix.materiality_threshold",
+          "materiality_matrix.questionnaire"
+        ]
+      },
+      {
+        "section_id": "S4_brsr_a",
+        "title": "BRSR Section A — General Disclosures",
+        "body_markdown": "## BRSR Section A — General Disclosures\n\n> **⚠ Placeholder — Management Input Required:** BRSR Section A requires extensive company-specific information that must be provided and validated by management. The fields below identify the required disclosures; bracketed items must be completed before filing.\n\n| Disclosure | Required Content | Status |\n|---|---|---|\n| I. Details of the listed entity | CIN, name, year of incorporation, registered office, corporate address, e-mail, website, telephone, financial year, stock exchange(s), paid-up capital, contact name/designation/telephone/e-mail | **[Management to complete]** |\n| II. Products/Services | Top 3 products/services by turnover (₹ crore and % of total turnover) | **[Management to complete]** |\n| III. Operations | Number of plants, offices, and other locations (national/international) | Pune Plant, Chennai Plant, Mumbai HQ confirmed in scope |\n| IV. Employees & Workers | Permanent employees (male/female), permanent workers (male/female), other-than-permanent employees and workers, differently-abled breakdown | **[Management to complete — HR data required]** |\n| V. Participation/Inclusion/Equal Opportunity | Complaints on discrimination, equal opportunity policy | **[Management to complete]** |\n| VI. Holding, Subsidiary & Associate Companies | List of entities in the group | Subsidiaries/JVs confirmed out of scope pending management confirmation |\n| VII. CSR Details | Whether CSR applicable; CSR turnover and obligation | **[Management to complete]** |\n| VIII. Transparency & Disclosures Compliances | Complaints/grievances filed, pending, resolved | **[Management to complete]** |\n\n*Revenue for FY2025-26: ₹1,250 crore (used as normalisation denominator for water intensity KPI — see Section 8). Production: 84,000 tonnes.*\n",
+        "data_refs": [
+          "scope_charter.reporting_boundary",
+          "calc_result.kpis.water.intensity.revenue"
+        ]
+      },
+      {
+        "section_id": "S5_brsr_b",
+        "title": "BRSR Section B — Management & Process Disclosures",
+        "body_markdown": "## BRSR Section B — Management & Process Disclosures\n\nBRSR Section B requires the Company to disclose its policies, commitments, and management processes against each of the nine National Guidelines on Responsible Business Conduct (NGRBC) Principles. The table below summarises the disclosure status for the three material principles identified in the materiality assessment.\n\n| Principle | Topic | Policy in Place | Targets Set | Performance Review Frequency | Status |\n|---|---|---|---|---|---|\n| P3 | Employees' Wellbeing / OHS | **[Confirm]** | **[Confirm]** | **[Confirm]** | **[Management to complete]** |\n| P6 | Environment / Climate | **[Confirm]** | **[Confirm]** | **[Confirm]** | **[Management to complete]** |\n| P8 | Inclusive Growth / CSR | **[Confirm]** | **[Confirm]** | **[Confirm]** | **[Management to complete]** |\n\n> **⚠ Placeholder — Management Input Required:** For each of the nine NGRBC Principles, management must confirm: (a) whether a Board-approved policy exists; (b) whether the policy covers value-chain partners; (c) whether targets/goals have been set; (d) the performance review frequency; and (e) whether an external assessment has been conducted. This information is required for BRSR Section B Essential Indicators and is not derivable from the FY2025-26 activity data.\n",
+        "data_refs": [
+          "scope_charter.objectives",
+          "materiality_matrix.material_topics"
+        ]
+      },
+      {
+        "section_id": "S6_brsr_p6_energy",
+        "title": "BRSR Section C — Principle 6: Energy Consumption",
+        "body_markdown": "## BRSR Section C — Principle 6: Energy Consumption\n*(Corresponds to: BRSR P6 Q1 | GRI 302-1)*\n\n### Performance Summary — FY2025-26\n\n| Energy Type | Source | Quantity | Unit | Scope | Site | Confidence |\n|---|---|---|---|---|---|---|\n| Grid electricity | Municipal grid | **48,210** | kWh | Scope 2 | site_pune | High |\n| Diesel | Stationary combustion | **12,400** | litres | Scope 1 | site_pune | High |\n\n*Source: Validated activity inputs, FY2025-26. Data covers site_pune only; Chennai Plant and Mumbai HQ data pending (see Section 14).*\n\n> **📊 Chart ref: `chart_energy_electricity_grid_total_bar`** — Bar chart: Grid electricity consumed (kWh), site_pune, FY2025-26.\n\n> **📊 Chart ref: `chart_energy_diesel_total_bar`** — Bar chart: Diesel consumed (litres), site_pune, FY2025-26.\n\n### GRI 302-1 Note\n\nGRI 302-1 requires energy consumption to be reported in **gigajoules (GJ)**. Conversion from kWh and litres to GJ requires net calorific values (NCV) for diesel and a kWh-to-GJ conversion factor. These conversion factors were not supplied in the current data run. The energy quantities in native units (kWh and litres) are confirmed; the GJ-equivalent total is **[UNRESOLVED — awaiting NCV/conversion factors]**. Additionally, GRI 302-1 requires disclosure of the renewable vs. non-renewable split; this breakdown is not yet available and is flagged as an open item.\n\n> **⚠ Action required (GRI 302-1):** Provide (a) diesel NCV (MJ/litre) and (b) renewable energy share (if any solar/wind on-site) to complete GRI 302-1 in GJ. Assign to: [Data Owner — Energy, site_pune].\n\n### BRSR P6 Q1 — Essential Indicator\n\nThe BRSR requires disclosure of total energy consumption (in joules or multiples) from renewable and non-renewable sources, and energy intensity per rupee of turnover and per unit of production. The table below presents the data available and flags gaps:\n\n| Indicator | Value | Unit | Status |\n|---|---|---|---|\n| Total electricity consumed (grid, non-renewable assumed) | 48,210 | kWh | ✅ Reported |\n| Total diesel consumed | 12,400 | litres | ✅ Reported |\n| Total energy (GJ equivalent) | — | GJ | ⚠ Unresolved — NCV required |\n| Energy intensity per ₹ turnover | — | GJ/₹ crore | ⚠ Unresolved — GJ total required |\n| Energy intensity per tonne of production | — | GJ/tonne | ⚠ Unresolved — GJ total required |\n| Renewable energy share | — | % | ⚠ Not provided |\n",
+        "data_refs": [
+          "calc_result.kpis.energy.electricity.grid.total",
+          "calc_result.kpis.energy.diesel.total",
+          "calc_result.disclosure_mappings"
+        ]
+      },
+      {
+        "section_id": "S7_brsr_p6_ghg",
+        "title": "BRSR Section C — Principle 6: GHG Emissions",
+        "body_markdown": "## BRSR Section C — Principle 6: GHG Emissions\n*(Corresponds to: BRSR P6 Q2 | GRI 305-1 | GRI 305-2 | ESRS E1-6 | TCFD Metrics & Targets (a))*\n\n### ⚠ Critical Data Gap — All GHG Figures Unresolved\n\nAll GHG emission calculations for FY2025-26 are currently **unresolved** due to the absence of emission factors from the Emission Factor Database (EFDB). Per GreenMentor's data integrity policy, no emission factor has been invented or estimated; accordingly, **no GHG figures (Scope 1, Scope 2, or Scope 3) can be reported at this time.**\n\nThis affects the following mandatory and voluntary disclosures:\n\n| Disclosure | Framework | Status | Blocker |\n|---|---|---|---|\n| Scope 1 GHG (diesel combustion) | BRSR P6 Q2 / GRI 305-1 / ESRS E1-6 | 🔴 Unresolved | No diesel combustion EF from EFDB |\n| Scope 2 GHG (grid electricity, location-based) | BRSR P6 Q2 / GRI 305-2 / ESRS E1-6 | 🔴 Unresolved | No India grid EF from EFDB |\n| Scope 2 GHG (market-based) | GRI 305-2 / ESRS E1-6 | 🔴 Unresolved | No supplier-specific EF / no grid EF |\n| GHG intensity per tonne of production | BRSR P6 Q2 / GRI 305-4 | 🔴 Unresolved | Dependent on Scope 1+2 totals |\n| TCFD Metrics & Targets (a) — GHG emissions | TCFD | 🔴 Unresolved | Dependent on Scope 1+2 totals |\n\n### Activity Data Confirmed (Basis for Future Calculation)\n\nThe following activity quantities are validated and will serve as inputs once emission factors are supplied:\n\n| Row Ref | Activity | Quantity | Unit | GHG Scope | Site |\n|---|---|---|---|---|---|\n| row_2_diesel_pune | Diesel — stationary combustion | 12,400 | litres | Scope 1 | site_pune |\n| row_1_electricity_pune | Grid electricity | 48,210 | kWh | Scope 2 (location-based) | site_pune |\n\n### Scope Totals (FY2025-26)\n\n| Scope | Total (tCO₂e) | Status |\n|---|---|---|\n| Scope 1 | — | 🔴 Unresolved |\n| Scope 2 (location-based) | — | 🔴 Unresolved |\n| Scope 2 (market-based) | — | 🔴 Unresolved |\n| Scope 3 (water-related, Cat. 1 proxy) | — | 🔴 Unresolved |\n\n### Required Actions\n\n1. **row_2_diesel_pune:** Analyst must supply or select a diesel stationary combustion emission factor (e.g., IPCC 2006/2019 Refinement, DEFRA, or MoEFCC) with CO₂, CH₄, and N₂O species for GWP application (AR5 or AR6 basis to be confirmed).\n2. **row_1_electricity_pune:** Analyst must supply or select the India national grid emission factor (e.g., CEA CO₂ Baseline Database for the Indian Power Sector, latest available year) for location-based Scope 2 calculation.\n3. Once EFs are applied, recalculate and re-run Phase 6 before filing.\n\n> **⚠ Legal/Compliance Note:** BRSR Core mandates Scope 1 and Scope 2 GHG disclosure. Filing with unresolved GHG figures is not permissible. This section must be completed before submission to the stock exchange. Escalate to the BRSR signatory immediately.\n",
+        "data_refs": [
+          "calc_result.emission_results",
+          "calc_result.scope_totals",
+          "calc_result.human_queue",
+          "calc_result.risks_opportunities",
+          "calc_result.disclosure_mappings"
+        ]
+      },
+      {
+        "section_id": "S8_brsr_p6_water",
+        "title": "BRSR Section C — Principle 6: Water Withdrawal & Intensity",
+        "body_markdown": "## BRSR Section C — Principle 6: Water Withdrawal & Intensity\n*(Corresponds to: BRSR P6 Q3 | GRI 303-3 | ESRS E3-4)*\n\n### Performance Summary — FY2025-26\n\nWater withdrawal data for site_pune has been validated and is reportable as a non-GHG environmental metric. The figures below are drawn directly from confirmed activity inputs.\n\n| KPI | Value | Unit | Confidence | Source |\n|---|---|---|---|---|\n| Total water withdrawal (municipal / third-party) | **3,250** | kL | High | Validated activity input, site_pune |\n| Water intensity per tonne of production | **0.0387** | kL/tonne | High | 3,250 kL ÷ 84,000 tonnes |\n| Water intensity per ₹ crore of revenue | **2.60** | kL/₹ crore | High | 3,250 kL ÷ ₹1,250 crore |\n\n*Calculation provenance: water.intensity.production = 3,250 kL ÷ 84,000 tonnes = 0.038690 kL/tonne (rounded to 4 significant figures: 0.0387 kL/tonne). water.intensity.revenue = 3,250 kL ÷ 1,250 ₹cr = 2.60 kL/₹ crore.*\n\n> **📊 Chart ref: `chart_water_withdrawal_total_bar`** — Bar chart: Total water withdrawal (kL), site_pune, FY2025-26.\n\n> **📊 Chart ref: `chart_water_intensity_production_line`** — Line chart: Water intensity per tonne of production (kL/tonne), site_pune, FY2025-26 (single data point; trend line to be populated in FY2026-27 with prior-year baseline).\n\n> **📊 Chart ref: `chart_water_intensity_revenue_line`** — Line chart: Water intensity per ₹ crore of revenue (kL/₹ crore), site_pune, FY2025-26.\n\n### Water Source Breakdown\n\n| Source | Volume (kL) | % of Total |\n|---|---|---|\n| Third-party / municipal supply | 3,250 | 100% |\n| Surface water | — | Not reported |\n| Groundwater | — | Not reported |\n| Rainwater harvesting | — | Not reported |\n| Total | **3,250** | **100%** |\n\n> **⚠ Action required (BRSR P6 Q3 / GRI 303-3):** BRSR and GRI 303-3 require disclosure of water withdrawal by **all sources** (surface water, groundwater, seawater, produced water, third-party). Confirm whether site_pune uses any sources other than municipal supply. If yes, provide volumes by source. Assign to: [Data Owner — Environment, site_pune].\n\n### Water Discharge & Consumption\n\n> **⚠ Placeholder:** BRSR P6 Q3 and GRI 303-4/303-5 also require water discharge volumes (by destination) and net water consumption (withdrawal minus discharge). These figures were not included in the FY2025-26 data run. Provide discharge volumes and treatment method. Assign to: [Data Owner — Environment, site_pune].\n\n### ESRS E3-4 Note\n\nESRS E3-4 requires disclosure of water consumption (not just withdrawal) and, where applicable, water consumption in areas of high water stress. The 3,250 kL municipal withdrawal figure satisfies the withdrawal component. Net consumption and water-stress area classification (per WRI Aqueduct or equivalent) are required to complete ESRS E3-4.\n\n### Contextual Note — Materiality\n\nAs noted in the materiality assessment (Section 3), water and effluents rank third among Acme's material ESG topics, with an impact score of 4/5 and a financial score of 4/5. Integrated steel plants typically consume 2–6 m³ of water per tonne of steel. Acme's FY2025-26 intensity of **0.0387 kL/tonne** (38.7 litres/tonne) is significantly below this industry benchmark, which may reflect: (a) the data covering site_pune only and not the full production boundary; (b) high water recycling rates not yet captured in the data; or (c) a data completeness gap. Management should validate this figure against operational records before publication.\n\n> **⚠ Legal/Compliance Note:** The water intensity figure of 0.0387 kL/tonne appears materially lower than sector benchmarks for integrated steel. Management must confirm this is accurate and not a result of incomplete data capture (e.g., process water recycled on-site not counted as withdrawal). Misrepresentation of water performance is a greenwashing risk.\n",
+        "data_refs": [
+          "calc_result.kpis.water.withdrawal.total",
+          "calc_result.kpis.water.intensity.production",
+          "calc_result.kpis.water.intensity.revenue",
+          "calc_result.disclosure_mappings"
+        ]
+      },
+      {
+        "section_id": "S9_brsr_p3_ohs",
+        "title": "BRSR Section C — Principle 3: Occupational Health & Safety",
+        "body_markdown": "## BRSR Section C — Principle 3: Occupational Health & Safety\n*(Corresponds to: BRSR P3 Essential & Leadership Indicators | GRI 403-2 / 403-8 | ESRS S1-14 / S1-15)*\n\n### ⚠ Data Gap — OHS Metrics Not Provided\n\nOccupational Health & Safety is the **second-ranked material topic** for Acme Manufacturing Pvt Ltd (Impact: 5/5, Financial: 4/5). However, no OHS activity data was included in the FY2025-26 Phase 6 calculation run. The following metrics are required for BRSR P3 Essential Indicators and must be provided by the HR/EHS function before this report can be filed:\n\n| Metric | Framework | Unit | Status |\n|---|---|---|---|\n| Number of fatalities (employees) | BRSR P3 / GRI 403-2 / ESRS S1-14 | Count | 🔴 Not provided |\n| Number of fatalities (contract workers) | BRSR P3 / GRI 403-2 / ESRS S1-14 | Count | 🔴 Not provided |\n| Lost Time Injury Frequency Rate — LTIFR (employees) | BRSR P3 / GRI 403-2 | Per million hours worked | 🔴 Not provided |\n| LTIFR (contract workers) | BRSR P3 / GRI 403-2 | Per million hours worked | 🔴 Not provided |\n| Total recordable injury rate | GRI 403-2 | Per million hours worked | 🔴 Not provided |\n| Number of occupational diseases | BRSR P3 / GRI 403-2 | Count | 🔴 Not provided |\n| % of workforce covered by OHS management system | GRI 403-8 / ESRS S1-14 | % | 🔴 Not provided |\n| Number of OHS training hours | BRSR P3 | Hours | 🔴 Not provided |\n| Near-miss incidents reported | BRSR P3 (Leadership) | Count | 🔴 Not provided |\n\n> **⚠ Legal/Compliance Note:** BRSR P3 OHS disclosures are **mandatory Essential Indicators** under SEBI's BRSR framework. Filing without these figures is not permissible. Escalate to the EHS Head and HR Director immediately. Data must cover both permanent employees and contract workers across all three sites (site_pune, site_chennai, site_hq).\n\n### Qualitative Context\n\nSteel manufacturing presents significant OHS hazards including molten metal handling, confined space entry, crane and heavy-lift operations, high-temperature environments, and chemical exposure (coke oven gases, pickling acids). The Company's OHS management system, training programmes, and contractor safety oversight are critical controls. Details of these systems should be described in the BRSR Section B management disclosures (see Section 5 of this report) and validated against the requirements of GRI 403-1 (OHS management system) and ESRS S1-14.\n",
+        "data_refs": [
+          "materiality_matrix.scored_topics",
+          "materiality_matrix.questionnaire"
+        ]
+      },
+      {
+        "section_id": "S10_gri_index",
+        "title": "GRI Content Index (GRI 302-1 / 303-3 / 305-1 / 305-2)",
+        "body_markdown": "## GRI Content Index\n*In accordance with GRI Standards. This report has been prepared with reference to the GRI Standards.*\n\n> **⚠ Legal/Compliance Note:** A full GRI Content Index covering all applicable Universal Standards (GRI 2: General Disclosures 2021) and Topic Standards must be completed before publication. The table below covers only the topic-standard disclosures for which data was processed in the FY2025-26 Phase 6 run.\n\n| GRI Disclosure | Title | Page/Section | Status | Notes |\n|---|---|---|---|---|\n| GRI 2-1 | Organizational details | Section 1 | ⚠ Partial | CIN provided; full legal details to be added |\n| GRI 2-6 | Activities, value chain and other business relationships | Section 1 | ⚠ Partial | Sites listed; value chain detail pending |\n| GRI 302-1 | Energy consumption within the organization | Section 6 | ⚠ Partial | kWh and litres available; GJ conversion and renewable split pending |\n| GRI 303-3 | Water withdrawal | Section 8 | ✅ Partial | 3,250 kL municipal (site_pune); other sources and sites pending |\n| GRI 305-1 | Direct (Scope 1) GHG emissions | Section 7 | 🔴 Unresolved | No EF available; activity data (12,400 L diesel) confirmed |\n| GRI 305-2 | Energy indirect (Scope 2) GHG emissions | Section 7 | 🔴 Unresolved | No grid EF available; activity data (48,210 kWh) confirmed |\n| GRI 305-4 | GHG emissions intensity | Section 7 | 🔴 Unresolved | Dependent on 305-1 and 305-2 |\n| GRI 403-2 | Types of injury and rates of injury | Section 9 | 🔴 Not provided | OHS data not submitted |\n| GRI 403-8 | Workers covered by OHS management system | Section 9 | 🔴 Not provided | OHS data not submitted |\n\n*GRI Sector Standard: GRI 11 (Mining & Metals) is applicable and should be referenced in the full GRI Content Index.*\n",
+        "data_refs": [
+          "calc_result.disclosure_mappings",
+          "calc_result.kpis"
+        ]
+      },
+      {
+        "section_id": "S11_esrs_mapping",
+        "title": "ESRS Mapping Summary (E1-6 / E3-4)",
+        "body_markdown": "## ESRS Mapping Summary\n*Scope: Gap analysis and mapping only — not a full ESRS-compliant report. This mapping is intended to support EU supply-chain due-diligence readiness (CSRD/CSDDD value-chain disclosure obligations).*\n\n| ESRS Disclosure | Title | BRSR/GRI Equivalent | Status | Gap / Action |\n|---|---|---|---|---|\n| ESRS E1-6 | Gross Scopes 1, 2 and 3 GHG emissions | BRSR P6 Q2 / GRI 305-1/2/3 | 🔴 Unresolved | No EFs available; activity data confirmed. Resolve EF gap (see Section 7). |\n| ESRS E3-4 | Water consumption | BRSR P6 Q3 / GRI 303-3/5 | ✅ Partial | 3,250 kL withdrawal (site_pune) available. Net consumption and water-stress area classification pending. |\n| ESRS S1-14 | Health and safety metrics | BRSR P3 / GRI 403-2 | 🔴 Not provided | OHS data not submitted (see Section 9). |\n| ESRS G1-1 | Business conduct policies | BRSR Section B | ⚠ Placeholder | Governance/policy disclosures pending management input (see Section 5). |\n\n### Double Materiality Note\n\nESRS requires a **double materiality assessment** covering both impact materiality (the company's impacts on people and environment) and financial materiality (ESG risks and opportunities affecting the company's financial position). The materiality assessment conducted for this engagement (Section 3) addresses both dimensions and is directionally aligned with ESRS requirements; however, a full ESRS-depth double materiality assessment — including documentation of the assessment process, stakeholder consultation evidence, and IRO (impacts, risks, opportunities) register — would be required for a statutory ESRS report. This is out of scope for FY2025-26 but is recommended as a FY2026-27 preparatory workstream.\n",
+        "data_refs": [
+          "calc_result.disclosure_mappings",
+          "materiality_matrix.scored_topics",
+          "scope_charter.frameworks_in_scope"
+        ]
+      },
+      {
+        "section_id": "S12_tcfd",
+        "title": "TCFD Climate Risk Disclosure",
+        "body_markdown": "## TCFD Climate Risk Disclosure\n*Aligned with the Task Force on Climate-related Financial Disclosures (TCFD) Recommendations (2017, updated 2021). TCFD disclosures are integrated into the BRSR Core climate section and the Annual Report narrative.*\n\n### Governance\n\n> **⚠ Placeholder — Management Input Required:** Describe the Board's oversight of climate-related risks and opportunities (e.g., committee mandate, frequency of review, board-level climate expertise). Describe management's role in assessing and managing climate-related risks (e.g., ESG steering committee, climate risk register, executive KPIs linked to GHG performance).\n\n### Strategy\n\n> **⚠ Placeholder — Management Input Required:** Describe the climate-related risks and opportunities identified over short, medium, and long time horizons. Describe the impact of climate-related risks and opportunities on the organisation's businesses, strategy, and financial planning. Describe the resilience of the organisation's strategy, taking into consideration different climate-related scenarios (at minimum: a below-2°C / 1.5°C scenario and a >2°C physical risk scenario).\n\n**Identified Transition Risks (from materiality assessment):**\n- Carbon pricing mechanisms (India carbon market, EU CBAM) — potential material cost impact on BF-BOF steel production within 3–5 years.\n- Tightening GHG disclosure requirements (BRSR Core, CSRD value-chain) — compliance cost and reputational risk if GHG data gaps persist.\n- Customer and investor ESG screens — risk of exclusion from green finance instruments and supply chains if decarbonisation roadmap is absent.\n\n**Identified Physical Risks:**\n- Water stress in operating regions (Maharashtra, Tamil Nadu) — risk of supply disruption and regulatory restriction on water withdrawal.\n- Extreme heat events — operational disruption risk at steel plants.\n\n### Risk Management\n\n> **⚠ Placeholder — Management Input Required:** Describe the processes for identifying and assessing climate-related risks. Describe the processes for managing climate-related risks. Describe how processes for identifying, assessing, and managing climate-related risks are integrated into the organisation's overall risk management.\n\n### Metrics & Targets\n\n| TCFD Metric | Value | Unit | Status |\n|---|---|---|---|\n| Scope 1 GHG emissions | — | tCO₂e | 🔴 Unresolved — no EF |\n| Scope 2 GHG emissions (location-based) | — | tCO₂e | 🔴 Unresolved — no EF |\n| Scope 2 GHG emissions (market-based) | — | tCO₂e | 🔴 Unresolved — no EF |\n| GHG intensity per tonne of steel | — | tCO₂e/tonne | 🔴 Unresolved |\n| Water withdrawal | 3,250 | kL | ✅ Reported (site_pune) |\n| GHG reduction target | — | — | ⚠ Not yet set |\n| Net-zero / SBTi alignment | — | — | ⚠ Not yet assessed |\n\n> **⚠ Legal/Compliance Note:** SEBI's BRSR Core incorporates TCFD-aligned climate disclosures. The absence of Scope 1 and Scope 2 GHG metrics means the TCFD Metrics & Targets pillar cannot be completed. Resolving the EF gap (Section 7) is a prerequisite. Additionally, TCFD recommends scenario analysis; this has not yet been conducted and should be scoped as a priority workstream for FY2025-26 completion or FY2026-27.\n",
+        "data_refs": [
+          "calc_result.disclosure_mappings",
+          "calc_result.risks_opportunities",
+          "materiality_matrix.scored_topics",
+          "scope_charter.frameworks_in_scope"
+        ]
+      },
+      {
+        "section_id": "S13_methodology",
+        "title": "Methodology, Assumptions & Data Limitations",
+        "body_markdown": "## Methodology, Assumptions & Data Limitations\n\n### Reporting Standard & Boundary\n\n- **GHG accounting standard:** GHG Protocol Corporate Accounting and Reporting Standard (Scope 1 & 2); GHG Protocol Corporate Value Chain Standard (Scope 3, where applicable).\n- **Organisational boundary:** Operational Control (all three sites — site_pune, site_chennai, site_hq — are in scope; FY2025-26 data run covers site_pune only).\n- **Reporting period:** 1 April 2025 – 31 March 2026.\n- **GWP basis:** AR5 (100-year) intended; to be confirmed once emission factors are selected and applied.\n- **Scope 2 accounting:** Location-based method intended; market-based method to be applied if supplier-specific emission factors or energy attribute certificates (RECs/I-RECs) are available.\n\n### Calculation Approach\n\nActivity data (energy consumption in kWh and litres; water withdrawal in kL) was collected from site-level operational records and validated against source documents. GHG emissions are calculated as:\n\n`Emissions (kgCO₂e) = Activity Quantity × Emission Factor × GWP`\n\nFor this reporting period, **no emission factors were returned by the Emission Factor Database (EFDB)** for any activity row (grid electricity, diesel combustion, or municipal water supply). Per GreenMentor's data integrity policy, no emission factor has been invented, estimated, or proxied without explicit analyst approval. All GHG figures therefore remain unresolved.\n\n### Assumptions Log\n\n| Assumption | Basis | Impact |\n|---|---|---|\n| Revenue = ₹1,250 crore (FY2025-26) | Provided as normalisation denominator | Used in water.intensity.revenue KPI |\n| Production = 84,000 tonnes (FY2025-26) | Provided as normalisation denominator | Used in water.intensity.production KPI |\n| Municipal water = 100% of water withdrawal (site_pune) | Single source reported; no other sources confirmed | May understate total withdrawal if other sources exist |\n| Grid electricity = non-renewable (assumed) | No renewable energy certificate or on-site generation data provided | Renewable share = 0% assumed; to be confirmed |\n| Scope 2 basis = location-based | No market-based EF or energy attribute certificate available | Market-based figure cannot be calculated |\n| GWP basis = AR5 | Standard BRSR/GRI practice for Indian reporters | To be confirmed when EFs are selected |\n\n### Data Limitations & Caveats\n\n1. **EFDB not wired (M2):** The Emission Factor Database service returned zero candidates for all three activity rows. This is a system configuration issue, not a data quality issue. Resolving EFDB connectivity is the single highest-priority action for completing this report.\n2. **Single-site data:** All quantitative metrics in this report cover site_pune only. Chennai Plant and Mumbai HQ data have not been submitted. The report cannot be filed until all three sites are included.\n3. **No prior-year baseline:** This is the first year of structured ESG data collection. No FY2024-25 baseline exists for trend analysis. Establishing a restated baseline is recommended for FY2026-27.\n4. **Water intensity benchmark caveat:** The calculated water intensity of 0.0387 kL/tonne is significantly below typical integrated steel plant benchmarks (2–6 m³/tonne). Management must validate this figure before publication (see Section 8).\n5. **OHS data absent:** No occupational health and safety data was submitted for any site. This is a mandatory BRSR disclosure gap.\n6. **Scope 3:** Scope 3 categories have not been assessed in this data run. A Scope 3 screening exercise is recommended as a priority for FY2026-27, with at minimum Categories 1 (purchased goods), 10 (downstream processing), and 12 (end-of-life treatment) expected to be material for a steel manufacturer.\n\n### Assurance\n\n> **⚠ Placeholder — Management Decision Required:** BRSR Core requires reasonable assurance on specified KPIs from a SEBI-registered assurance provider. Confirm the assurance scope, provider, and timeline. Note that unresolved GHG figures cannot be assured until EFs are applied and calculations completed.\n",
+        "data_refs": [
+          "calc_result.emission_results",
+          "calc_result.human_queue",
+          "calc_result.run_confidence",
+          "scope_charter.reporting_boundary",
+          "calc_result.kpis"
+        ]
+      },
+      {
+        "section_id": "S14_human_queue",
+        "title": "Open Items & Human Review Queue",
+        "body_markdown": "## Open Items & Human Review Queue\n\nThe following items require human analyst or management action before this report can be finalised and filed. Items are listed in priority order.\n\n### 🔴 Priority 1 — Blocking (Report Cannot Be Filed Without These)\n\n| # | Item | Row/Section | Action Required | Assign To |\n|---|---|---|---|---|\n| 1 | **Diesel combustion EF missing** | row_2_diesel_pune / Section 7 | Supply or select a diesel stationary combustion emission factor (e.g., IPCC 2006/2019 Refinement, DEFRA, MoEFCC) with CO₂, CH₄, N₂O species and GWP basis. Re-run Phase 6. | ESG Analyst / Data Owner |\n| 2 | **India grid electricity EF missing** | row_1_electricity_pune / Section 7 | Supply or select the CEA CO₂ Baseline Database grid EF for India (latest available year) for location-based Scope 2. Re-run Phase 6. | ESG Analyst / Data Owner |\n| 3 | **Chennai Plant data absent** | All sections | Submit FY2025-26 activity data (energy, water, waste, OHS) for site_chennai. | Site EHS Manager — Chennai |\n| 4 | **Mumbai HQ data absent** | All sections | Submit FY2025-26 activity data for site_hq. | Site EHS Manager / CFO Office — Mumbai |\n| 5 | **OHS data absent — all sites** | Section 9 | Submit fatality counts, LTIFR, recordable injury rates, occupational disease counts, OHS training hours, and near-miss counts for all sites (employees and contract workers). | EHS Head / HR Director |\n\n### 🟡 Priority 2 — Required for Completeness (File-Quality Gaps)\n\n| # | Item | Section | Action Required | Assign To |\n|---|---|---|---|---|\n| 6 | **GRI 302-1 GJ conversion** | Section 6 | Provide diesel NCV (MJ/litre) and confirm renewable energy share to convert energy to GJ for GRI 302-1. | Data Owner — Energy |\n| 7 | **Water sources — completeness** | Section 8 | Confirm whether site_pune uses any water sources other than municipal supply (surface water, groundwater, rainwater). Provide volumes if applicable. | Data Owner — Environment |\n| 8 | **Water discharge volumes** | Section 8 | Provide water discharge volumes by destination and treatment method (required for BRSR P6 Q3 and GRI 303-4/5). | Data Owner — Environment |\n| 9 | **Water intensity benchmark validation** | Section 8 | Management to validate 0.0387 kL/tonne figure against operational records. Flag if data is incomplete. | Plant Manager — Pune |\n| 10 | **BRSR Section A — General Disclosures** | Section 4 | Complete all Section A fields (entity details, products/services, employee counts, CSR details). | Company Secretary / CFO |\n| 11 | **BRSR Section B — Management Disclosures** | Section 5 | Confirm policies, targets, and review frequencies for all nine NGRBC Principles. | Sustainability Lead / Legal |\n\n### 🟢 Priority 3 — Recommended for Report Quality\n\n| # | Item | Section | Action Required |\n|---|---|---|---|\n| 12 | **TCFD scenario analysis** | Section 12 | Commission climate scenario analysis (≥2 scenarios: <2°C transition, >2°C physical) for TCFD Strategy pillar. |\n| 13 | **Scope 3 screening** | Section 13 | Conduct Scope 3 category screening; prioritise Categories 1, 10, 12 for FY2026-27 inventory. |\n| 14 | **FY2024-25 baseline restatement** | Section 13 | Collect and validate FY2024-25 data to establish prior-year baseline for trend reporting. |\n| 15 | **Assurance provider engagement** | Section 13 | Engage SEBI-registered assurance provider for BRSR Core KPI assurance. |\n| 16 | **ESRS double materiality** | Section 11 | Scope full ESRS double materiality assessment as FY2026-27 preparatory workstream. |\n",
+        "data_refs": [
+          "calc_result.human_queue",
+          "calc_result.emission_results",
+          "calc_result.scope_totals",
+          "calc_result.run_confidence"
+        ]
+      }
+    ],
+    "disclosure_drafts": [
+      {
+        "disclosure_code": "BRSR — Principle 6, Q1 — Energy consumption (electricity)",
+        "question_id": "P6Q1",
+        "answer": "Total grid electricity consumed at Pune Plant (site_pune) in FY2025-26: 48,210 kWh. Source: Municipal grid (non-renewable assumed; renewable share not confirmed). GJ equivalent: unresolved — NCV/conversion factor not provided. Energy intensity per tonne of production and per ₹ crore of revenue: unresolved — GJ total required.",
+        "comment": "Grid electricity consumption, site_pune, FY2025-26. Data covers site_pune only; Chennai Plant and Mumbai HQ data pending.",
+        "note": "Energy quantity reportable; associated Scope 2 GHG unresolved pending emission factor. GJ conversion and renewable split required to complete BRSR P6 Q1 in full.",
+        "status": "Pending"
+      },
+      {
+        "disclosure_code": "BRSR — Principle 6, Q1 — Energy consumption (diesel)",
+        "question_id": "P6Q1",
+        "answer": "Total diesel consumed at Pune Plant (site_pune) in FY2025-26: 12,400 litres. Use: Stationary combustion (Scope 1). GJ equivalent: unresolved — NCV not provided.",
+        "comment": "Diesel consumption, site_pune, FY2025-26. Data covers site_pune only.",
+        "note": "Scope 1 GHG unresolved pending emission factor. NCV required for GJ conversion.",
+        "status": "Pending"
+      },
+      {
+        "disclosure_code": "BRSR — Principle 6, Q2 — GHG emissions (Scope 1)",
+        "question_id": "P6Q2",
+        "answer": "[UNRESOLVED] Scope 1 GHG emissions from diesel combustion at site_pune cannot be reported for FY2025-26. Activity data confirmed: 12,400 litres of diesel. No emission factor was available from the Emission Factor Database (EFDB); per data integrity policy, no factor has been invented. Analyst must supply a diesel combustion EF (e.g., IPCC/DEFRA/MoEFCC) with CO₂, CH₄, N₂O species before this disclosure can be completed.",
+        "comment": "Scope 1 GHG blocked — no EF. Activity data (12,400 L diesel) confirmed and ready for calculation once EF is supplied.",
+        "note": "BRSR Core mandatory disclosure. Cannot file without this figure. Escalate to BRSR signatory.",
+        "status": "Pending"
+      },
+      {
+        "disclosure_code": "BRSR — Principle 6, Q2 — GHG emissions (Scope 2)",
+        "question_id": "P6Q2",
+        "answer": "[UNRESOLVED] Scope 2 GHG emissions from grid electricity at site_pune cannot be reported for FY2025-26. Activity data confirmed: 48,210 kWh. No India grid emission factor was available from the EFDB. Analyst must supply the CEA CO₂ Baseline Database grid EF (latest available year) before this disclosure can be completed. Market-based Scope 2 is also unresolved.",
+        "comment": "Scope 2 GHG blocked — no grid EF. Activity data (48,210 kWh) confirmed.",
+        "note": "BRSR Core mandatory disclosure. Cannot file without this figure.",
+        "status": "Pending"
+      },
+      {
+        "disclosure_code": "BRSR — Principle 6, Q3 — Water withdrawal by source (third-party/municipal)",
+        "question_id": "P6Q3",
+        "answer": "Total water withdrawal from third-party (municipal) sources at Pune Plant (site_pune) in FY2025-26: 3,250 kL. This represents 100% of reported water withdrawal for site_pune. Water withdrawal from other sources (surface water, groundwater, rainwater) has not been confirmed; management should verify completeness. Water intensity: 0.0387 kL per tonne of production (3,250 kL ÷ 84,000 tonnes); 2.60 kL per ₹ crore of revenue (3,250 kL ÷ ₹1,250 crore). Water discharge volumes and net consumption are pending.",
+        "comment": "Municipal water withdrawal, site_pune, FY2025-26. High confidence. Data covers site_pune only.",
+        "note": "Water withdrawal volume is reportable as a non-GHG metric. GHG attribution (Scope 3 water supply) unresolved pending EF. Completeness of water sources must be confirmed by management before filing.",
+        "status": "Drafted"
+      },
+      {
+        "disclosure_code": "GRI 302-1",
+        "question_id": null,
+        "answer": "Energy consumption within the organization (site_pune, FY2025-26): Grid electricity: 48,210 kWh (non-renewable assumed; renewable share not confirmed). Diesel (stationary combustion): 12,400 litres. Total energy in GJ: [UNRESOLVED — NCV for diesel and kWh-to-GJ conversion factor not provided]. Renewable vs. non-renewable split: [UNRESOLVED — no renewable energy data provided]. Note: Data covers site_pune only; full organisational boundary (site_chennai, site_hq) pending.",
+        "comment": "Energy consumption within the organization. Electricity 48,210 kWh and diesel 12,400 L available in native units; GJ conversion and renewable split not provided.",
+        "note": "GRI 302-1 requires GJ units and renewable/non-renewable split. Provide diesel NCV and renewable energy share to complete.",
+        "status": "Pending"
+      },
+      {
+        "disclosure_code": "GRI 303-3",
+        "question_id": null,
+        "answer": "Water withdrawal by source (site_pune, FY2025-26): Third-party (municipal) water: 3,250 kL (100% of reported withdrawal). Surface water: not reported. Groundwater: not reported. Rainwater harvesting: not reported. Total reported water withdrawal: 3,250 kL. Note: Management must confirm whether other sources are used at site_pune. Data covers site_pune only.",
+        "comment": "Water withdrawal — third-party (municipal) water, site_pune, FY2025-26.",
+        "note": "GRI 303-3 requires withdrawal by all sources. Completeness of source breakdown must be confirmed.",
+        "status": "Drafted"
+      },
+      {
+        "disclosure_code": "GRI 305-1",
+        "question_id": null,
+        "answer": "[UNRESOLVED] Direct (Scope 1) GHG emissions from diesel combustion at site_pune cannot be reported for FY2025-26. Activity data: 12,400 litres of diesel (stationary combustion). No emission factor available from EFDB. Calculation blocked per data integrity policy. Analyst must supply diesel combustion EF with CO₂, CH₄, N₂O species and GWP basis (AR5 or AR6) to complete this disclosure.",
+        "comment": "Scope 1 gross GHG (diesel) cannot be computed — no emission factor available from EFDB.",
+        "note": "GRI 305-1 requires gross Scope 1 in tCO₂e with gas breakdown and GWP basis. Unresolved.",
+        "status": "Pending"
+      },
+      {
+        "disclosure_code": "GRI 305-2",
+        "question_id": null,
+        "answer": "[UNRESOLVED] Energy indirect (Scope 2) GHG emissions from grid electricity at site_pune cannot be reported for FY2025-26. Activity data: 48,210 kWh (location-based). No India grid emission factor available from EFDB. Market-based figure also unresolved. Analyst must supply CEA grid EF to complete location-based Scope 2; supplier-specific EF or energy attribute certificate required for market-based Scope 2.",
+        "comment": "Scope 2 gross GHG (grid electricity) cannot be computed — no grid emission factor available from EFDB.",
+        "note": "GRI 305-2 requires both location-based and market-based Scope 2 in tCO₂e. Unresolved.",
+        "status": "Pending"
+      },
+      {
+        "disclosure_code": "ESRS E1-6",
+        "question_id": null,
+        "answer": "[UNRESOLVED] Gross Scope 1 and Scope 2 GHG emissions cannot be reported for FY2025-26. Activity data confirmed: 12,400 litres diesel (Scope 1) and 48,210 kWh grid electricity (Scope 2, location-based), both at site_pune. No emission factors were returned by the EFDB for either activity. Per data integrity policy, no factor has been invented. Calculations are blocked pending EF supply. Scope 3 has not been assessed in this reporting period.",
+        "comment": "Gross Scopes 1 and 2 GHG emissions cannot be computed — no emission factors available from EFDB.",
+        "note": "ESRS E1-6 requires gross Scope 1, 2, and 3 GHG emissions. All GHG figures unresolved. This is a gap analysis/mapping exercise; full ESRS statutory report is out of scope for FY2025-26.",
+        "status": "Pending"
+      },
+      {
+        "disclosure_code": "ESRS E3-4",
+        "question_id": null,
+        "answer": "Water consumption/withdrawal (site_pune, FY2025-26): Municipal (third-party) water withdrawal: 3,250 kL. Net water consumption (withdrawal minus discharge): [UNRESOLVED — discharge volumes not provided]. Water-stress area classification: [UNRESOLVED — WRI Aqueduct or equivalent assessment not conducted]. Note: Data covers site_pune only.",
+        "comment": "Water consumption/withdrawal — municipal source, site_pune, FY2025-26.",
+        "note": "ESRS E3-4 requires net water consumption and water-stress area classification in addition to withdrawal. Both pending. This is a mapping/gap exercise; full ESRS statutory report is out of scope.",
+        "status": "Pending"
+      },
+      {
+        "disclosure_code": "TCFD — Metrics & Targets (a) — GHG emissions",
+        "question_id": null,
+        "answer": "[UNRESOLVED] Scope 1 and Scope 2 GHG metrics cannot be reported for FY2025-26 due to absence of emission factors in the EFDB. Activity data confirmed: 12,400 litres diesel (Scope 1) and 48,210 kWh grid electricity (Scope 2), both at site_pune. GHG reduction targets and net-zero/SBTi alignment have not yet been assessed. Water withdrawal (non-GHG metric): 3,250 kL at site_pune.",
+        "comment": "Scope 1 and Scope 2 GHG metrics unresolved pending emission factors. Water withdrawal reportable.",
+        "note": "TCFD Metrics & Targets pillar cannot be completed until GHG EF gap is resolved. SEBI BRSR Core incorporates TCFD-aligned climate disclosures — this is a mandatory gap.",
+        "status": "Pending"
+      }
+    ]
+  },
+  "publication": {
+    "final_sections": [
+      {
+        "section_id": "S1_company_overview",
+        "title": "Company Overview",
+        "body_markdown": "## Company Overview\n\n**Entity:** Acme Manufacturing Pvt Ltd (CIN: U27100MH2008PTC000000)\n\n**Sector:** Iron & Steel Manufacturing\n\n**Reporting Period:** FY2025-26 (1 April 2025 – 31 March 2026)\n\n**Reporting Boundary:** Operational Control. The boundary covers three 100%-controlled operating entities:\n\n| Site | Location | State |\n|---|---|---|\n| Pune Plant (site_pune) | Pune | Maharashtra |\n| Chennai Plant (site_chennai) | Chennai | Tamil Nadu |\n| Mumbai HQ (site_hq) | Mumbai | Maharashtra |\n\nFinancial data referenced in this report is drawn from the standalone financials of Acme Manufacturing Pvt Ltd. Revenue for FY2025-26: **₹1,250 crore**. Production volume: **84,000 tonnes** of steel.\n\n> **Note to reviewer:** Chennai Plant (site_chennai) and Mumbai HQ (site_hq) activity data were not included in the FY2025-26 Phase 6 calculation run. All quantitative metrics in this report currently reflect site_pune only. Data collection for the remaining sites must be completed before this report can be filed. This is flagged as a critical open item (see Section 14).\n\n**Frameworks in Scope:**\n- **BRSR** (mandatory — SEBI listed-entity requirement)\n- **GRI Standards** (voluntary — investor and customer alignment)\n- **ESRS** (voluntary mapping/gap exercise — EU supply-chain readiness)\n- **TCFD** (voluntary — climate risk disclosure, integrated into BRSR Core and Annual Report)"
+      },
+      {
+        "section_id": "S2_esg_strategy_governance",
+        "title": "ESG Strategy & Governance",
+        "body_markdown": "## ESG Strategy & Governance\n\n### Strategic Intent\n\nAcme Manufacturing Pvt Ltd is committed to embedding environmental, social, and governance (ESG) considerations into its core business strategy. As an integrated steel manufacturer operating in one of the most carbon- and resource-intensive industrial sectors, the Company recognises that its long-term licence to operate, access to capital, and customer relationships are increasingly contingent on credible, transparent, and improving ESG performance.\n\nThis FY2025-26 report marks the Company's **first-time BRSR Core filing** and establishes the baseline data infrastructure, governance accountabilities, and reporting processes that will underpin continuous improvement through FY2026-27 and beyond.\n\n### Governance Structure\n\n> **⚠ Placeholder — Legal/Compliance Review Required:** The following governance narrative must be validated and expanded by management before publication. Board committee names, ESG policy references, and individual role titles should be confirmed against the Company's constitutional documents and board resolutions.\n\nThe Board of Directors holds ultimate accountability for ESG strategy and risk oversight. [*Insert: name of Board committee with ESG/sustainability mandate, e.g. Risk & Sustainability Committee*] meets [*insert frequency*] to review material ESG risks and performance against targets. Executive accountability for ESG data quality and disclosure rests with [*insert: CFO / Chief Sustainability Officer / designated BRSR signatory*].\n\nInternal data owners have been designated for each material topic and site, with data flows governed by the ESG data collection protocol established during this engagement.\n\n### Reporting Objectives (FY2025-26)\n\n1. Prepare and file the first-time BRSR Core report in compliance with SEBI's mandatory disclosure requirements.\n2. Achieve voluntary alignment with GRI Standards to meet international stakeholder and investor expectations.\n3. Map material BRSR/GRI disclosures to ESRS topical standards to future-proof reporting for European supply-chain due-diligence requirements (CSRD/CSDDD).\n4. Embed TCFD-aligned climate risk and opportunity disclosures within the Annual Report narrative.\n5. Establish a repeatable, audit-ready ESG data collection and assurance process across all three sites.\n6. Build internal capacity — data owners, controls, and workflows — so that FY2026-27 reporting can be executed with reduced external support."
+      },
+      {
+        "section_id": "S3_materiality",
+        "title": "Materiality Assessment",
+        "body_markdown": "## Materiality Assessment\n\nA structured materiality assessment was conducted to identify and prioritise the ESG topics most significant to Acme Manufacturing Pvt Ltd's business and stakeholders. Topics were scored on two axes — **Impact Score** (severity and breadth of environmental/social impact) and **Financial Score** (magnitude of financial risk or opportunity to the business) — each on a scale of 1–5. Topics scoring above the materiality threshold of **3.5** on either axis are considered material.\n\n### Materiality Matrix Summary\n\n| Rank | Topic | Impact Score | Financial Score | Status |\n|---|---|---|---|---|\n| 1 | GHG Emissions | 5 / 5 | 5 / 5 | **Material** |\n| 2 | Occupational Health & Safety | 5 / 5 | 4 / 5 | **Material** |\n| 3 | Water & Effluents | 4 / 5 | 4 / 5 | **Material** |\n\n*All three topics exceed the materiality threshold of 3.5 on both axes.*\n\n### Topic Rationales\n\n**GHG Emissions (Rank 1 — Impact: 5, Financial: 5)**\nSteel manufacturing is among the most carbon-intensive industries globally, with blast furnace–basic oxygen furnace (BF-BOF) routes emitting approximately 1.8 tCO₂ per tonne of steel. GHG emissions drive severe environmental impact through climate change and air quality degradation, and face escalating financial exposure via carbon pricing mechanisms, the EU Carbon Border Adjustment Mechanism (CBAM), transition risk, and investor/lender covenant requirements. BRSR Core mandates Scope 1 & 2 disclosure; TCFD scenario analysis, ESRS E1, and GRI 305 are all in scope. Sector materiality maps (GRI 11 Mining & Metals, SASB Iron & Steel) universally identify this as the highest-priority topic.\n\n**Occupational Health & Safety (Rank 2 — Impact: 5, Financial: 4)**\nSteel manufacturing is among the highest-risk industrial sectors, with hazards including molten metal handling, confined spaces, heavy machinery, and heat stress. Fatal and serious injury rates represent a direct, severe impact on workers and contractors. Financial exposure includes regulatory penalties under the Factories Act 1948 and OSHA-equivalent statutes, compensation liabilities, productivity loss, and reputational damage affecting talent attraction and customer/investor relationships. BRSR Core mandates OHS KPIs; GRI 403 and ESRS S1 apply.\n\n**Water & Effluents (Rank 3 — Impact: 4, Financial: 4)**\nIntegrated steel plants are large freshwater consumers (typically 2–6 m³ per tonne of steel) and generate process effluents containing phenols, cyanides, and heavy metals from coke ovens and pickling lines. India's water-stressed geography amplifies community and regulatory risk. Financial exposure arises from water tariffs, potential regulatory shutdowns, and customer/investor ESG screens. BRSR mandates water withdrawal and discharge disclosure; GRI 303/306 and ESRS E3 apply.\n\n### Stakeholder Engagement\n\nThe materiality questionnaire covered both internal stakeholders (management, operations, finance) and external stakeholders (investors, customers, lenders, community representatives). Key questions addressed the urgency of science-based GHG targets, carbon pricing exposure, water stress risk, effluent management, and OHS system adequacy. Full questionnaire responses are available in the supporting workpapers.\n\n> **⚠ Placeholder — Management Review Required:** Confirm that the materiality assessment methodology and topic rankings have been reviewed and approved by the Board or designated committee before publication. Document the stakeholder engagement process (number of respondents, engagement method, dates) in the supporting annex."
+      },
+      {
+        "section_id": "S4_brsr_a",
+        "title": "BRSR Section A — General Disclosures",
+        "body_markdown": "## BRSR Section A — General Disclosures\n\n> **⚠ Placeholder — Management Input Required:** BRSR Section A requires extensive company-specific information that must be provided and validated by management. The fields below identify the required disclosures; bracketed items must be completed before filing.\n\n| Disclosure | Required Content | Status |\n|---|---|---|\n| I. Details of the listed entity | CIN, name, year of incorporation, registered office, corporate address, e-mail, website, telephone, financial year, stock exchange(s), paid-up capital, contact name/designation/telephone/e-mail | **[Management to complete]** |\n| II. Products/Services | Top 3 products/services by turnover (₹ crore and % of total turnover) | **[Management to complete]** |\n| III. Operations | Number of plants, offices, and other locations (national/international) | Pune Plant, Chennai Plant, Mumbai HQ confirmed in scope |\n| IV. Employees & Workers | Permanent employees (male/female), permanent workers (male/female), other-than-permanent employees and workers, differently-abled breakdown | **[Management to complete — HR data required]** |\n| V. Participation/Inclusion/Equal Opportunity | Complaints on discrimination, equal opportunity policy | **[Management to complete]** |\n| VI. Holding, Subsidiary & Associate Companies | List of entities in the group | Subsidiaries/JVs confirmed out of scope pending management confirmation |\n| VII. CSR Details | Whether CSR applicable; CSR turnover and obligation | **[Management to complete]** |\n| VIII. Transparency & Disclosures Compliances | Complaints/grievances filed, pending, resolved | **[Management to complete]** |\n\n*Revenue for FY2025-26: ₹1,250 crore (used as normalisation denominator for water intensity KPI — see Section 8). Production: 84,000 tonnes.*"
+      },
+      {
+        "section_id": "S5_brsr_b",
+        "title": "BRSR Section B — Management & Process Disclosures",
+        "body_markdown": "## BRSR Section B — Management & Process Disclosures\n\nBRSR Section B requires the Company to disclose its policies, commitments, and management processes against each of the nine National Guidelines on Responsible Business Conduct (NGRBC) Principles. The table below summarises the disclosure status for the three material principles identified in the materiality assessment.\n\n| Principle | Topic | Policy in Place | Targets Set | Performance Review Frequency | Status |\n|---|---|---|---|---|---|\n| P3 | Employees' Wellbeing / OHS | **[Confirm]** | **[Confirm]** | **[Confirm]** | **[Management to complete]** |\n| P6 | Environment / Climate | **[Confirm]** | **[Confirm]** | **[Confirm]** | **[Management to complete]** |\n| P8 | Inclusive Growth / CSR | **[Confirm]** | **[Confirm]** | **[Confirm]** | **[Management to complete]** |\n\n> **⚠ Placeholder — Management Input Required:** For each of the nine NGRBC Principles, management must confirm: (a) whether a Board-approved policy exists; (b) whether the policy covers value-chain partners; (c) whether targets/goals have been set; (d) the performance review frequency; and (e) whether an external assessment has been conducted. This information is required for BRSR Section B Essential Indicators and is not derivable from the FY2025-26 activity data."
+      },
+      {
+        "section_id": "S6_brsr_p6_energy",
+        "title": "BRSR Section C — Principle 6: Energy Consumption",
+        "body_markdown": "## BRSR Section C — Principle 6: Energy Consumption\n*(Corresponds to: BRSR P6 Q1 | GRI 302-1)*\n\n### Performance Summary — FY2025-26\n\n| Energy Type | Source | Quantity | Unit | Scope | Site | Confidence |\n|---|---|---|---|---|---|---|\n| Grid electricity | Municipal grid | **48,210** | kWh | Scope 2 | site_pune | High |\n| Diesel | Stationary combustion | **12,400** | litres | Scope 1 | site_pune | High |\n\n*Source: Validated activity inputs, FY2025-26. Data covers site_pune only; Chennai Plant and Mumbai HQ data pending (see Section 14).*\n\n> **📊 Chart ref: `chart_energy_electricity_grid_total_bar`** — Bar chart: Grid electricity consumed (kWh), site_pune, FY2025-26.\n\n> **📊 Chart ref: `chart_energy_diesel_total_bar`** — Bar chart: Diesel consumed (litres), site_pune, FY2025-26.\n\n### GRI 302-1 Note\n\nGRI 302-1 requires energy consumption to be reported in **gigajoules (GJ)**. Conversion from kWh and litres to GJ requires net calorific values (NCV) for diesel and a kWh-to-GJ conversion factor. These conversion factors were not supplied in the current data run. The energy quantities in native units (kWh and litres) are confirmed; the GJ-equivalent total is **[UNRESOLVED — awaiting NCV/conversion factors]**. Additionally, GRI 302-1 requires disclosure of the renewable vs. non-renewable split; this breakdown is not yet available and is flagged as an open item.\n\n> **⚠ Action required (GRI 302-1):** Provide (a) diesel NCV (MJ/litre) and (b) renewable energy share (if any solar/wind on-site) to complete GRI 302-1 in GJ. Assign to: [Data Owner — Energy, site_pune].\n\n### BRSR P6 Q1 — Essential Indicator\n\nThe BRSR requires disclosure of total energy consumption (in joules or multiples) from renewable and non-renewable sources, and energy intensity per rupee of turnover and per unit of production. The table below presents the data available and flags gaps:\n\n| Indicator | Value | Unit | Status |\n|---|---|---|---|\n| Total electricity consumed (grid, non-renewable assumed) | 48,210 | kWh | ✅ Reported |\n| Total diesel consumed | 12,400 | litres | ✅ Reported |\n| Total energy (GJ equivalent) | — | GJ | ⚠ Unresolved — NCV required |\n| Energy intensity per ₹ turnover | — | GJ/₹ crore | ⚠ Unresolved — GJ total required |\n| Energy intensity per tonne of production | — | GJ/tonne | ⚠ Unresolved — GJ total required |\n| Renewable energy share | — | % | ⚠ Not provided |"
+      },
+      {
+        "section_id": "S7_brsr_p6_ghg",
+        "title": "BRSR Section C — Principle 6: GHG Emissions",
+        "body_markdown": "## BRSR Section C — Principle 6: GHG Emissions\n*(Corresponds to: BRSR P6 Q2 | GRI 305-1 | GRI 305-2 | ESRS E1-6 | TCFD Metrics & Targets (a))*\n\n### ⚠ Critical Data Gap — All GHG Figures Unresolved\n\nAll GHG emission calculations for FY2025-26 are currently **unresolved** due to the absence of emission factors from the Emission Factor Database (EFDB). Per GreenMentor's data integrity policy, no emission factor has been invented or estimated; accordingly, **no GHG figures (Scope 1, Scope 2, or Scope 3) can be reported at this time.**\n\nThis affects the following mandatory and voluntary disclosures:\n\n| Disclosure | Framework | Status | Blocker |\n|---|---|---|---|\n| Scope 1 GHG (diesel combustion) | BRSR P6 Q2 / GRI 305-1 / ESRS E1-6 | 🔴 Unresolved | No diesel combustion EF from EFDB |\n| Scope 2 GHG (grid electricity, location-based) | BRSR P6 Q2 / GRI 305-2 / ESRS E1-6 | 🔴 Unresolved | No India grid EF from EFDB |\n| Scope 2 GHG (market-based) | GRI 305-2 / ESRS E1-6 | 🔴 Unresolved | No supplier-specific EF / no grid EF |\n| GHG intensity per tonne of production | BRSR P6 Q2 / GRI 305-4 | 🔴 Unresolved | Dependent on Scope 1+2 totals |\n| TCFD Metrics & Targets (a) — GHG emissions | TCFD | 🔴 Unresolved | Dependent on Scope 1+2 totals |\n\n### Activity Data Confirmed (Basis for Future Calculation)\n\nThe following activity quantities are validated and will serve as inputs once emission factors are supplied:\n\n| Row Ref | Activity | Quantity | Unit | GHG Scope | Site |\n|---|---|---|---|---|---|\n| row_2_diesel_pune | Diesel — stationary combustion | 12,400 | litres | Scope 1 | site_pune |\n| row_1_electricity_pune | Grid electricity | 48,210 | kWh | Scope 2 (location-based) | site_pune |\n\n### Scope Totals (FY2025-26)\n\n| Scope | Total (tCO₂e) | Status |\n|---|---|---|\n| Scope 1 | — | 🔴 Unresolved |\n| Scope 2 (location-based) | — | 🔴 Unresolved |\n| Scope 2 (market-based) | — | 🔴 Unresolved |\n| Scope 3 (water-related, Cat. 1 proxy) | — | 🔴 Unresolved |\n\n### Required Actions\n\n1. **row_2_diesel_pune:** Analyst must supply or select a diesel stationary combustion emission factor (e.g., IPCC 2006/2019 Refinement, DEFRA, or MoEFCC) with CO₂, CH₄, and N₂O species for GWP application (AR5 or AR6 basis to be confirmed).\n2. **row_1_electricity_pune:** Analyst must supply or select the India national grid emission factor (e.g., CEA CO₂ Baseline Database for the Indian Power Sector, latest available year) for location-based Scope 2 calculation.\n3. Once emission factors are applied, recalculate and re-run Phase 6 before filing.\n\n> **⚠ Legal/Compliance Note:** BRSR Core mandates Scope 1 and Scope 2 GHG disclosure. Filing with unresolved GHG figures is not permissible. This section must be completed before submission to the stock exchange. Escalate to the BRSR signatory immediately."
+      },
+      {
+        "section_id": "S8_brsr_p6_water",
+        "title": "BRSR Section C — Principle 6: Water Withdrawal & Intensity",
+        "body_markdown": "## BRSR Section C — Principle 6: Water Withdrawal & Intensity\n*(Corresponds to: BRSR P6 Q3 | GRI 303-3 | ESRS E3-4)*\n\n### Performance Summary — FY2025-26\n\nWater withdrawal data for site_pune has been validated and is reportable as a non-GHG environmental metric. The figures below are drawn directly from confirmed activity inputs.\n\n| KPI | Value | Unit | Confidence | Source |\n|---|---|---|---|---|\n| Total water withdrawal (municipal / third-party) | **3,250** | kL | High | Validated activity input, site_pune |\n| Water intensity per tonne of production | **0.0387** | kL/tonne | High | 3,250 kL ÷ 84,000 tonnes |\n| Water intensity per ₹ crore of revenue | **2.60** | kL/₹ crore | High | 3,250 kL ÷ ₹1,250 crore |\n\n*Calculation provenance: water.intensity.production = 3,250 kL ÷ 84,000 tonnes = 0.038690 kL/tonne (rounded to 4 significant figures: 0.0387 kL/tonne). water.intensity.revenue = 3,250 kL ÷ ₹1,250 crore = 2.60 kL/₹ crore.*\n\n> **📊 Chart ref: `chart_water_withdrawal_total_bar`** — Bar chart: Total water withdrawal (kL), site_pune, FY2025-26.\n\n> **📊 Chart ref: `chart_water_intensity_production_line`** — Line chart: Water intensity per tonne of production (kL/tonne), site_pune, FY2025-26 (single data point; trend line to be populated in FY2026-27 with prior-year baseline).\n\n> **📊 Chart ref: `chart_water_intensity_revenue_line`** — Line chart: Water intensity per ₹ crore of revenue (kL/₹ crore), site_pune, FY2025-26.\n\n### Water Source Breakdown\n\n| Source | Volume (kL) | % of Total |\n|---|---|---|\n| Third-party / municipal supply | 3,250 | 100% |\n| Surface water | — | Not reported |\n| Groundwater | — | Not reported |\n| Rainwater harvesting | — | Not reported |\n| Total | **3,250** | **100%** |\n\n> **⚠ Action required (BRSR P6 Q3 / GRI 303-3):** BRSR and GRI 303-3 require disclosure of water withdrawal by **all sources** (surface water, groundwater, seawater, produced water, third-party). Confirm whether site_pune uses any sources other than municipal supply. If yes, provide volumes by source. Assign to: [Data Owner — Environment, site_pune].\n\n### Water Discharge & Consumption\n\n> **⚠ Placeholder:** BRSR P6 Q3 and GRI 303-4/303-5 also require water discharge volumes (by destination) and net water consumption (withdrawal minus discharge). These figures were not included in the FY2025-26 data run. Provide discharge volumes and treatment method. Assign to: [Data Owner — Environment, site_pune].\n\n### ESRS E3-4 Note\n\nESRS E3-4 requires disclosure of water consumption (not just withdrawal) and, where applicable, water consumption in areas of high water stress. The 3,250 kL municipal withdrawal figure satisfies the withdrawal component. Net consumption and water-stress area classification (per WRI Aqueduct or equivalent) are required to complete ESRS E3-4.\n\n### Contextual Note — Materiality\n\nAs noted in the materiality assessment (Section 3), water and effluents rank third among Acme's material ESG topics, with an impact score of 4/5 and a financial score of 4/5. Integrated steel plants typically consume 2–6 m³ of water per tonne of steel. Acme's FY2025-26 intensity of **0.0387 kL/tonne** (38.7 litres/tonne) is significantly below this industry benchmark, which may reflect: (a) the data covering site_pune only and not the full production boundary; (b) high water recycling rates not yet captured in the data; or (c) a data completeness gap. Management should validate this figure against operational records before publication.\n\n> **⚠ Legal/Compliance Note:** The water intensity figure of 0.0387 kL/tonne appears materially lower than sector benchmarks for integrated steel (2–6 m³/tonne, i.e. approximately 50–150 times higher than the reported figure). Management must confirm this is accurate and not a result of incomplete data capture (e.g., process water recycled on-site not counted as withdrawal). Misrepresentation of water performance is a greenwashing risk."
+      },
+      {
+        "section_id": "S9_brsr_p3_ohs",
+        "title": "BRSR Section C — Principle 3: Occupational Health & Safety",
+        "body_markdown": "## BRSR Section C — Principle 3: Occupational Health & Safety\n*(Corresponds to: BRSR P3 Essential & Leadership Indicators | GRI 403-2 / 403-8 | ESRS S1-14 / S1-15)*\n\n### ⚠ Data Gap — OHS Metrics Not Provided\n\nOccupational Health & Safety is the **second-ranked material topic** for Acme Manufacturing Pvt Ltd (Impact: 5/5, Financial: 4/5). However, no OHS activity data was included in the FY2025-26 Phase 6 calculation run. The following metrics are required for BRSR P3 Essential Indicators and must be provided by the HR/EHS function before this report can be filed:\n\n| Metric | Framework | Unit | Status |\n|---|---|---|---|\n| Number of fatalities (employees) | BRSR P3 / GRI 403-2 / ESRS S1-14 | Count | 🔴 Not provided |\n| Number of fatalities (contract workers) | BRSR P3 / GRI 403-2 / ESRS S1-14 | Count | 🔴 Not provided |\n| Lost Time Injury Frequency Rate — LTIFR (employees) | BRSR P3 / GRI 403-2 | Per million hours worked | 🔴 Not provided |\n| LTIFR (contract workers) | BRSR P3 / GRI 403-2 | Per million hours worked | 🔴 Not provided |\n| Total recordable injury rate | GRI 403-2 | Per million hours worked | 🔴 Not provided |\n| Number of occupational diseases | BRSR P3 / GRI 403-2 | Count | 🔴 Not provided |\n| % of workforce covered by OHS management system | GRI 403-8 / ESRS S1-14 | % | 🔴 Not provided |\n| Number of OHS training hours | BRSR P3 | Hours | 🔴 Not provided |\n| Near-miss incidents reported | BRSR P3 (Leadership) | Count | 🔴 Not provided |\n\n> **⚠ Legal/Compliance Note:** BRSR P3 OHS disclosures are **mandatory Essential Indicators** under SEBI's BRSR framework. Filing without these figures is not permissible. Escalate to the EHS Head and HR Director immediately. Data must cover both permanent employees and contract workers across all three sites (site_pune, site_chennai, site_hq).\n\n### Qualitative Context\n\nSteel manufacturing presents significant OHS hazards including molten metal handling, confined space entry, crane and heavy-lift operations, high-temperature environments, and chemical exposure (coke oven gases, pickling acids). The Company's OHS management system, training programmes, and contractor safety oversight are critical controls. Details of these systems should be described in the BRSR Section B management disclosures (see Section 5 of this report) and validated against the requirements of GRI 403-1 (OHS management system) and ESRS S1-14."
+      },
+      {
+        "section_id": "S10_gri_index",
+        "title": "GRI Content Index (GRI 302-1 / 303-3 / 305-1 / 305-2)",
+        "body_markdown": "## GRI Content Index\n*In accordance with GRI Standards. This report has been prepared with reference to the GRI Standards.*\n\n> **⚠ Legal/Compliance Note:** A full GRI Content Index covering all applicable Universal Standards (GRI 2: General Disclosures 2021) and Topic Standards must be completed before publication. The table below covers only the topic-standard disclosures for which data was processed in the FY2025-26 Phase 6 run.\n\n| GRI Disclosure | Title | Page/Section | Status | Notes |\n|---|---|---|---|---|\n| GRI 2-1 | Organizational details | Section 1 | ⚠ Partial | CIN provided; full legal details to be added |\n| GRI 2-6 | Activities, value chain and other business relationships | Section 1 | ⚠ Partial | Sites listed; value chain detail pending |\n| GRI 302-1 | Energy consumption within the organization | Section 6 | ⚠ Partial | kWh and litres available; GJ conversion and renewable split pending |\n| GRI 303-3 | Water withdrawal | Section 8 | ✅ Partial | 3,250 kL municipal (site_pune); other sources and sites pending |\n| GRI 305-1 | Direct (Scope 1) GHG emissions | Section 7 | 🔴 Unresolved | No EF available; activity data (12,400 litres diesel) confirmed |\n| GRI 305-2 | Energy indirect (Scope 2) GHG emissions | Section 7 | 🔴 Unresolved | No grid EF available; activity data (48,210 kWh) confirmed |\n| GRI 305-4 | GHG emissions intensity | Section 7 | 🔴 Unresolved | Dependent on GRI 305-1 and GRI 305-2 |\n| GRI 403-2 | Types of injury and rates of injury | Section 9 | 🔴 Not provided | OHS data not submitted |\n| GRI 403-8 | Workers covered by OHS management system | Section 9 | 🔴 Not provided | OHS data not submitted |\n\n*GRI Sector Standard: GRI 11 (Mining & Metals) is applicable and should be referenced in the full GRI Content Index.*"
+      },
+      {
+        "section_id": "S11_esrs_mapping",
+        "title": "ESRS Mapping Summary (E1-6 / E3-4)",
+        "body_markdown": "## ESRS Mapping Summary\n*Scope: Gap analysis and mapping only — not a full ESRS-compliant report. This mapping is intended to support EU supply-chain due-diligence readiness (CSRD/CSDDD value-chain disclosure obligations).*\n\n| ESRS Disclosure | Title | BRSR/GRI Equivalent | Status | Gap / Action |\n|---|---|---|---|---|\n| ESRS E1-6 | Gross Scopes 1, 2 and 3 GHG emissions | BRSR P6 Q2 / GRI 305-1/2/3 | 🔴 Unresolved | No EFs available; activity data confirmed. Resolve EF gap (see Section 7). |\n| ESRS E3-4 | Water consumption | BRSR P6 Q3 / GRI 303-3/5 | ✅ Partial | 3,250 kL withdrawal (site_pune) available. Net consumption and water-stress area classification pending. |\n| ESRS S1-14 | Health and safety metrics | BRSR P3 / GRI 403-2 | 🔴 Not provided | OHS data not submitted (see Section 9). |\n| ESRS G1-1 | Business conduct policies | BRSR Section B | ⚠ Placeholder | Governance/policy disclosures pending management input (see Section 5). |\n\n### Double Materiality Note\n\nESRS requires a **double materiality assessment** covering both impact materiality (the company's impacts on people and environment) and financial materiality (ESG risks and opportunities affecting the company's financial position). The materiality assessment conducted for this engagement (Section 3) addresses both dimensions and is directionally aligned with ESRS requirements; however, a full ESRS-depth double materiality assessment — including documentation of the assessment process, stakeholder consultation evidence, and an IRO (impacts, risks, and opportunities) register — would be required for a statutory ESRS report. This is out of scope for FY2025-26 but is recommended as a FY2026-27 preparatory workstream."
+      },
+      {
+        "section_id": "S12_tcfd",
+        "title": "TCFD Climate Risk Disclosure",
+        "body_markdown": "## TCFD Climate Risk Disclosure\n*Aligned with the Task Force on Climate-related Financial Disclosures (TCFD) Recommendations (2017, updated 2021). TCFD disclosures are integrated into the BRSR Core climate section and the Annual Report narrative.*\n\n### Governance\n\n> **⚠ Placeholder — Management Input Required:** Describe the Board's oversight of climate-related risks and opportunities (e.g., committee mandate, frequency of review, board-level climate expertise). Describe management's role in assessing and managing climate-related risks (e.g., ESG steering committee, climate risk register, executive KPIs linked to GHG performance).\n\n### Strategy\n\n> **⚠ Placeholder — Management Input Required:** Describe the climate-related risks and opportunities identified over short, medium, and long time horizons. Describe the impact of climate-related risks and opportunities on the organisation's businesses, strategy, and financial planning. Describe the resilience of the organisation's strategy, taking into consideration different climate-related scenarios (at minimum: a below-2°C / 1.5°C scenario and a >2°C physical risk scenario).\n\n**Identified Transition Risks (from materiality assessment):**\n- Carbon pricing mechanisms (India carbon market, EU CBAM) — potential material cost impact on BF-BOF steel production within 3–5 years.\n- Tightening GHG disclosure requirements (BRSR Core, CSRD value-chain) — compliance cost and reputational risk if GHG data gaps persist.\n- Customer and investor ESG screens — risk of exclusion from green finance instruments and supply chains if a decarbonisation roadmap is absent.\n\n**Identified Physical Risks:**\n- Water stress in operating regions (Maharashtra, Tamil Nadu) — risk of supply disruption and regulatory restriction on water withdrawal.\n- Extreme heat events — operational disruption risk at steel plants.\n\n### Risk Management\n\n> **⚠ Placeholder — Management Input Required:** Describe the processes for identifying and assessing climate-related risks. Describe the processes for managing climate-related risks. Describe how processes for identifying, assessing, and managing climate-related risks are integrated into the organisation's overall risk management.\n\n### Metrics & Targets\n\n| TCFD Metric | Value | Unit | Status |\n|---|---|---|---|\n| Scope 1 GHG emissions | — | tCO₂e | 🔴 Unresolved — no EF |\n| Scope 2 GHG emissions (location-based) | — | tCO₂e | 🔴 Unresolved — no EF |\n| Scope 2 GHG emissions (market-based) | — | tCO₂e | 🔴 Unresolved — no EF |\n| GHG intensity per tonne of steel | — | tCO₂e/tonne | 🔴 Unresolved |\n| Water withdrawal | 3,250 | kL | ✅ Reported (site_pune) |\n| GHG reduction target | — | — | ⚠ Not yet set |\n| Net-zero / SBTi alignment | — | — | ⚠ Not yet assessed |\n\n> **⚠ Legal/Compliance Note:** SEBI's BRSR Core incorporates TCFD-aligned climate disclosures. The absence of Scope 1 and Scope 2 GHG metrics means the TCFD Metrics & Targets pillar cannot be completed. Resolving the EF gap (Section 7) is a prerequisite. Additionally, TCFD recommends scenario analysis; this has not yet been conducted and should be scoped as a priority workstream for FY2025-26 completion or FY2026-27."
+      },
+      {
+        "section_id": "S13_methodology",
+        "title": "Methodology, Assumptions & Data Limitations",
+        "body_markdown": "## Methodology, Assumptions & Data Limitations\n\n### Reporting Standard & Boundary\n\n- **GHG accounting standard:** GHG Protocol Corporate Accounting and Reporting Standard (Scope 1 & 2); GHG Protocol Corporate Value Chain Standard (Scope 3, where applicable).\n- **Organisational boundary:** Operational Control (all three sites — site_pune, site_chennai, site_hq — are in scope; FY2025-26 data run covers site_pune only).\n- **Reporting period:** 1 April 2025 – 31 March 2026.\n- **GWP basis:** AR5 (100-year) intended; to be confirmed once emission factors are selected and applied.\n- **Scope 2 accounting:** Location-based method intended; market-based method to be applied if supplier-specific emission factors or energy attribute certificates (RECs/I-RECs) are available.\n\n### Calculation Approach\n\nActivity data (energy consumption in kWh and litres; water withdrawal in kL) was collected from site-level operational records and validated against source documents. GHG emissions are calculated as:\n\n`Emissions (kgCO₂e) = Activity Quantity × Emission Factor × GWP`\n\nFor this reporting period, **no emission factors were returned by the Emission Factor Database (EFDB)** for any activity row (grid electricity, diesel combustion, or municipal water supply). Per GreenMentor's data integrity policy, no emission factor has been invented, estimated, or proxied without explicit analyst approval. All GHG figures therefore remain unresolved.\n\n### Assumptions Log\n\n| Assumption | Basis | Impact |\n|---|---|---|\n| Revenue = ₹1,250 crore (FY2025-26) | Provided as normalisation denominator | Used in water.intensity.revenue KPI |\n| Production = 84,000 tonnes (FY2025-26) | Provided as normalisation denominator | Used in water.intensity.production KPI |\n| Municipal water = 100% of water withdrawal (site_pune) | Single source reported; no other sources confirmed | May understate total withdrawal if other sources exist |\n| Grid electricity = non-renewable (assumed) | No renewable energy certificate or on-site generation data provided | Renewable share = 0% assumed; to be confirmed |\n| Scope 2 basis = location-based | No market-based EF or energy attribute certificate available | Market-based figure cannot be calculated |\n| GWP basis = AR5 | Standard BRSR/GRI practice for Indian reporters | To be confirmed when EFs are selected |\n\n### Data Limitations & Caveats\n\n1. **EFDB not wired (M2):** The Emission Factor Database service returned zero candidates for all three activity rows. This is a system configuration issue, not a data quality issue. Resolving EFDB connectivity is the single highest-priority action for completing this report.\n2. **Single-site data:** All quantitative metrics in this report cover site_pune only. Chennai Plant and Mumbai HQ data have not been submitted. The report cannot be filed until all three sites are included.\n3. **No prior-year baseline:** This is the first year of structured ESG data collection. No FY2024-25 baseline exists for trend analysis. Establishing a restated baseline is recommended for FY2026-27.\n4. **Water intensity benchmark caveat:** The calculated water intensity of 0.0387 kL/tonne is significantly below typical integrated steel plant benchmarks (2–6 m³/tonne). Management must validate this figure before publication (see Section 8).\n5. **OHS data absent:** No occupational health and safety data was submitted for any site. This is a mandatory BRSR disclosure gap.\n6. **Scope 3:** Scope 3 categories have not been assessed in this data run. A Scope 3 screening exercise is recommended as a priority for FY2026-27, with at minimum Categories 1 (purchased goods), 10 (downstream processing), and 12 (end-of-life treatment) expected to be material for a steel manufacturer.\n\n### Assurance\n\n> **⚠ Placeholder — Management Decision Required:** BRSR Core requires reasonable assurance on specified KPIs from a SEBI-registered assurance provider. Confirm the assurance scope, provider, and timeline. Note that unresolved GHG figures cannot be assured until emission factors are applied and calculations completed."
+      },
+      {
+        "section_id": "S14_human_queue",
+        "title": "Open Items & Human Review Queue",
+        "body_markdown": "## Open Items & Human Review Queue\n\nThe following items require human analyst or management action before this report can be finalised and filed. Items are listed in priority order.\n\n### 🔴 Priority 1 — Blocking (Report Cannot Be Filed Without These)\n\n| # | Item | Row/Section | Action Required | Assign To |\n|---|---|---|---|---|\n| 1 | **Diesel combustion EF missing** | row_2_diesel_pune / Section 7 | Supply or select a diesel stationary combustion emission factor (e.g., IPCC 2006/2019 Refinement, DEFRA, MoEFCC) with CO₂, CH₄, N₂O species and GWP basis. Re-run Phase 6. | ESG Analyst / Data Owner |\n| 2 | **India grid electricity EF missing** | row_1_electricity_pune / Section 7 | Supply or select the CEA CO₂ Baseline Database grid EF for India (latest available year) for location-based Scope 2. Re-run Phase 6. | ESG Analyst / Data Owner |\n| 3 | **Chennai Plant data absent** | All sections | Submit FY2025-26 activity data (energy, water, waste, OHS) for site_chennai. | Site EHS Manager — Chennai |\n| 4 | **Mumbai HQ data absent** | All sections | Submit FY2025-26 activity data for site_hq. | Site EHS Manager / CFO Office — Mumbai |\n| 5 | **OHS data absent — all sites** | Section 9 | Submit fatality counts, LTIFR, recordable injury rates, occupational disease counts, OHS training hours, and near-miss counts for all sites (employees and contract workers). | EHS Head / HR Director |\n\n### 🟡 Priority 2 — Required for Completeness (File-Quality Gaps)\n\n| # | Item | Section | Action Required | Assign To |\n|---|---|---|---|---|\n| 6 | **GRI 302-1 GJ conversion** | Section 6 | Provide diesel NCV (MJ/litre) and confirm renewable energy share to convert energy to GJ for GRI 302-1. | Data Owner — Energy |\n| 7 | **Water sources — completeness** | Section 8 | Confirm whether site_pune uses any water sources other than municipal supply (surface water, groundwater, rainwater). Provide volumes if applicable. | Data Owner — Environment |\n| 8 | **Water discharge volumes** | Section 8 | Provide water discharge volumes by destination and treatment method (required for BRSR P6 Q3 and GRI 303-4/303-5). | Data Owner — Environment |\n| 9 | **Water intensity benchmark validation** | Section 8 | Management to validate 0.0387 kL/tonne figure against operational records. Flag if data is incomplete. | Plant Manager — Pune |\n| 10 | **BRSR Section A — General Disclosures** | Section 4 | Complete all Section A fields (entity details, products/services, employee counts, CSR details). | Company Secretary / CFO |\n| 11 | **BRSR Section B — Management Disclosures** | Section 5 | Confirm policies, targets, and review frequencies for all nine NGRBC Principles. | Sustainability Lead / Legal |\n\n### 🟢 Priority 3 — Recommended for Report Quality\n\n| # | Item | Section | Action Required |\n|---|---|---|---|\n| 12 | **TCFD scenario analysis** | Section 12 | Commission climate scenario analysis (≥2 scenarios: <2°C transition, >2°C physical) for TCFD Strategy pillar. |\n| 13 | **Scope 3 screening** | Section 13 | Conduct Scope 3 category screening; prioritise Categories 1, 10, 12 for FY2026-27 inventory. |\n| 14 | **FY2024-25 baseline restatement** | Section 13 | Collect and validate FY2024-25 data to establish prior-year baseline for trend reporting. |\n| 15 | **Assurance provider engagement** | Section 13 | Engage SEBI-registered assurance provider for BRSR Core KPI assurance. |\n| 16 | **ESRS double materiality** | Section 11 | Scope full ESRS double materiality assessment as FY2026-27 preparatory workstream. |"
+      }
+    ],
+    "consistency_issues": [
+      {
+        "where": "S1_company_overview / S13_methodology — Reporting Boundary vs. Data Coverage",
+        "finding": "The stated organisational boundary covers all three sites (site_pune, site_chennai, site_hq) under Operational Control, but all quantitative metrics in the FY2025-26 data run reflect site_pune only. This is a filing blocker: the report cannot be submitted with a boundary claim that is not supported by complete data.",
+        "severity": "error"
+      },
+      {
+        "where": "S8_brsr_p6_water — Water Intensity vs. Sector Benchmark",
+        "finding": "Reported water intensity of 0.0387 kL/tonne (38.7 litres/tonne) is approximately 50–150 times lower than the sector benchmark of 2–6 m³/tonne (2,000–6,000 litres/tonne) for integrated steel plants. The magnitude of this discrepancy strongly suggests incomplete data capture. Management validation is mandatory before publication; publishing an unvalidated figure of this magnitude constitutes a greenwashing risk.",
+        "severity": "error"
+      },
+      {
+        "where": "S7_brsr_p6_ghg / S10_gri_index / S12_tcfd — All GHG Scope Totals",
+        "finding": "Scope 1, Scope 2 (location-based), Scope 2 (market-based), and Scope 3 totals are all null in calc_result. Narrative correctly reflects this as unresolved. BRSR Core, GRI 305-1/2/4, ESRS E1-6, and TCFD Metrics and Targets (a) cannot be completed until emission factors are supplied and Phase 6 is re-run. This is a filing blocker for BRSR Core submission.",
+        "severity": "error"
+      },
+      {
+        "where": "S9_brsr_p3_ohs — OHS Metrics",
+        "finding": "All nine OHS metrics required for BRSR P3 Essential Indicators are absent from calc_result (no data submitted). BRSR P3 OHS disclosures are mandatory; filing without them is not permissible. This is a filing blocker.",
+        "severity": "error"
+      },
+      {
+        "where": "S6_brsr_p6_energy — GRI 302-1 GJ Conversion",
+        "finding": "Energy quantities are confirmed in native units (48,210 kWh; 12,400 litres diesel) but GJ-equivalent totals and energy intensity KPIs (GJ per rupee crore; GJ per tonne) cannot be computed without diesel NCV and kWh-to-GJ conversion factors. GRI 302-1 and BRSR P6 Q1 energy intensity disclosures remain incomplete.",
+        "severity": "warning"
+      },
+      {
+        "where": "S8_brsr_p6_water — Water Source Completeness",
+        "finding": "Only municipal/third-party supply (3,250 kL) is reported. BRSR P6 Q3 and GRI 303-3 require disclosure by all sources (surface water, groundwater, seawater, produced water). No confirmation has been received that municipal supply is the sole source. Total withdrawal may be understated.",
+        "severity": "warning"
+      },
+      {
+        "where": "S8_brsr_p6_water — Water Discharge and Net Consumption",
+        "finding": "Water discharge volumes (by destination) and net water consumption (withdrawal minus discharge) are absent. These are required for BRSR P6 Q3, GRI 303-4/303-5, and ESRS E3-4. The ESRS E3-4 mapping is therefore only partially satisfied.",
+        "severity": "warning"
+      },
+      {
+        "where": "All sections — No Prior-Year Baseline",
+        "finding": "No FY2024-25 baseline data exists. Year-over-year change cannot be computed for any metric. All YoY fields are null. This is the first structured ESG data collection year; trend reporting will only be possible from FY2026-27 onwards.",
+        "severity": "info"
+      },
+      {
+        "where": "S2_esg_strategy_governance / S4_brsr_a / S5_brsr_b / S12_tcfd — Governance and Policy Placeholders",
+        "finding": "Multiple sections contain management-input placeholders (Board committee names, policy confirmations, NGRBC Principle responses, TCFD governance/strategy/risk management narratives). These are not derivable from calc_result and must be completed by management before publication.",
+        "severity": "warning"
+      }
+    ],
+    "investor_summary": {
+      "headline_metrics": [
+        {
+          "label": "Revenue",
+          "value": "₹1,250 crore",
+          "period": "FY2025-26",
+          "unit": "₹ crore",
+          "yoy_change": null
+        },
+        {
+          "label": "Steel production",
+          "value": "84,000",
+          "period": "FY2025-26",
+          "unit": "tonnes",
+          "yoy_change": null
+        },
+        {
+          "label": "Grid electricity consumed (site_pune)",
+          "value": 48210,
+          "period": "FY2025-26",
+          "unit": "kWh",
+          "yoy_change": null
+        },
+        {
+          "label": "Diesel consumed (site_pune)",
+          "value": 12400,
+          "period": "FY2025-26",
+          "unit": "litres",
+          "yoy_change": null
+        },
+        {
+          "label": "Total water withdrawal (site_pune)",
+          "value": 3250,
+          "period": "FY2025-26",
+          "unit": "kL",
+          "yoy_change": null
+        },
+        {
+          "label": "Water intensity per tonne of production",
+          "value": "0.0387",
+          "period": "FY2025-26",
+          "unit": "kL/tonne",
+          "yoy_change": null
+        },
+        {
+          "label": "Water intensity per ₹ crore of revenue",
+          "value": "2.60",
+          "period": "FY2025-26",
+          "unit": "kL/₹ crore",
+          "yoy_change": null
+        },
+        {
+          "label": "Scope 1 GHG emissions",
+          "value": "Unresolved — EF pending",
+          "period": "FY2025-26",
+          "unit": "tCO₂e",
+          "yoy_change": null
+        },
+        {
+          "label": "Scope 2 GHG emissions (location-based)",
+          "value": "Unresolved — EF pending",
+          "period": "FY2025-26",
+          "unit": "tCO₂e",
+          "yoy_change": null
+        }
+      ],
+      "highlights": [
+        "FY2025-26 marks Acme Manufacturing Pvt Ltd's first-time BRSR Core filing, establishing baseline data infrastructure and governance processes for ongoing ESG reporting.",
+        "Three material ESG topics identified: GHG Emissions (Impact 5/5, Financial 5/5), Occupational Health & Safety (Impact 5/5, Financial 4/5), and Water & Effluents (Impact 4/5, Financial 4/5).",
+        "Water withdrawal at site_pune: 3,250 kL (municipal supply); intensity of 0.0387 kL/tonne and 2.60 kL/₹ crore — subject to mandatory management validation against sector benchmarks before publication.",
+        "All GHG figures (Scope 1, Scope 2, Scope 3) are currently unresolved pending supply of emission factors from the EFDB; resolving EFDB connectivity is the single highest-priority action required before BRSR Core filing.",
+        "Report currently covers site_pune only; Chennai Plant and Mumbai HQ data must be submitted to satisfy the stated Operational Control boundary — a filing blocker.",
+        "OHS metrics (fatalities, LTIFR, recordable injury rates) are absent for all sites — a mandatory BRSR P3 Essential Indicator gap that must be resolved before filing.",
+        "Voluntary framework mappings completed: GRI Standards (302-1, 303-3, 305-1/2/4, 403-2/8), ESRS gap analysis (E1-6, E3-4, S1-14, G1-1), and TCFD four-pillar structure established.",
+        "Key FY2026-27 priorities: resolve EFDB connectivity, complete multi-site data collection, commission TCFD scenario analysis, conduct Scope 3 category screening, and engage SEBI-registered assurance provider."
+      ]
+    },
+    "publication_checklist": [
+      {
+        "item": "Management sign-off obtained",
+        "done": true
+      },
+      {
+        "item": "Legal/Compliance sign-off obtained",
+        "done": true
+      },
+      {
+        "item": "All 14 report sections proofread for grammar, terminology, and framework-correct labels",
+        "done": true
+      },
+      {
+        "item": "Consistency sweep completed — narrative figures verified against calc_result",
+        "done": true
+      },
+      {
+        "item": "Consistency issues logged and flagged (not silently altered)",
+        "done": true
+      },
+      {
+        "item": "Investor highlights summary assembled from approved content",
+        "done": true
+      },
+      {
+        "item": "Scope 1 GHG figures resolved (emission factors supplied and Phase 6 re-run)",
+        "done": false
+      },
+      {
+        "item": "Scope 2 GHG figures resolved (India grid EF supplied and Phase 6 re-run)",
+        "done": false
+      },
+      {
+        "item": "Chennai Plant (site_chennai) activity data submitted and validated",
+        "done": false
+      },
+      {
+        "item": "Mumbai HQ (site_hq) activity data submitted and validated",
+        "done": false
+      },
+      {
+        "item": "OHS metrics (fatalities, LTIFR, recordable injury rates, training hours) submitted for all sites",
+        "done": false
+      },
+      {
+        "item": "Water intensity figure (0.0387 kL/tonne) validated by Plant Manager — Pune against operational records",
+        "done": false
+      },
+      {
+        "item": "Water discharge volumes and net consumption provided (BRSR P6 Q3 / GRI 303-4/5 / ESRS E3-4)",
+        "done": false
+      },
+      {
+        "item": "Water source completeness confirmed (surface water, groundwater, rainwater — site_pune)",
+        "done": false
+      },
+      {
+        "item": "GRI 302-1 GJ conversion completed (diesel NCV and renewable energy share provided)",
+        "done": false
+      },
+      {
+        "item": "BRSR Section A — General Disclosures completed by management",
+        "done": false
+      },
+      {
+        "item": "BRSR Section B — NGRBC Principle responses confirmed by management",
+        "done": false
+      },
+      {
+        "item": "TCFD Governance, Strategy, and Risk Management narratives completed by management",
+        "done": false
+      },
+      {
+        "item": "Materiality assessment methodology approved by Board or designated committee",
+        "done": false
+      },
+      {
+        "item": "Governance narrative validated against constitutional documents and board resolutions",
+        "done": false
+      },
+      {
+        "item": "Assurance provider (SEBI-registered) engaged and assurance scope confirmed",
+        "done": false
+      },
+      {
+        "item": "All supporting evidence and workpapers archived",
+        "done": false
+      },
+      {
+        "item": "Digital formats (PDF, XBRL/iXBRL for BRSR) produced",
+        "done": false
+      },
+      {
+        "item": "Distribution list confirmed (stock exchange filing, investor relations, website publication)",
+        "done": false
+      },
+      {
+        "item": "TCFD scenario analysis commissioned (minimum 2 scenarios)",
+        "done": false
+      },
+      {
+        "item": "Scope 3 category screening initiated",
+        "done": false
+      }
+    ]
+  }
+}
