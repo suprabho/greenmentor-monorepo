@@ -3,6 +3,9 @@
 # Dependencies
 **/node_modules/
 
+# Vercel CLI link state (local only — never commit; see .vercel/README.txt)
+**/.vercel
+
 # Env / secrets
 **/.env
 **/.env.*

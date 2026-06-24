@@ -2,7 +2,7 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "nextjs",
   "functions": {
-    "app/api/report/[engagementId]/pdf/route.ts": { "memory": 1536, "maxDuration": 300 },
+    "app/api/report/[engagementId]/pdf/route.ts": { "maxDuration": 300 },
     "app/api/agents/[agentKey]/run/route.ts": { "maxDuration": 300 }
   }
 }
