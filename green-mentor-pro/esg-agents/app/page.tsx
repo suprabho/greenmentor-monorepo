@@ -1,6 +1,26 @@
-import PipelineBoard from "./PipelineBoard";
+import { redirect } from "next/navigation";
+import { getSession } from "@/lib/auth/session";
+import { listEngagements } from "@/lib/db/engagements";
+import EngagementsHome from "./EngagementsHome";
 
-/** Engagement dashboard — the 8-phase pipeline board + human review console (M1 demo). */
-export default function Home() {
-  return <PipelineBoard />;
+/** Authenticated home — the org's BRSR/ESG engagements. */
+export default async function Home() {
+  const session = await getSession();
+  if (!session) redirect("/login");
+
+  const engagements = await listEngagements(session.orgUuid);
+  return (
+    <EngagementsHome
+      orgName={session.orgName}
+      email={session.email}
+      financialYear={session.financialYear}
+      engagements={engagements.map((e) => ({
+        id: e.id,
+        clientName: e.client_name,
+        financialYear: e.financial_year,
+        framework: e.framework,
+        status: e.status,
+      }))}
+    />
+  );
 }

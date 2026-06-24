@@ -14,10 +14,15 @@ export interface PhaseState {
   status: PhaseStatus;
 }
 
-/** A phase is runnable only when every dependency is `complete` and it is idle. */
+/**
+ * A phase is runnable when every dependency is `complete` and it is idle. "Idle"
+ * includes `failed` so a phase that errored (e.g. a transient AI overload) can be
+ * retried.
+ */
 export function isRunnable(phase: PhaseKey, states: Record<PhaseKey, PhaseStatus>): boolean {
   const def = PHASES[phase];
-  const selfIdle = states[phase] === "not_started" || states[phase] === "changes_requested";
+  const s = states[phase];
+  const selfIdle = s === "not_started" || s === "changes_requested" || s === "failed";
   const depsComplete = def.dependsOn.every((d) => states[d] === "complete");
   return selfIdle && depsComplete;
 }

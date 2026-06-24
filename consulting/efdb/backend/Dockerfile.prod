@@ -1,13 +1,29 @@
-FROM python:3.12-slim
+FROM python:3.14-slim
 
 WORKDIR /app
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    libmupdf-dev \
     gcc \
     libpq-dev \
     curl \
+    # liteparse local backends:
+    #   tesseract  = OCR for scanned PDFs/images (REQUIRED — replaces billed Claude vision)
+    #   imagemagick = converting standalone image uploads (.png/.jpg) (only needed for image inputs)
+    # LibreOffice is intentionally NOT installed: office docs (docx/pptx/odt/rtf)
+    # route to markitdown, which uses pure-Python mammoth/python-pptx. Adding it
+    # would bloat the image ~1.6GB for no path we actually use.
+    tesseract-ocr \
+    tesseract-ocr-eng \
+    imagemagick \
     && rm -rf /var/lib/apt/lists/*
+
+# liteparse's Rust tesseract-rs binding resolves traineddata at ~/.tesseract-rs/tessdata
+# and otherwise downloads it at runtime (flaky, needs network egress, races under load).
+# Pre-seed it from the apt package so OCR is deterministic and works with no egress.
+# Container runs as root, so HOME is /root.
+RUN mkdir -p /root/.tesseract-rs/tessdata \
+    && cp /usr/share/tesseract-ocr/5/tessdata/eng.traineddata /root/.tesseract-rs/tessdata/
+ENV TESSDATA_PREFIX=/usr/share/tesseract-ocr/5/tessdata
 
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt

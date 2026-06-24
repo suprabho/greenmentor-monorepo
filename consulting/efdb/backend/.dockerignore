@@ -1,0 +1,10 @@
+# Build artifacts / local-only files that must not bloat the build context.
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+.git/
+.DS_Store
+*.dump
+pre-swap-backup.json

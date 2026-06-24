@@ -73,6 +73,10 @@ class ExtractionFieldResult(BaseModel):
     source_snippet: Optional[str] = None
     extraction_confidence: str = "high"     # high | medium | low
     extraction_note: Optional[str] = None
+    # Provenance — where in the source document this value came from. Populated
+    # when the parser supplies coordinates (liteparse PDFs/images); null otherwise.
+    source_page: Optional[int] = None       # 1-based page number
+    source_bbox: Optional[list[float]] = None  # [x1, y1, x2, y2] in page coords
 
 
 class ExtractedRecord(BaseModel):

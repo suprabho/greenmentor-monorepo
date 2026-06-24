@@ -1,4 +1,13 @@
 import type { ToolContext } from "./types";
+import { getLatestArtifact } from "@/lib/db/artifacts";
+import { queryDataset } from "@/lib/db/dataCollection";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { PHASE_PRIMARY_ARTIFACT } from "@/lib/db/types";
+import { PHASE_ORDER, type PhaseKey } from "@/lib/orchestrator/pipeline";
+
+/** Tools that touch the DB no-op on demo ctx (org_dev/eng_dev are not uuids). */
+const isUuid = (s: string) =>
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);
 
 /**
  * Dispatch table mapping each tools.json name to a TENANT-SCOPED Supabase/EFDB call.
@@ -145,19 +154,73 @@ const HANDLERS: Record<string, ToolHandler> = {
     };
   },
 
-  // Disclosure requirement lookup (Phase 3/6).
+  // Disclosure requirement lookup (Phase 3/6). Static config-backed (no DB).
   lookup_disclosure_requirement: async () => {
-    return { requirement: null, note: "lookup_disclosure_requirement not yet wired (M2)" };
+    return { requirement: null, note: "lookup_disclosure_requirement not yet wired" };
   },
 
-  // Prior-phase artifact fetch (tenant + financial_year scoped).
-  fetch_prior_artifact: async (_input, ctx) => {
-    return { artifact: null, ctx: { orgId: ctx.orgId, engagementId: ctx.engagementId } };
+  // Prior-phase artifact fetch — reads the latest non-superseded artifact for the
+  // engagement, by phase_key (preferred) or a known artifact_type. Tenant-scoped.
+  fetch_prior_artifact: async (input, ctx) => {
+    if (!isUuid(ctx.orgId) || !isUuid(ctx.engagementId)) {
+      return { artifact: null, note: "no persisted context (demo run)" };
+    }
+    const { artifact_type, phase_key } = (input ?? {}) as { artifact_type?: string; phase_key?: string };
+    let phase = phase_key as PhaseKey | undefined;
+    if (!phase && artifact_type) phase = PHASE_ORDER.find((k) => PHASE_PRIMARY_ARTIFACT[k] === artifact_type);
+    if (!phase) return { artifact: null, note: "specify phase_key or a known artifact_type" };
+    try {
+      const a = await getLatestArtifact(ctx.orgId, ctx.engagementId, phase);
+      return a ? { artifact: a.payload, version: a.version, confidence: a.confidence } : { artifact: null };
+    } catch (e) {
+      return { artifact: null, error: e instanceof Error ? e.message : String(e) };
+    }
   },
 
-  // Scoped read over the workspace dataset (RLS enforced server-side).
-  query_workspace_dataset: async (_input, ctx) => {
-    return { rows: [], ctx: { orgId: ctx.orgId, financialYear: ctx.financialYear } };
+  // Scoped read over the collected dataset (latest 'dataset' artifact rows).
+  query_workspace_dataset: async (input, ctx) => {
+    if (!isUuid(ctx.orgId) || !isUuid(ctx.engagementId)) {
+      return { rows: [], count: 0, note: "no persisted context (demo run)" };
+    }
+    const { metric_codes, site_ids } = (input ?? {}) as { metric_codes?: string[]; site_ids?: string[] };
+    try {
+      return await queryDataset(ctx.orgId, ctx.engagementId, { metricCodes: metric_codes, siteIds: site_ids });
+    } catch (e) {
+      return { rows: [], count: 0, error: e instanceof Error ? e.message : String(e) };
+    }
+  },
+
+  // Data-validation raises a precise question for a data owner → persists a
+  // validation gap + a human-review row (subject_type 'validation').
+  raise_data_owner_query: async (input, ctx) => {
+    const q = (input ?? {}) as {
+      issue_id?: string; data_owner?: string; metric_code?: string;
+      site_id?: string; question?: string; needs_evidence?: boolean;
+    };
+    const question = q.question ?? `Clarify ${q.metric_code ?? "a data point"}`;
+    if (!isUuid(ctx.orgId) || !isUuid(ctx.engagementId)) {
+      return { queued: false, note: "no persisted context (demo run)", question };
+    }
+    try {
+      const admin = createAdminClient();
+      await admin.from("esg_validations").insert({
+        org_id: ctx.orgId, engagement_id: ctx.engagementId, check_type: "gap",
+        severity: "warning", field_path: q.metric_code ?? null, message: question, status: "open",
+      });
+      const { data } = await admin
+        .from("esg_review_queue")
+        .insert({
+          org_id: ctx.orgId, engagement_id: ctx.engagementId, phase_key: "data_validation",
+          subject_type: "validation", item: question,
+          ai_value: { data_owner: q.data_owner ?? null, metric_code: q.metric_code ?? null, site_id: q.site_id ?? null, needs_evidence: q.needs_evidence ?? false },
+          review_required: true, status: "submitted",
+        })
+        .select("id")
+        .single();
+      return { queued: true, query_id: data?.id ?? null };
+    } catch (e) {
+      return { queued: false, error: e instanceof Error ? e.message : String(e) };
+    }
   },
 };
 
