@@ -115,6 +115,119 @@ export async function listReviews(
   return (data ?? []) as EsgReviewItem[];
 }
 
+/* ============ Kickoff open questions (the scope_approval clarification gate) ============ */
+
+export interface OpenQuestionRow {
+  id: string;
+  question: string;
+  answer: string | null;
+  waived: boolean;
+  status: ReviewStatus;
+}
+
+/**
+ * Fan out one 'open_question' review row per kickoff open question. A (re-)run
+ * supersedes the previous round's questions, so we clear any prior open_question
+ * rows first — the answered ones have already been folded into
+ * engagement.config.kickoff_clarifications, which is the durable record.
+ */
+export async function fanoutOpenQuestions(
+  orgId: string,
+  args: { engagementId: string; runId: string | null; questions: string[]; requestedBy?: string | null },
+): Promise<number> {
+  const admin = createAdminClient();
+  const { error: delErr } = await admin
+    .from("esg_review_queue")
+    .delete()
+    .eq("org_id", orgId)
+    .eq("engagement_id", args.engagementId)
+    .eq("phase_key", "kickoff")
+    .eq("subject_type", "open_question");
+  if (delErr) throw new Error(`fanoutOpenQuestions (clear): ${delErr.message}`);
+
+  const questions = (args.questions ?? []).map((q) => String(q).trim()).filter(Boolean);
+  if (questions.length === 0) return 0;
+  const records = questions.map((q) => ({
+    org_id: orgId,
+    engagement_id: args.engagementId,
+    phase_key: "kickoff" as PhaseKey,
+    run_id: args.runId,
+    subject_type: "open_question" as const,
+    item: q,
+    ai_value: { question: q } as Json,
+    review_required: true,
+    status: "submitted" as const,
+    requested_by: args.requestedBy ?? null,
+  }));
+  const { error } = await admin.from("esg_review_queue").insert(records);
+  if (error) throw new Error(`fanoutOpenQuestions: ${error.message}`);
+  return records.length;
+}
+
+/** Count unanswered (submitted) kickoff open questions — the scope_approval gate. */
+export async function countOpenQuestions(orgId: string, engagementId: string): Promise<number> {
+  const admin = createAdminClient();
+  const { count, error } = await admin
+    .from("esg_review_queue")
+    .select("id", { count: "exact", head: true })
+    .eq("org_id", orgId)
+    .eq("engagement_id", engagementId)
+    .eq("phase_key", "kickoff")
+    .eq("subject_type", "open_question")
+    .eq("status", "submitted");
+  if (error) throw new Error(`countOpenQuestions: ${error.message}`);
+  return count ?? 0;
+}
+
+/** All kickoff open questions for an engagement, oldest first, with any answer/waiver. */
+export async function listOpenQuestions(orgId: string, engagementId: string): Promise<OpenQuestionRow[]> {
+  const rows = await listReviews(orgId, engagementId, "kickoff");
+  return rows
+    .filter((r) => r.subject_type === "open_question")
+    .map((r) => {
+      const av = (r.ai_value ?? {}) as Record<string, unknown>;
+      return {
+        id: r.id,
+        question: String(av.question ?? r.item),
+        answer: (av.answer as string) ?? null,
+        waived: av.waived === true,
+        status: r.status,
+      };
+    });
+}
+
+/** Answer or waive one open question → resolves it (status 'approved') and clears the gate row. */
+export async function resolveOpenQuestion(
+  orgId: string,
+  reviewId: string,
+  patch: { answer?: string | null; waived?: boolean; reviewedBy?: string | null },
+): Promise<void> {
+  const admin = createAdminClient();
+  const { data: row, error: readErr } = await admin
+    .from("esg_review_queue")
+    .select("ai_value")
+    .eq("org_id", orgId)
+    .eq("id", reviewId)
+    .eq("subject_type", "open_question")
+    .single();
+  if (readErr || !row) throw new Error(`resolveOpenQuestion (read): ${readErr?.message ?? "no row"}`);
+  const prev = (row.ai_value ?? {}) as Record<string, unknown>;
+  const waived = patch.waived === true;
+  const answer = waived ? null : patch.answer?.trim() || null;
+  const { error } = await admin
+    .from("esg_review_queue")
+    .update({
+      status: "approved",
+      feedback: waived ? "(waived)" : answer,
+      ai_value: { ...prev, answer, waived } as Json,
+      reviewed_by: patch.reviewedBy ?? null,
+    })
+    .eq("org_id", orgId)
+    .eq("id", reviewId)
+    .eq("subject_type", "open_question");
+  if (error) throw new Error(`resolveOpenQuestion: ${error.message}`);
+}
+
 /** Count open (submitted) data-collection field rows — the gate for that phase. */
 export async function countOpenFieldReviews(orgId: string, engagementId: string): Promise<number> {
   const admin = createAdminClient();

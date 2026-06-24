@@ -4,6 +4,7 @@ import { queryDataset } from "@/lib/db/dataCollection";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { PHASE_PRIMARY_ARTIFACT } from "@/lib/db/types";
 import { PHASE_ORDER, type PhaseKey } from "@/lib/orchestrator/pipeline";
+import { efdbBase, efdbGet } from "@/lib/efdb/client";
 
 /** Tools that touch the DB no-op on demo ctx (org_dev/eng_dev are not uuids). */
 const isUuid = (s: string) =>
@@ -15,59 +16,13 @@ const isUuid = (s: string) =>
  * shape but still enforce tenant scope server-side via `ctx`.
  *
  * search_emission_factors is wired to the EFDB FastAPI service (login → pgvector
- * semantic search, with a keyword-list fallback). Configure via env:
+ * semantic search, with a keyword-list fallback) via the shared client in
+ * lib/efdb/client.ts. Configure via env:
  *   EFDB_API_URL   (e.g. http://localhost:8000)
  *   EFDB_EMAIL / EFDB_PASSWORD   (service login for the Bearer token)
  * query_workspace_dataset / fetch_prior_artifact remain M2 stubs.
  */
 type ToolHandler = (input: unknown, ctx: ToolContext) => Promise<unknown>;
-
-/* ---- EFDB HTTP client (consulting/efdb FastAPI) ---- */
-
-const efdbBase = () => (process.env.EFDB_API_URL || "").replace(/\/+$/, "");
-
-// Cached JWT (EFDB tokens last ~8h). Re-login on 401.
-let _token: string | null = null;
-
-async function efdbLogin(): Promise<string | null> {
-  const base = efdbBase();
-  const email = process.env.EFDB_EMAIL;
-  const password = process.env.EFDB_PASSWORD;
-  if (!base || !email || !password) return null;
-  try {
-    const res = await fetch(`${base}/auth/login`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
-    });
-    if (!res.ok) return null;
-    const data = await res.json().catch(() => null);
-    return data?.access_token ?? null;
-  } catch {
-    return null;
-  }
-}
-
-interface EfdbGet { ok: boolean; status: number; body: unknown }
-
-async function efdbGet(pathWithQuery: string): Promise<EfdbGet> {
-  const base = efdbBase();
-  if (!base) return { ok: false, status: 0, body: null };
-  if (!_token) _token = await efdbLogin();
-  if (!_token) return { ok: false, status: 401, body: null };
-  const call = () => fetch(`${base}${pathWithQuery}`, { headers: { Authorization: `Bearer ${_token}` } });
-  try {
-    let res = await call();
-    if (res.status === 401) {
-      _token = await efdbLogin(); // token expired — re-login once
-      if (!_token) return { ok: false, status: 401, body: null };
-      res = await call();
-    }
-    return { ok: res.ok, status: res.status, body: await res.json().catch(() => null) };
-  } catch {
-    return { ok: false, status: 0, body: null };
-  }
-}
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // Generic words that add no signal as a keyword query against EFDB activity names.

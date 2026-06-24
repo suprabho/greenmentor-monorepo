@@ -1,15 +1,16 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { PHASE_ROWS, type ReviewItem } from "@/lib/demo/fixtures";
-import { summarizeArtifact } from "@/lib/demo/phaseInputs";
+import { PHASE_ROWS, type ReviewItem, type OpenQuestionReview } from "@/lib/demo/fixtures";
 import type { PhaseKey } from "@/lib/orchestrator/pipeline";
 import type { PhaseStatus } from "@/lib/orchestrator/gates";
-import { approvePhaseAction, requestChangesAction, decideReviewAction } from "./actions";
-
-const ACCENT = "#1f8a5b";
-const C = { bg: "#f6f8f7", card: "#fff", border: "#e3e8e5", text: "#1a2420", sub: "#5d6b64", high: "#1f8a5b", medium: "#b8860b", low: "#c2410c", blocked: "#9aa6a0" };
+import {
+  approvePhaseAction, requestChangesAction, decideReviewAction,
+  answerOpenQuestionAction, applyAnswersAndRerunKickoffAction, setDataSourceModeAction,
+} from "./actions";
+import { C, ACCENT, CONF_STYLE, btn, btnGhost } from "@/app/stages/theme";
+import { StageView } from "@/app/stages/StageView";
 
 export interface BoardEngagement {
   id: string;
@@ -18,12 +19,22 @@ export interface BoardEngagement {
   framework: string[];
 }
 
+export type DataSourceMode = "demo" | "user";
+export interface DocumentSummary {
+  name: string;
+  parseStatus: string;
+  pageCount: number | null;
+}
+
 export interface EngagementBoardProps {
   engagement: BoardEngagement;
   phaseStatus: Record<PhaseKey, PhaseStatus>;
   nextRunnable: PhaseKey | null;
   artifactPayloads: Partial<Record<PhaseKey, unknown>>;
   fieldReviews: ReviewItem[];
+  openQuestionReviews: OpenQuestionReview[];
+  dataSourceMode: DataSourceMode;
+  documents: DocumentSummary[];
 }
 
 type Display = PhaseStatus | "ready";
@@ -48,13 +59,7 @@ function StatusPill({ status }: { status: Display }) {
   return <span style={{ background: s.bg, color: s.fg, fontSize: 12.5, fontWeight: 600, padding: "4px 10px", borderRadius: 999, whiteSpace: "nowrap" }}>{s.label}</span>;
 }
 
-const CONF_STYLE: Record<string, { bg: string; fg: string }> = {
-  high: { bg: "#e6f4ec", fg: C.high },
-  medium: { bg: "#fbf2dc", fg: C.medium },
-  low: { bg: "#fde8de", fg: C.low },
-};
-
-export default function EngagementBoard({ engagement, phaseStatus, nextRunnable, artifactPayloads, fieldReviews }: EngagementBoardProps) {
+export default function EngagementBoard({ engagement, phaseStatus, nextRunnable, artifactPayloads, fieldReviews, openQuestionReviews, dataSourceMode, documents }: EngagementBoardProps) {
   const router = useRouter();
   const [openPhase, setOpenPhase] = useState<PhaseKey | null>(null);
   const [running, setRunning] = useState<PhaseKey | null>(null);
@@ -64,6 +69,7 @@ export default function EngagementBoard({ engagement, phaseStatus, nextRunnable,
   const rowByKey = useMemo(() => Object.fromEntries(PHASE_ROWS.map((r) => [r.key, r])), []);
   const completeCount = PHASE_ROWS.filter((r) => phaseStatus[r.key] === "complete" || phaseStatus[r.key] === "approved").length;
   const openReviews = fieldReviews.filter((i) => i.status === "submitted").length;
+  const openQuestions = openQuestionReviews.filter((q) => q.status === "submitted").length;
 
   const runPhase = async (key: PhaseKey) => {
     const agentKey = rowByKey[key].agentKey;
@@ -96,9 +102,22 @@ export default function EngagementBoard({ engagement, phaseStatus, nextRunnable,
     }
   };
 
+  // Like `act`, but keeps the detail panel open (answering a question / re-running a
+  // phase should reveal the updated state in place, not collapse the panel).
+  const actKeepOpen = async (fn: () => Promise<{ ok: boolean; error?: string }>) => {
+    setBusy(true); setError(null);
+    try {
+      const r = await fn();
+      if (!r.ok) setError(r.error ?? "action failed");
+      else router.refresh();
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
     <div style={{ minHeight: "100vh", background: C.bg, color: C.text, fontFamily: "ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto" }}>
-      <div style={{ maxWidth: 1080, margin: "0 auto", padding: "28px 24px 64px" }}>
+      <div style={{ maxWidth: 1600, margin: "0 auto", padding: "28px 32px 64px" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 4 }}>
           <a href="/" style={{ fontSize: 13, color: ACCENT, fontWeight: 600, textDecoration: "none" }}>← Engagements</a>
           <a href={`/report/${engagement.id}`} style={{ fontSize: 13, color: ACCENT, fontWeight: 600, textDecoration: "none" }}>View report →</a>
@@ -111,6 +130,16 @@ export default function EngagementBoard({ engagement, phaseStatus, nextRunnable,
           ))}
         </div>
 
+        <DataSourceControl
+          engagementId={engagement.id}
+          mode={dataSourceMode}
+          documents={documents}
+          busy={busy}
+          onSetMode={(m) => act(() => setDataSourceModeAction(engagement.id, m))}
+          onError={setError}
+          onUploaded={() => router.refresh()}
+        />
+
         {error && (
           <div style={{ background: "#fde8de", border: `1px solid ${C.low}55`, color: C.low, borderRadius: 10, padding: "10px 14px", marginBottom: 16, fontWeight: 600, fontSize: 13 }}>
             {error}
@@ -118,7 +147,7 @@ export default function EngagementBoard({ engagement, phaseStatus, nextRunnable,
         )}
 
         <div style={{ display: "grid", gridTemplateColumns: openPhase ? "1fr 1fr" : "1fr", gap: 20, alignItems: "start" }}>
-          <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: 8 }}>
+          <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: 8, minWidth: 0 }}>
             <div style={{ padding: "10px 14px", fontSize: 12.5, fontWeight: 700, color: C.sub, letterSpacing: 0.4 }}>8-PHASE PIPELINE · HUMAN GATE AFTER EACH</div>
             {PHASE_ROWS.map((row) => {
               const st = displayStatus(row.key, phaseStatus[row.key], nextRunnable);
@@ -140,7 +169,7 @@ export default function EngagementBoard({ engagement, phaseStatus, nextRunnable,
                   ) : st === "ready" ? (
                     <button onClick={() => runPhase(row.key)} style={btn("#2848b8")}>▸ Run</button>
                   ) : st === "awaiting_human_review" ? (
-                    <button onClick={() => setOpenPhase(row.key)} style={btn(ACCENT)}>Review{row.key === "data_collection" && openReviews ? ` ${openReviews}` : ""} →</button>
+                    <button onClick={() => setOpenPhase(row.key)} style={btn(ACCENT)}>Review{row.key === "data_collection" && openReviews ? ` ${openReviews}` : row.key === "kickoff" && openQuestions ? ` ${openQuestions}` : ""} →</button>
                   ) : st === "failed" ? (
                     <button onClick={() => runPhase(row.key)} style={btn(C.low)}>↻ Retry</button>
                   ) : (st === "complete" || st === "approved" || st === "changes_requested") ? (
@@ -159,11 +188,14 @@ export default function EngagementBoard({ engagement, phaseStatus, nextRunnable,
               status={phaseStatus[openPhase]}
               payload={artifactPayloads[openPhase]}
               fieldReviews={openPhase === "data_collection" ? fieldReviews : []}
+              openQuestions={openPhase === "kickoff" ? openQuestionReviews : []}
               busy={busy}
               onClose={() => setOpenPhase(null)}
               onApprove={() => act(() => approvePhaseAction(engagement.id, openPhase))}
               onRequestChanges={() => act(() => requestChangesAction(engagement.id, openPhase))}
               onDecideRow={(id, decision) => act(() => decideReviewAction(engagement.id, id, decision))}
+              onAnswerQuestion={(id, patch) => actKeepOpen(() => answerOpenQuestionAction(engagement.id, id, patch))}
+              onApplyRerun={() => actKeepOpen(() => applyAnswersAndRerunKickoffAction(engagement.id))}
             />
           )}
         </div>
@@ -174,23 +206,48 @@ export default function EngagementBoard({ engagement, phaseStatus, nextRunnable,
 
 function DetailPanel(props: {
   phase: PhaseKey; label: string; no: number; status: PhaseStatus; payload: unknown;
-  fieldReviews: ReviewItem[]; busy: boolean; onClose: () => void;
+  fieldReviews: ReviewItem[]; openQuestions: OpenQuestionReview[]; busy: boolean; onClose: () => void;
   onApprove: () => void; onRequestChanges: () => void; onDecideRow: (id: string, d: "approved" | "rejected") => void;
+  onAnswerQuestion: (id: string, patch: { answer?: string; waived?: boolean }) => void;
+  onApplyRerun: () => void;
 }) {
-  const { phase, label, no, status, payload, fieldReviews, busy } = props;
-  const bullets = payload ? summarizeArtifact(phase, payload) : [];
+  const { phase, label, no, status, payload, fieldReviews, openQuestions, busy } = props;
   const reviewable = status === "awaiting_human_review";
   const openRows = fieldReviews.filter((i) => i.status === "submitted").length;
+  const unanswered = openQuestions.filter((q) => q.status === "submitted").length;
 
   return (
-    <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: 18 }}>
+    <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: 18, minWidth: 0 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 10 }}>
         <div style={{ fontWeight: 750, fontSize: 16 }}>Phase {no} · {label}</div>
         <button onClick={props.onClose} style={{ ...btnGhost, fontSize: 13 }}>Close</button>
       </div>
 
-      {phase === "data_collection" && fieldReviews.length > 0 ? (
+      {phase === "kickoff" && openQuestions.length > 0 ? (
         <>
+          <StageView phase="kickoff" payload={payload} showRawJson={false} hideKickoffQuestions />
+          <div style={{ fontSize: 13, color: C.sub, margin: "12px 0" }}>
+            The scoping agent flagged these for client confirmation — the boundary above rests on them. Answer or waive each, then approve, or apply the answers and re-run to regenerate the charter.
+          </div>
+          {openQuestions.map((q) => (
+            <OpenQuestionCard key={q.id} q={q} editable={reviewable} busy={busy} onAnswer={(patch) => props.onAnswerQuestion(q.id, patch)} />
+          ))}
+          <div style={{ marginTop: 14, paddingTop: 14, borderTop: `1px solid ${C.border}` }}>
+            <div style={{ fontSize: 13, color: C.sub, marginBottom: 10 }}>
+              {unanswered > 0 ? `Gate closed — ${unanswered} question(s) unanswered.` : "All questions resolved — approve the charter, or apply answers & re-run."}
+            </div>
+            {reviewable && (
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                <button disabled={busy || unanswered > 0} onClick={props.onApprove} style={{ ...btn(ACCENT), opacity: busy || unanswered > 0 ? 0.45 : 1, cursor: unanswered > 0 ? "not-allowed" : "pointer" }}>Approve phase →</button>
+                <button disabled={busy || unanswered > 0} onClick={props.onApplyRerun} style={{ ...btn("#2848b8"), opacity: busy || unanswered > 0 ? 0.45 : 1, cursor: unanswered > 0 ? "not-allowed" : "pointer" }}>↻ Apply answers & re-run</button>
+                <button disabled={busy} onClick={props.onRequestChanges} style={btnGhost}>Request changes</button>
+              </div>
+            )}
+          </div>
+        </>
+      ) : phase === "data_collection" && fieldReviews.length > 0 ? (
+        <>
+          <StageView phase="data_collection" payload={payload} showRawJson={false} />
           <div style={{ fontSize: 13, color: C.sub, marginBottom: 12 }}>The data-collection agent extracted these as drafts. Verify each before approving the phase; flagged rows sort first.</div>
           {[...fieldReviews].sort((a, b) => Number(b.reviewRequired) - Number(a.reviewRequired)).map((it) => {
             const cs = CONF_STYLE[it.confidence] ?? CONF_STYLE.low;
@@ -224,19 +281,9 @@ function DetailPanel(props: {
           {!payload ? (
             <div style={{ fontSize: 13, color: C.sub }}>No artifact yet — run this phase from the board.</div>
           ) : (
-            <>
-              <div style={{ display: "grid", gap: 8, marginBottom: 14 }}>
-                {bullets.map((b) => (
-                  <div key={b.label} style={{ display: "flex", justifyContent: "space-between", gap: 12, fontSize: 13.5, borderBottom: `1px solid ${C.border}`, paddingBottom: 7 }}>
-                    <span style={{ color: C.sub }}>{b.label}</span><span style={{ fontWeight: 650, textAlign: "right" }}>{b.value}</span>
-                  </div>
-                ))}
-              </div>
-              <details style={{ marginBottom: 14 }}>
-                <summary style={{ fontSize: 12.5, color: C.sub, cursor: "pointer", fontWeight: 600 }}>View raw artifact (JSON)</summary>
-                <pre style={{ fontSize: 11, background: "#f6f8f7", border: `1px solid ${C.border}`, borderRadius: 8, padding: 10, overflow: "auto", maxHeight: 320, marginTop: 8 }}>{JSON.stringify(payload, null, 2)}</pre>
-              </details>
-            </>
+            <div style={{ marginBottom: 14 }}>
+              <StageView phase={phase} payload={payload} />
+            </div>
           )}
           {reviewable && (
             <div style={{ paddingTop: 14, borderTop: `1px solid ${C.border}`, display: "flex", gap: 8 }}>
@@ -250,7 +297,158 @@ function DetailPanel(props: {
   );
 }
 
-function btn(color: string): React.CSSProperties {
-  return { background: color, color: "#fff", border: "none", borderRadius: 8, padding: "7px 13px", fontSize: 13, fontWeight: 650, cursor: "pointer", whiteSpace: "nowrap" };
+const PARSE_BADGE: Record<string, { bg: string; fg: string; label: (pages: number | null) => string }> = {
+  parsed: { bg: "#e6f4ec", fg: C.high, label: (p) => `✓ parsed${p ? ` · ${p}p` : ""}` },
+  unsupported: { bg: "#fbf2dc", fg: C.medium, label: () => "⚠ unsupported" },
+  error: { bg: "#fde8de", fg: C.low, label: () => "✕ parse failed" },
+  skipped: { bg: "#eef1f0", fg: C.sub, label: () => "○ not parsed" },
+};
+
+function DataSourceControl(props: {
+  engagementId: string;
+  mode: DataSourceMode;
+  documents: DocumentSummary[];
+  busy: boolean;
+  onSetMode: (m: DataSourceMode) => void;
+  onError: (msg: string) => void;
+  onUploaded: () => void;
+}) {
+  const { engagementId, mode, documents, busy, onSetMode, onError, onUploaded } = props;
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const parsedCount = documents.filter((d) => d.parseStatus === "parsed").length;
+
+  const upload = async (file: File) => {
+    setUploading(true);
+    onError("");
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      const res = await fetch(`/api/engagements/${engagementId}/upload`, { method: "POST", body: form });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.error ?? `Upload failed (HTTP ${res.status})`);
+      if (data?.parse_status === "error" || data?.parse_status === "unsupported") {
+        onError(data?.parse_error ?? `Document stored but not parsed (${data.parse_status}).`);
+      }
+      onUploaded();
+    } catch (e) {
+      onError(e instanceof Error ? e.message : "upload failed");
+    } finally {
+      setUploading(false);
+      if (fileRef.current) fileRef.current.value = "";
+    }
+  };
+
+  const seg = (m: DataSourceMode, label: string) => {
+    const active = mode === m;
+    return (
+      <button
+        key={m}
+        disabled={busy || active}
+        onClick={() => onSetMode(m)}
+        style={{
+          border: "none", cursor: active ? "default" : "pointer", fontSize: 13, fontWeight: 650,
+          padding: "6px 14px", borderRadius: 7, background: active ? "#fff" : "transparent",
+          color: active ? C.text : C.sub, boxShadow: active ? "0 1px 2px rgba(0,0,0,0.08)" : "none",
+        }}
+      >
+        {label}
+      </button>
+    );
+  };
+
+  return (
+    <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: "12px 14px", marginBottom: 16 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+        <span style={{ fontSize: 12.5, fontWeight: 700, color: C.sub, letterSpacing: 0.3 }}>DATA SOURCE</span>
+        <div style={{ display: "inline-flex", gap: 2, background: "#eef1f0", padding: 3, borderRadius: 9 }}>
+          {seg("demo", "Demo data")}
+          {seg("user", "My data")}
+        </div>
+        <span style={{ fontSize: 12.5, color: C.sub }}>
+          {mode === "demo"
+            ? "Runs on the built-in sample bill + fixtures."
+            : `Extracts from your uploaded documents${parsedCount ? ` (${parsedCount} ready)` : ""}.`}
+        </span>
+      </div>
+
+      {mode === "user" && (
+        <div style={{ marginTop: 12, paddingTop: 12, borderTop: `1px solid ${C.border}` }}>
+          <input
+            ref={fileRef}
+            type="file"
+            accept=".pdf,.png,.jpg,.jpeg,.tiff,.webp,.docx,.doc,.pptx,.ppt,.odt,.rtf,.html,.htm"
+            style={{ display: "none" }}
+            onChange={(e) => { const f = e.target.files?.[0]; if (f) upload(f); }}
+          />
+          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+            <button
+              disabled={uploading || busy}
+              onClick={() => fileRef.current?.click()}
+              style={{ ...btn(ACCENT), opacity: uploading || busy ? 0.5 : 1 }}
+            >
+              {uploading ? "Parsing…" : "＋ Upload document"}
+            </button>
+            <span style={{ fontSize: 12, color: C.sub }}>PDF / image (OCR), Word, PowerPoint, HTML — parsed to markdown, then extracted.</span>
+          </div>
+
+          {documents.length > 0 ? (
+            <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 6 }}>
+              {documents.map((d, i) => {
+                const b = PARSE_BADGE[d.parseStatus] ?? PARSE_BADGE.skipped;
+                return (
+                  <div key={`${d.name}_${i}`} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, fontSize: 13, background: "#f6f8f7", border: `1px solid ${C.border}`, borderRadius: 8, padding: "6px 10px" }}>
+                    <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{d.name}</span>
+                    <span style={{ background: b.bg, color: b.fg, fontSize: 11.5, fontWeight: 700, padding: "2px 8px", borderRadius: 6, whiteSpace: "nowrap" }}>{b.label(d.pageCount)}</span>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div style={{ marginTop: 10, fontSize: 12.5, color: C.sub }}>No documents yet — upload at least one before running Data Collection.</div>
+          )}
+        </div>
+      )}
+    </div>
+  );
 }
-const btnGhost: React.CSSProperties = { background: "#fff", color: "#5d6b64", border: "1px solid #e3e8e5", borderRadius: 8, padding: "7px 13px", fontSize: 13, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap" };
+
+function OpenQuestionCard(props: {
+  q: OpenQuestionReview; editable: boolean; busy: boolean;
+  onAnswer: (patch: { answer?: string; waived?: boolean }) => void;
+}) {
+  const { q, editable, busy, onAnswer } = props;
+  const [text, setText] = useState(q.answer ?? "");
+  const resolved = q.status !== "submitted";
+  const accent = resolved ? (q.waived ? C.medium : C.high) : C.low;
+  return (
+    <div style={{ border: `1px solid ${C.border}`, borderLeft: `3px solid ${accent}`, borderRadius: 10, padding: 14, marginBottom: 12 }}>
+      <div style={{ fontWeight: 650, fontSize: 14, lineHeight: 1.45 }}>{q.question}</div>
+      {resolved ? (
+        <div style={{ fontSize: 13, marginTop: 8 }}>
+          {q.waived ? (
+            <span style={{ color: C.medium, fontWeight: 650 }}>↪ Waived — not applicable this cycle</span>
+          ) : (
+            <span style={{ color: C.text }}><span style={{ color: C.sub }}>Answer: </span>{q.answer || "—"}</span>
+          )}
+        </div>
+      ) : editable ? (
+        <>
+          <textarea
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            placeholder="The client's confirmed answer…"
+            rows={2}
+            style={{ width: "100%", marginTop: 8, padding: "8px 10px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, fontFamily: "inherit", resize: "vertical", boxSizing: "border-box" }}
+          />
+          <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
+            <button disabled={busy || !text.trim()} onClick={() => onAnswer({ answer: text })} style={{ ...btn(ACCENT), opacity: busy || !text.trim() ? 0.45 : 1 }}>Save answer</button>
+            <button disabled={busy} onClick={() => onAnswer({ waived: true })} style={btnGhost}>Waive</button>
+          </div>
+        </>
+      ) : (
+        <div style={{ fontSize: 13, color: C.low, marginTop: 6 }}>Unanswered</div>
+      )}
+    </div>
+  );
+}

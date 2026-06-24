@@ -29,9 +29,12 @@ export default function EngagementsHome({
             <div style={{ width: 10, height: 10, borderRadius: 3, background: ACCENT }} />
             <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: 0.3, color: ACCENT }}>GREENMENTOR · ESG-AGENTS</span>
           </div>
-          <form action={logoutAction}>
-            <button type="submit" style={{ background: "none", border: "none", color: "#5d6b64", fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}>{email} · Sign out</button>
-          </form>
+          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+            <a href="/agents" style={{ color: ACCENT, fontSize: 12.5, fontWeight: 600, textDecoration: "none" }}>Agent Studio →</a>
+            <form action={logoutAction}>
+              <button type="submit" style={{ background: "none", border: "none", color: "#5d6b64", fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}>{email} · Sign out</button>
+            </form>
+          </div>
         </div>
         <h1 style={{ fontSize: 26, margin: "8px 0 2px", fontWeight: 750 }}>{orgName}</h1>
         <div style={{ color: "#5d6b64", fontSize: 14, marginBottom: 22 }}>BRSR & ESG reporting engagements</div>

@@ -7,7 +7,10 @@ const nextConfig: NextConfig = {
   // Agent packages are read from the filesystem at runtime (loadAgent / readPackage);
   // keep the readers + headless-browser packages unbundled so native binaries are
   // require()d at runtime, and trace the dirs/binaries into the functions that need them.
-  serverExternalPackages: ["@anthropic-ai/sdk", "gray-matter", "ajv", "@sparticuz/chromium", "playwright-core", "playwright"],
+  // isomorphic-dompurify/jsdom must stay external too: bundling jsdom breaks its
+  // __dirname-relative read of browser/default-stylesheet.css ("ENOENT ... default-stylesheet.css"
+  // while collecting page data for /api/report/[engagementId]/pdf).
+  serverExternalPackages: ["@anthropic-ai/sdk", "gray-matter", "ajv", "@sparticuz/chromium", "playwright-core", "playwright", "isomorphic-dompurify", "jsdom"],
   outputFileTracingIncludes: {
     "/agents/**": ["./agents/**/*", "./config/**/*"], // Agent Studio pages (read package files)
     "/api/**": ["./agents/**/*", "./config/**/*"], // agent run / package / orchestrator routes

@@ -73,6 +73,15 @@ export interface ReviewItem {
   feedback?: string;
 }
 
+/** A kickoff scoping question that must be answered or waived before scope approval. */
+export interface OpenQuestionReview {
+  id: string;
+  question: string;
+  answer?: string;
+  waived: boolean;
+  status: ReviewStatus; // "submitted" = unanswered, "approved" = answered/waived
+}
+
 /**
  * The Phase-4 data-collection agent's draft, fanned out as review-queue items.
  * One is a flagged outlier (>3x median) + low confidence to show the routing.
