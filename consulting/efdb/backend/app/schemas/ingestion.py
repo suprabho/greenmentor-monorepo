@@ -61,6 +61,20 @@ class ScanResult(BaseModel):
     document_type: str = "generic"   # "generic" | "epd"
 
 
+class ParsedDocOut(BaseModel):
+    """Generic document → markdown result (no extraction, no DB writes).
+
+    Returned by POST /ingestion/parse so external services (e.g. the ESG-Agents
+    app) can reuse the unified liteparse/markitdown normalization layer without
+    the emission-factor scan/extract machinery.
+    """
+    markdown: str
+    page_count: int
+    parser: str            # "liteparse" | "markitdown"
+    used_ocr: bool
+    source_format: str     # file extension, lower-case, incl. dot
+
+
 class SectionSelection(BaseModel):
     """User selects which sections to extract from, with confirmed document metadata."""
     section_indices: list[int]

@@ -1,13 +1,13 @@
 import { PHASES, PHASE_ORDER, type PhaseKey } from "./pipeline";
 import { isRunnable } from "./gates";
-import { assemblePhaseInput } from "./assembleInput";
+import { assemblePhaseInput, parsedDocuments } from "./assembleInput";
 import { loadAgent } from "@/lib/agents/loadAgent";
 import { runAgent } from "@/lib/agents/runAgent";
 import { getEngagement } from "@/lib/db/engagements";
 import { getPhaseStates, setPhaseStatus, transitionPhase, cascadeStaleDownstream } from "@/lib/db/phases";
 import { getArtifactsForPhases, supersedeAndInsert } from "@/lib/db/artifacts";
 import { createRun, completeRun, failRun } from "@/lib/db/runs";
-import { openPhaseGate, fanoutFieldReviews } from "@/lib/db/reviews";
+import { openPhaseGate, fanoutFieldReviews, fanoutOpenQuestions } from "@/lib/db/reviews";
 import { insertValidations } from "@/lib/db/validations";
 import { PHASE_PRIMARY_ARTIFACT, type Json } from "@/lib/db/types";
 
@@ -56,6 +56,17 @@ export async function runPhase(
 ): Promise<RunPhaseResult> {
   const engagement = await getEngagement(orgId, engagementId);
   if (!engagement) throw new PhaseNotRunnableError("engagement not found");
+
+  // "My data" mode: data collection needs at least one parsed document to extract from.
+  if (
+    phaseKey === "data_collection" &&
+    (engagement.config ?? {}).data_source_mode === "user" &&
+    parsedDocuments(engagement).length === 0
+  ) {
+    throw new PhaseNotRunnableError(
+      "Upload at least one document before running data collection (My data mode is on).",
+    );
+  }
 
   const states = await getPhaseStates(orgId, engagementId);
   if (!isRunnable(phaseKey, states)) {
@@ -110,6 +121,11 @@ export async function runPhase(
     }
     if (phaseKey === "data_collection") {
       await fanoutFieldReviews(orgId, { engagementId, runId: run.id, datasetOutput: output, requestedBy: userUuid });
+    }
+    if (phaseKey === "kickoff") {
+      // Each open question becomes a clarification row that must be answered/waived
+      // before the scope_approval gate clears.
+      await fanoutOpenQuestions(orgId, { engagementId, runId: run.id, questions: (output?.open_questions ?? []) as string[], requestedBy: userUuid });
     }
     // Open the human gate (one phase_summary row per phase).
     await openPhaseGate(orgId, {

@@ -39,7 +39,7 @@ const METRIC_DEFS = [
   { metric_code: "water.municipal", label: "Municipal water", unit: "kL", data_type: "number", expected_magnitude: 3000 },
 ];
 
-function toActivityRows(rows: any[]): any[] {
+function toActivityRows(rows: any[], includeFallback = true): any[] {
   const fromLive = (rows ?? []).map((r) => ({
     activity: r.metric_code, metric_code: r.metric_code,
     value: r.reported_value?.value ?? r.reported_value,
@@ -48,6 +48,7 @@ function toActivityRows(rows: any[]): any[] {
     period: r.period_label ?? REPORTING_PERIOD.label,
     scope: r.metric_code?.includes("electricity") ? "2" : r.metric_code?.includes("diesel") ? "1" : null,
   }));
+  if (!includeFallback) return fromLive;
   const liveCodes = new Set(fromLive.map((r) => r.metric_code));
   const extra = PRECOLLECTED_ROWS.filter((r) => !liveCodes.has(r.metric_code)).map((r) => ({
     activity: r.metric_code, metric_code: r.metric_code, value: r.reported_value.value,
@@ -55,6 +56,57 @@ function toActivityRows(rows: any[]): any[] {
     period: r.period_label, scope: r.metric_code.includes("diesel") ? "1" : null,
   }));
   return [...fromLive, ...extra];
+}
+
+/* ---- "My data" mode: build the collection input from uploaded+parsed docs ---- */
+
+interface DocEntry {
+  name?: string;
+  parse_status?: string;
+  markdown?: string;
+}
+
+/** Documents on the engagement that EFDB successfully parsed to markdown. */
+export function parsedDocuments(engagement: EsgEngagement): DocEntry[] {
+  const docs = ((engagement.config ?? {}).documents as DocEntry[]) ?? [];
+  return docs.filter((d) => d?.parse_status === "parsed" && (d.markdown ?? "").trim().length > 0);
+}
+
+/** A broad BRSR field catalog the agent uses to know which metrics to look for. */
+const USER_FIELD_CATALOG = [
+  { metric_code: "energy.electricity.grid", label: "Grid electricity consumption", data_type: "number", required_unit: "kWh", disclosure_code: "BRSR:P6-E7", expected_magnitude: 50000 },
+  { metric_code: "energy.electricity.renewable", label: "Renewable electricity consumption", data_type: "number", required_unit: "kWh", disclosure_code: "BRSR:P6-E7", expected_magnitude: 10000 },
+  { metric_code: "energy.diesel", label: "Diesel (DG sets / vehicles)", data_type: "number", required_unit: "litres", disclosure_code: "BRSR:P6-E7", expected_magnitude: 12000 },
+  { metric_code: "energy.natural_gas", label: "Natural gas / PNG", data_type: "number", required_unit: "scm", disclosure_code: "BRSR:P6-E7", expected_magnitude: 8000 },
+  { metric_code: "energy.lpg", label: "LPG", data_type: "number", required_unit: "kg", disclosure_code: "BRSR:P6-E7", expected_magnitude: 2000 },
+  { metric_code: "water.municipal", label: "Municipal / third-party water", data_type: "number", required_unit: "kL", disclosure_code: "BRSR:P6-E3", expected_magnitude: 3000 },
+  { metric_code: "water.groundwater", label: "Groundwater withdrawal", data_type: "number", required_unit: "kL", disclosure_code: "BRSR:P6-E3", expected_magnitude: 2000 },
+  { metric_code: "waste.hazardous", label: "Hazardous waste generated", data_type: "number", required_unit: "tonnes", disclosure_code: "BRSR:P6-E9", expected_magnitude: 50 },
+  { metric_code: "waste.non_hazardous", label: "Non-hazardous waste generated", data_type: "number", required_unit: "tonnes", disclosure_code: "BRSR:P6-E9", expected_magnitude: 200 },
+  { metric_code: "billing.period_start", label: "Period start", data_type: "date" },
+  { metric_code: "billing.period_end", label: "Period end", data_type: "date" },
+];
+
+/** Concatenate parsed-document markdown into one extraction corpus. */
+function buildUserCollectionInput(engagement: EsgEngagement, financial_year: string): any {
+  const docs = parsedDocuments(engagement);
+  const document_text = docs
+    .map((d) => `--- ${d.name ?? "document"} ---\n${d.markdown}`)
+    .join("\n\n");
+  const sites = c<any[]>(engagement, "sites", SITES);
+  const s0 = sites?.[0] ?? {};
+  return {
+    org_id: engagement.org_id,
+    tenant_id: engagement.org_id,
+    engagement_id: engagement.id,
+    financial_year,
+    quarter: null,
+    site: { site_id: s0.site_id ?? "site_1", site_name: s0.name ?? s0.site_name ?? "Site 1" },
+    field_catalog: USER_FIELD_CATALOG,
+    data_request_list: [],
+    document: { document_hint: "user_upload", uploaded_by: "user", source_documents: docs.map((d) => d.name ?? "document") },
+    document_text,
+  };
 }
 
 /** Read a config key off the engagement with a fallback. */
@@ -72,6 +124,8 @@ export function assemblePhaseInput(
   const engagement_id = engagement.id;
   const financial_year = engagement.financial_year;
   const frameworks = engagement.framework?.length ? engagement.framework : c(engagement, "frameworks", FRAMEWORKS);
+  // "demo" → hardcoded fixtures (default); "user" → uploaded+parsed documents only.
+  const mode = c<"demo" | "user">(engagement, "data_source_mode", "demo");
   const ids: string[] = [];
   const dep = (k: PhaseKey) => {
     const a = upstream[k];
@@ -90,6 +144,9 @@ export function assemblePhaseInput(
           reporting_period: c(engagement, "reporting_period", { fy: REPORTING_PERIOD.label, start_date: REPORTING_PERIOD.start, end_date: REPORTING_PERIOD.end }),
           sites: c(engagement, "sites", SITES),
           brief: c(engagement, "brief", `BRSR reporting engagement for ${engagement.client_name}.`),
+          // Confirmed answers to open questions raised on a prior pass (set by the
+          // "Apply answers & re-run" action). Empty on a first run.
+          clarifications: c<any[]>(engagement, "kickoff_clarifications", []),
         },
       };
 
@@ -124,8 +181,11 @@ export function assemblePhaseInput(
     }
 
     case "data_collection": {
-      // v1: use a config-supplied collection input (e.g. built from uploaded docs in
-      // Workstream D) or fall back to the sample-bill showcase input.
+      // user mode → extract from the engagement's uploaded+parsed documents only.
+      if (mode === "user") {
+        return { sourceArtifactIds: ids, input: buildUserCollectionInput(engagement, financial_year) };
+      }
+      // demo mode → config-supplied collection input, else the sample-bill showcase input.
       const override = (engagement.config ?? {}).collection_input;
       return { sourceArtifactIds: ids, input: override ?? buildCollectionInput() };
     }
@@ -133,7 +193,11 @@ export function assemblePhaseInput(
     case "data_validation": {
       const live = dep("data_collection").dataset_rows ?? [];
       const liveCodes = new Set(live.map((r: any) => r.metric_code));
-      const dataset_rows = [...live, ...PRECOLLECTED_ROWS.filter((r) => !liveCodes.has(r.metric_code))];
+      // user mode → validate only the user's collected rows (no demo fallback rows).
+      const dataset_rows =
+        mode === "user"
+          ? live
+          : [...live, ...PRECOLLECTED_ROWS.filter((r) => !liveCodes.has(r.metric_code))];
       return {
         sourceArtifactIds: ids,
         input: { tenant_id, engagement_id, financial_year, metric_defs: METRIC_DEFS, dataset_rows },
@@ -147,7 +211,8 @@ export function assemblePhaseInput(
         input: {
           tenant_id, engagement_id, financial_year,
           frameworks_in_scope: frameworks,
-          activity_rows: toActivityRows(rows),
+          // user mode → only the user's rows; demo mode → merge precollected extras.
+          activity_rows: toActivityRows(rows, mode !== "user"),
           denominators: c(engagement, "denominators", { revenue_inr_cr: 1250, production_tonnes: 84000 }),
         },
       };

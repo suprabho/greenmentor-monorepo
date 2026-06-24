@@ -3,8 +3,11 @@ import { getSession } from "@/lib/auth/session";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getEngagement, updateEngagement } from "@/lib/db/engagements";
 import { getOrCreateUploadRequest, insertSubmission } from "@/lib/db/dataCollection";
+import { efdbBase, efdbParseDocument } from "@/lib/efdb/client";
 
 export const runtime = "nodejs";
+
+type ParseStatus = "parsed" | "unsupported" | "error" | "skipped";
 
 /**
  * Upload an evidence document for an engagement. Stores it in the esg-evidence
@@ -44,11 +47,39 @@ export async function POST(req: Request, { params }: { params: Promise<{ engagem
     submittedBy: session.userUuid,
   });
 
+  // Parse the document to markdown via EFDB's shared liteparse/markitdown layer
+  // (eager: the data-collection agent reads this markdown in "My data" mode, and
+  // keeping it on the doc record lets assembleInput stay synchronous). EFDB
+  // unconfigured → "skipped"; an unsupported file type → "unsupported".
+  let parseStatus: ParseStatus = "skipped";
+  let parsed: Awaited<ReturnType<typeof efdbParseDocument>> = null;
+  let parseError: string | undefined;
+  if (efdbBase()) {
+    try {
+      parsed = await efdbParseDocument(bytes, file.name, file.type || "application/octet-stream");
+      parseStatus = parsed ? "parsed" : "error";
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "parse failed";
+      parseStatus = /unsupported|spreadsheet/i.test(msg) ? "unsupported" : "error";
+      parseError = msg;
+    }
+  }
+
   const documents = [
     ...((engagement.config?.documents as unknown[]) ?? []),
-    { name: file.name, path, content_type: file.type, size: file.size },
+    {
+      name: file.name, path, content_type: file.type, size: file.size,
+      parse_status: parseStatus,
+      ...(parsed
+        ? { markdown: parsed.markdown, page_count: parsed.page_count, parser: parsed.parser, used_ocr: parsed.used_ocr }
+        : {}),
+      ...(parseError ? { parse_error: parseError } : {}),
+    },
   ];
   await updateEngagement(session.orgUuid, engagementId, { configPatch: { documents } });
 
-  return NextResponse.json({ ok: true, path, metric: file.name });
+  return NextResponse.json({
+    ok: true, path, metric: file.name,
+    parse_status: parseStatus, page_count: parsed?.page_count ?? null, parse_error: parseError ?? null,
+  });
 }

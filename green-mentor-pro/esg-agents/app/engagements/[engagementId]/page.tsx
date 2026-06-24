@@ -2,12 +2,12 @@ import { redirect, notFound } from "next/navigation";
 import { getSession } from "@/lib/auth/session";
 import type { UIMessage } from "ai";
 import { getEngagementSnapshot } from "@/lib/db/engagements";
-import { listReviews } from "@/lib/db/reviews";
+import { listReviews, listOpenQuestions } from "@/lib/db/reviews";
 import { loadMessages } from "@/lib/db/messages";
 import { confidenceLabel } from "@/lib/db/types";
 import { nextRunnablePhase, type PhaseStatus } from "@/lib/orchestrator/gates";
 import { PHASE_ORDER, type PhaseKey } from "@/lib/orchestrator/pipeline";
-import type { ReviewItem } from "@/lib/demo/fixtures";
+import type { ReviewItem, OpenQuestionReview } from "@/lib/demo/fixtures";
 import EngagementBoard from "./EngagementBoard";
 import EngagementChat from "./EngagementChat";
 
@@ -30,6 +30,22 @@ export default async function Page({ params }: { params: Promise<{ engagementId:
   }
 
   const chatHistory = (await loadMessages(session.orgUuid, engagementId)) as unknown as UIMessage[];
+
+  const openQuestionReviews: OpenQuestionReview[] = (await listOpenQuestions(session.orgUuid, engagementId)).map((q) => ({
+    id: q.id,
+    question: q.question,
+    answer: q.answer ?? undefined,
+    waived: q.waived,
+    status: q.status,
+  }));
+
+  const config = snapshot.engagement.config ?? {};
+  const dataSourceMode = config.data_source_mode === "user" ? "user" : "demo";
+  const documents = (((config.documents as Record<string, unknown>[]) ?? [])).map((d) => ({
+    name: String(d.name ?? "document"),
+    parseStatus: String(d.parse_status ?? "skipped"),
+    pageCount: typeof d.page_count === "number" ? d.page_count : null,
+  }));
 
   const reviews = await listReviews(session.orgUuid, engagementId, "data_collection");
   const fieldReviews: ReviewItem[] = reviews
@@ -63,6 +79,9 @@ export default async function Page({ params }: { params: Promise<{ engagementId:
         nextRunnable={nextRunnable}
         artifactPayloads={artifactPayloads}
         fieldReviews={fieldReviews}
+        openQuestionReviews={openQuestionReviews}
+        dataSourceMode={dataSourceMode}
+        documents={documents}
       />
       <EngagementChat engagementId={engagementId} initialMessages={chatHistory} />
     </div>

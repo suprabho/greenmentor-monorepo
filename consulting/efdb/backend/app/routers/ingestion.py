@@ -18,11 +18,12 @@ from app.models.user import User
 from app.routers.auth import get_current_user, require_admin
 from app.schemas.ingestion import (
     ScanResult, SectionSelection, SessionStatusOut, ReviewAction, BulkReviewAction, ReviewSummary,
+    ParsedDocOut,
 )
 from app.services.extraction.pdf_agent import scan_document, extract_from_document
 from app.services.extraction.excel_agent import scan_excel, extract_from_excel
 from app.services.extraction.url_agent import fetch_and_scan_url, extract_from_url
-from app.services.extraction.document_parser import route_for
+from app.services.extraction.document_parser import route_for, parse_document
 from app.services.confidence_score import calculate_confidence
 from app.services.conflict_detection import detect_and_flag_conflicts
 from app.services.embeddings import generate_embedding
@@ -49,6 +50,56 @@ def _is_spreadsheet(path: str | None, mime: str | None) -> bool:
     if path and path.lower().endswith((".xlsx", ".xls", ".csv")):
         return True
     return bool(mime and ("excel" in mime or "spreadsheet" in mime))
+
+
+# ── Generic parse (document → markdown, no extraction) ──────────────────────
+
+@router.post("/parse", response_model=ParsedDocOut)
+async def parse_only(
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user),
+):
+    """Normalize an uploaded document to markdown via the unified liteparse/
+    markitdown layer and return it — no DB writes, no EF scan/extract.
+
+    Reused by external services (e.g. the ESG-Agents app) that just need the
+    document as markdown to hand to their own LLM extraction. Spreadsheets are
+    not supported here (excel_agent owns them); they return 415.
+    """
+    if file.size and file.size > settings.max_upload_size_mb * 1024 * 1024:
+        raise HTTPException(413, f"File exceeds {settings.max_upload_size_mb}MB limit")
+
+    file_path, mime_type = await _save_upload(file, str(current_user.id))
+    try:
+        if _is_spreadsheet(file_path, mime_type):
+            raise HTTPException(
+                415, "Spreadsheets are not supported by /parse — use the Excel ingestion path."
+            )
+        try:
+            route_for(file_path)  # raises ValueError on unsupported extension
+        except ValueError:
+            raise HTTPException(
+                415,
+                "Unsupported file type. Upload a PDF, Word, PowerPoint, "
+                "OpenDocument, RTF, HTML, or image file.",
+            )
+        t0 = time.monotonic()
+        parsed = parse_document(file_path, mime_type)
+        logger.info("parse done: %r (%s, %d page(s), ocr=%s) %.1fs by %s",
+                    file.filename, parsed.parser, parsed.page_count, parsed.used_ocr,
+                    time.monotonic() - t0, current_user.email)
+        return ParsedDocOut(
+            markdown=parsed.markdown,
+            page_count=parsed.page_count,
+            parser=parsed.parser,
+            used_ocr=parsed.used_ocr,
+            source_format=parsed.source_format,
+        )
+    finally:
+        try:
+            os.remove(file_path)
+        except OSError:
+            pass
 
 
 # ── Step 1: Upload and scan ────────────────────────────────────────────────

@@ -11,7 +11,7 @@ export type Json = Record<string, unknown> | unknown[] | string | number | boole
 export type RunStatus = "estimating" | "awaiting_run_confirmation" | "running" | "succeeded" | "failed";
 export type ArtifactStatus = "draft" | "final" | "superseded";
 export type ReviewStatus = "submitted" | "approved" | "rejected";
-export type ReviewSubject = "artifact" | "field" | "disclosure" | "validation" | "phase_summary";
+export type ReviewSubject = "artifact" | "field" | "disclosure" | "validation" | "phase_summary" | "open_question";
 export type Confidence = "high" | "medium" | "low";
 
 export interface EsgEngagement {

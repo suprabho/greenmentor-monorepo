@@ -22,7 +22,20 @@
         "candidate_frameworks": { "type": "array", "items": { "type": "string", "enum": ["BRSR", "GRI", "ESRS", "ISSB", "SASB", "TCFD"] } },
         "reporting_period": { "type": "object" },
         "sites": { "type": "array", "items": { "type": "object" } },
-        "brief": { "type": ["string", "null"], "description": "Free-text client objectives/brief." }
+        "brief": { "type": ["string", "null"], "description": "Free-text client objectives/brief." },
+        "clarifications": {
+          "type": "array",
+          "description": "Confirmed answers to open questions raised on a prior pass. Treat each as authoritative, fold into the charter, and do not re-raise it.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "question": { "type": "string" },
+              "answer": { "type": "string" }
+            },
+            "required": ["question", "answer"]
+          }
+        }
       },
       "required": ["tenant_id", "engagement_id", "client", "candidate_frameworks"]
     },

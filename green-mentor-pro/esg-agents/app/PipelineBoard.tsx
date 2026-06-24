@@ -7,30 +7,12 @@ import {
   DEMO_ENGAGEMENT,
   type DemoPhaseStatus,
   type ReviewItem,
-  type Confidence,
 } from "@/lib/demo/fixtures";
 import { rowsToReviewItems } from "@/lib/demo/collectionRunInput";
-import { buildPhaseInput, summarizeArtifact, type Artifacts } from "@/lib/demo/phaseInputs";
+import { buildPhaseInput, type Artifacts } from "@/lib/demo/phaseInputs";
 import CACHED_RAW from "@/lib/demo/cachedArtifacts.json";
-
-const ACCENT = "#1f8a5b";
-const C = {
-  bg: "#f6f8f7",
-  card: "#ffffff",
-  border: "#e3e8e5",
-  text: "#1a2420",
-  sub: "#5d6b64",
-  high: "#1f8a5b",
-  medium: "#b8860b",
-  low: "#c2410c",
-  blocked: "#9aa6a0",
-};
-
-const CONF_STYLE: Record<Confidence, { bg: string; fg: string; label: string }> = {
-  high: { bg: "#e6f4ec", fg: C.high, label: "high" },
-  medium: { bg: "#fbf2dc", fg: C.medium, label: "medium" },
-  low: { bg: "#fde8de", fg: C.low, label: "low" },
-};
+import { C, ACCENT, CONF_STYLE, btn, btnGhost } from "@/app/stages/theme";
+import { StageView } from "@/app/stages/StageView";
 
 /* Pre-run artifacts (lib/demo/cachedArtifacts.json). Present → board opens on a
    completed engagement; absent ({}) → board opens fresh and you run each phase. */
@@ -162,7 +144,7 @@ export default function PipelineBoard() {
 
   return (
     <div style={{ minHeight: "100vh", background: C.bg, color: C.text, fontFamily: "ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto" }}>
-      <div style={{ maxWidth: 1080, margin: "0 auto", padding: "28px 24px 64px" }}>
+      <div style={{ maxWidth: 1600, margin: "0 auto", padding: "28px 32px 64px" }}>
         {/* header */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 4 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -297,6 +279,7 @@ export default function PipelineBoard() {
                   </div>
                 ) : (
                   <>
+                    <StageView phase="data_collection" payload={artifacts.data_collection} showRawJson={false} />
                     <div style={{ fontSize: 13, color: C.sub, marginBottom: 16 }}>
                       The <code>data-collection</code> agent extracted these as <strong>drafts</strong>. Verify before Phase 5;
                       low-confidence / outlier rows are flagged and sorted first.
@@ -370,21 +353,8 @@ export default function PipelineBoard() {
                     <div style={{ fontSize: 13, color: C.sub, marginBottom: 14 }}>
                       The <code>{rowByKey[openPhase].agentKey}</code> agent emitted this artifact. Review, then approve to cascade into the next phase.
                     </div>
-                    <div style={{ display: "grid", gap: 8, marginBottom: 14 }}>
-                      {summarizeArtifact(openPhase, artifacts[openPhase])?.map((b) => (
-                        <div key={b.label} style={{ display: "flex", justifyContent: "space-between", gap: 12, fontSize: 13.5, borderBottom: `1px solid ${C.border}`, paddingBottom: 7 }}>
-                          <span style={{ color: C.sub }}>{b.label}</span>
-                          <span style={{ fontWeight: 650, textAlign: "right" }}>{b.value}</span>
-                        </div>
-                      ))}
-                    </div>
-                    <details style={{ marginBottom: 14 }}>
-                      <summary style={{ fontSize: 12.5, color: C.sub, cursor: "pointer", fontWeight: 600 }}>View raw artifact (JSON)</summary>
-                      <pre style={{ fontSize: 11, background: "#f6f8f7", border: `1px solid ${C.border}`, borderRadius: 8, padding: 10, overflow: "auto", maxHeight: 320, marginTop: 8 }}>
-                        {JSON.stringify(artifacts[openPhase], null, 2)}
-                      </pre>
-                    </details>
-                    <div style={{ paddingTop: 14, borderTop: `1px solid ${C.border}`, display: "flex", gap: 8 }}>
+                    <StageView phase={openPhase} payload={artifacts[openPhase]} />
+                    <div style={{ paddingTop: 14, marginTop: 14, borderTop: `1px solid ${C.border}`, display: "flex", gap: 8 }}>
                       {phaseStatus[openPhase] === "complete" ? (
                         <div style={{ fontSize: 13, fontWeight: 650, color: C.high }}>✓ approved</div>
                       ) : (
@@ -410,10 +380,3 @@ export default function PipelineBoard() {
     </div>
   );
 }
-
-function btn(color: string): React.CSSProperties {
-  return { background: color, color: "#fff", border: "none", borderRadius: 8, padding: "7px 13px", fontSize: 13, fontWeight: 650, cursor: "pointer", whiteSpace: "nowrap" };
-}
-const btnGhost: React.CSSProperties = {
-  background: "#fff", color: "#5d6b64", border: "1px solid #e3e8e5", borderRadius: 8, padding: "7px 13px", fontSize: 13, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap",
-};
