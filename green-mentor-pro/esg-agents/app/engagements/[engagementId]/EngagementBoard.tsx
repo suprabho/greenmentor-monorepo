@@ -8,6 +8,7 @@ import type { PhaseStatus } from "@/lib/orchestrator/gates";
 import {
   approvePhaseAction, requestChangesAction, decideReviewAction,
   answerOpenQuestionAction, applyAnswersAndRerunKickoffAction, setDataSourceModeAction,
+  cancelRunAction,
 } from "./actions";
 import { C, ACCENT, CONF_STYLE, btn, btnGhost } from "@/app/stages/theme";
 import { StageView } from "@/app/stages/StageView";
@@ -63,8 +64,10 @@ export default function EngagementBoard({ engagement, phaseStatus, nextRunnable,
   const router = useRouter();
   const [openPhase, setOpenPhase] = useState<PhaseKey | null>(null);
   const [running, setRunning] = useState<PhaseKey | null>(null);
+  const [stopping, setStopping] = useState<PhaseKey | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const runAbortRef = useRef<AbortController | null>(null);
 
   const rowByKey = useMemo(() => Object.fromEntries(PHASE_ROWS.map((r) => [r.key, r])), []);
   const completeCount = PHASE_ROWS.filter((r) => phaseStatus[r.key] === "complete" || phaseStatus[r.key] === "approved").length;
@@ -73,21 +76,47 @@ export default function EngagementBoard({ engagement, phaseStatus, nextRunnable,
 
   const runPhase = async (key: PhaseKey) => {
     const agentKey = rowByKey[key].agentKey;
+    const controller = new AbortController();
+    runAbortRef.current = controller;
     setRunning(key); setError(null); setOpenPhase(key);
     try {
       const res = await fetch(`/api/agents/${agentKey}/run`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ engagementId: engagement.id }),
+        signal: controller.signal,
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error ?? `HTTP ${res.status}`);
       router.refresh();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "run failed");
-      router.refresh(); // reflect the real DB state (e.g. a failed run) even on error
+      // A user-initiated Stop aborts the request — that's expected, not an error.
+      if (e instanceof DOMException && e.name === "AbortError") router.refresh();
+      else {
+        setError(e instanceof Error ? e.message : "run failed");
+        router.refresh(); // reflect the real DB state (e.g. a failed run) even on error
+      }
     } finally {
+      if (runAbortRef.current === controller) runAbortRef.current = null;
       setRunning(null);
+    }
+  };
+
+  // Stop a phase that's mid-run (or stuck in agent_running after a reload). Aborts the
+  // in-flight request locally so the spinner clears at once, then flips the persisted
+  // phase off agent_running via the server action so it becomes runnable again.
+  const stopPhase = async (key: PhaseKey) => {
+    setStopping(key); setError(null);
+    runAbortRef.current?.abort();
+    try {
+      const r = await cancelRunAction(engagement.id, key);
+      if (!r.ok) setError(r.error ?? "Couldn't stop the run.");
+      else {
+        setRunning((cur) => (cur === key ? null : cur));
+        router.refresh();
+      }
+    } finally {
+      setStopping(null);
     }
   };
 
@@ -165,7 +194,14 @@ export default function EngagementBoard({ engagement, phaseStatus, nextRunnable,
                   </div>
                   <StatusPill status={isRunning ? "agent_running" : st} />
                   {isRunning ? (
-                    <button disabled style={{ ...btn(C.sub), opacity: 0.6, cursor: "wait" }}>Running…</button>
+                    <button
+                      onClick={() => stopPhase(row.key)}
+                      disabled={stopping === row.key}
+                      title="Stop this run and free the phase to re-run"
+                      style={{ ...btnGhost, color: C.low, borderColor: `${C.low}55`, opacity: stopping === row.key ? 0.6 : 1, cursor: stopping === row.key ? "wait" : "pointer" }}
+                    >
+                      {stopping === row.key ? "Stopping…" : "■ Stop"}
+                    </button>
                   ) : st === "ready" ? (
                     <button onClick={() => runPhase(row.key)} style={btn("#2848b8")}>▸ Run</button>
                   ) : st === "awaiting_human_review" ? (

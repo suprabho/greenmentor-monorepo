@@ -141,9 +141,14 @@ export async function runPhase(
       outputTokens: result.raw.usage?.output_tokens ?? null,
       model: result.meta.model,
     });
-    await setPhaseStatus(orgId, engagementId, phaseKey, "awaiting_human_review");
-    // Re-running invalidates any stale downstream phases (no-op on a first run).
-    await cascadeStaleDownstream(orgId, engagementId, phaseKey).catch(() => {});
+    // Land the phase on the human gate — but only if it's still ours. A user who hit
+    // "Stop" mid-run flips the phase to `failed`; that stop must win over this late
+    // completion, so the transition is guarded rather than an unconditional set.
+    const landed = await transitionPhase(orgId, engagementId, phaseKey, ["agent_running"], "awaiting_human_review");
+    if (landed) {
+      // Re-running invalidates any stale downstream phases (no-op on a first run).
+      await cascadeStaleDownstream(orgId, engagementId, phaseKey).catch(() => {});
+    }
 
     return { runId: run.id, artifactId: artifact.id, phaseKey, status: "awaiting_human_review", confidence };
   } catch (e) {

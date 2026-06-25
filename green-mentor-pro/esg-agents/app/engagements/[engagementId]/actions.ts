@@ -3,10 +3,12 @@
 import { revalidatePath } from "next/cache";
 import { getSession } from "@/lib/auth/session";
 import type { PhaseKey } from "@/lib/orchestrator/pipeline";
-import { transitionPhase } from "@/lib/db/phases";
+import { transitionPhase, listPhases } from "@/lib/db/phases";
+import { failRun } from "@/lib/db/runs";
 import { finalizePhaseArtifacts } from "@/lib/db/artifacts";
 import { updateEngagement } from "@/lib/db/engagements";
 import { runPhase } from "@/lib/orchestrator/runPhase";
+import type { Json } from "@/lib/db/types";
 import {
   decidePhaseGate, decideReview, countOpenFieldReviews,
   countOpenQuestions, resolveOpenQuestion, listOpenQuestions,
@@ -43,6 +45,30 @@ export async function approvePhaseAction(engagementId: string, phaseKey: PhaseKe
 
   await finalizePhaseArtifacts(orgId, engagementId, phaseKey);
   await decidePhaseGate(orgId, engagementId, phaseKey, "approved", { reviewedBy: userUuid });
+  revalidatePath(`/engagements/${engagementId}`);
+  return { ok: true };
+}
+
+/**
+ * Stop a phase whose agent is mid-run (or stuck). Flips `agent_running` → `failed`
+ * so the row becomes runnable again (the board shows a ↻ Retry), clears the phase's
+ * current_run_id, and marks the in-flight run as a user cancellation. The transition
+ * is guarded: if the run already landed (→ awaiting_human_review) it's a no-op and we
+ * ask the user to refresh, so we never clobber a result that just finished.
+ */
+export async function cancelRunAction(engagementId: string, phaseKey: PhaseKey): Promise<ActionResult> {
+  const { orgId } = await authed(engagementId);
+
+  // Capture the in-flight run id before we flip the phase off `agent_running`.
+  const phase = (await listPhases(orgId, engagementId)).find((p) => p.phase_key === phaseKey);
+  const runId = phase?.current_run_id ?? null;
+
+  const moved = await transitionPhase(orgId, engagementId, phaseKey, ["agent_running"], "failed", { currentRunId: null });
+  if (!moved) return { ok: false, error: "This phase isn't running anymore — refresh to see its latest state." };
+
+  if (runId) {
+    await failRun(orgId, runId, { message: "Run stopped by user", cancelled: true } as Json).catch(() => {});
+  }
   revalidatePath(`/engagements/${engagementId}`);
   return { ok: true };
 }
