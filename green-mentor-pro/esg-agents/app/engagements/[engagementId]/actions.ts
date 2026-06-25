@@ -2,8 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { getSession } from "@/lib/auth/session";
-import type { PhaseKey } from "@/lib/orchestrator/pipeline";
-import { transitionPhase } from "@/lib/db/phases";
+import { PHASES, type PhaseKey } from "@/lib/orchestrator/pipeline";
+import { transitionPhase, cascadeStaleDownstream } from "@/lib/db/phases";
 import { finalizePhaseArtifacts } from "@/lib/db/artifacts";
 import { updateEngagement } from "@/lib/db/engagements";
 import { runPhase } from "@/lib/orchestrator/runPhase";
@@ -111,10 +111,12 @@ export async function applyAnswersAndRerunKickoffAction(engagementId: string): P
   // Persist so assemblePhaseInput can hand them to the agent on the re-run.
   await updateEngagement(orgId, engagementId, { configPatch: { kickoff_clarifications: clarifications } });
 
-  // Send the phase back to a runnable state (rejecting the open gate), then re-run it.
+  // Send the phase back to a runnable state (rejecting any open gate), then re-run it.
+  // `complete` / `approved` are allowed so the charter can be regenerated even after the
+  // kickoff gate was signed off — editing a past answer and re-running is the whole point.
   const moved = await transitionPhase(
     orgId, engagementId, "kickoff",
-    ["awaiting_human_review", "changes_requested"], "changes_requested",
+    ["awaiting_human_review", "changes_requested", "complete", "approved"], "changes_requested",
   );
   if (!moved) return { ok: false, error: "Phase was already actioned — refresh." };
   await decidePhaseGate(orgId, engagementId, "kickoff", "rejected", { reviewedBy: userUuid, feedback: "Re-run with clarifications" });
@@ -124,6 +126,29 @@ export async function applyAnswersAndRerunKickoffAction(engagementId: string): P
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "Re-run failed." };
   }
+  revalidatePath(`/engagements/${engagementId}`);
+  return { ok: true };
+}
+
+/**
+ * Re-open an already-signed-off phase so it can be re-run. Sends it from a terminal
+ * state (`complete`/`approved`) back to `changes_requested` (a runnable, idle state) and
+ * cascades every strictly-downstream phase to `not_started` — re-running an upstream phase
+ * invalidates the work that depended on it. The caller then triggers the actual run via the
+ * normal run endpoint. Kickoff has its own answer-aware path (applyAnswersAndRerunKickoff).
+ */
+export async function reopenPhaseAction(engagementId: string, phaseKey: PhaseKey): Promise<ActionResult> {
+  const { orgId } = await authed(engagementId);
+  if (!PHASES[phaseKey]) return { ok: false, error: "Unknown phase." };
+
+  const moved = await transitionPhase(
+    orgId, engagementId, phaseKey,
+    ["complete", "approved"], "changes_requested",
+  );
+  if (!moved) return { ok: false, error: "Only an approved phase can be re-opened — refresh." };
+
+  // Later phases now rest on stale upstream output; reset them so they re-run in order.
+  await cascadeStaleDownstream(orgId, engagementId, phaseKey).catch(() => {});
   revalidatePath(`/engagements/${engagementId}`);
   return { ok: true };
 }

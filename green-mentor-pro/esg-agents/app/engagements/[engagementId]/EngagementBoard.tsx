@@ -8,6 +8,7 @@ import type { PhaseStatus } from "@/lib/orchestrator/gates";
 import {
   approvePhaseAction, requestChangesAction, decideReviewAction,
   answerOpenQuestionAction, applyAnswersAndRerunKickoffAction, setDataSourceModeAction,
+  reopenPhaseAction,
 } from "./actions";
 import { C, ACCENT, CONF_STYLE, btn, btnGhost } from "@/app/stages/theme";
 import { StageView } from "@/app/stages/StageView";
@@ -115,6 +116,19 @@ export default function EngagementBoard({ engagement, phaseStatus, nextRunnable,
     }
   };
 
+  // Re-run an already-approved phase: re-open it (which cascades later phases back to
+  // not_started) and immediately kick off a fresh agent run. Used by "↻ Re-run phase".
+  const reRunPhase = async (key: PhaseKey) => {
+    setBusy(true); setError(null);
+    try {
+      const r = await reopenPhaseAction(engagement.id, key);
+      if (!r.ok) { setError(r.error ?? "re-run failed"); return; }
+    } finally {
+      setBusy(false);
+    }
+    await runPhase(key);
+  };
+
   return (
     <div style={{ minHeight: "100vh", background: C.bg, color: C.text, fontFamily: "ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto" }}>
       <div style={{ maxWidth: 1600, margin: "0 auto", padding: "28px 32px 64px" }}>
@@ -196,6 +210,7 @@ export default function EngagementBoard({ engagement, phaseStatus, nextRunnable,
               onDecideRow={(id, decision) => act(() => decideReviewAction(engagement.id, id, decision))}
               onAnswerQuestion={(id, patch) => actKeepOpen(() => answerOpenQuestionAction(engagement.id, id, patch))}
               onApplyRerun={() => actKeepOpen(() => applyAnswersAndRerunKickoffAction(engagement.id))}
+              onReRun={() => reRunPhase(openPhase)}
             />
           )}
         </div>
@@ -210,9 +225,13 @@ function DetailPanel(props: {
   onApprove: () => void; onRequestChanges: () => void; onDecideRow: (id: string, d: "approved" | "rejected") => void;
   onAnswerQuestion: (id: string, patch: { answer?: string; waived?: boolean }) => void;
   onApplyRerun: () => void;
+  onReRun: () => void;
 }) {
   const { phase, label, no, status, payload, fieldReviews, openQuestions, busy } = props;
   const reviewable = status === "awaiting_human_review";
+  // A signed-off phase can be re-opened and re-run; answers stay editable until then.
+  const signedOff = status === "complete" || status === "approved";
+  const canEditAnswers = status !== "agent_running"; // kickoff answers editable except mid-run
   const openRows = fieldReviews.filter((i) => i.status === "submitted").length;
   const unanswered = openQuestions.filter((q) => q.status === "submitted").length;
 
@@ -230,17 +249,27 @@ function DetailPanel(props: {
             The scoping agent flagged these for client confirmation — the boundary above rests on them. Answer or waive each, then approve, or apply the answers and re-run to regenerate the charter.
           </div>
           {openQuestions.map((q) => (
-            <OpenQuestionCard key={q.id} q={q} editable={reviewable} busy={busy} onAnswer={(patch) => props.onAnswerQuestion(q.id, patch)} />
+            <OpenQuestionCard key={q.id} q={q} canEdit={canEditAnswers} busy={busy} onAnswer={(patch) => props.onAnswerQuestion(q.id, patch)} />
           ))}
           <div style={{ marginTop: 14, paddingTop: 14, borderTop: `1px solid ${C.border}` }}>
             <div style={{ fontSize: 13, color: C.sub, marginBottom: 10 }}>
-              {unanswered > 0 ? `Gate closed — ${unanswered} question(s) unanswered.` : "All questions resolved — approve the charter, or apply answers & re-run."}
+              {unanswered > 0
+                ? `Gate closed — ${unanswered} question(s) unanswered.`
+                : reviewable
+                  ? "All questions resolved — approve the charter, or apply answers & re-run."
+                  : signedOff
+                    ? "Charter signed off. Edit any answer above, then apply & re-run to regenerate it — this resets every later phase so they re-run in order."
+                    : "All questions resolved."}
             </div>
-            {reviewable && (
+            {(reviewable || signedOff) && (
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                <button disabled={busy || unanswered > 0} onClick={props.onApprove} style={{ ...btn(ACCENT), opacity: busy || unanswered > 0 ? 0.45 : 1, cursor: unanswered > 0 ? "not-allowed" : "pointer" }}>Approve phase →</button>
+                {reviewable && (
+                  <button disabled={busy || unanswered > 0} onClick={props.onApprove} style={{ ...btn(ACCENT), opacity: busy || unanswered > 0 ? 0.45 : 1, cursor: unanswered > 0 ? "not-allowed" : "pointer" }}>Approve phase →</button>
+                )}
                 <button disabled={busy || unanswered > 0} onClick={props.onApplyRerun} style={{ ...btn("#2848b8"), opacity: busy || unanswered > 0 ? 0.45 : 1, cursor: unanswered > 0 ? "not-allowed" : "pointer" }}>↻ Apply answers & re-run</button>
-                <button disabled={busy} onClick={props.onRequestChanges} style={btnGhost}>Request changes</button>
+                {reviewable && (
+                  <button disabled={busy} onClick={props.onRequestChanges} style={btnGhost}>Request changes</button>
+                )}
               </div>
             )}
           </div>
@@ -292,6 +321,17 @@ function DetailPanel(props: {
             </div>
           )}
         </>
+      )}
+
+      {/* Re-run a signed-off phase. Kickoff-with-questions has its own answer-aware
+          path above (Apply answers & re-run); every other signed-off phase uses this. */}
+      {signedOff && !(phase === "kickoff" && openQuestions.length > 0) && (
+        <div style={{ marginTop: 14, paddingTop: 14, borderTop: `1px solid ${C.border}` }}>
+          <div style={{ fontSize: 13, color: C.sub, marginBottom: 10 }}>
+            Need to revise this phase? Re-running regenerates its output and resets every later phase so they re-run in order.
+          </div>
+          <button disabled={busy} onClick={props.onReRun} style={{ ...btn("#2848b8"), opacity: busy ? 0.45 : 1 }}>↻ Re-run phase</button>
+        </div>
       )}
     </div>
   );
@@ -414,25 +454,25 @@ function DataSourceControl(props: {
 }
 
 function OpenQuestionCard(props: {
-  q: OpenQuestionReview; editable: boolean; busy: boolean;
+  q: OpenQuestionReview; canEdit: boolean; busy: boolean;
   onAnswer: (patch: { answer?: string; waived?: boolean }) => void;
 }) {
-  const { q, editable, busy, onAnswer } = props;
+  const { q, canEdit, busy, onAnswer } = props;
+  const [editing, setEditing] = useState(false);
   const [text, setText] = useState(q.answer ?? "");
   const resolved = q.status !== "submitted";
   const accent = resolved ? (q.waived ? C.medium : C.high) : C.low;
+  // Show the editor for an unanswered question, or when revising a resolved one.
+  const showEditor = canEdit && (!resolved || editing);
+
+  const startEditing = () => { setText(q.answer ?? ""); setEditing(true); };
+  const save = () => { onAnswer({ answer: text }); setEditing(false); };
+  const waive = () => { onAnswer({ waived: true }); setEditing(false); };
+
   return (
     <div style={{ border: `1px solid ${C.border}`, borderLeft: `3px solid ${accent}`, borderRadius: 10, padding: 14, marginBottom: 12 }}>
       <div style={{ fontWeight: 650, fontSize: 14, lineHeight: 1.45 }}>{q.question}</div>
-      {resolved ? (
-        <div style={{ fontSize: 13, marginTop: 8 }}>
-          {q.waived ? (
-            <span style={{ color: C.medium, fontWeight: 650 }}>↪ Waived — not applicable this cycle</span>
-          ) : (
-            <span style={{ color: C.text }}><span style={{ color: C.sub }}>Answer: </span>{q.answer || "—"}</span>
-          )}
-        </div>
-      ) : editable ? (
+      {showEditor ? (
         <>
           <textarea
             value={text}
@@ -442,10 +482,24 @@ function OpenQuestionCard(props: {
             style={{ width: "100%", marginTop: 8, padding: "8px 10px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 13, fontFamily: "inherit", resize: "vertical", boxSizing: "border-box" }}
           />
           <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
-            <button disabled={busy || !text.trim()} onClick={() => onAnswer({ answer: text })} style={{ ...btn(ACCENT), opacity: busy || !text.trim() ? 0.45 : 1 }}>Save answer</button>
-            <button disabled={busy} onClick={() => onAnswer({ waived: true })} style={btnGhost}>Waive</button>
+            <button disabled={busy || !text.trim()} onClick={save} style={{ ...btn(ACCENT), opacity: busy || !text.trim() ? 0.45 : 1 }}>Save answer</button>
+            <button disabled={busy} onClick={waive} style={btnGhost}>Waive</button>
+            {resolved && <button disabled={busy} onClick={() => setEditing(false)} style={btnGhost}>Cancel</button>}
           </div>
         </>
+      ) : resolved ? (
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10, marginTop: 8 }}>
+          <div style={{ fontSize: 13 }}>
+            {q.waived ? (
+              <span style={{ color: C.medium, fontWeight: 650 }}>↪ Waived — not applicable this cycle</span>
+            ) : (
+              <span style={{ color: C.text }}><span style={{ color: C.sub }}>Answer: </span>{q.answer || "—"}</span>
+            )}
+          </div>
+          {canEdit && (
+            <button disabled={busy} onClick={startEditing} style={{ ...btnGhost, fontSize: 12.5, flexShrink: 0 }}>Edit</button>
+          )}
+        </div>
       ) : (
         <div style={{ fontSize: 13, color: C.low, marginTop: 6 }}>Unanswered</div>
       )}
