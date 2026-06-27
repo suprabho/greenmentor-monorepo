@@ -35,10 +35,11 @@ export function LoginForm({ next, initialError }: { next: string; initialError?:
     const supabase = createClient();
 
     if (mode === "signup") {
+      // New accounts go through onboarding first.
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
-        options: { emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}` },
+        options: { emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent("/onboarding")}` },
       });
       if (error) {
         setError(error.message);
@@ -47,7 +48,7 @@ export function LoginForm({ next, initialError }: { next: string; initialError?:
       }
       // Auto-confirm on → session is live; else the user must confirm by email.
       if (data.session) {
-        window.location.href = next;
+        window.location.href = "/onboarding";
         return;
       }
       setNotice("Account created. Check your email to confirm, then sign in.");
