@@ -266,6 +266,9 @@ importers:
       '@ai-sdk/react':
         specifier: ^3.0.210
         version: 3.0.215(react@19.2.0)(zod@3.25.76)
+      '@anthropic-ai/sdk':
+        specifier: ^0.104.1
+        version: 0.104.2(zod@3.25.76)
       '@gm/agents':
         specifier: workspace:*
         version: link:../packages/agents
@@ -324,6 +327,9 @@ importers:
       tailwindcss:
         specifier: ^4.0.0
         version: 4.3.1
+      tsx:
+        specifier: ^4.19.2
+        version: 4.22.4
       typescript:
         specifier: ^5
         version: 5.9.3
