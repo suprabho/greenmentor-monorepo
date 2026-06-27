@@ -31,3 +31,7 @@ export * from "./admin";
 // ── Agent-package root resolution (the agent packages ship in this package's
 //    agents/ dir; the consuming app calls setAgentsRoot once at startup) ──
 export * from "./agentsRoot";
+
+// ── Engagement Report Copilot: system prompt + tool factory (AI SDK) ──
+export * from "./copilot";
+export * from "./copilotTools";

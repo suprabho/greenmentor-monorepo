@@ -8,6 +8,7 @@ import {
   type PhaseKey, type PhaseStatus,
 } from "@/lib/engagement-ui";
 import { ReviewsPanel } from "./ReviewsPanel";
+import { EngagementChat } from "./EngagementChat";
 
 interface Phase { phase_key: PhaseKey; phase_no: number; status: PhaseStatus }
 interface Artifact { artifact_type: string; payload: unknown; status: string; version: number; confidence: string | null }
@@ -125,6 +126,7 @@ export default function EngagementBoard({ params }: { params: Promise<{ engageme
       </div>
 
       <ReviewsPanel engagementId={engagementId} refreshKey={tick} onChange={load} />
+      <EngagementChat engagementId={engagementId} onChange={load} />
     </div>
   );
 }
