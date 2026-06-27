@@ -1,0 +1,13 @@
+packages:
+  # Unified platform app (the convergence target)
+  - 'green-mentor-pro/platform'
+  # Existing apps being fused (folded into the workspace; extracted from over time)
+  - 'green-mentor-pro/esg-agents'
+  - 'green-mentor-pro/community-engine'
+  - 'green-mentor-pro/prototype'
+  - 'academy/green-mentor-plus'
+  # vismay submodule — only the two self-contained packages we consume.
+  # (Do NOT glob packages/* — the rest of vismay's packages have internal
+  #  workspace:* deps we don't want to pull in. viz-engine + ai-gateway have none.)
+  - 'green-mentor-pro/vendor/vismay/packages/viz-engine'
+  - 'green-mentor-pro/vendor/vismay/packages/ai-gateway'

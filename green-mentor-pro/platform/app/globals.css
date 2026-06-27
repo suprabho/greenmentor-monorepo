@@ -1,0 +1,89 @@
+@import "tailwindcss";
+
+/* Greenmentor design tokens — pitch-deck design system bundle.
+   Same token set as green-mentor-plus. */
+
+@theme {
+  /* Brand teal (dark world) */
+  --color-teal-900: #014A50;
+  --color-teal-800: #164E4F;
+  --color-teal-700: #1E7B69;
+  --color-teal-600: #21776A;
+
+  /* Brand green (accents) */
+  --color-green-700: #009C62;
+  --color-green-500: #07D862;
+  --color-green-100: #DAF4D7;
+  --color-green-50:  #ECFCEA;
+
+  /* Neutrals */
+  --color-ink:       #0A0A0A;
+  --color-ink-soft:  #1E1E1E;
+  --color-gray-900:  #1E1E1E;
+  --color-gray-800:  #2E2E2E;
+  --color-gray-700:  #5D5D5D;
+  --color-gray-600:  #747474;
+  --color-gray-500:  #878787;
+  --color-gray-400:  #A8A8A8;
+  --color-gray-300:  #C0C0C0;
+  --color-gray-200:  #E2E8F0;
+  --color-gray-100:  #E9E9E9;
+  --color-gray-50:   #F6F7F6;
+
+  /* Semantic */
+  --color-danger:  #CF222E;
+  --color-warning: #FFB020;
+  --color-success: #009C62;
+
+  --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+
+  --radius-xs: 6px;
+  --radius-sm: 8px;
+  --radius-md: 18px;
+  --radius-lg: 20px;
+  --radius-xl: 24px;
+  --radius-pill: 999px;
+
+  --ease-gm: cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+@layer base {
+  :root {
+    color-scheme: light;
+    --shadow-soft: 0 1px 2px rgba(0,0,0,0.04), 0 8px 24px rgba(0,0,0,0.06);
+    --shadow-lift: 0 8px 24px rgba(0,0,0,0.08), 0 24px 60px rgba(0,0,0,0.10);
+    --gradient-stat-band: linear-gradient(180deg, #164E4F 0%, #07D862 100%);
+    --gradient-section-fade: linear-gradient(180deg, #DAF4D7 0%, #FFFFFF 100%);
+  }
+
+  html {
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    background-color: var(--color-gray-50);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+  }
+
+  ::selection {
+    background-color: var(--color-green-500);
+    color: var(--color-teal-900);
+  }
+
+  :where(a, button, [role="button"], input, select, textarea):focus-visible {
+    outline: 2px solid var(--color-green-500);
+    outline-offset: 2px;
+    border-radius: var(--radius-xs);
+  }
+}
+
+@layer utilities {
+  .shadow-soft { box-shadow: var(--shadow-soft); }
+  .shadow-lift { box-shadow: var(--shadow-lift); }
+  .bg-stat-band { background: var(--gradient-stat-band); }
+  .bg-section-fade { background: var(--gradient-section-fade); }
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+}
