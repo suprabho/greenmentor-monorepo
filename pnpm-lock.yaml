@@ -229,9 +229,15 @@ importers:
 
   green-mentor-pro/packages/agents:
     dependencies:
+      '@ai-sdk/anthropic':
+        specifier: ^3.0.85
+        version: 3.0.88(zod@3.25.76)
       '@anthropic-ai/sdk':
         specifier: ^0.104.1
         version: 0.104.2(zod@3.25.76)
+      ai:
+        specifier: ^6.0.208
+        version: 6.0.213(zod@3.25.76)
       ajv:
         specifier: ^8.17.1
         version: 8.20.0
@@ -241,6 +247,9 @@ importers:
       gray-matter:
         specifier: ^4.0.3
         version: 4.0.3
+      zod:
+        specifier: ^3.23.8
+        version: 3.25.76
     devDependencies:
       '@types/node':
         specifier: ^22
@@ -251,6 +260,12 @@ importers:
 
   green-mentor-pro/platform:
     dependencies:
+      '@ai-sdk/anthropic':
+        specifier: ^3.0.85
+        version: 3.0.88(zod@3.25.76)
+      '@ai-sdk/react':
+        specifier: ^3.0.210
+        version: 3.0.215(react@19.2.0)(zod@3.25.76)
       '@gm/agents':
         specifier: workspace:*
         version: link:../packages/agents
@@ -263,6 +278,9 @@ importers:
       '@vismay/viz-engine':
         specifier: workspace:*
         version: link:../vendor/vismay/packages/viz-engine
+      ai:
+        specifier: ^6.0.208
+        version: 6.0.213(zod@3.25.76)
       clsx:
         specifier: ^2.1.1
         version: 2.1.1
@@ -278,6 +296,9 @@ importers:
       tailwind-merge:
         specifier: ^2.6.0
         version: 2.6.1
+      zod:
+        specifier: ^3.23.8
+        version: 3.25.76
     devDependencies:
       '@tailwindcss/postcss':
         specifier: ^4.0.0

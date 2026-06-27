@@ -9,3 +9,8 @@ export * from "./runAgent";
 export * from "./packageIO";
 export { getClient } from "./anthropic/client";
 export { MODELS, supportsTemperature, type ModelTier } from "./anthropic/models";
+
+// ESG Buddy — the shared chat gateway (AI SDK) + generative-UI tools, consumed by
+// both esg-agents (app/api/chat) and the platform (/api/buddy/chat).
+export * from "./buddy";
+export * from "./buddyTools";

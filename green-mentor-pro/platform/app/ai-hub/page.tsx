@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { Card, Chip, PageHeader } from "@/components/ui";
 
@@ -80,7 +81,18 @@ export default function AiHub() {
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
-      <PageHeader title="AI Hub" sub="Run an ESG agent (esg-agents runtime via @gm/agents) and review its output" />
+      <PageHeader
+        title="AI Hub"
+        sub="Run an ESG agent (esg-agents runtime via @gm/agents) and review its output"
+        action={
+          <Link
+            href="/buddy"
+            className="inline-flex items-center gap-1.5 rounded-pill bg-green-50 px-3.5 py-1.5 text-[13px] font-semibold text-green-700 hover:bg-green-100"
+          >
+            🌱 Chat with ESG Buddy
+          </Link>
+        }
+      />
 
       <div className="flex flex-wrap gap-2">
         {FAMILIES.map((f) => (
