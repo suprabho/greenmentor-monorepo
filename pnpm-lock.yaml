@@ -272,6 +272,12 @@ importers:
       '@phosphor-icons/react':
         specifier: ^2.1.10
         version: 2.1.10(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+      '@supabase/ssr':
+        specifier: ^0.12.0
+        version: 0.12.0(@supabase/supabase-js@2.108.2)
+      '@supabase/supabase-js':
+        specifier: ^2.108.1
+        version: 2.108.2
       '@vismay/ai-gateway':
         specifier: workspace:*
         version: link:../vendor/vismay/packages/ai-gateway
