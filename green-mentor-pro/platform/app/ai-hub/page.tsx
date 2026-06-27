@@ -94,6 +94,19 @@ export default function AiHub() {
         }
       />
 
+      <Link
+        href="/ai-hub/engagements"
+        className="flex items-center justify-between rounded-[16px] border border-teal-900/15 bg-teal-900/[0.03] p-4 transition-colors hover:border-teal-900/30"
+      >
+        <div>
+          <div className="text-[14.5px] font-semibold text-ink">Run a full BRSR engagement →</div>
+          <div className="text-[12.5px] text-gray-600">All 8 phases end-to-end with HITL gates — kickoff through publishing.</div>
+        </div>
+        <Chip tone="teal">Orchestrated</Chip>
+      </Link>
+
+      <div className="text-[12px] font-semibold uppercase tracking-wide text-gray-400">Or run a single agent</div>
+
       <div className="flex flex-wrap gap-2">
         {FAMILIES.map((f) => (
           <button
