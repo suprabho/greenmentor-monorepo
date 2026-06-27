@@ -71,7 +71,13 @@ export default function EngagementBoard({ params }: { params: Promise<{ engageme
       <PageHeader
         title={snap.engagement.client_name}
         sub={`${snap.engagement.financial_year} · ${(snap.engagement.framework ?? []).join(", ")} · BRSR engagement`}
-        action={<Link href="/ai-hub/engagements" className="text-[13px] font-semibold text-teal-700 hover:text-teal-900">← All engagements</Link>}
+        action={
+          <div className="flex items-center gap-4">
+            <a href={`/api/ai-hub/engagements/${engagementId}/report`} target="_blank" rel="noopener noreferrer"
+              className="rounded-pill bg-teal-900 px-3.5 py-1.5 text-[12.5px] font-semibold text-white hover:bg-teal-800">View report</a>
+            <Link href="/ai-hub/engagements" className="text-[13px] font-semibold text-teal-700 hover:text-teal-900">← All</Link>
+          </div>
+        }
       />
 
       {error && <p className="rounded-[10px] bg-red-50 px-3 py-2 text-[12.5px] text-danger">{error}</p>}

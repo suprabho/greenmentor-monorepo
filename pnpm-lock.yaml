@@ -269,6 +269,12 @@ importers:
       ai:
         specifier: ^6.0.208
         version: 6.0.213(zod@3.25.76)
+      isomorphic-dompurify:
+        specifier: ^3.18.0
+        version: 3.18.0
+      marked:
+        specifier: ^18.0.5
+        version: 18.0.5
       zod:
         specifier: ^3.23.8
         version: 3.25.76

@@ -35,3 +35,11 @@ export * from "./agentsRoot";
 // ── Engagement Report Copilot: system prompt + tool factory (AI SDK) ──
 export * from "./copilot";
 export * from "./copilotTools";
+
+// ── Report assembly + HTML rendering (the server-side playwright PDF in
+//    esg-agents lib/report/pdf.ts is intentionally NOT ported — heavy chromium
+//    dep; the platform serves printable HTML instead) ──
+export { assembleBrsrReport, type AssembleInput } from "./report/assemble";
+export { brsrReportBodyHtml, brsrDocumentHTML } from "./report/render";
+export { getReportArtifacts } from "./report/repository";
+export type { BrsrReportModel } from "./report/types";
