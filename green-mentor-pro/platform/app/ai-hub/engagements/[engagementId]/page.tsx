@@ -7,6 +7,7 @@ import {
   PHASE_ORDER, PHASE_LABEL, STATUS_TONE, isRunnable,
   type PhaseKey, type PhaseStatus,
 } from "@/lib/engagement-ui";
+import { ReviewsPanel } from "./ReviewsPanel";
 
 interface Phase { phase_key: PhaseKey; phase_no: number; status: PhaseStatus }
 interface Artifact { artifact_type: string; payload: unknown; status: string; version: number; confidence: string | null }
@@ -22,12 +23,14 @@ export default function EngagementBoard({ params }: { params: Promise<{ engageme
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<PhaseKey | null>(null);
   const [open, setOpen] = useState<PhaseKey | null>(null);
+  const [tick, setTick] = useState(0);
 
   const load = useCallback(async () => {
     const res = await fetch(`/api/ai-hub/engagements/${engagementId}`);
     const json = await res.json();
     if (!res.ok) { setError(json.error ?? `HTTP ${res.status}`); return; }
     setSnap(json.snapshot);
+    setTick((t) => t + 1);
   }, [engagementId]);
 
   useEffect(() => { load(); }, [load]);
@@ -120,6 +123,8 @@ export default function EngagementBoard({ params }: { params: Promise<{ engageme
           );
         })}
       </div>
+
+      <ReviewsPanel engagementId={engagementId} refreshKey={tick} onChange={load} />
     </div>
   );
 }
