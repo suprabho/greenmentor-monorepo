@@ -1,0 +1,51 @@
+[
+  {
+    "name": "proofread",
+    "description": "Proofread a section for grammar, terminology and framework-correct labels, preserving every approved figure.",
+    "strict": true,
+    "input_schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": { "section_id": { "type": "string" } },
+      "required": ["section_id"]
+    }
+  },
+  {
+    "name": "consistency_sweep",
+    "description": "Verify narrative numbers match calc_result and totals reconcile across sections; return consistency issues.",
+    "strict": true,
+    "input_schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": { "scope": { "type": "string" } },
+      "required": []
+    }
+  },
+  {
+    "name": "build_investor_summary",
+    "description": "Assemble the investor highlights summary from approved content (headline metrics + highlights).",
+    "strict": true,
+    "input_schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": { "engagement_id": { "type": "string" } },
+      "required": ["engagement_id"]
+    }
+  },
+  {
+    "name": "emit_publication_package",
+    "description": "Return the final publication package (final_sections + consistency_issues + investor_summary + publication_checklist). Call exactly once.",
+    "strict": true,
+    "input_schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "final_sections": { "type": "array", "items": { "type": "object" } },
+        "consistency_issues": { "type": "array", "items": { "type": "object" } },
+        "investor_summary": { "type": "object" },
+        "publication_checklist": { "type": "array", "items": { "type": "object" } }
+      },
+      "required": ["final_sections", "publication_checklist"]
+    }
+  }
+]

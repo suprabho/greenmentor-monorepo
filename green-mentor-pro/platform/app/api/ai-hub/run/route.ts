@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import path from "node:path";
 import { loadAgent, runAgent, type CallableToolFn } from "@gm/agents";
+import { agentsRoot } from "@gm/orchestrator";
+import { ensureOrchestratorInit } from "@/lib/orchestrator-server";
 
 // loadAgent reads the package off disk (skill.md / io.schema.json / tools.json),
 // so this must run on the Node runtime, not the edge.
@@ -32,7 +34,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: `unknown family '${family}'` }, { status: 400 });
     }
 
-    const agent = loadAgent(path.join(process.cwd(), "agents", agentKey));
+    ensureOrchestratorInit();
+    const agent = loadAgent(path.join(agentsRoot(), agentKey));
     const result = await runAgent(
       agent,
       input ?? {},

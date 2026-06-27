@@ -1,0 +1,15 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "esg-agents/agents/_shared/schema/per-field-result.json",
+  "title": "ProvenancedValue",
+  "description": "Canonical per-field provenance shape (EFDB + ls-ingestion convention). Reuse for every extracted or derived datum. Empty source_snippet ⇒ confidence must be 'low'. Overall artifact confidence = min of per-field confidence.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "value": { "type": ["string", "number", "boolean", "null"] },
+    "source_snippet": { "type": ["string", "null"], "description": "Verbatim evidence: document span, cell ref, or prior-artifact id." },
+    "extraction_confidence": { "type": "string", "enum": ["high", "medium", "low"] },
+    "extraction_note": { "type": ["string", "null"], "description": "Why null / why anomalous / assumption made." }
+  },
+  "required": ["value", "extraction_confidence"]
+}

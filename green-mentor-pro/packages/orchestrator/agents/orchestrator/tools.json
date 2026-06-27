@@ -1,0 +1,52 @@
+[
+  {
+    "name": "route_to_agent",
+    "description": "Resolve which agent package serves a given phase key.",
+    "strict": true,
+    "input_schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": { "phase_key": { "type": "string" } },
+      "required": ["phase_key"]
+    }
+  },
+  {
+    "name": "check_hitl_gate",
+    "description": "Return whether a phase's human gate is clear (no submitted review_queue items remain).",
+    "strict": true,
+    "input_schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": { "phase_key": { "type": "string" } },
+      "required": ["phase_key"]
+    }
+  },
+  {
+    "name": "summarize_phase",
+    "description": "Summarize what the last agent run for a phase produced, its confidence, and what needs human attention.",
+    "strict": true,
+    "input_schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": { "phase_key": { "type": "string" } },
+      "required": ["phase_key"]
+    }
+  },
+  {
+    "name": "emit_orchestration_decision",
+    "description": "Return the routing decision + handoff summary. Call exactly once.",
+    "strict": true,
+    "input_schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "next_phase": { "type": ["string", "null"] },
+        "agent_key": { "type": ["string", "null"] },
+        "gate_status": { "type": "string", "enum": ["clear", "blocked_awaiting_review", "blocked_dependency"] },
+        "handoff_summary": { "type": "string" },
+        "recommended_action": { "type": "string", "enum": ["run_agent", "await_human_review", "request_changes", "engagement_complete"] }
+      },
+      "required": ["gate_status", "handoff_summary", "recommended_action"]
+    }
+  }
+]

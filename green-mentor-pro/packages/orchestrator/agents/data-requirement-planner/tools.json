@@ -1,0 +1,72 @@
+[
+  {
+    "name": "map_topic_to_disclosures",
+    "description": "Resolve the in-scope disclosure codes for a material topic across the frameworks in scope, using the supplied framework mapping. Returns disclosures with their required metrics.",
+    "strict": true,
+    "input_schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "topic_id": { "type": "string" },
+        "frameworks": { "type": "array", "items": { "type": "string", "enum": ["BRSR", "GRI", "ESRS", "ISSB", "TCFD"] } }
+      },
+      "required": ["topic_id", "frameworks"]
+    }
+  },
+  {
+    "name": "define_metric",
+    "description": "Lock a metric definition: required unit, calculation methodology + basis, and the quality parameters used by validation/anomaly checks.",
+    "strict": true,
+    "input_schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "metric_id": { "type": "string" },
+        "required_unit": { "type": "string" },
+        "calc_methodology": { "type": "string" },
+        "basis": { "type": ["string", "null"], "description": "e.g. 'location-based', 'gross CV'." },
+        "expected_min": { "type": ["number", "null"] },
+        "outlier_factor": { "type": "number" }
+      },
+      "required": ["metric_id", "required_unit", "calc_methodology"]
+    }
+  },
+  {
+    "name": "build_data_request",
+    "description": "Produce a single data-request line item plus, when channel=portal, its collection FormSchema.",
+    "strict": true,
+    "input_schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "dp_id": { "type": "string" },
+        "metric_ids": { "type": "array", "items": { "type": "string" } },
+        "disclosure_codes": { "type": "array", "items": { "type": "string" } },
+        "unit": { "type": "string" },
+        "granularity": { "type": "string", "enum": ["per_site_per_month", "per_site_per_quarter", "per_site_annual", "org_annual"] },
+        "sites": { "type": "array", "items": { "type": "string" } },
+        "data_definition": { "type": "string" },
+        "evidence_required": { "type": "array", "items": { "type": "string" } },
+        "channel": { "type": "string", "enum": ["portal", "upload"] },
+        "deadline": { "type": ["string", "null"], "format": "date" }
+      },
+      "required": ["dp_id", "metric_ids", "unit", "granularity", "data_definition"]
+    }
+  },
+  {
+    "name": "emit_data_request_list",
+    "description": "Return the complete Data Request List artifact (requests[] + form_schemas[] + unmapped_topics) for human approval. Call exactly once.",
+    "strict": true,
+    "input_schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "requests": { "type": "array", "items": { "type": "object" } },
+        "form_schemas": { "type": "array", "items": { "type": "object" } },
+        "unmapped_topics": { "type": "array", "items": { "type": "object" } },
+        "coverage_note": { "type": "string" }
+      },
+      "required": ["requests"]
+    }
+  }
+]

@@ -258,6 +258,22 @@ importers:
         specifier: ^5
         version: 5.9.3
 
+  green-mentor-pro/packages/orchestrator:
+    dependencies:
+      '@gm/agents':
+        specifier: workspace:*
+        version: link:../agents
+      '@supabase/supabase-js':
+        specifier: ^2.108.1
+        version: 2.108.2
+    devDependencies:
+      '@types/node':
+        specifier: ^22
+        version: 22.20.0
+      typescript:
+        specifier: ^5
+        version: 5.9.3
+
   green-mentor-pro/platform:
     dependencies:
       '@ai-sdk/anthropic':
@@ -272,6 +288,9 @@ importers:
       '@gm/agents':
         specifier: workspace:*
         version: link:../packages/agents
+      '@gm/orchestrator':
+        specifier: workspace:*
+        version: link:../packages/orchestrator
       '@phosphor-icons/react':
         specifier: ^2.1.10
         version: 2.1.10(react-dom@19.2.0(react@19.2.0))(react@19.2.0)

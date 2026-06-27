@@ -1,0 +1,145 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "esg-agents/agents/data-requirement-planner/io.schema.json",
+  "title": "DataRequirementPlannerIO",
+  "$defs": {
+    "input": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "tenant_id": { "type": "string" },
+        "engagement_id": { "type": "string" },
+        "financial_year": { "type": "string" },
+        "fiscal_year_type": { "type": "string", "enum": ["april_march", "jan_dec"] },
+        "frameworks_in_scope": { "type": "array", "items": { "type": "string", "enum": ["BRSR", "GRI", "ESRS", "ISSB", "TCFD"] } },
+        "material_topics": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "topic_id": { "type": "string" },
+              "label": { "type": "string" },
+              "status": { "type": "string", "enum": ["validated", "proposed"] }
+            },
+            "required": ["topic_id", "label"]
+          }
+        },
+        "framework_mapping": { "type": "object", "description": "Loaded config/framework-mapping.json (topic→disclosures→metrics→data_points)." },
+        "sites": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "site_id": { "type": "string" },
+              "name": { "type": "string" },
+              "type": { "type": "string" },
+              "country_iso": { "type": "string" }
+            },
+            "required": ["site_id"]
+          }
+        },
+        "reporting_period": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "start": { "type": "string", "format": "date" },
+            "end": { "type": "string", "format": "date" },
+            "label": { "type": "string" }
+          },
+          "required": ["start", "end"]
+        }
+      },
+      "required": ["tenant_id", "engagement_id", "financial_year", "frameworks_in_scope", "material_topics", "framework_mapping", "sites"]
+    },
+    "DataRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "request_id": { "type": "string" },
+        "dp_id": { "type": "string" },
+        "label": { "type": "string" },
+        "metric_ids": { "type": "array", "items": { "type": "string" } },
+        "disclosure_codes": { "type": "array", "items": { "type": "string" } },
+        "unit": { "type": "string" },
+        "granularity": { "type": "string", "enum": ["per_site_per_month", "per_site_per_quarter", "per_site_annual", "org_annual"] },
+        "sites": { "type": "array", "items": { "type": "string" } },
+        "period": { "type": "string" },
+        "data_definition": { "type": "string" },
+        "calc_methodology": { "type": "string" },
+        "evidence_required": { "type": "array", "items": { "type": "string" } },
+        "source_system": { "type": ["string", "null"] },
+        "owner_role": { "type": ["string", "null"] },
+        "channel": { "type": "string", "enum": ["portal", "upload"], "default": "portal" },
+        "form_schema_ref": { "type": ["string", "null"] },
+        "quality_params": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "expected_min": { "type": ["number", "null"] },
+            "outlier_factor": { "type": "number", "default": 3 },
+            "required": { "type": "boolean", "default": true }
+          }
+        },
+        "deadline": { "type": ["string", "null"], "format": "date" },
+        "status": { "type": "string", "enum": ["open"], "default": "open" }
+      },
+      "required": ["request_id", "dp_id", "label", "metric_ids", "unit", "granularity", "data_definition", "calc_methodology"]
+    },
+    "output": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "requests": { "type": "array", "items": { "$ref": "#/$defs/DataRequest" } },
+        "form_schemas": {
+          "type": "array",
+          "description": "Portal collection form schemas keyed by form_schema_ref.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "form_schema_ref": { "type": "string" },
+              "request_id": { "type": "string" },
+              "title": { "type": "string" },
+              "fields": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "type": { "type": "string", "enum": ["number", "text", "select", "date", "file"] },
+                    "name": { "type": "string" },
+                    "label": { "type": "string" },
+                    "unit": { "type": ["string", "null"] },
+                    "min": { "type": ["number", "null"] },
+                    "enum": { "type": "array", "items": { "type": "string" } },
+                    "accept": { "type": "array", "items": { "type": "string" } },
+                    "multiple": { "type": "boolean" },
+                    "required": { "type": "boolean" }
+                  },
+                  "required": ["type", "name", "label", "required"]
+                }
+              }
+            },
+            "required": ["form_schema_ref", "request_id", "fields"]
+          }
+        },
+        "unmapped_topics": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "topic_id": { "type": "string" },
+              "reason": { "type": "string" }
+            },
+            "required": ["topic_id", "reason"]
+          }
+        },
+        "coverage_note": { "type": "string", "description": "Which disclosures are fully/partly covered by the request list." }
+      },
+      "required": ["requests"]
+    }
+  }
+}

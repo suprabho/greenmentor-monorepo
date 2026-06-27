@@ -1,0 +1,31 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "esg-agents/agents/comms-outreach/io.schema.json",
+  "title": "CommsOutreachIO",
+  "$defs": {
+    "input": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "engagement_id": { "type": "string" },
+        "request_id": { "type": "string" },
+        "data_owner": { "type": "string" },
+        "channel": { "type": "string", "enum": ["whatsapp", "email"] },
+        "template_ref": { "type": "string" },
+        "context": { "type": "object" }
+      },
+      "required": ["engagement_id", "request_id", "data_owner", "channel"]
+    },
+    "output": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "channel": { "type": "string", "enum": ["whatsapp", "email"] },
+        "subject": { "type": ["string", "null"] },
+        "message": { "type": "string" },
+        "status": { "type": "string", "enum": ["queued", "disabled"], "default": "disabled" }
+      },
+      "required": ["channel", "message", "status"]
+    }
+  }
+}
