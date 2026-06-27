@@ -1,0 +1,104 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "esg-agents/agents/kickoff-scoping/io.schema.json",
+  "title": "KickoffScopingIO",
+  "$defs": {
+    "input": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "tenant_id": { "type": "string" },
+        "engagement_id": { "type": "string" },
+        "client": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "legal_name": { "type": "string" },
+            "sector": { "type": "string" },
+            "listing_status": { "type": ["string", "null"], "enum": ["listed", "unlisted", "subsidiary", null] }
+          },
+          "required": ["legal_name"]
+        },
+        "candidate_frameworks": { "type": "array", "items": { "type": "string", "enum": ["BRSR", "GRI", "ESRS", "ISSB", "SASB", "TCFD"] } },
+        "reporting_period": { "type": "object" },
+        "sites": { "type": "array", "items": { "type": "object" } },
+        "brief": { "type": ["string", "null"], "description": "Free-text client objectives/brief." },
+        "clarifications": {
+          "type": "array",
+          "description": "Confirmed answers to open questions raised on a prior pass. Treat each as authoritative, fold into the charter, and do not re-raise it.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "question": { "type": "string" },
+              "answer": { "type": "string" }
+            },
+            "required": ["question", "answer"]
+          }
+        }
+      },
+      "required": ["tenant_id", "engagement_id", "client", "candidate_frameworks"]
+    },
+    "output": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "scope_charter": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "objectives": { "type": "array", "items": { "type": "string" } },
+            "frameworks_in_scope": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "framework": { "type": "string" },
+                  "rationale": { "type": "string" },
+                  "mandatory": { "type": "boolean" }
+                },
+                "required": ["framework", "rationale", "mandatory"]
+              }
+            },
+            "reporting_boundary": { "type": "string" },
+            "out_of_scope": { "type": "array", "items": { "type": "string" } }
+          },
+          "required": ["objectives", "frameworks_in_scope", "reporting_boundary"]
+        },
+        "project_plan": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "phase_no": { "type": "integer" },
+              "phase": { "type": "string" },
+              "milestone": { "type": "string" },
+              "target_date": { "type": ["string", "null"], "format": "date" },
+              "depends_on": { "type": "array", "items": { "type": "integer" } }
+            },
+            "required": ["phase_no", "phase"]
+          }
+        },
+        "raci_matrix": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "activity": { "type": "string" },
+              "responsible": { "type": "string" },
+              "accountable": { "type": "string" },
+              "consulted": { "type": ["string", "null"] },
+              "informed": { "type": ["string", "null"] }
+            },
+            "required": ["activity", "responsible", "accountable"]
+          }
+        },
+        "open_questions": { "type": "array", "items": { "type": "string" } }
+      },
+      "required": ["scope_charter", "project_plan"]
+    }
+  }
+}

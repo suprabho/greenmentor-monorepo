@@ -1,0 +1,55 @@
+[
+  {
+    "name": "select_frameworks",
+    "description": "Recommend the reporting frameworks in scope given the client's sector and listing status, with a rationale and mandatory flag per framework.",
+    "strict": true,
+    "input_schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "sector": { "type": "string" },
+        "listing_status": { "type": ["string", "null"] },
+        "candidate_frameworks": { "type": "array", "items": { "type": "string" } }
+      },
+      "required": ["candidate_frameworks"]
+    }
+  },
+  {
+    "name": "draft_project_plan",
+    "description": "Draft the 8-phase project plan with milestones and indicative dates derived from the reporting period.",
+    "strict": true,
+    "input_schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "reporting_period": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "fy": { "type": "string", "description": "Reporting financial year label, e.g. FY2025-26" },
+            "start_date": { "type": "string", "description": "Period start, ISO date YYYY-MM-DD" },
+            "end_date": { "type": "string", "description": "Period end, ISO date YYYY-MM-DD" }
+          },
+          "required": ["fy"]
+        }
+      },
+      "required": ["reporting_period"]
+    }
+  },
+  {
+    "name": "emit_scope_plan",
+    "description": "Return the complete scope plan artifact (scope_charter + project_plan + raci_matrix + open_questions). Call exactly once.",
+    "strict": true,
+    "input_schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "scope_charter": { "type": "object" },
+        "project_plan": { "type": "array", "items": { "type": "object" } },
+        "raci_matrix": { "type": "array", "items": { "type": "object" } },
+        "open_questions": { "type": "array", "items": { "type": "string" } }
+      },
+      "required": ["scope_charter", "project_plan"]
+    }
+  }
+]

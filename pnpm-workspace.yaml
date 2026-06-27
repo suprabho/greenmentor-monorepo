@@ -1,6 +1,8 @@
 packages:
   # Unified platform app (the convergence target)
   - 'green-mentor-pro/platform'
+  # Shared workspace packages (canonical agent runtime, etc.)
+  - 'green-mentor-pro/packages/*'
   # Existing apps being fused (folded into the workspace; extracted from over time)
   - 'green-mentor-pro/esg-agents'
   - 'green-mentor-pro/community-engine'
