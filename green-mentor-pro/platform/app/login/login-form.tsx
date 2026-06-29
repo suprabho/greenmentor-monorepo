@@ -13,7 +13,6 @@ export function LoginForm({ next, initialError }: { next: string; initialError?:
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(initialError ?? "");
-  const [notice, setNotice] = useState("");
 
   async function signInWithGoogle() {
     setLoading(true);
@@ -31,29 +30,30 @@ export function LoginForm({ next, initialError }: { next: string; initialError?:
     e.preventDefault();
     setLoading(true);
     setError("");
-    setNotice("");
     const supabase = createClient();
 
     if (mode === "signup") {
-      // New accounts go through onboarding first.
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: { emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent("/onboarding")}` },
+      // Create the account server-side already-confirmed (no email step), then
+      // sign in with the same credentials so the session is live immediately.
+      const res = await fetch("/auth/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
       });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(body.error ?? "Could not create account.");
+        setLoading(false);
+        return;
+      }
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) {
         setError(error.message);
         setLoading(false);
         return;
       }
-      // Auto-confirm on → session is live; else the user must confirm by email.
-      if (data.session) {
-        window.location.href = "/onboarding";
-        return;
-      }
-      setNotice("Account created. Check your email to confirm, then sign in.");
-      setMode("signin");
-      setLoading(false);
+      // New accounts go through onboarding first.
+      window.location.href = "/onboarding";
       return;
     }
 
@@ -110,13 +110,12 @@ export function LoginForm({ next, initialError }: { next: string; initialError?:
       </form>
 
       <button
-        onClick={() => { setMode(mode === "signin" ? "signup" : "signin"); setError(""); setNotice(""); }}
+        onClick={() => { setMode(mode === "signin" ? "signup" : "signin"); setError(""); }}
         className="w-full text-center text-[12.5px] text-gray-600 hover:text-ink"
       >
         {mode === "signin" ? "New here? Create an account" : "Have an account? Sign in"}
       </button>
 
-      {notice && <p className="rounded-[10px] bg-green-50 px-3 py-2 text-[12.5px] text-green-700">{notice}</p>}
       {error && <p className="rounded-[10px] bg-red-50 px-3 py-2 text-[12.5px] text-danger">{error}</p>}
     </div>
   );
