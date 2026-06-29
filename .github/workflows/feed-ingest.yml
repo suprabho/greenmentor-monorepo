@@ -9,7 +9,7 @@ name: ESG feed — daily ingest
 # Idempotent: articles.url is unique and already-seen URLs are skipped, so the
 # job is safe to re-run or trigger manually.
 #
-# Required repo secrets (Settings → Secrets and variables → Actions):
+# Required secrets — in the "Production" environment (Settings → Environments):
 #   NEXT_PUBLIC_SUPABASE_URL    - Supabase project URL
 #   SUPABASE_SERVICE_ROLE_KEY   - service-role key (worker writes, bypasses RLS)
 #   ANTHROPIC_API_KEY           - Claude API key (summary + tagging)
@@ -30,6 +30,9 @@ jobs:
   ingest:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    # Secrets (Supabase URL/service-role key, Anthropic key) live in the
+    # "Production" environment — the job must opt in to receive them.
+    environment: Production
 
     steps:
       - uses: actions/checkout@v4
