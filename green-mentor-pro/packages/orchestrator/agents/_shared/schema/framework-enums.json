@@ -1,0 +1,16 @@
+{
+  "$comment": "Shared framework + GHG enums referenced by agent schemas and the disclosure mapper.",
+  "frameworks": ["BRSR", "GRI", "ESRS", "ISSB", "SASB", "TCFD"],
+  "ghg_scopes": ["1", "2", "3"],
+  "ghg_species": ["co2", "ch4", "n2o"],
+  "scope2_basis": ["location-based", "market-based"],
+  "gwp_basis": ["AR4", "AR5", "AR6", "GWP100", "GWP20", "Not stated"],
+  "scope3_categories": [
+    "1_purchased_goods", "2_capital_goods", "3_fuel_energy", "4_upstream_transport",
+    "5_waste", "6_business_travel", "7_commuting", "8_upstream_leased",
+    "9_downstream_transport", "10_processing", "11_use_of_products",
+    "12_end_of_life", "13_downstream_leased", "14_franchises", "15_investments"
+  ],
+  "confidence": ["high", "medium", "low"],
+  "fiscal_year_type": ["april_march", "jan_dec"]
+}

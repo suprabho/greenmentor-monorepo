@@ -1,0 +1,66 @@
+{
+  "schemaVersion": "1.0.0",
+  "$comment": "Topic → disclosures → metrics → data_points. Source of truth for the data-requirement-planner (Phase 3) and the disclosure mapper (Phase 6). Extend per engagement/sector.",
+  "mappings": [
+    {
+      "topic_id": "ghg_emissions",
+      "label": "GHG Emissions",
+      "disclosures": [
+        { "framework": "BRSR", "code": "P6-E7",     "title": "Principle 6, Essential Indicator 7 — GHG emissions (Scope 1 & 2)" },
+        { "framework": "GRI",  "code": "305-1",     "title": "Direct (Scope 1) GHG emissions" },
+        { "framework": "GRI",  "code": "305-2",     "title": "Energy indirect (Scope 2) GHG emissions" },
+        { "framework": "GRI",  "code": "305-3",     "title": "Other indirect (Scope 3) GHG emissions" },
+        { "framework": "ESRS", "code": "E1-6",      "title": "Gross Scopes 1, 2, 3 and Total GHG emissions" },
+        { "framework": "TCFD", "code": "Metrics-a", "title": "Scope 1, 2, 3 GHG metrics" }
+      ],
+      "metrics": [
+        { "metric_id": "scope1_tco2e",          "label": "Scope 1 emissions",              "unit": "tCO2e",        "scope": "1",         "method": "activity_x_emission_factor", "splits": ["co2", "ch4", "n2o"] },
+        { "metric_id": "scope2_location_tco2e", "label": "Scope 2 (location-based)",        "unit": "tCO2e",        "scope": "2",         "method": "grid_factor" },
+        { "metric_id": "scope2_market_tco2e",   "label": "Scope 2 (market-based)",          "unit": "tCO2e",        "scope": "2",         "method": "supplier_factor" },
+        { "metric_id": "scope3_by_category",    "label": "Scope 3 by GHG-Protocol category","unit": "tCO2e",        "scope": "3",         "categories": ["1_purchased_goods", "4_upstream_transport", "6_business_travel"] },
+        { "metric_id": "ghg_intensity_rev",     "label": "GHG intensity per revenue",       "unit": "tCO2e/INR_cr", "scope": "intensity", "method": "total_co2e / revenue" }
+      ],
+      "data_points": [
+        { "dp_id": "diesel_litres",       "label": "Diesel consumed",   "unit": "litres", "feeds": ["scope1_tco2e"],          "source_hint": "fuel invoices, DG logs" },
+        { "dp_id": "grid_electricity_kwh","label": "Grid electricity",  "unit": "kWh",    "feeds": ["scope2_location_tco2e"], "source_hint": "DISCOM bills" },
+        { "dp_id": "revenue_inr_cr",      "label": "Revenue",           "unit": "INR_cr", "feeds": ["ghg_intensity_rev"],     "source_hint": "audited financials" }
+      ]
+    },
+    {
+      "topic_id": "water",
+      "label": "Water & Effluents",
+      "disclosures": [
+        { "framework": "BRSR", "code": "P6-E3", "title": "Principle 6, Essential Indicator 3 — Water withdrawal/consumption/discharge" },
+        { "framework": "GRI",  "code": "303-3", "title": "Water withdrawal" },
+        { "framework": "GRI",  "code": "303-5", "title": "Water consumption" },
+        { "framework": "ESRS", "code": "E3-4",  "title": "Water consumption" }
+      ],
+      "metrics": [
+        { "metric_id": "water_withdrawal_kl",  "label": "Total water withdrawal", "unit": "kL", "method": "sum_by_source" },
+        { "metric_id": "water_discharge_kl",   "label": "Total water discharge",  "unit": "kL", "method": "sum_by_destination" },
+        { "metric_id": "water_consumption_kl", "label": "Water consumption",      "unit": "kL", "method": "withdrawal - discharge" }
+      ],
+      "data_points": [
+        { "dp_id": "groundwater_kl", "label": "Groundwater withdrawn", "unit": "kL", "feeds": ["water_withdrawal_kl"], "source_hint": "borewell flow meters" },
+        { "dp_id": "municipal_kl",   "label": "Municipal water",       "unit": "kL", "feeds": ["water_withdrawal_kl"], "source_hint": "water utility bills" },
+        { "dp_id": "effluent_kl",    "label": "Effluent discharged",   "unit": "kL", "feeds": ["water_discharge_kl"],  "source_hint": "ETP outlet meter" }
+      ]
+    },
+    {
+      "topic_id": "ohs",
+      "label": "Occupational Health & Safety",
+      "disclosures": [
+        { "framework": "BRSR", "code": "P3-E11", "title": "Principle 3, Essential Indicator 11 — Safety incidents (LTIFR, fatalities)" },
+        { "framework": "GRI",  "code": "403-9",  "title": "Work-related injuries" }
+      ],
+      "metrics": [
+        { "metric_id": "ltifr",      "label": "Lost Time Injury Frequency Rate", "unit": "per_million_hrs", "method": "(LTI * 1e6) / hours_worked" },
+        { "metric_id": "fatalities", "label": "Fatalities",                      "unit": "count",           "method": "sum" }
+      ],
+      "data_points": [
+        { "dp_id": "lti_count",    "label": "Lost-time injuries", "unit": "count", "feeds": ["ltifr"], "source_hint": "EHS incident register" },
+        { "dp_id": "hours_worked", "label": "Total hours worked", "unit": "hours", "feeds": ["ltifr"], "source_hint": "HR/attendance system" }
+      ]
+    }
+  ]
+}

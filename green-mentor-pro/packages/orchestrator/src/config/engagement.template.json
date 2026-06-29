@@ -1,0 +1,49 @@
+{
+  "schemaVersion": "1.0.0",
+  "engagement": {
+    "name": "Acme Manufacturing — FY2025-26 BRSR",
+    "client": {
+      "org_id": "org_acme",
+      "legal_name": "Acme Manufacturing Pvt Ltd",
+      "sector": "Manufacturing — Steel",
+      "listing_status": "listed",
+      "cin": "U27100MH2008PTC000000",
+      "primary_contact": { "name": "", "email": "", "role": "Head of Sustainability" }
+    },
+    "frameworks": ["BRSR", "GRI", "ESRS", "TCFD"],
+    "reporting_period": { "start": "2025-04-01", "end": "2026-03-31", "label": "FY2025-26" },
+    "fiscal_year_type": "april_march",
+    "baseline_year": "FY2023-24",
+    "sites": [
+      { "site_id": "site_pune",    "name": "Pune Plant",    "type": "manufacturing", "country_iso": "IN", "state": "MH" },
+      { "site_id": "site_chennai", "name": "Chennai Plant", "type": "manufacturing", "country_iso": "IN", "state": "TN" },
+      { "site_id": "site_hq",      "name": "Mumbai HQ",     "type": "office",        "country_iso": "IN", "state": "MH" }
+    ],
+    "site_combinations": [
+      { "combination_id": "all_manufacturing", "label": "All Manufacturing", "site_ids": ["site_pune", "site_chennai"] }
+    ],
+    "material_topics": [
+      { "topic_id": "ghg_emissions", "label": "GHG Emissions",                  "status": "proposed" },
+      { "topic_id": "water",         "label": "Water & Effluents",              "status": "proposed" },
+      { "topic_id": "ohs",           "label": "Occupational Health & Safety",   "status": "proposed" }
+    ]
+  },
+  "phases": {
+    "1": { "agent": "kickoff-scoping",          "enabled": true, "hitl_gate": "scope_approval",           "model_override": null },
+    "2": { "agent": "materiality",              "enabled": true, "hitl_gate": "material_topics_validated","model_override": null },
+    "3": { "agent": "data-requirement-planner", "enabled": true, "hitl_gate": "data_request_approval",    "model_override": null },
+    "4": { "agent": "data-collection",          "enabled": true, "hitl_gate": "collection_complete",      "model_override": null },
+    "5": { "agent": "data-validation",          "enabled": true, "hitl_gate": "data_quality_signoff",     "model_override": null },
+    "6": { "agent": "calculation-metrics",      "enabled": true, "hitl_gate": "calculation_review",       "model_override": null },
+    "7": { "agent": "report-drafting",          "enabled": true, "hitl_gate": "management_legal_review",  "model_override": null },
+    "8": { "agent": "finalization-publishing",  "enabled": true, "hitl_gate": "board_approval",           "model_override": null }
+  },
+  "channels": {
+    "portal":   { "enabled": true,  "require_auth": true, "themed": true },
+    "upload":   { "enabled": true,  "max_file_mb": 50, "accepted": ["pdf", "xlsx", "csv", "png", "jpg", "docx"] },
+    "whatsapp": { "enabled": false, "stub": true },
+    "email":    { "enabled": false, "stub": true }
+  },
+  "deployment": { "mode": "cloud_hosted", "self_hosted": false },
+  "theme_ref": "org_acme"
+}

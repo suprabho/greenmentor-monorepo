@@ -17,6 +17,7 @@
     "@ai-sdk/anthropic": "^3.0.85",
     "@ai-sdk/react": "^3.0.210",
     "@anthropic-ai/sdk": "^0.104.1",
+    "@gm/agents": "workspace:*",
     "@phosphor-icons/react": "^2.1.7",
     "@sparticuz/chromium": "^149.0.0",
     "@supabase/ssr": "^0.12.0",

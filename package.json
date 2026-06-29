@@ -1,0 +1,11 @@
+{
+  "name": "greenmentor-monorepo",
+  "version": "0.0.0",
+  "private": true,
+  "packageManager": "pnpm@10.11.1",
+  "scripts": {
+    "platform:dev": "pnpm --filter @gm/platform dev",
+    "platform:build": "pnpm --filter @gm/platform build",
+    "platform:start": "pnpm --filter @gm/platform start"
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "$comment": "Template for a portal collection FormSchema produced per portal-channel data request. The agent fills `fields` from the request's unit / granularity / evidence_required / quality_params. Select fields are enum-constrained to platform dropdown values (ls-ingestion rule). Rendered by app/(portal)/[engagementId]/submit/[requestId]/page.tsx.",
+  "form_schema_ref": "fs_example",
+  "request_id": "req_example",
+  "title": "{{request.label}} — {{site_name}} ({{period_label}})",
+  "fields": [
+    { "type": "number", "name": "value", "label": "{{request.label}} ({{required_unit}})", "unit": "{{required_unit}}", "min": 0, "required": true },
+    { "type": "select", "name": "reporting_basis", "label": "Reporting basis", "enum": ["billed", "metered", "estimated"], "required": true },
+    { "type": "text", "name": "period_label", "label": "Period covered", "required": true },
+    { "type": "file", "name": "evidence", "label": "Supporting evidence", "accept": ["pdf", "xlsx", "csv", "png", "jpg"], "multiple": true, "required": true },
+    { "type": "text", "name": "notes", "label": "Notes (optional)", "required": false }
+  ]
+}

@@ -1,0 +1,3 @@
+[submodule "green-mentor-pro/vendor/vismay"]
+	path = green-mentor-pro/vendor/vismay
+	url = https://github.com/suprabho/vismay
