@@ -36,7 +36,8 @@ export default function OnboardingWizard() {
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? `HTTP ${res.status}`);
-      router.push("/");
+      // Land in the app proper, not the marketing landing page.
+      router.push("/feed");
     } catch (e) {
       setError(String(e instanceof Error ? e.message : e));
       setSaving(false);
