@@ -26,21 +26,29 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Password must be at least 6 characters." }, { status: 400 });
   }
 
-  const admin = createAdminClient();
-  const { error } = await admin.auth.admin.createUser({
-    email,
-    password,
-    email_confirm: true,
-  });
+  try {
+    const admin = createAdminClient();
+    const { error } = await admin.auth.admin.createUser({
+      email,
+      password,
+      email_confirm: true,
+    });
 
-  if (error) {
-    // Most common: the email is already registered. Surface a friendly hint.
-    const already = /already.*registered|already.*exists/i.test(error.message);
-    return NextResponse.json(
-      { error: already ? "That email is already registered — try signing in." : error.message },
-      { status: already ? 409 : 400 },
-    );
+    if (error) {
+      // Most common: the email is already registered. Surface a friendly hint.
+      const already = /already.*registered|already.*exists/i.test(error.message);
+      return NextResponse.json(
+        { error: already ? "That email is already registered — try signing in." : error.message },
+        { status: already ? 409 : 400 },
+      );
+    }
+
+    return NextResponse.json({ ok: true });
+  } catch (err) {
+    // Misconfigured env (missing service-role key) or an unexpected GoTrue
+    // failure would otherwise surface as an opaque 500 with an empty body.
+    const message = err instanceof Error ? err.message : "Unexpected sign-up error.";
+    console.error("[auth/signup] failed:", message);
+    return NextResponse.json({ error: message }, { status: 500 });
   }
-
-  return NextResponse.json({ ok: true });
 }
