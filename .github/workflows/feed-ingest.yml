@@ -1,0 +1,55 @@
+name: ESG feed — daily ingest
+
+# Pulls the ESG RSS sources (lib/feed-sources.ts), hands each new article to
+# Claude Haiku for a <=60-word summary + entity tagging, and upserts
+# articles / entities / article_entities into the shared GreenMentor Supabase.
+# The /feed page (platform) and the /pipeline admin view (community-engine)
+# both read from those tables.
+#
+# Idempotent: articles.url is unique and already-seen URLs are skipped, so the
+# job is safe to re-run or trigger manually.
+#
+# Required repo secrets (Settings → Secrets and variables → Actions):
+#   NEXT_PUBLIC_SUPABASE_URL    - Supabase project URL
+#   SUPABASE_SERVICE_ROLE_KEY   - service-role key (worker writes, bypasses RLS)
+#   ANTHROPIC_API_KEY           - Claude API key (summary + tagging)
+# Optional: set FEED_SUMMARY_MODEL / FEED_PER_SOURCE below to tune the run.
+
+on:
+  schedule:
+    # 06:30 UTC daily — picks up overnight news before US/EU work hours.
+    # Change this cron to adjust cadence (e.g. '30 */6 * * *' for every 6h).
+    - cron: '30 6 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: esg-feed-ingest
+  cancel-in-progress: false
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # No `version:` — pnpm/action-setup@v4 reads it from the root
+      # package.json `packageManager` field and rejects having both.
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          # Node 22+: @supabase/realtime-js needs native WebSocket (absent in Node 20).
+          node-version: '22'
+          cache: pnpm
+
+      - name: Install workspace
+        run: pnpm install --frozen-lockfile
+
+      - name: Ingest ESG feed
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: pnpm --filter @gm/platform feed:ingest:ci
