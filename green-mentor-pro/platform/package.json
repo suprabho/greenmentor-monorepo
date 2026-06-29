@@ -23,6 +23,7 @@
     "@vismay/viz-engine": "workspace:*",
     "ai": "^6.0.208",
     "clsx": "^2.1.1",
+    "framer-motion": "^11.18.2",
     "next": "16.2.2",
     "react": "19.2.0",
     "react-dom": "19.2.0",
