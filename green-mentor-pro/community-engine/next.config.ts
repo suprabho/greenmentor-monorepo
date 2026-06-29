@@ -1,11 +1,15 @@
 import type { NextConfig } from "next";
+import path from "node:path";
 
 const nextConfig: NextConfig = {
-  // This app installs its own node_modules and deploys standalone, so pin the
-  // file-tracing root here. Otherwise Next walks up to the monorepo root and lays
-  // the lambda out under /var/task/green-mentor-pro/community-engine/..., which is
-  // also where the wrong @sparticuz/chromium path in the export error came from.
-  outputFileTracingRoot: __dirname,
+  // community-engine is a package inside the pnpm workspace, so its dependencies
+  // (next included) are hoisted to the monorepo-root node_modules and the Vercel
+  // lambda is laid out under /var/task with that root store. Pin the file-tracing
+  // root to the workspace root so Next traces the COMPLETE dependency tree. Pinning
+  // it to __dirname (this app dir) put the trace root *below* the real node_modules,
+  // so the tracer dropped Next's own lazily-required compiled submodules (e.g.
+  // next/dist/compiled/source-map) and every server-rendered route 500'd at runtime.
+  outputFileTracingRoot: path.join(__dirname, "../.."),
 
   // Keep the headless-browser packages out of the webpack bundle so their native
   // binaries are require()d at runtime instead of being (incorrectly) bundled.
