@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="Greenmentor">
+  <!-- Brand-token favicon: teal-900 field, green dot device from the wordmark. -->
+  <rect width="32" height="32" rx="7" fill="#014A50"/>
+  <path d="M20.8 11.6h2.1v4.4h-2.1c-1.5 0-2.7.5-3.6 1.4-.9 1-1.4 2.2-1.4 3.8v8.7H11V21.2c0-3.3.8-5.7 2.5-7.3 1.7-1.6 4-2.3 7-2.3Z" fill="#FFFFFF"/>
+  <path d="M11.2 9.5c0 2.7-.9 4.8-2.6 6.4-1.7 1.5-3.9 2.3-6.7 2.3v-4.4c1.5 0 2.7-.4 3.6-1.2.9-.8 1.4-2 1.4-3.6V4.8h4.3v4.7Z" fill="#FFFFFF" transform="translate(0 0)"/>
+  <circle cx="24.5" cy="6.5" r="3.4" fill="#00AE66"/>
+</svg>
