@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400" role="img" aria-label="Live Training — Master Life Cycle Assessment (LCA) — placeholder thumbnail">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#04130D"/>
+      <stop offset="0.55" stop-color="#0A3D2A"/>
+      <stop offset="1" stop-color="#0F7A4E"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.8" cy="0.18" r="0.9">
+      <stop offset="0" stop-color="#34D399" stop-opacity="0.32"/>
+      <stop offset="1" stop-color="#34D399" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="800" height="400" fill="url(#g)"/>
+  <rect width="800" height="400" fill="url(#glow)"/>
+  <text x="48" y="62" font-family="Inter, system-ui, sans-serif" font-size="22" font-weight="700" letter-spacing="0.3" fill="#86EFAC">green<tspan fill="#FFFFFF">mentor</tspan></text>
+  <g>
+    <circle cx="56" cy="110" r="6" fill="#F87171"/>
+    <text x="74" y="116" font-family="Inter, system-ui, sans-serif" font-size="15" font-weight="600" letter-spacing="2" fill="#86EFAC">LIVE TRAINING · LCA</text>
+  </g>
+  <text x="48" y="206" font-family="Inter, system-ui, sans-serif" font-size="44" font-weight="800" fill="#FFFFFF">
+    <tspan x="48" dy="0">Master Life Cycle</tspan>
+    <tspan x="48" dy="54">Assessment (LCA)</tspan>
+  </text>
+  <rect x="48" y="318" width="138" height="34" rx="17" fill="#FFFFFF" fill-opacity="0.12"/>
+  <text x="117" y="341" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="14" font-weight="600" letter-spacing="0.5" fill="#D1FAE5">Placeholder</text>
+</svg>
