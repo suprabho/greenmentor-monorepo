@@ -4,8 +4,38 @@ import type { Icon } from "@phosphor-icons/react";
 import { Card, Chip, PageHeader } from "@/components/ui";
 import { requireAdmin } from "@/lib/auth/admin";
 import { ADMIN_SECTIONS, type AdminSection } from "@/lib/admin/sections";
+import { createClient } from "@/lib/supabase/server";
 
 export const metadata = { title: "Admin — GreenMentor Community" };
+
+function ago(iso: string | null): string {
+  if (!iso) return "never";
+  const mins = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  if (mins < 1440) return `${Math.round(mins / 60)}h ago`;
+  return `${Math.round(mins / 1440)}d ago`;
+}
+
+/**
+ * Live one-liners for section cards, keyed by href. The Pipeline card reads the
+ * shared feed tables so the dashboard reflects the latest ingestion run (the
+ * worker in .github/workflows/feed-ingest.yml). Built server-side per request.
+ */
+async function sectionStats(): Promise<Record<string, string>> {
+  try {
+    const supabase = await createClient();
+    const [{ count }, { data: latest }] = await Promise.all([
+      supabase.from("articles").select("id", { count: "exact", head: true }),
+      supabase.from("articles").select("created_at").order("created_at", { ascending: false }).limit(1),
+    ]);
+    const n = count ?? 0;
+    return { "/pipeline": `${n} article${n === 1 ? "" : "s"} · last ingest ${ago(latest?.[0]?.created_at ?? null)}` };
+  } catch {
+    // Feed tables unavailable (env/RLS) — fall back to no live stat rather than 500 the hub.
+    return {};
+  }
+}
 
 /** Existing maker tools — folded in so nothing is lost when admin takes over `/`. */
 const makers: { href: string; icon: Icon; name: string; desc: string }[] = [
@@ -25,6 +55,7 @@ const makers: { href: string; icon: Icon; name: string; desc: string }[] = [
 
 export default async function AdminHome() {
   const user = await requireAdmin();
+  const stats = await sectionStats();
 
   return (
     <div className="space-y-10">
@@ -44,7 +75,7 @@ export default async function AdminHome() {
         </h2>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {ADMIN_SECTIONS.map((s) => (
-            <SectionCard key={s.href} section={s} />
+            <SectionCard key={s.href} section={s} stat={stats[s.href]} />
           ))}
         </div>
       </section>
@@ -74,7 +105,7 @@ export default async function AdminHome() {
   );
 }
 
-function SectionCard({ section }: { section: AdminSection }) {
+function SectionCard({ section, stat }: { section: AdminSection; stat?: string }) {
   const soon = section.status === "soon";
 
   const inner = (
@@ -99,6 +130,12 @@ function SectionCard({ section }: { section: AdminSection }) {
       </div>
       <h3 className="mt-4 text-[15px] font-semibold text-ink">{section.name}</h3>
       <p className="mt-1 text-[13px] leading-relaxed text-gray-600">{section.desc}</p>
+      {!soon && stat && (
+        <span className="mt-3 inline-flex items-center gap-1.5 text-[12px] font-medium text-gray-500">
+          <span className="size-1.5 rounded-full bg-green-500" />
+          {stat}
+        </span>
+      )}
       {!soon && (
         <span className="mt-4 inline-flex items-center gap-1 text-[12.5px] font-semibold text-green-700">
           Open <ArrowRight size={13} className="transition-transform group-hover:translate-x-0.5" />
