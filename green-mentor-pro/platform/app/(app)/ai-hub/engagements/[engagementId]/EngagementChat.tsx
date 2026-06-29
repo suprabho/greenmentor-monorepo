@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
-import DataRequestCard, { type DataRequestData } from "@/app/buddy/DataRequestCard";
+import DataRequestCard, { type DataRequestData } from "@/app/(app)/buddy/DataRequestCard";
 import { Card } from "@/components/ui";
 
 const ACCENT = "#1f8a5b";

@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 140 60" role="img" aria-label="BCG">
+  <title>BCG</title>
+  <text
+    x="70"
+    y="48"
+    text-anchor="middle"
+    font-family="'Helvetica Neue', Helvetica, Arial, sans-serif"
+    font-weight="900"
+    font-size="48"
+    letter-spacing="-1"
+    fill="#000"
+  >BCG</text>
+</svg>
