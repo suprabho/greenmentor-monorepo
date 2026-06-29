@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { createClient } from "@/lib/supabase/server";
 import { SiteHeader } from "@/components/site-header";
+import { isAdmin } from "@/lib/auth/admin";
 
 export const metadata: Metadata = {
   title: "GreenMentor — Community Engine",
@@ -26,7 +27,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         />
       </head>
       <body>
-        {user && <SiteHeader email={user.email ?? ""} />}
+        {user && <SiteHeader email={user.email ?? ""} isAdmin={isAdmin(user.email)} />}
         <main className="mx-auto max-w-6xl px-5 py-8">{children}</main>
       </body>
     </html>
