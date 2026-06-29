@@ -1,0 +1,29 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm view *)",
+      "Bash(npm install *)",
+      "Bash(node -e \"console.log\\('sparticuz', require\\('@sparticuz/chromium/package.json'\\).version\\); console.log\\('playwright-core', require\\('playwright-core/package.json'\\).version\\)\")",
+      "Bash(node -e \"console.log\\('sparticuz', require\\('/Users/suprabhodhenki/Documents/GreenMentor/greenmentor-monorepo/green-mentor-pro/community-engine/node_modules/@sparticuz/chromium/package.json'\\).version\\); console.log\\('playwright-core', require\\('/Users/suprabhodhenki/Documents/GreenMentor/greenmentor-monorepo/green-mentor-pro/community-engine/node_modules/playwright-core/package.json'\\).version\\)\")",
+      "Bash(pnpm --version)",
+      "Bash(node -e \"const p=require\\('@phosphor-icons/react'\\); ['Image','TextAa','TextT','User','UserCircle','Palette','PaintBrush','SlidersHorizontal','CaretDown','CaretUp'].forEach\\(n=>console.log\\(n, typeof p[n]\\)\\)\")",
+      "Bash(pnpm install *)",
+      "Bash(node -e \"const c=require\\('@sparticuz/chromium'\\).default || require\\('@sparticuz/chromium'\\); console.log\\('args is array:', Array.isArray\\(c.args\\)\\); console.log\\('executablePath type:', typeof c.executablePath\\); console.log\\('headless:', c.headless\\);\")",
+      "Bash(git -C /Users/suprabhodhenki/Documents/GreenMentor/greenmentor-monorepo status --short green-mentor-pro/community-engine)",
+      "Bash(echo \"tsc exit: $?\")",
+      "Bash(npx next *)",
+      "Bash(git restore *)",
+      "Bash(gh pr create --title 'fix\\(pro\\): render header export with serverless Chromium on Vercel' --base main --body ' *)",
+      "Bash(gh pr create --base main --head feat/header-studio-mobile --title 'feat\\(pro\\): make Header Studio mobile friendly' --body ' *)",
+      "Bash(npx playwright *)",
+      "Read(//Users/suprabhodhenki/Library/Caches/ms-playwright/**)",
+      "Bash(gh pr create --base main --head fix/chromium-bin-tracing --title 'fix\\(pro\\): include @sparticuz/chromium binaries in serverless export bundle' --body ' *)",
+      "Bash(docker compose *)",
+      "Bash(fly deploy *)",
+      "Bash(command -v flyctl)",
+      "Read(//Users/suprabhodhenki/.fly/**)",
+      "Read(//opt/homebrew/bin/**)",
+      "Bash(brew list *)"
+    ]
+  }
+}

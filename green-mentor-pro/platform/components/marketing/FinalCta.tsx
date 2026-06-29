@@ -5,12 +5,14 @@ import { ArrowRight, Check } from "@phosphor-icons/react/dist/ssr";
 import { Container } from "@/components/marketing/Container";
 import { Button } from "@/components/marketing-ui/Button";
 import { Eyebrow } from "@/components/marketing-ui/Badge";
+import { useCtaHref } from "@/components/marketing/MarketingAuthProvider";
 import { plans } from "@/lib/data/plans";
 import { guarantee } from "@/lib/data/guarantee";
 import { track } from "@/lib/utils/analytics";
 
 export function FinalCta() {
   const plan = plans[0];
+  const ctaHref = useCtaHref();
 
   return (
     <section className="relative overflow-hidden bg-teal-900 text-white">
@@ -54,7 +56,7 @@ export function FinalCta() {
               iconRight={<ArrowRight size={18} weight="bold" />}
             >
               <Link
-                href="/login"
+                href={ctaHref}
                 onClick={() =>
                   track("cta_clicked", {
                     location: "final_cta",

@@ -12,6 +12,7 @@ import {
 } from "@phosphor-icons/react/dist/ssr";
 import { Container } from "@/components/marketing/Container";
 import { SectionHeader } from "@/components/marketing/SectionHeader";
+import { useCtaHref } from "@/components/marketing/MarketingAuthProvider";
 import { Badge } from "@/components/marketing-ui/Badge";
 import { Button } from "@/components/marketing-ui/Button";
 import {
@@ -42,6 +43,7 @@ interface PricingSnapshotProps {
 // store can skip ahead.
 export function PricingSnapshot({ compact = false }: PricingSnapshotProps) {
   const plan = plans[0];
+  const ctaHref = useCtaHref();
 
   // Flat launch discount applied to each cycle's first charge (see
   // `flatDiscount`, mirrored by the auto-applied Razorpay offers at checkout).
@@ -264,7 +266,7 @@ export function PricingSnapshot({ compact = false }: PricingSnapshotProps) {
                   className="w-full"
                 >
                   <Link
-                    href={"/login"}
+                    href={ctaHref}
                     onClick={() =>
                       track("pricing_cta_clicked", {
                         plan: plan.id,

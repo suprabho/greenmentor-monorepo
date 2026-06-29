@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils/cn";
 import { Button } from "@/components/marketing-ui/Button";
 import { Container } from "@/components/marketing/Container";
 import { Logo, SubBrand } from "@/components/marketing/Logo";
+import { useCtaHref } from "@/components/marketing/MarketingAuthProvider";
 import { primaryNav } from "@/lib/data/nav";
 import { track } from "@/lib/utils/analytics";
 
@@ -15,6 +16,7 @@ export function Nav() {
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const pathname = usePathname();
+  const ctaHref = useCtaHref();
 
   useEffect(() => {
     setOpen(false);
@@ -76,7 +78,7 @@ export function Nav() {
           <div className="hidden items-center gap-3 md:flex">
             <Button asChild variant="ghost-dark" className="rounded-full" size="md">
               <Link
-                href="/login"
+                href={ctaHref}
                 onClick={() =>
                   track("cta_clicked", { location: "nav_desktop" })
                 }
@@ -119,7 +121,7 @@ export function Nav() {
               <div className="mt-3 grid gap-2 border-t border-gray-200 pt-4">
                 <Button asChild variant="primary" size="md">
                   <Link
-                    href="/login"
+                    href={ctaHref}
                     onClick={() =>
                       track("cta_clicked", { location: "nav_mobile" })
                     }

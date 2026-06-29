@@ -6,6 +6,7 @@ import { ArrowRight } from "@phosphor-icons/react/dist/ssr";
 import { Container } from "@/components/marketing/Container";
 import { CountUp } from "@/components/marketing/CountUp";
 import { Button } from "@/components/marketing-ui/Button";
+import { useCtaHref } from "@/components/marketing/MarketingAuthProvider";
 import { cn } from "@/lib/utils/cn";
 import { heroStats } from "@/lib/data/hero-stats";
 import { instructorCompanies } from "@/lib/data/instructors";
@@ -15,6 +16,8 @@ import { guarantee } from "@/lib/data/guarantee";
 import { track } from "@/lib/utils/analytics";
 
 export function Hero() {
+  const ctaHref = useCtaHref();
+
   return (
     <section className="relative overflow-hidden bg-teal-900 text-white">
       {/* Animated color-blend background — the Aura embed running full-bleed
@@ -79,7 +82,7 @@ export function Hero() {
                 className="w-full sm:w-auto rounded-full"
               >
                 <Link
-                  href="/login"
+                  href={ctaHref}
                   onClick={() =>
                     track("cta_clicked", { location: "hero", label: "start_4000" })
                   }
