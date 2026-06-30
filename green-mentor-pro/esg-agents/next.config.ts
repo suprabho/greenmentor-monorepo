@@ -1,6 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // @gm/agents ships raw TS (main: src/index.ts) and is consumed via workspace:* with
+  // no build step, so Next must transpile it (same seam the platform app uses).
+  transpilePackages: ["@gm/agents"],
   // Pin file-tracing to this app so Next doesn't walk to the monorepo root and lay the
   // lambda out at the wrong path (the "@sparticuz/chromium bin does not exist" failure).
   outputFileTracingRoot: __dirname,
