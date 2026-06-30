@@ -1,9 +1,17 @@
 import type { NextConfig } from "next";
+import path from "node:path";
 
 const nextConfig: NextConfig = {
-  // Pin file-tracing to this app so Next doesn't walk to the monorepo root and lay the
-  // lambda out at the wrong path (the "@sparticuz/chromium bin does not exist" failure).
-  outputFileTracingRoot: __dirname,
+  // @gm/agents ships raw TS (main: src/index.ts) and is consumed via workspace:* with
+  // no build step, so Next must transpile it (same seam the platform app uses).
+  transpilePackages: ["@gm/agents"],
+  // esg-agents is a package inside the pnpm workspace; its deps live in the monorepo-root
+  // node_modules/.pnpm store. Trace from the workspace root (NOT __dirname) so Next sees the
+  // COMPLETE dependency tree — pinning to this app dir puts the trace root *below* the real
+  // store, so the tracer drops Next's own lazily-required submodules and routes 500 at runtime.
+  // (Matches community-engine. We use pnpm's default isolated linker now — see note on the
+  // chromium include below — which is also what gives @gm/agents a deterministic ai@6.)
+  outputFileTracingRoot: path.join(__dirname, "../.."),
   // Agent packages are read from the filesystem at runtime (loadAgent / readPackage);
   // keep the readers + headless-browser packages unbundled so native binaries are
   // require()d at runtime, and trace the dirs/binaries into the functions that need them.
@@ -11,13 +19,18 @@ const nextConfig: NextConfig = {
   // __dirname-relative read of browser/default-stylesheet.css ("ENOENT ... default-stylesheet.css"
   // while collecting page data for /api/report/[engagementId]/pdf).
   serverExternalPackages: ["@anthropic-ai/sdk", "gray-matter", "ajv", "@sparticuz/chromium", "playwright-core", "playwright", "isomorphic-dompurify", "jsdom"],
+  // Paths below are relative to the workspace-root tracing root above.
   outputFileTracingIncludes: {
-    "/agents/**": ["./agents/**/*", "./config/**/*"], // Agent Studio pages (read package files)
-    "/api/**": ["./agents/**/*", "./config/**/*"], // agent run / package / orchestrator routes
+    "/agents/**": ["./green-mentor-pro/esg-agents/agents/**/*", "./green-mentor-pro/esg-agents/config/**/*"], // Agent Studio pages (read package files)
+    "/api/**": ["./green-mentor-pro/esg-agents/agents/**/*", "./green-mentor-pro/esg-agents/config/**/*"], // agent run / package / orchestrator routes
     // @sparticuz/chromium loads its brotli-packed binary from a runtime-computed path the
-    // tracer can't see — force-include it for the PDF route. NOTE: npm flat node_modules
-    // (NOT community-engine's pnpm `.pnpm/...` path).
-    "/api/report/**": ["./node_modules/@sparticuz/chromium/**"],
+    // tracer can't see — force-include it for the PDF route, via the pnpm isolated-store path
+    // (the approach community-engine ships) now that we no longer flatten node_modules.
+    // CAVEAT: the PDF route's bundle is almost entirely serverExternalPackages, so Next may
+    // omit it from the include loop and this glob won't fire — the binary bundling for
+    // /api/report/[engagementId]/pdf needs runtime verification (pre-existing; unrelated to
+    // the build fix this config unblocks).
+    "/api/report/**": ["./node_modules/.pnpm/@sparticuz+chromium@*/node_modules/@sparticuz/chromium/**"],
   },
 };
 
