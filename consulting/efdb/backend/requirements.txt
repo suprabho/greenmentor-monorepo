@@ -32,6 +32,7 @@ httpx==0.28.1
 beautifulsoup4==4.12.3
 
 # Utilities
+pycountry==24.6.1  # ISO geo-code mapping for the EnvironDec bulk import (scripts/import_environdec_epds.py)
 python-dotenv==1.0.1
 pydantic[email]==2.13.4
 pydantic-settings==2.7.0

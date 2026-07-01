@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, BackgroundTasks, Form
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.orm.attributes import flag_modified
 from app.database import get_db
 from app.models.source_document import SourceDocument
@@ -15,11 +15,18 @@ from app.models.extraction_session import ExtractionSession, SessionStatus, Reje
 from app.models.emission_factor import EmissionFactor
 from app.models.audit_log import AuditLog, AuditAction
 from app.models.user import User
+from app.models.environdec_watch import EnvirondecWatch, EnvirondecQueueItem
 from app.routers.auth import get_current_user, require_admin
 from app.schemas.ingestion import (
     ScanResult, SectionSelection, SessionStatusOut, ReviewAction, BulkReviewAction, ReviewSummary,
     ParsedDocOut,
 )
+from app.schemas.environdec import (
+    EnvirondecSearchRequest, EnvirondecSearchResponse, EnvirondecHit,
+    EnvirondecIngestRequest, EnvirondecIngestResponse, EnvirondecIngestItemResult,
+    WatchCreate, WatchUpdate, WatchOut, WatchRunResult, QueueItemOut, QueueIngestRequest,
+)
+from app.services import environdec as environdec_svc
 from app.services.extraction.pdf_agent import scan_document, extract_from_document
 from app.services.extraction.excel_agent import scan_excel, extract_from_excel
 from app.services.extraction.url_agent import fetch_and_scan_url, extract_from_url
@@ -390,6 +397,13 @@ async def commit_session(
 ):
     """Commit all approved records to the database. Reject the rest."""
     session = await _get_session(session_id, db)
+    return await _commit_session(session, current_user, db)
+
+
+async def _commit_session(session: ExtractionSession, current_user: User, db: AsyncSession) -> ReviewSummary:
+    """Commit a session's approved records → EmissionFactors (embeddings +
+    conflict detection + audit), archive the rejected. Shared by the review
+    commit endpoint and the EnvironDec auto-commit path."""
     if session.status != SessionStatus.in_review:
         raise HTTPException(400, f"Session is not in review state (current: {session.status})")
 
@@ -441,7 +455,7 @@ async def commit_session(
     session.completed_at = datetime.now(timezone.utc)
     await db.commit()
     logger.info("commit done: session=%s approved=%d rejected=%d conflicts=%d by %s",
-                session_id, len(approved_indices), len(rejected_indices),
+                session.id, len(approved_indices), len(rejected_indices),
                 conflicts_flagged, current_user.email)
 
     return ReviewSummary(
@@ -621,3 +635,372 @@ async def _get_session(session_id: uuid.UUID, db: AsyncSession) -> ExtractionSes
     if not session:
         raise HTTPException(404, "Session not found")
     return session
+
+
+# ── EnvironDec: on-demand & watched ingestion ──────────────────────────────
+#
+# Selective alternative to the bulk crawl→enrich→import scripts: search the
+# International EPD System's Data Hub live and pull only the datasets you pick
+# into a normal review session. Deterministic (no LLM) — see
+# app/services/environdec.py.
+
+async def _existing_epd_refs(db: AsyncSession) -> set[str]:
+    """All supplier_epd_reference values already in the DB (for dedup)."""
+    rows = await db.execute(
+        select(EmissionFactor.supplier_epd_reference)
+        .where(EmissionFactor.supplier_epd_reference.is_not(None)))
+    return {r for (r,) in rows}
+
+
+async def _ingest_outcomes_to_session(
+    outcomes: list[dict], db: AsyncSession, user: User, existing_refs: set[str],
+) -> tuple[ExtractionSession | None, list[EnvirondecIngestItemResult]]:
+    """Turn enrich outcomes into a review session. Ingestible records already
+    in the DB (by EPD reference) are downgraded to 'already_in_efdb' and skipped.
+    Returns (session|None, per-item results). Caller commits the transaction."""
+    results: list[EnvirondecIngestItemResult] = []
+    records: list[dict] = []
+    for o in outcomes:
+        status = o["status"]
+        if status == "ingestible" and o.get("registration_number") in existing_refs:
+            status = "already_in_efdb"
+        results.append(EnvirondecIngestItemResult(
+            uuid=o.get("uuid"), registration_number=o.get("registration_number"),
+            product_name=o.get("product_name"), owner=o.get("owner"),
+            geo=o.get("geo"), classific=o.get("classific"),
+            status=status, error=o.get("error"),
+        ))
+        if status == "ingestible":
+            records.append(o["record"])
+
+    if not records:
+        return None, results
+
+    doc = SourceDocument(
+        document_type="epd",
+        source_url="https://www.environdec.com/library",
+        original_filename=f"EnvironDec on-demand ({len(records)} EPD)",
+        uploaded_by=user.id,
+    )
+    db.add(doc)
+    await db.flush()
+    session = ExtractionSession(
+        source_document_id=doc.id,
+        created_by=user.id,
+        status=SessionStatus.in_review,
+        extraction_result=records,
+        review_progress={"approved": [], "rejected": [], "pending": list(range(len(records)))},
+        total_extracted=len(records),
+    )
+    db.add(session)
+    await db.flush()
+    return session, results
+
+
+async def _resolve_hits(req_hits: list[dict] | None, req_uuids: list[str] | None) -> list[dict]:
+    """Return flattened search-hit dicts for an ingest request. Prefers the
+    echoed `raw` hits; falls back to a Data Hub lookup for bare uuids."""
+    hits: list[dict] = []
+    if req_hits:
+        for h in req_hits:
+            # A hit may arrive wrapped as {..., "raw": {...}} from the search API.
+            hits.append(h.get("raw") if isinstance(h.get("raw"), dict) else h)
+    if req_uuids:
+        # Data Hub has no by-uuid list endpoint, but a process fetch carries the
+        # metadata we need; enrich_and_map handles a minimal {"uuid": ...} hit.
+        hits.extend({"uuid": u, "regNo": "", "name": "", "geo": None,
+                     "classific": None, "owner": None, "refYear": None,
+                     "validUntil": None, "subType": None, "compliance": ""}
+                    for u in req_uuids)
+    return hits
+
+
+@router.post("/environdec/search", response_model=EnvirondecSearchResponse)
+async def environdec_search(
+    req: EnvirondecSearchRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    """Search the International EPD System Data Hub. Annotates each hit with
+    whether its EPD is already in EFDB (dedup)."""
+    result = await environdec_svc.search(
+        query=req.query, owner=req.owner, registration_number=req.registration_number,
+        geo=req.geo, classific=req.classific,
+        page_size=min(req.page_size, 100), start_index=req.start_index,
+    )
+    existing = await _existing_epd_refs(db)
+    hits = []
+    for h in result["hits"]:
+        reg = environdec_svc.reg_base(h.get("regNo", ""))
+        hits.append(EnvirondecHit(
+            uuid=h.get("uuid"), regNo=h.get("regNo"), registration_number=reg,
+            name=h.get("name"), geo=h.get("geo"), classific=h.get("classific"),
+            owner=h.get("owner"), type=h.get("type"), subType=h.get("subType"),
+            refYear=h.get("refYear"), validUntil=h.get("validUntil"),
+            compliance=h.get("compliance"),
+            already_in_efdb=reg in existing, raw=h,
+        ))
+    return EnvirondecSearchResponse(
+        total=result["total"], start_index=result["start_index"],
+        page_size=result["page_size"], hits=hits,
+    )
+
+
+@router.post("/environdec/ingest", response_model=EnvirondecIngestResponse)
+async def environdec_ingest(
+    req: EnvirondecIngestRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    """Ingest selected EPDs into a review session (no LLM). Only datasets with a
+    machine-readable A1-A3 GWP + declared unit are ingestible; PDF-only or
+    already-ingested EPDs are reported and skipped. `auto_commit` commits."""
+    hits = await _resolve_hits(req.hits, req.uuids)
+    if not hits:
+        raise HTTPException(422, "Provide `hits` or `uuids` to ingest.")
+
+    outcomes = await environdec_svc.enrich_many(hits)
+    existing = await _existing_epd_refs(db)
+    session, results = await _ingest_outcomes_to_session(outcomes, db, current_user, existing)
+
+    ingested = sum(1 for r in results if r.status == "ingestible")
+    skipped = len(results) - ingested
+
+    committed = False
+    commit_summary = None
+    if session is None:
+        await db.commit()
+    elif req.auto_commit:
+        session.review_progress = {"approved": list(range(session.total_extracted)),
+                                   "rejected": [], "pending": []}
+        flag_modified(session, "review_progress")
+        session.total_approved = session.total_extracted
+        summary = await _commit_session(session, current_user, db)
+        committed = True
+        commit_summary = {
+            "approved": summary.approved, "rejected": summary.rejected,
+            "conflicts_flagged": summary.conflicts_flagged,
+            "records_committed": [str(i) for i in summary.records_committed],
+        }
+    else:
+        await db.commit()
+
+    logger.info("environdec ingest: %d ingestible, %d skipped, auto_commit=%s by %s",
+                ingested, skipped, req.auto_commit, current_user.email)
+    return EnvirondecIngestResponse(
+        session_id=session.id if session else None,
+        ingested=ingested, skipped=skipped,
+        committed=committed, commit_summary=commit_summary, results=results,
+    )
+
+
+# ── Watches ────────────────────────────────────────────────────────────────
+
+async def _watch_out(watch: EnvirondecWatch, db: AsyncSession) -> WatchOut:
+    pending = await db.execute(
+        select(func.count()).select_from(EnvirondecQueueItem)
+        .where(EnvirondecQueueItem.watch_id == watch.id,
+               EnvirondecQueueItem.status == "pending"))
+    return WatchOut(
+        id=watch.id, name=watch.name, query=watch.query, owner=watch.owner,
+        registration_number=watch.registration_number, geo=watch.geo,
+        classific=watch.classific, mode=watch.mode, enabled=watch.enabled,
+        seen_count=len(watch.seen_reg_nos or []), pending_count=pending.scalar() or 0,
+        last_checked_at=watch.last_checked_at, created_at=watch.created_at,
+    )
+
+
+@router.get("/environdec/watches", response_model=list[WatchOut])
+async def list_watches(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    rows = await db.execute(select(EnvirondecWatch).order_by(EnvirondecWatch.created_at.desc()))
+    return [await _watch_out(w, db) for w in rows.scalars()]
+
+
+@router.post("/environdec/watches", response_model=WatchOut)
+async def create_watch(
+    req: WatchCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    if req.mode not in ("queue", "auto"):
+        raise HTTPException(422, "mode must be 'queue' or 'auto'")
+    if not any([req.query, req.owner, req.registration_number, req.geo, req.classific]):
+        raise HTTPException(422, "A watch needs at least one search criterion.")
+    watch = EnvirondecWatch(
+        name=req.name, query=req.query, owner=req.owner,
+        registration_number=req.registration_number, geo=req.geo, classific=req.classific,
+        mode=req.mode, seen_reg_nos=[], created_by=current_user.id,
+    )
+    db.add(watch)
+    await db.commit()
+    await db.refresh(watch)
+    return await _watch_out(watch, db)
+
+
+async def _get_watch(watch_id: uuid.UUID, db: AsyncSession) -> EnvirondecWatch:
+    watch = (await db.execute(
+        select(EnvirondecWatch).where(EnvirondecWatch.id == watch_id))).scalar_one_or_none()
+    if not watch:
+        raise HTTPException(404, "Watch not found")
+    return watch
+
+
+@router.patch("/environdec/watches/{watch_id}", response_model=WatchOut)
+async def update_watch(
+    watch_id: uuid.UUID,
+    req: WatchUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    watch = await _get_watch(watch_id, db)
+    for field, value in req.model_dump(exclude_unset=True).items():
+        setattr(watch, field, value)
+    await db.commit()
+    await db.refresh(watch)
+    return await _watch_out(watch, db)
+
+
+@router.delete("/environdec/watches/{watch_id}")
+async def delete_watch(
+    watch_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    watch = await _get_watch(watch_id, db)
+    await db.execute(
+        EnvirondecQueueItem.__table__.delete().where(EnvirondecQueueItem.watch_id == watch.id))
+    await db.delete(watch)
+    await db.commit()
+    return {"status": "deleted"}
+
+
+async def _run_watch(watch: EnvirondecWatch, db: AsyncSession, user: User) -> WatchRunResult:
+    """Re-run a watch: find EPDs matching its criteria not seen before, then
+    either queue them (mode='queue') or ingest them into a review session
+    (mode='auto'). Shared by the run endpoint and the scheduled cron script."""
+    result = await environdec_svc.search(
+        query=watch.query, owner=watch.owner, registration_number=watch.registration_number,
+        geo=watch.geo, classific=watch.classific, page_size=100,
+    )
+    seen = set(watch.seen_reg_nos or [])
+    existing = await _existing_epd_refs(db)
+
+    fresh: list[dict] = []
+    for h in result["hits"]:
+        reg = environdec_svc.reg_base(h.get("regNo", ""))
+        if reg and reg not in seen and reg not in existing:
+            fresh.append(h)
+            seen.add(reg)
+
+    queued = auto_ingested = 0
+    session_id = None
+
+    if fresh and watch.mode == "auto":
+        outcomes = await environdec_svc.enrich_many(fresh)
+        session, _results = await _ingest_outcomes_to_session(outcomes, db, user, existing)
+        if session is not None:
+            auto_ingested = session.total_extracted
+            session_id = session.id
+    elif fresh:  # queue mode
+        for h in fresh:
+            db.add(EnvirondecQueueItem(
+                watch_id=watch.id, datahub_uuid=h.get("uuid") or "",
+                registration_number=environdec_svc.reg_base(h.get("regNo", "")),
+                product_name=(h.get("name") or "").strip() or None,
+                owner=h.get("owner"), geo=h.get("geo"), classific=h.get("classific"),
+                hit=h, status="pending",
+            ))
+            queued += 1
+
+    watch.seen_reg_nos = sorted(seen)
+    flag_modified(watch, "seen_reg_nos")
+    watch.last_checked_at = datetime.now(timezone.utc)
+    await db.commit()
+
+    return WatchRunResult(
+        watch_id=watch.id, new_found=len(fresh),
+        queued=queued, auto_ingested=auto_ingested, session_id=session_id,
+    )
+
+
+@router.post("/environdec/watches/{watch_id}/run", response_model=WatchRunResult)
+async def run_watch(
+    watch_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    watch = await _get_watch(watch_id, db)
+    return await _run_watch(watch, db, current_user)
+
+
+# ── Queue ──────────────────────────────────────────────────────────────────
+
+@router.get("/environdec/queue", response_model=list[QueueItemOut])
+async def list_queue(
+    watch_id: uuid.UUID | None = None,
+    status: str = "pending",
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    q = select(EnvirondecQueueItem).where(EnvirondecQueueItem.status == status)
+    if watch_id:
+        q = q.where(EnvirondecQueueItem.watch_id == watch_id)
+    q = q.order_by(EnvirondecQueueItem.discovered_at.desc())
+    rows = await db.execute(q)
+    return list(rows.scalars())
+
+
+@router.post("/environdec/queue/ingest", response_model=EnvirondecIngestResponse)
+async def ingest_queue_items(
+    req: QueueIngestRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    """Ingest selected queued EPDs into a review session and mark them ingested."""
+    rows = await db.execute(
+        select(EnvirondecQueueItem).where(EnvirondecQueueItem.id.in_(req.item_ids)))
+    items = list(rows.scalars())
+    if not items:
+        raise HTTPException(404, "No matching queue items.")
+
+    outcomes = await environdec_svc.enrich_many([it.hit for it in items])
+    existing = await _existing_epd_refs(db)
+    session, results = await _ingest_outcomes_to_session(outcomes, db, current_user, existing)
+
+    ingested = sum(1 for r in results if r.status == "ingestible")
+    now = datetime.now(timezone.utc)
+    # results preserve input order → pair each queue item with its outcome.
+    for it, r in zip(items, results):
+        it.actioned_at = now
+        if r.status == "ingestible":
+            it.status = "ingested"
+            it.session_id = session.id if session else None
+        else:
+            # already ingested / no machine-readable dataset → drop from queue
+            it.status = "dismissed"
+
+    committed = False
+    commit_summary = None
+    if session is not None and req.auto_commit:
+        session.review_progress = {"approved": list(range(session.total_extracted)),
+                                   "rejected": [], "pending": []}
+        flag_modified(session, "review_progress")
+        session.total_approved = session.total_extracted
+        summary = await _commit_session(session, current_user, db)
+        committed = True
+        commit_summary = {
+            "approved": summary.approved, "rejected": summary.rejected,
+            "conflicts_flagged": summary.conflicts_flagged,
+            "records_committed": [str(i) for i in summary.records_committed],
+        }
+    else:
+        await db.commit()
+
+    return EnvirondecIngestResponse(
+        session_id=session.id if session else None,
+        ingested=ingested, skipped=len(results) - ingested,
+        committed=committed, commit_summary=commit_summary, results=results,
+    )
