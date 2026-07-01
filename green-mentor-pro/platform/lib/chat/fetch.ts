@@ -1,12 +1,15 @@
-import type { FetchFunction } from "@ai-sdk/provider-utils";
-
 /**
  * fetch wrapper for the chat transport. Turns network + HTTP failures into a
  * `throw new Error(message)` so useChat's `onError`/`error` shows the real cause
  * instead of a silent stall or a raw HTML error page. Mirrors the flp ai-chatbot
  * `fetchWithErrorHandlers`. Runs only in the browser (called by DefaultChatTransport).
+ *
+ * Typed as `typeof fetch` (the exact shape the AI SDK's `FetchFunction` models) so
+ * it's assignable to `DefaultChatTransport`'s `fetch` option WITHOUT importing
+ * `@ai-sdk/provider-utils` — that's a transitive dep of `ai`, not a direct platform
+ * dependency, so importing it breaks Vercel's isolated-install typecheck.
  */
-export const fetchWithErrorHandlers: FetchFunction = async (input, init) => {
+export const fetchWithErrorHandlers: typeof fetch = async (input, init) => {
   try {
     if (typeof navigator !== "undefined" && navigator.onLine === false) {
       throw new Error("You appear to be offline. Check your connection and retry.");
