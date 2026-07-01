@@ -24,6 +24,7 @@ export function ProgressPanel({
   snap,
   states,
   busy,
+  progress,
   tick,
   runPhase,
   gate,
@@ -33,6 +34,7 @@ export function ProgressPanel({
   snap: EngagementSnapshot;
   states: Record<PhaseKey, PhaseStatus>;
   busy: PhaseKey | null;
+  progress?: string | null;
   tick: number;
   runPhase: (pk: PhaseKey) => void;
   gate: (pk: PhaseKey, decision: "approve" | "request-changes") => void;
@@ -68,6 +70,13 @@ export function ProgressPanel({
                   <span className="min-w-0 flex-1 truncate text-[13px] font-semibold text-ink">{PHASE_LABEL[pk]}</span>
                   <Chip tone={tone.tone}>{isBusy && busy === pk ? "Running…" : tone.label}</Chip>
                 </div>
+
+                {busy === pk && progress && (
+                  <div className="mt-2 flex items-center gap-2 pl-[34px] text-[11.5px] text-gray-500">
+                    <span className="size-1.5 animate-pulse rounded-full bg-green-600" />
+                    <span className="truncate">{progress}</span>
+                  </div>
+                )}
 
                 {(runnable || status === "awaiting_human_review" || artifact) && (
                   <div className="mt-2.5 flex flex-wrap items-center gap-2 pl-[34px]">

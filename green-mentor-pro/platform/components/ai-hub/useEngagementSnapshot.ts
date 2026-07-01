@@ -31,6 +31,7 @@ export function useEngagementSnapshot(engagementId: string) {
   const [snap, setSnap] = useState<EngagementSnapshot | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<PhaseKey | null>(null);
+  const [progress, setProgress] = useState<string | null>(null);
   const [tick, setTick] = useState(0);
 
   const reload = useCallback(async () => {
@@ -61,19 +62,64 @@ export function useEngagementSnapshot(engagementId: string) {
     async (phaseKey: PhaseKey) => {
       setBusy(phaseKey);
       setError(null);
+      setProgress("Starting…");
       try {
         const res = await fetch(`/api/ai-hub/engagements/${engagementId}/run-phase`, {
           method: "POST",
           headers: { "content-type": "application/json" },
           body: JSON.stringify({ phaseKey }),
         });
-        const json = await res.json();
-        if (!res.ok) throw new Error(json.error ?? `HTTP ${res.status}`);
+
+        // Auth/validation failures still come back as a plain JSON body, not a stream.
+        const ct = res.headers.get("content-type") ?? "";
+        if (!res.ok || !res.body || !ct.includes("ndjson")) {
+          const json = await res.json().catch(() => ({} as { error?: string }));
+          throw new Error(json.error ?? `HTTP ${res.status}`);
+        }
+
+        // Consume the NDJSON stream: one JSON object per line.
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let buf = "";
+        let sawDone = false;
+        let streamError: string | null = null;
+
+        for (;;) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          buf += decoder.decode(value, { stream: true });
+          let nl: number;
+          while ((nl = buf.indexOf("\n")) >= 0) {
+            const line = buf.slice(0, nl).trim();
+            buf = buf.slice(nl + 1);
+            if (!line) continue;
+            let ev: { type?: string; note?: string; error?: string };
+            try {
+              ev = JSON.parse(line);
+            } catch {
+              continue; // ignore a partial/garbled frame
+            }
+            if (ev.type === "progress" && ev.note) setProgress(ev.note);
+            else if (ev.type === "done") sawDone = true;
+            else if (ev.type === "error") streamError = ev.error ?? "Phase run failed.";
+          }
+        }
+
+        if (streamError) throw new Error(streamError);
+        if (!sawDone) {
+          // Stream ended without a terminal frame — the function was almost certainly
+          // cut at its time limit. Reflect the real DB status and hint at recovery.
+          await reload();
+          throw new Error(
+            "The phase run was interrupted before finishing (server time limit). Refresh in a moment — if it's still marked running, re-run it."
+          );
+        }
         await reload();
       } catch (e) {
         setError(String(e instanceof Error ? e.message : e));
       } finally {
         setBusy(null);
+        setProgress(null);
       }
     },
     [engagementId, reload]
@@ -101,5 +147,5 @@ export function useEngagementSnapshot(engagementId: string) {
     [engagementId, reload]
   );
 
-  return { snap, states, busy, error, tick, runPhase, gate, reload };
+  return { snap, states, busy, progress, error, tick, runPhase, gate, reload };
 }

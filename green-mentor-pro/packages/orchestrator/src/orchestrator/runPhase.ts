@@ -28,6 +28,12 @@ export interface RunPhaseResult {
   confidence: number | null;
 }
 
+/** Coarse progress signal for streamed callers (route → client). `turn` is set for agent turns. */
+export interface RunPhaseProgress {
+  note: string;
+  turn?: number;
+}
+
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 /** Best-effort numeric confidence for the run (min of per-row confidence for datasets). */
@@ -55,6 +61,7 @@ export async function runPhase(
   engagementId: string,
   phaseKey: PhaseKey,
   userUuid: string | null,
+  onProgress?: (ev: RunPhaseProgress) => void,
 ): Promise<RunPhaseResult> {
   const engagement = await getEngagement(orgId, engagementId);
   if (!engagement) throw new PhaseNotRunnableError("engagement not found");
@@ -102,11 +109,13 @@ export async function runPhase(
   await setPhaseStatus(orgId, engagementId, phaseKey, "agent_running", { currentRunId: run.id });
 
   try {
+    onProgress?.({ note: "running agent…" });
     const result = await runAgent<unknown, any>(agent, input, {
       orgId, engagementId, financialYear: engagement.financial_year,
-    }, { runCallableTool });
+    }, { runCallableTool, onProgress: (ev) => onProgress?.({ turn: ev.turn, note: ev.note }) });
     const output = result.output;
     const confidence = deriveConfidence(phaseKey, output);
+    onProgress?.({ note: "saving results…" });
 
     const artifact = await supersedeAndInsert(orgId, {
       engagementId, phaseKey,
