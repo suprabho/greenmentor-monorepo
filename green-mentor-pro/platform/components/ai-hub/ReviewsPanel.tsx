@@ -6,6 +6,8 @@ import { Card, Chip } from "@/components/ui";
 interface OpenQuestion { id: string; question: string; answer: string | null; waived: boolean; status: string }
 interface FieldReview { id: string; item: string; ai_value: unknown; confidence: string | null; status: string }
 
+// Human review surface for an engagement: open scope questions + data-row gates.
+// Reused by the Cowork ProgressPanel; talks to /api/ai-hub/engagements/[id]/reviews.
 export function ReviewsPanel({
   engagementId, refreshKey, onChange,
 }: { engagementId: string; refreshKey: number; onChange: () => void }) {
@@ -40,7 +42,7 @@ export function ReviewsPanel({
   const openF = fields.filter((f) => f.status === "submitted").length;
 
   return (
-    <Card className="space-y-4 p-5">
+    <Card className="space-y-4 p-4">
       {questions.length > 0 && (
         <div className="space-y-3">
           <div className="flex items-center justify-between">
