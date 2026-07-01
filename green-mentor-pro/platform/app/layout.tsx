@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter, Manrope, ABeeZee } from "next/font/google";
+import "@openuidev/react-ui/styles/index.css";
 import "./globals.css";
 
 const inter = Inter({

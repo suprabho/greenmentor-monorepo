@@ -56,7 +56,12 @@ export function EngagementConversation({
             Ask me to capture requirements, run the next phase, summarize an artifact, or approve a gate.
           </p>
         )}
-        <MessageList messages={messages} status={status} thinkingLabel="Copilot is thinking…" />
+        <MessageList
+          messages={messages}
+          status={status}
+          thinkingLabel="Copilot is thinking…"
+          onSendMessage={(text) => sendMessage({ text })}
+        />
       </div>
 
       <div className="shrink-0 border-t border-gray-200 bg-white p-3">

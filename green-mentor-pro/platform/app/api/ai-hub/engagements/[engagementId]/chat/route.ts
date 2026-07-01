@@ -6,6 +6,7 @@ import {
   loadMessages, replaceMessages,
 } from "@gm/orchestrator";
 import { getEngagementContext } from "@/lib/engagement-session";
+import { withGenerativeUi } from "@/lib/chat/genui-system";
 import { PHASE_ORDER, PHASE_LABEL, type PhaseKey, type PhaseStatus } from "@/lib/engagement-ui";
 
 export const runtime = "nodejs";
@@ -41,7 +42,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ engagem
 
   const result = streamText({
     model,
-    system,
+    system: withGenerativeUi(system),
     messages: await convertToModelMessages(messages),
     tools: buildEngagementTools({ orgId: ctx.orgId, engagementId, userUuid: ctx.userId }),
     stopWhen: stepCountIs(6),

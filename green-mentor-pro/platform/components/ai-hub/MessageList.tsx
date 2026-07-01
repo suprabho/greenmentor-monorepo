@@ -4,7 +4,19 @@ import { useEffect, useRef } from "react";
 import type { UIMessage } from "ai";
 import { clsx } from "clsx";
 import { FileText } from "@phosphor-icons/react";
+import { Renderer, BuiltinActionType, type ActionEvent } from "@openuidev/react-lang";
+import { openuiChatLibrary } from "@openuidev/react-ui/genui-lib";
+import { ThemeProvider, createTheme } from "@openuidev/react-ui";
 import DataRequestCard, { type DataRequestData } from "@/app/(app)/buddy/DataRequestCard";
+
+// GreenMentor green (green-700/800/900) mapped onto OpenUI's accent tokens so the
+// generated components match the brand instead of OpenUI's default blue.
+const gmTheme = createTheme({
+  interactiveAccentDefault: "#15803d",
+  interactiveAccentHover: "#166534",
+  interactiveAccentPressed: "#14532d",
+  textBrand: "#15803d",
+});
 
 type Part = {
   type: string;
@@ -65,36 +77,62 @@ export function MessageList({
   messages,
   status,
   thinkingLabel = "Thinking…",
+  onSendMessage,
 }: {
   messages: UIMessage[];
   status: string;
   thinkingLabel?: string;
+  /** Sends a new turn — wires OpenUI "continue conversation" follow-up chips to the chat. */
+  onSendMessage?: (text: string) => void;
 }) {
   const bottomRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, status]);
 
+  // OpenUI actions: a "continue conversation" chip sends its text as the next user turn.
+  function handleAction(event: ActionEvent) {
+    if (event.type === BuiltinActionType.ContinueConversation && event.humanFriendlyMessage) {
+      onSendMessage?.(event.humanFriendlyMessage);
+    }
+  }
+
   return (
     <div className="flex flex-col gap-4">
-      {messages.map((m) => {
+      {messages.map((m, mi) => {
         const isUser = m.role === "user";
+        const isLastMessage = mi === messages.length - 1;
         return (
           <div key={m.id} className={clsx("flex flex-col gap-2", isUser ? "items-end" : "items-start")}>
             {(m.parts as Part[]).map((part, i) => {
               if (part.type === "text") {
                 if (!part.text) return null;
+                // User text stays a plain bubble. Assistant text is OpenUI Lang — render it
+                // into real components (headings, tables, cards, callouts, follow-up chips)
+                // via <Renderer> instead of dumping raw markdown.
+                if (isUser) {
+                  return (
+                    <div
+                      key={i}
+                      className="max-w-[85%] whitespace-pre-wrap rounded-2xl rounded-br-sm bg-green-700 px-3.5 py-2.5 text-[14px] leading-relaxed text-white"
+                    >
+                      {part.text}
+                    </div>
+                  );
+                }
                 return (
                   <div
                     key={i}
-                    className={clsx(
-                      "max-w-[85%] whitespace-pre-wrap rounded-2xl px-3.5 py-2.5 text-[14px] leading-relaxed",
-                      isUser
-                        ? "rounded-br-sm bg-green-700 text-white"
-                        : "rounded-bl-sm border border-gray-200 bg-white text-ink"
-                    )}
+                    className="max-w-[85%] rounded-2xl rounded-bl-sm border border-gray-200 bg-white px-3.5 py-2.5 text-[14px] leading-relaxed text-ink"
                   >
-                    {part.text}
+                    <ThemeProvider mode="light" lightTheme={gmTheme}>
+                      <Renderer
+                        response={part.text}
+                        library={openuiChatLibrary}
+                        isStreaming={status === "streaming" && isLastMessage}
+                        onAction={handleAction}
+                      />
+                    </ThemeProvider>
                   </div>
                 );
               }

@@ -55,7 +55,12 @@ export function ChatConversation({ conversationId }: { conversationId: string })
           {messages.length === 0 && status === "ready" && (
             <p className="text-[13px] text-gray-400">Send a message to start this conversation.</p>
           )}
-          <MessageList messages={messages} status={status} thinkingLabel="Thinking…" />
+          <MessageList
+            messages={messages}
+            status={status}
+            thinkingLabel="Thinking…"
+            onSendMessage={(text) => sendMessage({ text })}
+          />
         </div>
       </div>
       <div className="shrink-0 border-t border-gray-200 bg-white/80 p-3 backdrop-blur">
