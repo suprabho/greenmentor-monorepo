@@ -1,15 +1,20 @@
 import { NextResponse } from "next/server";
 import { createEngagement, listEngagements } from "@gm/orchestrator";
 import { getEngagementContext } from "@/lib/engagement-session";
+import { jsonError } from "@/lib/api-error";
 
 export const runtime = "nodejs";
 
 // GET /api/ai-hub/engagements — list the signed-in user's BRSR engagements.
 export async function GET() {
-  const ctx = await getEngagementContext();
-  if (!ctx) return NextResponse.json({ error: "not authenticated" }, { status: 401 });
-  const engagements = await listEngagements(ctx.orgId);
-  return NextResponse.json({ engagements });
+  try {
+    const ctx = await getEngagementContext();
+    if (!ctx) return NextResponse.json({ error: "not authenticated" }, { status: 401 });
+    const engagements = await listEngagements(ctx.orgId);
+    return NextResponse.json({ engagements });
+  } catch (e) {
+    return jsonError(e);
+  }
 }
 
 // POST /api/ai-hub/engagements — create a BRSR engagement (seeds the 8 phases).
