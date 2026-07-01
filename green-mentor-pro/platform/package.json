@@ -8,7 +8,8 @@
     "start": "next start -p 3000",
     "lint": "next lint",
     "feed:ingest": "node --env-file=.env.local --import tsx scripts/ingest-feed.ts",
-    "feed:ingest:ci": "node --import tsx scripts/ingest-feed.ts"
+    "feed:ingest:ci": "node --import tsx scripts/ingest-feed.ts",
+    "feed:local": "npm run feed:ingest && npm run dev"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.85",

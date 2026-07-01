@@ -18,7 +18,7 @@ import { RSS_SOURCES, KNOWN_ENTITIES, type RssSource } from "../lib/feed-sources
 const SUMMARY_MODEL = process.env.FEED_SUMMARY_MODEL ?? "claude-haiku-4-5";
 const PER_SOURCE = Number(process.env.FEED_PER_SOURCE ?? 6);
 
-type Item = { title: string; link: string; pubDate?: string; description?: string };
+type Item = { title: string; link: string; pubDate?: string; description?: string; image?: string };
 
 const stripTags = (s: string) => s.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
 function decode(s: string): string {
@@ -31,6 +31,16 @@ function decode(s: string): string {
 function tag(block: string, name: string): string | undefined {
   const m = block.match(new RegExp(`<${name}[^>]*>([\\s\\S]*?)<\\/${name}>`, "i"));
   return m ? decode(m[1]) : undefined;
+}
+
+/** Best-effort thumbnail from an RSS/Atom item: enclosure, media:*, or an inline <img>. */
+function imageFrom(block: string): string | undefined {
+  const enclosure =
+    block.match(/<enclosure[^>]*type="image[^"]*"[^>]*url="([^"]+)"/i) ??
+    block.match(/<enclosure[^>]*url="([^"]+)"[^>]*type="image[^"]*"/i);
+  const media = block.match(/<media:(?:content|thumbnail)[^>]*url="([^"]+)"/i);
+  const inline = block.match(/<img[^>]*src="([^"]+)"/i);
+  return (enclosure?.[1] ?? media?.[1] ?? inline?.[1])?.trim();
 }
 
 /** Minimal RSS + Atom item parser (good enough for syndication feeds). */
@@ -52,6 +62,7 @@ function parseFeed(xml: string): Item[] {
       link: link.trim(),
       pubDate: tag(b, "pubDate") ?? tag(b, "updated") ?? tag(b, "published"),
       description: stripTags(tag(b, "description") ?? tag(b, "summary") ?? tag(b, "content") ?? "").slice(0, 1200),
+      image: imageFrom(b),
     };
   }).filter((i) => i.title && i.link);
 }
@@ -135,6 +146,7 @@ async function ingestSource(supabase: ReturnType<typeof createAdminClient>, sour
         title: item.title,
         url: item.link,
         summary: card.summary,
+        image_url: item.image ?? null,
         published_at: item.pubDate ? new Date(item.pubDate).toISOString() : null,
       })
       .select("id")

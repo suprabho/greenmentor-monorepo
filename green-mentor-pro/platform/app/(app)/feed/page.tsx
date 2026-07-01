@@ -1,34 +1,15 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { Card, Chip, PageHeader } from "@/components/ui";
+import { Card } from "@/components/ui";
+import { FeedCard, type FeedArticle, type FeedEntity } from "./feed-card";
+import type { ArticleStat, CurrentUser, ReactionKind } from "./feed-actions";
 
 export const metadata = { title: "Feed — Green Mentor Pro" };
 
-type EntityRef = { slug: string; name: string; kind: string };
-type ArticleRow = {
-  id: string;
-  source: string;
-  title: string;
-  url: string;
-  summary: string | null;
-  published_at: string | null;
-  article_entities: { entities: EntityRef | null }[] | null;
-};
-
-const KIND_TONE: Record<string, "green" | "teal" | "neutral" | "warn"> = {
-  framework: "teal",
-  topic: "green",
-  region: "warn",
-  company: "neutral",
-};
-
-function ago(iso: string | null): string {
-  if (!iso) return "";
-  const mins = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
-  if (mins < 60) return `${Math.max(1, mins)}m ago`;
-  if (mins < 1440) return `${Math.round(mins / 60)}h ago`;
-  return `${Math.round(mins / 1440)}d ago`;
-}
+// Broad tags shown in the feed filter bar (order = display order).
+// Everything else (companies, long-tail entities) is filterable via the
+// tags on each article card, just not surfaced here.
+const FEATURED_SLUGS = ["csrd", "issb", "brsr", "ghg-protocol", "scope-3", "materiality"] as const;
 
 export default async function FeedPage({
   searchParams,
@@ -38,24 +19,63 @@ export default async function FeedPage({
   const { entity: activeSlug } = await searchParams;
   const supabase = await createClient();
 
-  const [{ data: entities }, { data: articles }] = await Promise.all([
+  const [
+    {
+      data: { user },
+    },
+    { data: entities },
+    { data: articles },
+  ] = await Promise.all([
+    supabase.auth.getUser(),
     supabase.from("entities").select("slug, name, kind").order("kind"),
     supabase
       .from("articles")
-      .select("id, source, title, url, summary, published_at, article_entities(entities(slug, name, kind))")
+      .select("id, source, title, url, summary, image_url, published_at, article_entities(entities(slug, name, kind))")
       .order("published_at", { ascending: false, nullsFirst: false })
       .limit(50),
   ]);
 
-  const rows = (articles ?? []) as unknown as ArticleRow[];
+  const rows = (articles ?? []) as unknown as FeedArticle[];
+  const ids = rows.map((a) => a.id);
+
+  // Social layer. The two views come from 0004_feed_social.sql; if that
+  // migration hasn't been applied yet these queries just error out and we fall
+  // back to zeroed counts, so the feed still renders.
+  const [{ data: stats }, { data: myReactions }, { data: profile }] = await Promise.all([
+    ids.length
+      ? supabase.from("article_social_stats").select("article_id, like_count, dislike_count, comment_count").in("article_id", ids)
+      : Promise.resolve({ data: [] as (ArticleStat & { article_id: string })[] }),
+    user && ids.length
+      ? supabase.from("reactions").select("article_id, kind").eq("user_id", user.id).in("article_id", ids)
+      : Promise.resolve({ data: [] as { article_id: string; kind: ReactionKind }[] }),
+    user ? supabase.from("profiles").select("display_name, avatar_url").eq("id", user.id).maybeSingle() : Promise.resolve({ data: null }),
+  ]);
+
+  const statsBy = new Map((stats ?? []).map((s) => [s.article_id, s as ArticleStat] as const));
+  const reactionBy = new Map((myReactions ?? []).map((r) => [r.article_id, r.kind as ReactionKind] as const));
+  const currentUser: CurrentUser | null = user
+    ? {
+        id: user.id,
+        name: profile?.display_name ?? user.email?.split("@")[0] ?? "You",
+        avatar: profile?.avatar_url ?? null,
+      }
+    : null;
+
   const filtered = activeSlug
     ? rows.filter((a) => (a.article_entities ?? []).some((ae) => ae.entities?.slug === activeSlug))
     : rows;
 
+  const bySlug = new Map((entities ?? []).map((e) => [e.slug, e] as const));
+  const featured = FEATURED_SLUGS.map((s) => bySlug.get(s)).filter((e): e is FeedEntity => !!e);
+  // Keep the active filter visible even if the user arrived via a card tag
+  // (e.g. a company) that isn't in the curated list.
+  const chipEntities =
+    activeSlug && !FEATURED_SLUGS.includes(activeSlug as (typeof FEATURED_SLUGS)[number]) && bySlug.get(activeSlug)
+      ? [...featured, bySlug.get(activeSlug)!]
+      : featured;
+
   return (
     <div className="mx-auto max-w-2xl space-y-5">
-      <PageHeader title="Open Global ESG Feed" sub="AI-summarized regulatory & sustainability news · anonymous read" />
-
       {/* follow-graph filter chips */}
       <div className="flex flex-wrap gap-2">
         <Link
@@ -67,7 +87,7 @@ export default async function FeedPage({
         >
           All
         </Link>
-        {(entities ?? []).map((e) => (
+        {chipEntities.map((e) => (
           <Link
             key={e.slug}
             href={`/feed?entity=${e.slug}`}
@@ -87,29 +107,17 @@ export default async function FeedPage({
           or apply the 0003_feed.sql seed.
         </Card>
       ) : (
-        <div className="space-y-3">
+        <div className="h-[calc(100dvh-13rem)] snap-y snap-mandatory overflow-y-auto overscroll-contain [scrollbar-width:none] lg:h-[calc(100dvh-9rem)] [&::-webkit-scrollbar]:hidden">
           {filtered.map((a) => (
-            <Card key={a.id} className="space-y-2.5 p-5">
-              <div className="flex items-center gap-2 text-[12px] text-gray-500">
-                <span className="font-semibold text-gray-700">{a.source}</span>
-                <span>·</span>
-                <span>{ago(a.published_at)}</span>
-              </div>
-              <a href={a.url} target="_blank" rel="noopener noreferrer" className="block">
-                <h2 className="text-[16px] font-semibold leading-snug text-ink hover:text-teal-700">{a.title}</h2>
-              </a>
-              {a.summary && <p className="text-[13.5px] leading-relaxed text-gray-700">{a.summary}</p>}
-              <div className="flex flex-wrap gap-1.5 pt-1">
-                {(a.article_entities ?? [])
-                  .map((ae) => ae.entities)
-                  .filter((e): e is EntityRef => !!e)
-                  .map((e) => (
-                    <Link key={e.slug} href={`/feed?entity=${e.slug}`}>
-                      <Chip tone={KIND_TONE[e.kind] ?? "neutral"}>{e.name}</Chip>
-                    </Link>
-                  ))}
-              </div>
-            </Card>
+            <div key={a.id} className="h-full snap-start snap-always pb-3">
+              <FeedCard
+                article={a}
+                fill
+                stats={statsBy.get(a.id)}
+                reaction={reactionBy.get(a.id) ?? null}
+                currentUser={currentUser}
+              />
+            </div>
           ))}
         </div>
       )}
