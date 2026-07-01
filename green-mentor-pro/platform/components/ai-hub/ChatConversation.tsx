@@ -3,32 +3,39 @@
 import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useChat } from "@ai-sdk/react";
-import { DefaultChatTransport } from "ai";
+import { DefaultChatTransport, type UIMessage } from "ai";
 import { MessageList } from "./MessageList";
 import { ChatComposer, type ComposerAttachment } from "./ChatComposer";
+import { ChatError } from "./ChatError";
 import { CHAT_SKILLS } from "./skills";
 import { takePendingMessage } from "@/lib/chat/pending";
+import { fetchWithErrorHandlers } from "@/lib/chat/fetch";
 
-/** A single persisted chat conversation: hydrate + stream + attachments + skills. */
-export function ChatConversation({ conversationId }: { conversationId: string }) {
+/**
+ * A single persisted chat conversation: stream + attachments + skills. The
+ * transcript is hydrated server-side (initialMessages) so there's no fetch-on-mount
+ * race with the live turn. The parent keys this by conversationId, so switching
+ * conversations remounts with a fresh seed.
+ */
+export function ChatConversation({
+  conversationId,
+  initialMessages,
+}: {
+  conversationId: string;
+  initialMessages: UIMessage[];
+}) {
   const router = useRouter();
   const api = `/api/ai-hub/chat/conversations/${conversationId}`;
-  const { messages, sendMessage, status, setMessages } = useChat({
-    transport: new DefaultChatTransport({ api }),
+  // Build the transport once — a new instance each render would churn useChat.
+  const transport = useRef(new DefaultChatTransport({ api, fetch: fetchWithErrorHandlers }));
+  const { messages, sendMessage, status, error, regenerate } = useChat({
+    messages: initialMessages,
+    transport: transport.current,
+    onError: (e) => console.error("[ai-hub/chat]", e),
   });
   const busy = status === "submitted" || status === "streaming";
   const sentPending = useRef(false);
   const prevStatus = useRef(status);
-
-  // Hydrate the persisted transcript on open.
-  useEffect(() => {
-    fetch(api)
-      .then((r) => r.json())
-      .then((j) => {
-        if (Array.isArray(j.messages) && j.messages.length) setMessages(j.messages);
-      })
-      .catch(() => {});
-  }, [api, setMessages]);
 
   // Fire the handoff message from the welcome state exactly once.
   useEffect(() => {
@@ -52,10 +59,11 @@ export function ChatConversation({ conversationId }: { conversationId: string })
     <div className="flex h-full flex-col">
       <div className="min-h-0 flex-1 overflow-y-auto px-4 py-6">
         <div className="mx-auto max-w-2xl">
-          {messages.length === 0 && status === "ready" && (
+          {messages.length === 0 && status === "ready" && !error && (
             <p className="text-[13px] text-gray-400">Send a message to start this conversation.</p>
           )}
           <MessageList messages={messages} status={status} thinkingLabel="Thinking…" />
+          <ChatError error={error} onRetry={() => regenerate()} />
         </div>
       </div>
       <div className="shrink-0 border-t border-gray-200 bg-white/80 p-3 backdrop-blur">
