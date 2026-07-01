@@ -4,6 +4,7 @@ from app.models.extraction_session import ExtractionSession, RejectedExtraction
 from app.models.emission_factor import EmissionFactor, EmissionFactorVersion
 from app.models.audit_log import AuditLog
 from app.models.confidence_config import ConfidenceWeightConfig
+from app.models.environdec_watch import EnvirondecWatch, EnvirondecQueueItem
 
 __all__ = [
     "User",
@@ -14,4 +15,6 @@ __all__ = [
     "EmissionFactorVersion",
     "AuditLog",
     "ConfidenceWeightConfig",
+    "EnvirondecWatch",
+    "EnvirondecQueueItem",
 ]

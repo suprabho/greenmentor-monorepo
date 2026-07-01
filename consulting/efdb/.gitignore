@@ -35,5 +35,10 @@ backend/uploads/
 # cached EPD PDF downloads (~120MB, re-fetchable from environdec)
 data/epd_india_pdfs/
 
+# EnvironDec bulk crawl/enrich artifacts (~900MB, re-fetchable from the Data Hub)
+data/environdec_full_index.csv
+data/environdec_epds_enriched.json
+data/epd_environdec_raw/
+
 # DB migration dumps (contain production data)
 *.dump

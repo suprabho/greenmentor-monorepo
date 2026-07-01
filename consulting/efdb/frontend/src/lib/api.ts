@@ -181,6 +181,93 @@ export const ingestionApi = {
     request<ReviewSummary>(`/ingestion/sessions/${sessionId}/commit`, { method: 'POST' }),
 }
 
+// ── EnvironDec (on-demand & watched EPD ingestion) ──────────────────────────
+export interface EnvirondecHit {
+  uuid: string | null
+  regNo: string | null
+  registration_number: string | null
+  name: string | null
+  geo: string | null
+  classific: string | null
+  owner: string | null
+  type: string | null
+  subType: string | null
+  refYear: string | null
+  validUntil: string | null
+  compliance: string | null
+  already_in_efdb: boolean
+  raw: Record<string, unknown>
+}
+export interface EnvirondecSearchResponse {
+  total: number; start_index: number; page_size: number; hits: EnvirondecHit[]
+}
+export interface EnvirondecIngestItemResult {
+  uuid: string | null; registration_number: string | null; product_name: string | null
+  owner: string | null; geo: string | null; classific: string | null
+  status: string; error: string | null
+}
+export interface EnvirondecIngestResponse {
+  session_id: string | null; ingested: number; skipped: number
+  committed: boolean; commit_summary: Record<string, unknown> | null
+  results: EnvirondecIngestItemResult[]
+}
+export interface EnvirondecWatch {
+  id: string; name: string; query: string | null; owner: string | null
+  registration_number: string | null; geo: string | null; classific: string | null
+  mode: string; enabled: boolean; seen_count: number; pending_count: number
+  last_checked_at: string | null; created_at: string
+}
+export interface WatchRunResult {
+  watch_id: string; new_found: number; queued: number; auto_ingested: number; session_id: string | null
+}
+export interface EnvirondecQueueItem {
+  id: string; watch_id: string; datahub_uuid: string; registration_number: string | null
+  product_name: string | null; owner: string | null; geo: string | null; classific: string | null
+  status: string; session_id: string | null; discovered_at: string
+}
+
+export const environdecApi = {
+  search: (body: {
+    query?: string; owner?: string; registration_number?: string
+    geo?: string; classific?: string; page_size?: number; start_index?: number
+  }) => request<EnvirondecSearchResponse>('/ingestion/environdec/search', {
+    method: 'POST', body: JSON.stringify(body),
+  }),
+
+  ingest: (body: { hits?: Record<string, unknown>[]; uuids?: string[]; auto_commit?: boolean }) =>
+    request<EnvirondecIngestResponse>('/ingestion/environdec/ingest', {
+      method: 'POST', body: JSON.stringify(body),
+    }),
+
+  listWatches: () => request<EnvirondecWatch[]>('/ingestion/environdec/watches'),
+
+  createWatch: (body: {
+    name: string; query?: string; owner?: string; registration_number?: string
+    geo?: string; classific?: string; mode?: string
+  }) => request<EnvirondecWatch>('/ingestion/environdec/watches', {
+    method: 'POST', body: JSON.stringify(body),
+  }),
+
+  updateWatch: (id: string, body: Record<string, unknown>) =>
+    request<EnvirondecWatch>(`/ingestion/environdec/watches/${id}`, {
+      method: 'PATCH', body: JSON.stringify(body),
+    }),
+
+  deleteWatch: (id: string) =>
+    request<{ status: string }>(`/ingestion/environdec/watches/${id}`, { method: 'DELETE' }),
+
+  runWatch: (id: string) =>
+    request<WatchRunResult>(`/ingestion/environdec/watches/${id}/run`, { method: 'POST' }),
+
+  listQueue: (watchId?: string) =>
+    request<EnvirondecQueueItem[]>(`/ingestion/environdec/queue${watchId ? `?watch_id=${watchId}` : ''}`),
+
+  ingestQueue: (itemIds: string[], autoCommit = false) =>
+    request<EnvirondecIngestResponse>('/ingestion/environdec/queue/ingest', {
+      method: 'POST', body: JSON.stringify({ item_ids: itemIds, auto_commit: autoCommit }),
+    }),
+}
+
 // ── Chat ──────────────────────────────────────────────────────────────────
 export const chatApi = {
   stream: async (

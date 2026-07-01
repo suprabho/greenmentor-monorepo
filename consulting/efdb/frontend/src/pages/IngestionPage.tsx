@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, Upload, Link, FileText, CheckCircle, AlertTriangle, Loader2, HelpCircle, Leaf } from 'lucide-react'
 import { ingestionApi } from '@/lib/api'
+import EnvirondecPanel from '@/components/EnvirondecPanel'
 import type { ScanResult, DocumentSection, SessionStatus as SessionStatusType, ReviewSummary, DocumentMetadata, DocumentType } from '@/types/emission-factor'
 import { cn } from '@/lib/utils'
 
@@ -314,7 +315,7 @@ function MetadataForm({ metadata: m, clarifyingAnswers, isEpd, onChange, onAnswe
 export default function IngestionPage() {
   const navigate = useNavigate()
   const [step, setStep] = useState<Step>('upload')
-  const [mode, setMode] = useState<'file' | 'url'>('file')
+  const [mode, setMode] = useState<'file' | 'url' | 'environdec'>('file')
   const [docType, setDocType] = useState<DocumentType>('generic')
   const [url, setUrl] = useState('')
   const [scanResult, setScanResult] = useState<ScanResult | null>(null)
@@ -426,12 +427,25 @@ export default function IngestionPage() {
     }
   }
 
-  const loadReviewPage = async (page: number) => {
-    if (!scanResult) return
-    const data = await ingestionApi.getRecords(scanResult.session_id, page, PAGE_SIZE) as { records: Record<string, unknown>[]; total: number }
+  const loadReviewPage = async (page: number, sessionId?: string) => {
+    const sid = sessionId ?? scanResult?.session_id
+    if (!sid) return
+    const data = await ingestionApi.getRecords(sid, page, PAGE_SIZE) as { records: Record<string, unknown>[]; total: number }
     setRecords(data.records)
     setTotalRecords(data.total)
     setReviewPage(page)
+  }
+
+  // EnvironDec ingest already created an in-review session (no LLM). Jump the
+  // page straight into the existing review → commit flow.
+  const handleEnvirondecIngested = async (sessionId: string) => {
+    setError('')
+    setScanResult({ session_id: sessionId } as ScanResult)
+    setDocType('epd')
+    setApproved(new Set())
+    setRejected(new Set())
+    await loadReviewPage(1, sessionId)
+    setStep('review')
   }
 
   const handleApprove = async (index: number) => {
@@ -589,23 +603,25 @@ export default function IngestionPage() {
           <div className="bg-card border border-border rounded-xl p-6 space-y-6">
             <div>
               <h2 className="text-lg font-semibold">Upload Source Document</h2>
-              <p className="text-sm text-muted-foreground mt-1">Upload a PDF, Excel, or CSV file — or paste a URL to a public source.</p>
+              <p className="text-sm text-muted-foreground mt-1">Upload a PDF, Excel, or CSV file — paste a URL, or pull EPDs directly from environdec.com.</p>
             </div>
 
             <div className="flex gap-2">
-              {(['file', 'url'] as const).map(m => (
+              {(['file', 'url', 'environdec'] as const).map(m => (
                 <button
                   key={m}
                   onClick={() => setMode(m)}
                   className={cn('h-8 px-4 rounded-md text-sm font-medium transition-colors', mode === m ? 'bg-primary text-primary-foreground' : 'border border-input hover:bg-muted/50')}
                 >
-                  {m === 'file' ? <><Upload className="w-3.5 h-3.5 inline mr-1.5" />File</> : <><Link className="w-3.5 h-3.5 inline mr-1.5" />URL</>}
+                  {m === 'file' ? <><Upload className="w-3.5 h-3.5 inline mr-1.5" />File</>
+                    : m === 'url' ? <><Link className="w-3.5 h-3.5 inline mr-1.5" />URL</>
+                    : <><Leaf className="w-3.5 h-3.5 inline mr-1.5" />environdec</>}
                 </button>
               ))}
             </div>
 
-            {/* Document type */}
-            <div className="space-y-2">
+            {/* Document type — not shown for environdec (always EPD) */}
+            <div className={cn('space-y-2', mode === 'environdec' && 'hidden')}>
               <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Document type</label>
               <div className="flex gap-2">
                 {([
@@ -634,7 +650,7 @@ export default function IngestionPage() {
               )}
             </div>
 
-            {mode === 'file' ? (
+            {mode === 'environdec' ? null : mode === 'file' ? (
               <label className={cn('flex flex-col items-center justify-center border-2 border-dashed border-border rounded-xl p-12 cursor-pointer hover:border-primary/50 hover:bg-primary/5 transition-colors', loading && 'opacity-50 pointer-events-none')}>
                 {loading ? (
                   <><Loader2 className="w-8 h-8 text-primary animate-spin mb-3" /><p className="text-sm text-muted-foreground">Scanning document…</p></>
@@ -661,6 +677,8 @@ export default function IngestionPage() {
                 </button>
               </div>
             )}
+
+            {mode === 'environdec' && <EnvirondecPanel onIngested={handleEnvirondecIngested} />}
           </div>
         )}
 
