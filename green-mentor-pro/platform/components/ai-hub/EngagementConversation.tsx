@@ -1,17 +1,19 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
 import { Leaf } from "@phosphor-icons/react";
 import { MessageList } from "./MessageList";
 import { ChatComposer } from "./ChatComposer";
+import { ChatError } from "./ChatError";
+import { fetchWithErrorHandlers } from "@/lib/chat/fetch";
 
 /**
- * Middle column of the Cowork engagement view: the Report Copilot. Keeps the
- * original EngagementChat data logic (streaming useChat, GET-hydrate, refresh the
- * board when a turn finishes) but renders through the shared MessageList /
- * ChatComposer and fills its column height.
+ * Middle column of the Cowork engagement view: the Report Copilot. Streams via
+ * useChat, hydrates the persisted conversation on open, and refreshes the board
+ * when a turn finishes. Hydration is gated so it can't clobber a live turn, and
+ * errors surface inline (Chat used to swallow them → "no response at all").
  */
 export function EngagementConversation({
   engagementId,
@@ -20,20 +22,34 @@ export function EngagementConversation({
   engagementId: string;
   onChange: () => void;
 }) {
-  const { messages, sendMessage, status, setMessages } = useChat({
-    transport: new DefaultChatTransport({ api: `/api/ai-hub/engagements/${engagementId}/chat` }),
+  const api = `/api/ai-hub/engagements/${engagementId}/chat`;
+  const transport = useRef(new DefaultChatTransport({ api, fetch: fetchWithErrorHandlers }));
+  const { messages, sendMessage, status, setMessages, error, regenerate } = useChat({
+    transport: transport.current,
+    onError: (e) => console.error("[ai-hub/engagement-chat]", e),
   });
   const busy = status === "submitted" || status === "streaming";
+  const [hydrated, setHydrated] = useState(false);
 
-  // Hydrate the persisted conversation on open.
+  // Hydrate the persisted conversation on open. Only seed while still empty so a
+  // slow GET can't overwrite a turn the user already sent; the composer is gated
+  // on `hydrated` so that window is tiny.
   useEffect(() => {
-    fetch(`/api/ai-hub/engagements/${engagementId}/chat`)
+    let cancelled = false;
+    fetch(api)
       .then((r) => r.json())
       .then((j) => {
-        if (Array.isArray(j.messages) && j.messages.length) setMessages(j.messages);
+        if (cancelled || !Array.isArray(j.messages) || j.messages.length === 0) return;
+        setMessages((cur) => (cur.length === 0 ? j.messages : cur));
       })
-      .catch(() => {});
-  }, [engagementId, setMessages]);
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setHydrated(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [api, setMessages]);
 
   // A finished assistant turn may have mutated engagement state → refresh the board.
   useEffect(() => {
@@ -51,7 +67,7 @@ export function EngagementConversation({
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
-        {messages.length === 0 && (
+        {messages.length === 0 && !error && (
           <p className="max-w-md text-[13px] leading-relaxed text-gray-500">
             Ask me to capture requirements, run the next phase, summarize an artifact, or approve a gate.
           </p>
@@ -62,12 +78,13 @@ export function EngagementConversation({
           thinkingLabel="Copilot is thinking…"
           onSendMessage={(text) => sendMessage({ text })}
         />
+        <ChatError error={error} onRetry={() => regenerate()} />
       </div>
 
       <div className="shrink-0 border-t border-gray-200 bg-white p-3">
         <ChatComposer
           onSend={(text) => sendMessage({ text })}
-          busy={busy}
+          busy={busy || !hydrated}
           placeholder="e.g. capture our frameworks as BRSR + GRI, then run kickoff"
         />
       </div>
