@@ -47,14 +47,24 @@ export async function POST(req: Request, { params }: { params: Promise<{ engagem
     stopWhen: stepCountIs(6),
   });
 
+  // Drive the stream to completion server-side so onFinish still persists the
+  // transcript if the client disconnects mid-stream.
+  void result.consumeStream();
+
   return result.toUIMessageStreamResponse({
     originalMessages: messages,
-    onFinish: ({ messages: finalMessages }) => {
-      void replaceMessages(
-        ctx.orgId, engagementId,
-        finalMessages.map((m) => ({ id: m.id, role: m.role, parts: m.parts as unknown[] })),
-        ctx.userId,
-      );
+    // Await the write — a detached promise is dropped when the serverless
+    // function suspends on response close, leaving the conversation unsaved.
+    onFinish: async ({ messages: finalMessages }) => {
+      try {
+        await replaceMessages(
+          ctx.orgId, engagementId,
+          finalMessages.map((m) => ({ id: m.id, role: m.role, parts: m.parts as unknown[] })),
+          ctx.userId,
+        );
+      } catch (err) {
+        console.error(`[ai-hub/engagement-chat] failed to persist ${engagementId}:`, err);
+      }
     },
     onError: (error) => {
       const msg = error instanceof Error ? error.message : String(error);

@@ -39,6 +39,9 @@ export async function POST(req: Request, { params }: Params) {
 
   const { messages }: { messages: UIMessage[] } = await req.json();
   const { model } = resolveBuddyModel();
+  // Only the first exchange needs a generated title — setTitleIfEmpty never
+  // clobbers a later rename, so skip the extra model call on later turns.
+  const isFirstTurn = !messages.some((m) => m.role === "assistant");
 
   const result = streamText({
     model,
@@ -48,19 +51,28 @@ export async function POST(req: Request, { params }: Params) {
     stopWhen: stepCountIs(6),
   });
 
+  // Drive the stream to completion server-side so onFinish still persists the
+  // transcript if the client disconnects mid-stream (per the AI SDK message-
+  // persistence guide's client-disconnect handling).
+  void result.consumeStream();
+
   return result.toUIMessageStreamResponse({
     originalMessages: messages,
-    onFinish: ({ messages: finalMessages }) => {
+    // Persist the full transcript before the response closes. This MUST be
+    // awaited: a detached promise here is dropped when the serverless function
+    // suspends on response close — that's why chats weren't being saved.
+    onFinish: async ({ messages: finalMessages }) => {
       const stored = finalMessages.map((m) => ({ id: m.id, role: m.role, parts: m.parts as unknown[] }));
-      void (async () => {
+      try {
         await replaceMessages(ctx.orgId, conversationId, stored);
         await touchConversation(ctx.orgId, conversationId);
-        const seed = firstUserText(stored);
-        if (seed) {
-          const title = await generateConversationTitle(seed);
-          await setTitleIfEmpty(ctx.orgId, conversationId, title);
+        if (isFirstTurn) {
+          const seed = firstUserText(stored);
+          if (seed) await setTitleIfEmpty(ctx.orgId, conversationId, await generateConversationTitle(seed));
         }
-      })().catch(() => {});
+      } catch (err) {
+        console.error(`[ai-hub/chat] failed to persist conversation ${conversationId}:`, err);
+      }
     },
     onError: (error) => {
       const msg = error instanceof Error ? error.message : String(error);
