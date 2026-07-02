@@ -1,0 +1,70 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "esg-agents/agents/epd-understanding/io.schema.json",
+  "title": "EpdUnderstandingIO",
+  "$defs": {
+    "input": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "epd_text": { "type": "string", "description": "The EPD document text (pasted or parsed from a PDF)." },
+        "product_name": { "type": ["string", "null"], "description": "Optional product-name hint from the user." }
+      },
+      "required": ["epd_text"]
+    },
+    "GwpModule": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Global Warming Potential for one life-cycle module.",
+      "properties": {
+        "module": { "type": "string", "description": "Life-cycle module, e.g. 'A1-A3', 'A4', 'B6', 'C3', 'D'." },
+        "gwp_fossil": { "type": ["number", "null"], "description": "Fossil GWP per declared unit; null if not reported." },
+        "gwp_biogenic": { "type": ["number", "null"], "description": "Biogenic GWP per declared unit; null if not reported." },
+        "gwp_total": { "type": ["number", "null"], "description": "Total GWP per declared unit; null if not reported." },
+        "unit": { "type": "string", "description": "Unit as declared, e.g. 'kg CO2e' (per the declared unit)." }
+      },
+      "required": ["module", "unit"]
+    },
+    "output": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "product": { "type": "string", "description": "Product name as declared." },
+        "manufacturer": { "type": ["string", "null"] },
+        "declared_unit": { "type": "string", "description": "Declared / functional unit, e.g. '1 m3 of ready-mix concrete'." },
+        "programme_operator": { "type": ["string", "null"], "description": "e.g. 'EPD International', 'IBU', 'UL Environment'." },
+        "registration_number": { "type": ["string", "null"] },
+        "pcr": { "type": ["string", "null"], "description": "Product Category Rules reference." },
+        "standards": { "type": "array", "items": { "type": "string" }, "description": "e.g. ['EN 15804+A2', 'ISO 14025']." },
+        "epd_scope": {
+          "type": ["string", "null"],
+          "enum": ["cradle-to-gate", "cradle-to-gate-with-options", "cradle-to-grave", null]
+        },
+        "gwp_by_module": { "type": "array", "items": { "$ref": "#/$defs/GwpModule" } },
+        "validity": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "issued": { "type": ["string", "null"], "description": "Issue date as stated (ISO YYYY-MM-DD if given)." },
+            "valid_until": { "type": ["string", "null"] }
+          }
+        },
+        "verification": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "independent": { "type": ["boolean", "null"], "description": "True if third-party (independent) verified." },
+            "verifier": { "type": ["string", "null"] }
+          }
+        },
+        "key_findings": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Plain-English notes: coverage, caveats, comparability warnings."
+        },
+        "confidence": { "type": "string", "enum": ["high", "medium", "low"], "description": "Extraction confidence given text quality/completeness." }
+      },
+      "required": ["product", "declared_unit", "gwp_by_module", "confidence"]
+    }
+  }
+}

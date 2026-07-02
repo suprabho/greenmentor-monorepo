@@ -1,6 +1,8 @@
 import { convertToModelMessages, streamText, stepCountIs, type UIMessage } from "ai";
 import { resolveBuddyModel, tools } from "@gm/agents";
+import { buildSkillTools } from "@gm/orchestrator";
 import { ESG_BUDDY_GENUI_SYSTEM } from "@/lib/chat/genui-system";
+import { ensureOrchestratorInit } from "@/lib/orchestrator-server";
 import { getEngagementContext } from "@/lib/engagement-session";
 import {
   assertOwner,
@@ -16,7 +18,11 @@ import { ChatError, toChatError } from "@/lib/chat/errors";
 import { chatPostBodySchema } from "@/lib/chat/schema";
 
 export const runtime = "nodejs";
-export const maxDuration = 60; // uploads + tools; longer than the 30s stateless buddy
+// A skill tool (runScopingSkill / extractBillSkill / understandEpdSkill) runs a full
+// agent inside the stream — a multi-turn Anthropic loop that can take well over a
+// minute for the deeper (Opus) extraction skill. Give the whole turn ample headroom;
+// plain conversational turns still finish in seconds.
+export const maxDuration = 300;
 
 type Params = { params: Promise<{ conversationId: string }> };
 
@@ -55,11 +61,17 @@ export async function POST(req: Request, { params }: Params) {
     // clobbers a later rename, so skip the extra model call on later turns.
     const isFirstTurn = !messages.some((m) => m.role === "assistant");
 
+    // Point the agent runtime at @gm/orchestrator's agents/ dir so the skill tools can
+    // loadAgent() when the model calls one mid-stream.
+    ensureOrchestratorInit();
+
     const result = streamText({
       model,
       system: ESG_BUDDY_GENUI_SYSTEM,
       messages: await convertToModelMessages(messages),
-      tools,
+      // The buddy's generative-UI tools + the standalone one-shot skills (each runs a
+      // packaged agent and returns a structured card).
+      tools: { ...tools, ...buildSkillTools({ orgId: ctx.orgId }) },
       stopWhen: stepCountIs(6),
     });
 
