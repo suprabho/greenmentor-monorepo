@@ -62,7 +62,12 @@ export function ChatConversation({
           {messages.length === 0 && status === "ready" && !error && (
             <p className="text-[13px] text-gray-400">Send a message to start this conversation.</p>
           )}
-          <MessageList messages={messages} status={status} thinkingLabel="Thinking…" />
+          <MessageList
+            messages={messages}
+            status={status}
+            thinkingLabel="Thinking…"
+            onSendMessage={(text) => sendMessage({ text })}
+          />
           <ChatError error={error} onRetry={() => regenerate()} />
         </div>
       </div>

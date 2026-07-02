@@ -1,5 +1,6 @@
 import { convertToModelMessages, streamText, stepCountIs, type UIMessage } from "ai";
-import { resolveBuddyModel, ESG_BUDDY_SYSTEM, tools } from "@gm/agents";
+import { resolveBuddyModel, tools } from "@gm/agents";
+import { ESG_BUDDY_GENUI_SYSTEM } from "@/lib/chat/genui-system";
 import { getEngagementContext } from "@/lib/engagement-session";
 import {
   assertOwner,
@@ -56,7 +57,7 @@ export async function POST(req: Request, { params }: Params) {
 
     const result = streamText({
       model,
-      system: ESG_BUDDY_SYSTEM,
+      system: ESG_BUDDY_GENUI_SYSTEM,
       messages: await convertToModelMessages(messages),
       tools,
       stopWhen: stepCountIs(6),

@@ -72,7 +72,12 @@ export function EngagementConversation({
             Ask me to capture requirements, run the next phase, summarize an artifact, or approve a gate.
           </p>
         )}
-        <MessageList messages={messages} status={status} thinkingLabel="Copilot is thinking…" />
+        <MessageList
+          messages={messages}
+          status={status}
+          thinkingLabel="Copilot is thinking…"
+          onSendMessage={(text) => sendMessage({ text })}
+        />
         <ChatError error={error} onRetry={() => regenerate()} />
       </div>
 
