@@ -36,6 +36,9 @@ export * from "./agentsRoot";
 export * from "./copilot";
 export * from "./copilotTools";
 
+// ── Standalone Chat skills: assistant-invoked one-shot agent runs (AI SDK) ──
+export * from "./skillTools";
+
 // ── Report assembly + HTML rendering (the server-side playwright PDF in
 //    esg-agents lib/report/pdf.ts is intentionally NOT ported — heavy chromium
 //    dep; the platform serves printable HTML instead) ──

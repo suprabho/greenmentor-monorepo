@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type ComponentType } from "react";
 import type { UIMessage } from "ai";
 import { clsx } from "clsx";
 import { FileText } from "@phosphor-icons/react";
@@ -8,6 +8,7 @@ import { Renderer, BuiltinActionType, type ActionEvent } from "@openuidev/react-
 import { openuiChatLibrary } from "@openuidev/react-ui/genui-lib";
 import { ThemeProvider, createTheme } from "@openuidev/react-ui";
 import DataRequestCard, { type DataRequestData } from "@/app/(app)/buddy/DataRequestCard";
+import { ScopeResultCard, ExtractedDataCard, EpdSummaryCard } from "./SkillCards";
 
 // GreenMentor green (green-700/800/900) mapped onto OpenUI's accent tokens so the
 // generated components match the brand instead of OpenUI's default blue.
@@ -47,6 +48,28 @@ function ToolLine({ name, output }: { name: string; output: Record<string, unkno
   return (
     <div className="rounded-[10px] border border-gray-200 bg-gray-50 px-3 py-1.5 text-[12.5px] text-gray-600">{text}</div>
   );
+}
+
+// Standalone Chat skills (buildSkillTools in @gm/orchestrator) each render a result
+// card keyed by their tool-<name> part. The map lets one branch cover all three.
+const SKILL_CARDS: Record<string, ComponentType<{ data: Record<string, unknown>; loading?: boolean }>> = {
+  "tool-runScopingSkill": ScopeResultCard,
+  "tool-extractBillSkill": ExtractedDataCard,
+  "tool-understandEpdSkill": EpdSummaryCard,
+};
+
+function SkillPart({ Card, part }: { Card: ComponentType<{ data: Record<string, unknown>; loading?: boolean }>; part: Part }) {
+  switch (part.state) {
+    case "input-streaming":
+    case "input-available":
+      return <Card data={{}} loading />;
+    case "output-available":
+      return <Card data={(part.output ?? {}) as Record<string, unknown>} />;
+    case "output-error":
+      return <div className="text-[13px] text-danger">Skill run failed: {part.errorText}</div>;
+    default:
+      return null;
+  }
 }
 
 function Attachment({ url, mediaType, filename }: { url?: string; mediaType?: string; filename?: string }) {
@@ -159,6 +182,9 @@ export function MessageList({
                   default:
                     return null;
                 }
+              }
+              if (part.type in SKILL_CARDS) {
+                return <SkillPart key={i} Card={SKILL_CARDS[part.type]} part={part} />;
               }
               if (part.type?.startsWith("tool-") && part.state === "output-available") {
                 return <ToolLine key={i} name={part.type} output={(part.output ?? {}) as Record<string, unknown>} />;
