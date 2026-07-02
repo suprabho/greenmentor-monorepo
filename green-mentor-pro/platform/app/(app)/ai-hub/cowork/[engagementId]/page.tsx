@@ -71,7 +71,7 @@ export default function CoworkEngagementPage({ params }: { params: Promise<{ eng
         </div>
 
         <div className={clsx("h-full min-w-0 flex-1", mobileView === "chat" ? "block" : "hidden", "lg:block")}>
-          <EngagementConversation engagementId={engagementId} onChange={reload} />
+          <EngagementConversation engagementId={engagementId} refreshKey={tick} onChange={reload} />
         </div>
 
         <div

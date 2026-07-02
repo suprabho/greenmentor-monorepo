@@ -7,6 +7,7 @@ import { Leaf } from "@phosphor-icons/react";
 import { MessageList } from "./MessageList";
 import { ChatComposer } from "./ChatComposer";
 import { ChatError } from "./ChatError";
+import { ScopeQuestions } from "./ScopeQuestions";
 import { fetchWithErrorHandlers } from "@/lib/chat/fetch";
 
 /**
@@ -14,12 +15,19 @@ import { fetchWithErrorHandlers } from "@/lib/chat/fetch";
  * useChat, hydrates the persisted conversation on open, and refreshes the board
  * when a turn finishes. Hydration is gated so it can't clobber a live turn, and
  * errors surface inline (Chat used to swallow them → "no response at all").
+ *
+ * Kickoff scope questions surface here — pinned above the composer via
+ * ScopeQuestions so they stay visible in a long thread; they can be answered with
+ * its controls or by typing to the Copilot. `refreshKey` (the board's tick)
+ * re-fetches them after a turn resolves any via the chat tool.
  */
 export function EngagementConversation({
   engagementId,
+  refreshKey,
   onChange,
 }: {
   engagementId: string;
+  refreshKey: number;
   onChange: () => void;
 }) {
   const api = `/api/ai-hub/engagements/${engagementId}/chat`;
@@ -80,6 +88,10 @@ export function EngagementConversation({
         />
         <ChatError error={error} onRetry={() => regenerate()} />
       </div>
+
+      {/* Pinned above the composer so open scope questions stay in view.
+          Renders nothing (no gap) when there are none. */}
+      <ScopeQuestions engagementId={engagementId} refreshKey={refreshKey} onChange={onChange} />
 
       <div className="shrink-0 border-t border-gray-200 bg-white p-3">
         <ChatComposer

@@ -16,8 +16,9 @@ import type { EngagementSnapshot } from "./useEngagementSnapshot";
 /**
  * Right column of the Cowork engagement view. Mirrors Claude's "Progress" panel:
  * a completion bar over the 8-phase pipeline (from lib/engagement-ui), each phase
- * with Run / Approve / Changes actions and an artifact peek, and the existing
- * ReviewsPanel (scope questions + data-row gates) folded in below.
+ * with Run / Approve / Changes actions and an artifact peek, and the ReviewsPanel
+ * (data-row gates) folded in below. Kickoff scope questions moved to the Copilot
+ * column (see ScopeQuestions).
  */
 export function ProgressPanel({
   engagementId,
