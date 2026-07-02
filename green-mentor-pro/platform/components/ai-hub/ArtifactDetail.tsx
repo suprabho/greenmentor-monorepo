@@ -12,7 +12,7 @@ export function ArtifactDetail({ a }: { a: ArtifactRow }) {
   const [raw, setRaw] = useState(false);
 
   return (
-    <div className="mx-auto max-w-3xl space-y-5">
+    <div className="mx-auto max-w-4xl space-y-5">
       <div className="flex items-center justify-between">
         <Link href="/ai-hub/artifacts" className="text-[13px] font-semibold text-teal-700 hover:text-teal-900">
           ← All artifacts
