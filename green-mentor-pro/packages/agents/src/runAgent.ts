@@ -19,8 +19,15 @@ export type CallableToolFn = (
   ctx: ToolContext,
 ) => Promise<unknown> | unknown;
 
+/** A coarse liveness signal emitted once per agent turn so callers can stream progress. */
+export interface AgentProgressEvent {
+  turn: number; // 1-based turn number in the grounding loop
+  note: string; // human-readable, e.g. "thinking…" or "using select_frameworks"
+}
+
 export interface RunAgentOptions {
   runCallableTool?: CallableToolFn;
+  onProgress?: (ev: AgentProgressEvent) => void;
 }
 
 /**
@@ -58,6 +65,9 @@ export async function runAgent<I, O>(
   let lastErrors: string | null = null;
 
   for (let turn = 0; turn < 8; turn++) {
+    // Emit BEFORE the (slow, 10–30s) model call so streamed callers see liveness
+    // while the turn is in flight rather than only after it returns.
+    opts.onProgress?.({ turn: turn + 1, note: forceEmit ? "finalizing result…" : "thinking…" });
     const msg = await client.messages.create({
       model: agent.model,
       max_tokens: agent.maxTokens,
@@ -103,6 +113,9 @@ export async function runAgent<I, O>(
     // message. Run callable tools; turn an invalid emit into an error result that
     // asks for a corrected call (instead of a stray text message, which would leave
     // the emit tool_use unpaired and 400).
+    const calledTools = toolUses.map((b) => b.name).filter((n) => n !== agent.emitToolName);
+    if (calledTools.length) opts.onProgress?.({ turn: turn + 1, note: `using ${calledTools.join(", ")}` });
+
     const toolResults = await Promise.all(
       toolUses.map(async (b) =>
         b.name === agent.emitToolName
