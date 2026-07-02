@@ -3,7 +3,7 @@ import { resolveBuddyModel } from "@gm/agents";
 import {
   engagementCopilotSystem, buildEngagementTools,
   getEngagementSnapshot, countOpenFieldReviews, nextRunnablePhase,
-  loadMessages, replaceMessages,
+  listOpenQuestions, loadMessages, replaceMessages,
 } from "@gm/orchestrator";
 import { getEngagementContext } from "@/lib/engagement-session";
 import { withGenerativeUi } from "@/lib/chat/genui-system";
@@ -37,6 +37,9 @@ export async function POST(req: Request, { params }: { params: Promise<{ engagem
     for (const p of snapshot.phases) phaseStatus[p.phase_key as PhaseKey] = p.status as PhaseStatus;
     const phaseLines = PHASE_ORDER.map((k, i) => `${i + 1}. ${PHASE_LABEL[k]} — ${phaseStatus[k]}`);
     const openReviews = await countOpenFieldReviews(ctx.orgId, engagementId);
+    const openQuestions = (await listOpenQuestions(ctx.orgId, engagementId))
+      .filter((q) => q.status === "submitted" && !q.waived && !q.answer)
+      .map((q) => ({ id: q.id, question: q.question }));
     const next = nextRunnablePhase(phaseStatus);
 
     const { model } = resolveBuddyModel();
@@ -47,6 +50,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ engagem
       phaseLines,
       nextRunnable: next ? PHASE_LABEL[next as PhaseKey] : null,
       openReviews,
+      openQuestions,
     });
 
     const result = streamText({

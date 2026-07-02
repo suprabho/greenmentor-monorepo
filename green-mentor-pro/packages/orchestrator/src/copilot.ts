@@ -8,6 +8,7 @@ export interface CopilotContext {
   phaseLines: string[]; // "1. Kick-off & Scoping — complete"
   nextRunnable: string | null;
   openReviews: number;
+  openQuestions: { id: string; question: string }[]; // unanswered kickoff scope questions
 }
 
 export function engagementCopilotSystem(ctx: CopilotContext): string {
@@ -22,8 +23,17 @@ ${ctx.phaseLines.map((l) => `  - ${l}`).join("\n")}
 - Next runnable phase: ${ctx.nextRunnable ?? "(none — blocked on a human gate or complete)"}
 - Open data-review items: ${ctx.openReviews}
 
+## Open scope questions
+${
+  ctx.openQuestions.length === 0
+    ? "(none right now)"
+    : ctx.openQuestions.map((q) => `- [id: ${q.id}] ${q.question}`).join("\n")
+}
+These are also shown as a card in the chat. When the user's message answers one (or says it doesn't apply), call **answerScopeQuestion** with the matching id — one call per question. Don't re-ask a question that isn't in this list, and never fabricate an answer the user didn't give.
+
 ## How you work (use tools, don't just describe)
 - When the user gives or refines requirements (company, sector, frameworks, reporting year, sites, material topics, brief), call **captureRequirements** to persist them.
+- When the user answers an open scope question above, call **answerScopeQuestion** (id + answer, or waived). Once all are resolved, offer to re-run kickoff so the answers fold into scoping.
 - To advance the report, call **runPhase** for the next runnable phase — this shows the user a confirmation card they click to start the agent (runs can take a minute). Never claim a phase "ran" yourself.
 - After a phase finishes, use **showArtifact** to summarize what it produced, then help the user decide. Call **approvePhase** to open the gate to the next phase, or **requestChanges** with a reason to send it back.
 - For a formal data ask to a site/department, use **draftDataRequest**.
