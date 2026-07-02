@@ -7,7 +7,10 @@ import { PHASE_ROWS } from "./demo/fixtures";
 import { updateEngagement } from "./db/engagements";
 import { getLatestArtifact, finalizePhaseArtifacts } from "./db/artifacts";
 import { getPhaseStates, transitionPhase } from "./db/phases";
-import { decidePhaseGate, countOpenFieldReviews } from "./db/reviews";
+import {
+  decidePhaseGate, countOpenFieldReviews,
+  listOpenQuestions, resolveOpenQuestion, countOpenQuestions,
+} from "./db/reviews";
 import { summarizeArtifact } from "./demo/phaseInputs";
 
 export interface ToolCtx {
@@ -67,6 +70,38 @@ export function buildEngagementTools(ctx: ToolCtx) {
         const a = await getLatestArtifact(ctx.orgId, ctx.engagementId, phase);
         if (!a) return { found: false, phase: LABEL[phase] };
         return { found: true, phase: LABEL[phase], status: a.status, summary: summarizeArtifact(phase, a.payload) };
+      },
+    }),
+
+    answerScopeQuestion: tool({
+      description:
+        "Answer or waive ONE of the engagement's open kickoff scope questions on the user's behalf. Use whenever the user's message supplies the answer to a question listed under 'Open scope questions' in your context — pass the matching `question_id` and the `answer`, or `waived: true` if the user says it doesn't apply. Resolve one question per call; call again for each answer given. Never invent an answer the user didn't provide. These same questions are shown as a card in the chat, so answering here keeps both in sync.",
+      inputSchema: z.object({
+        question_id: z.string().describe("The id of the scope question being resolved, from the 'Open scope questions' list in your context."),
+        answer: z.string().nullish().describe("The user's answer. Omit when waiving."),
+        waived: z.boolean().nullish().describe("Set true to skip a question the user says is not applicable."),
+      }),
+      execute: async (input) => {
+        if (input.waived !== true && !input.answer?.trim()) {
+          return { ok: false, error: "Provide an answer or set waived: true." };
+        }
+        const open = await listOpenQuestions(ctx.orgId, ctx.engagementId);
+        const match = open.find((q) => q.id === input.question_id);
+        if (!match) return { ok: false, error: "Unknown question_id — use one from the Open scope questions list." };
+        if (match.status !== "submitted") return { ok: false, error: "That question is already answered or waived." };
+        await resolveOpenQuestion(ctx.orgId, input.question_id, {
+          answer: input.answer ?? null,
+          waived: input.waived === true,
+          reviewedBy: ctx.userUuid,
+        });
+        const remaining = await countOpenQuestions(ctx.orgId, ctx.engagementId);
+        return {
+          ok: true,
+          resolved: match.question,
+          waived: input.waived === true,
+          remaining_open: remaining,
+          hint: remaining === 0 ? "All scope questions resolved — offer to Apply & re-run kickoff." : null,
+        };
       },
     }),
 
