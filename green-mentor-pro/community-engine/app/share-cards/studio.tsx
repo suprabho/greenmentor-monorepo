@@ -254,7 +254,7 @@ export function ShareCardStudio({ initialId }: { initialId: string | null }) {
         </Card>
       )}
 
-      <div className="mb-6 overflow-hidden rounded-2xl border border-gray-200 bg-neutral-950 shadow-[var(--shadow-soft)]">
+      <div className="gm-studio mb-6 overflow-hidden rounded-2xl border border-gray-200 bg-neutral-950 shadow-[var(--shadow-soft)]">
         {/* toolbar */}
         <div className="flex flex-wrap items-center gap-2 border-b border-white/10 px-4 py-3">
           <button type="button" onClick={handleNew} className={toolbarBtn}>

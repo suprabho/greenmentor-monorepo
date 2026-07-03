@@ -32,14 +32,14 @@ function ArticlePicker({ value, onChange, ctx }: PickerEditorProps) {
   const selected = typeof value === "string" ? value : "";
 
   const shown = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return articles;
-    return articles.filter(
-      (a) =>
-        a.title.toLowerCase().includes(q) ||
-        a.source.toLowerCase().includes(q) ||
-        a.entities.some((e) => e.name.toLowerCase().includes(q))
-    );
+    // Token AND-match, not whole-phrase substring: "analysis uk newspapers"
+    // should find "Analysis: What UK newspapers say about…".
+    const tokens = query.trim().toLowerCase().split(/\s+/).filter(Boolean);
+    if (tokens.length === 0) return articles;
+    return articles.filter((a) => {
+      const hay = `${a.title} ${a.source} ${a.entities.map((e) => e.name).join(" ")}`.toLowerCase();
+      return tokens.every((t) => hay.includes(t));
+    });
   }, [articles, query]);
 
   if (articles.length === 0) {
@@ -57,7 +57,9 @@ function ArticlePicker({ value, onChange, ctx }: PickerEditorProps) {
       />
       <div className="max-h-56 overflow-y-auto rounded-md border border-white/10">
         {shown.length === 0 && (
-          <p className="px-2.5 py-2 text-[11px] text-neutral-500">No matches.</p>
+          <p className="px-2.5 py-2 text-[11px] text-neutral-500">
+            No matches in the latest {articles.length} articles.
+          </p>
         )}
         {shown.map((a) => {
           const active = a.id === selected;

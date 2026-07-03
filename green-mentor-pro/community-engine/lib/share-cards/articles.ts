@@ -17,13 +17,52 @@ type ArticleRow = {
   article_entities: { entities: ShareCardEntity | null }[] | null;
 };
 
+const NAMED_ENTITIES: Record<string, string> = {
+  lt: "<",
+  gt: ">",
+  quot: '"',
+  apos: "'",
+  nbsp: " ",
+  ndash: "–",
+  mdash: "—",
+  lsquo: "‘",
+  rsquo: "’",
+  ldquo: "“",
+  rdquo: "”",
+  hellip: "…",
+};
+
+/** RSS feeds ship titles/summaries with HTML entities still encoded (e.g.
+ *  `&#124;`, `&amp;`), and React correctly escapes text — so without decoding,
+ *  cards and pickers display the raw entity. Decode numeric + common named
+ *  entities; `&amp;` last so double-encoded input resolves one level only. */
+function decodeEntities(s: string): string {
+  return s
+    .replace(/&#x([0-9a-fA-F]+);/g, (m, hex: string) => {
+      try {
+        return String.fromCodePoint(parseInt(hex, 16));
+      } catch {
+        return m;
+      }
+    })
+    .replace(/&#(\d+);/g, (m, dec: string) => {
+      try {
+        return String.fromCodePoint(Number(dec));
+      } catch {
+        return m;
+      }
+    })
+    .replace(/&([a-zA-Z]+);/g, (m, name: string) => NAMED_ENTITIES[name] ?? m)
+    .replace(/&amp;/g, "&");
+}
+
 function flatten(row: ArticleRow): ShareCardArticle {
   return {
     id: row.id,
-    source: row.source,
-    title: row.title,
+    source: decodeEntities(row.source),
+    title: decodeEntities(row.title),
     url: row.url,
-    summary: row.summary,
+    summary: row.summary ? decodeEntities(row.summary) : row.summary,
     image_url: row.image_url,
     published_at: row.published_at,
     entities: (row.article_entities ?? [])

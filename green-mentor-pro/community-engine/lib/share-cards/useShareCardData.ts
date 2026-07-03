@@ -22,7 +22,8 @@ export function useShareCardData(): {
     let alive = true;
     void (async () => {
       try {
-        const res = await fetch("/api/share-cards/data/articles");
+        // 200 (the route's cap) so the picker can search beyond the newest page.
+        const res = await fetch("/api/share-cards/data/articles?limit=200");
         const body = (await res.json().catch(() => ({}))) as {
           ok?: boolean;
           items?: ShareCardArticle[];
