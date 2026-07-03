@@ -25,8 +25,9 @@ export interface PipelineDayPoint {
   count: number;
 }
 
-export interface PipelineTopEntity {
-  entity_id: string;
+export interface PipelineEntity {
+  id: string;
+  slug: string;
   name: string;
   kind: string;
   article_count: number;
@@ -51,7 +52,8 @@ export interface PipelineStats {
   };
   bySource: SourceStat[];
   byDay: PipelineDayPoint[];
-  topEntities: PipelineTopEntity[];
+  /** Every entity with its tagged-article count, most-tagged first. */
+  entityList: PipelineEntity[];
 }
 
 /** Newest-first article cap for the stats scan — plenty for a daily feed. */
@@ -68,7 +70,7 @@ export async function fetchPipelineStats(): Promise<PipelineStats> {
       .select("id, source, summary, image_url, created_at")
       .order("created_at", { ascending: false })
       .limit(STATS_ARTICLE_CAP),
-    supabase.from("entities").select("id, name, kind"),
+    supabase.from("entities").select("id, slug, name, kind"),
     supabase.from("article_entities").select("article_id, entity_id"),
     supabase.from("articles").select("id", { count: "exact", head: true }),
   ]);
@@ -84,7 +86,7 @@ export async function fetchPipelineStats(): Promise<PipelineStats> {
     image_url: string | null;
     created_at: string;
   };
-  type EntityRow = { id: string; name: string; kind: string };
+  type EntityRow = { id: string; slug: string; name: string; kind: string };
 
   const articles = (articlesRes.data ?? []) as ArticleRow[];
   const entities = (entitiesRes.data ?? []) as EntityRow[];
@@ -143,20 +145,13 @@ export async function fetchPipelineStats(): Promise<PipelineStats> {
     byDay.push({ day: k, count: dayMap.get(k) ?? 0 });
   }
 
-  const entById = new Map(entities.map((e) => [e.id, e]));
   const entityCount = new Map<string, number>();
   for (const r of links) {
     entityCount.set(r.entity_id, (entityCount.get(r.entity_id) ?? 0) + 1);
   }
-  const topEntities: PipelineTopEntity[] = Array.from(entityCount.entries())
-    .map(([id, count]) => {
-      const e = entById.get(id);
-      if (!e) return null;
-      return { entity_id: id, name: e.name, kind: e.kind, article_count: count };
-    })
-    .filter((x): x is PipelineTopEntity => x !== null)
-    .sort((a, b) => b.article_count - a.article_count)
-    .slice(0, 12);
+  const entityList: PipelineEntity[] = entities
+    .map((e) => ({ ...e, article_count: entityCount.get(e.id) ?? 0 }))
+    .sort((a, b) => b.article_count - a.article_count || a.name.localeCompare(b.name));
 
   return {
     articles: totals,
@@ -164,6 +159,6 @@ export async function fetchPipelineStats(): Promise<PipelineStats> {
     freshness: { latestIngestedAt: latest, minutesSinceLatest },
     bySource,
     byDay,
-    topEntities,
+    entityList,
   };
 }
