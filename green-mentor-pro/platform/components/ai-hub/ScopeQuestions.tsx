@@ -77,7 +77,7 @@ export function ScopeQuestions({
                 value={answers[q.id] ?? ""}
                 onChange={(e) => setAnswers({ ...answers, [q.id]: e.target.value })}
                 placeholder="Answer…"
-                className="flex-1 rounded-[10px] border border-gray-200 bg-gray-50 px-3 py-1.5 text-[12.5px] outline-none focus:border-teal-700"
+                className="flex-1 rounded-[6px] border border-gray-200 bg-gray-50 px-3 py-1.5 text-[12.5px] outline-none focus:border-teal-700"
               />
               <button disabled={busy} onClick={() => post({ kind: "question", reviewId: q.id, answer: answers[q.id] })}
                 className="rounded-pill bg-green-700 px-3 py-1.5 text-[12px] font-semibold text-white disabled:opacity-40">Answer</button>
@@ -87,7 +87,7 @@ export function ScopeQuestions({
           )}
         </div>
       ))}
-      {error && <p className="rounded-[10px] bg-red-50 px-3 py-2 text-[12.5px] text-danger">{error}</p>}
+      {error && <p className="rounded-[6px] bg-red-50 px-3 py-2 text-[12.5px] text-danger">{error}</p>}
     </div>
   );
 }

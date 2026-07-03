@@ -65,7 +65,7 @@ export function ReviewsPanel({
         </div>
       )}
 
-      {error && <p className="rounded-[10px] bg-red-50 px-3 py-2 text-[12.5px] text-danger">{error}</p>}
+      {error && <p className="rounded-[6px] bg-red-50 px-3 py-2 text-[12.5px] text-danger">{error}</p>}
     </Card>
   );
 }

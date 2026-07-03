@@ -130,7 +130,7 @@ export function Hero() {
                     <div
                       key={`${m.name}-${i}`}
                       aria-hidden={i >= mentors.length}
-                      className="flex items-stretch overflow-hidden rounded-[18px] border border-white/10 bg-white/[0.05] backdrop-blur-md"
+                      className="flex items-stretch overflow-hidden rounded-[10px] border border-white/10 bg-white/[0.05] backdrop-blur-md"
                     >
                       {/* Headshot — spans the full height of the card. Falls
                           back to an initials block when no photo is set. */}

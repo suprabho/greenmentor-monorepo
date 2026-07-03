@@ -75,14 +75,14 @@ export function EngagementRail({ activeId }: { activeId?: string }) {
             value={clientName}
             onChange={(e) => setClientName(e.target.value)}
             placeholder="Client / entity"
-            className="w-full rounded-[10px] border border-gray-200 bg-white px-2.5 py-1.5 text-[12.5px] outline-none focus:border-teal-700"
+            className="w-full rounded-[6px] border border-gray-200 bg-white px-2.5 py-1.5 text-[12.5px] outline-none focus:border-teal-700"
           />
           <input
             required
             value={fy}
             onChange={(e) => setFy(e.target.value)}
             placeholder="Financial year"
-            className="w-full rounded-[10px] border border-gray-200 bg-white px-2.5 py-1.5 text-[12.5px] outline-none focus:border-teal-700"
+            className="w-full rounded-[6px] border border-gray-200 bg-white px-2.5 py-1.5 text-[12.5px] outline-none focus:border-teal-700"
           />
           <button
             type="submit"

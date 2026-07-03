@@ -48,13 +48,13 @@
   --font-display: "Manrope", "Inter", system-ui, sans-serif; /* Haas substitute */
   --font-numeral: "Manrope", "Inter", system-ui, sans-serif; /* Codec Pro substitute */
 
-  /* ----- Radii ----- */
-  --radius-xs: 6px;
-  --radius-sm: 8px;
-  --radius-md: 18px;
-  --radius-lg: 20px;
-  --radius-xl: 24px;
-  --radius-2xl: 48px;
+  /* ----- Radii (tightened scale for a sharper look) ----- */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 12px;
+  --radius-xl: 14px;
+  --radius-2xl: 16px;
   --radius-pill: 999px;
 
   /* ----- Easing (institutional, no spring) ----- */

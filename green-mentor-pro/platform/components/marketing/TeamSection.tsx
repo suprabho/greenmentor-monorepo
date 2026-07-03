@@ -15,7 +15,7 @@ export function TeamSection() {
   return (
     <section id="teams" className="bg-teal-900 py-20 text-white md:py-24">
       <Container width="wide">
-        <div className="rounded-[24px] border border-white/10 bg-teal-800/40 p-8 md:p-12">
+        <div className="rounded-[14px] border border-white/10 bg-teal-800/40 p-8 md:p-12">
           <div className="flex flex-col gap-8 md:flex-row md:items-center md:justify-between">
             <div className="max-w-2xl">
               <p className="gm-eyebrow text-green-100">For Teams</p>
