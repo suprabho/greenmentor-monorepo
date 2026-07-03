@@ -88,7 +88,7 @@ export function LoginForm({ next, initialError }: { next: string; initialError?:
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           placeholder="you@company.com"
-          className="w-full rounded-[10px] border border-gray-200 bg-gray-50 px-3.5 py-2.5 text-[13.5px] outline-none focus:border-teal-700"
+          className="w-full rounded-[6px] border border-gray-200 bg-gray-50 px-3.5 py-2.5 text-[13.5px] outline-none focus:border-teal-700"
         />
         <input
           type="password"
@@ -97,7 +97,7 @@ export function LoginForm({ next, initialError }: { next: string; initialError?:
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           placeholder="Password (min 6 chars)"
-          className="w-full rounded-[10px] border border-gray-200 bg-gray-50 px-3.5 py-2.5 text-[13.5px] outline-none focus:border-teal-700"
+          className="w-full rounded-[6px] border border-gray-200 bg-gray-50 px-3.5 py-2.5 text-[13.5px] outline-none focus:border-teal-700"
         />
         <button
           type="submit"
@@ -116,7 +116,7 @@ export function LoginForm({ next, initialError }: { next: string; initialError?:
         {mode === "signin" ? "New here? Create an account" : "Have an account? Sign in"}
       </button>
 
-      {error && <p className="rounded-[10px] bg-red-50 px-3 py-2 text-[12.5px] text-danger">{error}</p>}
+      {error && <p className="rounded-[6px] bg-red-50 px-3 py-2 text-[12.5px] text-danger">{error}</p>}
     </div>
   );
 }

@@ -77,7 +77,7 @@ export default function OnboardingWizard() {
                   key={a.id}
                   onClick={() => setSegment(a.id)}
                   className={clsx(
-                    "flex flex-col rounded-[16px] border p-4 text-left transition-colors",
+                    "flex flex-col rounded-[10px] border p-4 text-left transition-colors",
                     active ? "border-teal-900 bg-teal-900/[0.03] ring-1 ring-teal-900" : "border-gray-200 bg-white hover:border-gray-300",
                   )}
                 >
@@ -146,7 +146,7 @@ export default function OnboardingWizard() {
           <button
             onClick={() => setPlan(plan.id)}
             className={clsx(
-              "flex w-full items-start justify-between rounded-[18px] border p-5 text-left transition-colors",
+              "flex w-full items-start justify-between rounded-[10px] border p-5 text-left transition-colors",
               planId === plan.id ? "border-teal-900 ring-1 ring-teal-900" : "border-gray-200 hover:border-gray-300",
             )}
           >
@@ -171,7 +171,7 @@ export default function OnboardingWizard() {
         </section>
       )}
 
-      {error && <p className="rounded-[10px] bg-red-50 px-3 py-2 text-[12.5px] text-danger">{error}</p>}
+      {error && <p className="rounded-[6px] bg-red-50 px-3 py-2 text-[12.5px] text-danger">{error}</p>}
 
       {/* nav */}
       <div className="flex items-center justify-between border-t border-gray-100 pt-5">

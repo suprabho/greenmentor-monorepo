@@ -62,7 +62,7 @@ export function AboutSection() {
         />
 
         {/* A-2 — Backed by & built with: institutional credibility, elevated */}
-        <div className="mt-12 rounded-[20px] border border-gray-200 bg-section-fade p-6 md:p-8">
+        <div className="mt-12 rounded-[12px] border border-gray-200 bg-section-fade p-6 md:p-8">
           <p className="gm-eyebrow text-center text-green-700">
             Backed by &amp; built with
           </p>
@@ -86,7 +86,7 @@ export function AboutSection() {
           {subBrands.map((brand) => (
             <div
               key={brand.name}
-              className="rounded-[20px] border border-gray-200 bg-white p-7"
+              className="rounded-[12px] border border-gray-200 bg-white p-7"
             >
               <p className="gm-eyebrow text-green-700">{brand.tag}</p>
               <h3 className="font-accent mt-4 text-[28px] leading-tight text-ink">
@@ -138,14 +138,14 @@ export function AboutSection() {
                 aria-hidden so screen readers and the tab order see each
                 mentor once. Pauses on hover; collapses to a static first
                 frame under prefers-reduced-motion. */}
-            <div className="relative h-[440px] overflow-hidden rounded-[20px] border border-white/10 bg-teal-900 px-3">
+            <div className="relative h-[440px] overflow-hidden rounded-[12px] border border-white/10 bg-teal-900 px-3">
               <div className="gm-ticker-mask h-full overflow-hidden">
                 <div className="gm-ticker-track py-3">
                   {[...mentors, ...mentors].map((m, i) => (
                     <div
                       key={`${m.name}-${i}`}
                       aria-hidden={i >= mentors.length}
-                      className="rounded-[14px] border border-white/10 bg-white/[0.04] p-4"
+                      className="rounded-[8px] border border-white/10 bg-white/[0.04] p-4"
                     >
                       <div className="flex items-center gap-3">
                         {m.photo ? (
@@ -212,7 +212,7 @@ export function AboutSection() {
         {/* Contact */}
         <div
           id="contact"
-          className="mt-12 rounded-[20px] bg-section-fade p-8 md:p-10"
+          className="mt-12 rounded-[12px] bg-section-fade p-8 md:p-10"
         >
           <h3 className="gm-section-label text-[24px] text-green-700 md:text-[28px]">
             Get in Touch

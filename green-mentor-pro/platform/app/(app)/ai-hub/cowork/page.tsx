@@ -129,14 +129,14 @@ export default function CoworkLanding() {
                         value={clientName}
                         onChange={(e) => setClientName(e.target.value)}
                         placeholder="Client / entity"
-                        className="w-full rounded-[10px] border border-gray-200 bg-gray-50 px-2.5 py-1.5 text-[12.5px] outline-none focus:border-teal-700"
+                        className="w-full rounded-[6px] border border-gray-200 bg-gray-50 px-2.5 py-1.5 text-[12.5px] outline-none focus:border-teal-700"
                       />
                       <input
                         required
                         value={fy}
                         onChange={(e) => setFy(e.target.value)}
                         placeholder="Financial year"
-                        className="w-full rounded-[10px] border border-gray-200 bg-gray-50 px-2.5 py-1.5 text-[12.5px] outline-none focus:border-teal-700"
+                        className="w-full rounded-[6px] border border-gray-200 bg-gray-50 px-2.5 py-1.5 text-[12.5px] outline-none focus:border-teal-700"
                       />
                       <div className="flex gap-2">
                         <button

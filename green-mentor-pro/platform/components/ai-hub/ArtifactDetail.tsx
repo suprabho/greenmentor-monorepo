@@ -49,7 +49,7 @@ export function ArtifactDetail({ a }: { a: ArtifactRow }) {
         </button>
       </div>
 
-      <div className="rounded-[18px] border border-gray-200 bg-white p-5 shadow-soft">
+      <div className="rounded-[10px] border border-gray-200 bg-white p-5 shadow-soft">
         {raw ? (
           <pre className="max-h-[32rem] overflow-auto rounded-xl bg-ink p-4 font-mono text-[11.5px] leading-relaxed text-green-100">
             {JSON.stringify(a.payload, null, 2)}

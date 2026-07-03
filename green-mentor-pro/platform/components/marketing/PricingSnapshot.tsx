@@ -106,7 +106,7 @@ export function PricingSnapshot({ compact = false }: PricingSnapshotProps) {
 
         {/* PR-1 — value stack: what's included, and what it would cost standalone.
             Counts every included item (see plans.ts). */}
-        <div className="mx-auto mt-12 max-w-2xl rounded-[20px] border border-gray-200 bg-white p-6 shadow-soft md:p-8">
+        <div className="mx-auto mt-12 max-w-2xl rounded-[12px] border border-gray-200 bg-white p-6 shadow-soft md:p-8">
           <p className="gm-eyebrow text-green-700">What you&apos;re getting</p>
           <h3 className="mt-2 text-[20px] font-bold text-ink">
             And what it would cost you standalone
@@ -143,7 +143,7 @@ export function PricingSnapshot({ compact = false }: PricingSnapshotProps) {
               ~{formatINR(valueStack.total)}
             </span>
           </div>
-          <div className="mt-3 flex items-baseline justify-between gap-4 rounded-[12px] bg-green-100 px-4 py-3">
+          <div className="mt-3 flex items-baseline justify-between gap-4 rounded-[8px] bg-green-100 px-4 py-3">
             <span className="text-[15px] font-bold text-green-700">
               Your cost as a Plus member
             </span>
@@ -161,7 +161,7 @@ export function PricingSnapshot({ compact = false }: PricingSnapshotProps) {
             <div
               key={card.cycle}
               className={cn(
-                "relative flex flex-col rounded-[20px] border bg-white p-8",
+                "relative flex flex-col rounded-[12px] border bg-white p-8",
                 card.highlight
                   ? "border-green-700 shadow-lift"
                   : "border-gray-200",
@@ -215,7 +215,7 @@ export function PricingSnapshot({ compact = false }: PricingSnapshotProps) {
                     </li>
                   ))}
                   {card.cycle === "annual" ? (
-                    <li className="flex items-start gap-3 rounded-[10px] bg-green-100 px-3 py-2.5 text-[15px] font-semibold text-green-700">
+                    <li className="flex items-start gap-3 rounded-[6px] bg-green-100 px-3 py-2.5 text-[15px] font-semibold text-green-700">
                       <Gift
                         size={18}
                         weight="duotone"
@@ -287,7 +287,7 @@ export function PricingSnapshot({ compact = false }: PricingSnapshotProps) {
 
         {/* PR-4 — trust strip, guarantee anchored as the most prominent item */}
         <div className="mx-auto mt-10 max-w-4xl">
-          <div className="flex items-center justify-center gap-2.5 rounded-[14px] bg-green-100 px-5 py-3 text-center">
+          <div className="flex items-center justify-center gap-2.5 rounded-[8px] bg-green-100 px-5 py-3 text-center">
             <ShieldCheck
               size={20}
               weight="fill"

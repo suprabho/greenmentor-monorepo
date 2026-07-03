@@ -25,7 +25,7 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 const base =
   "inline-flex items-center justify-center gap-2 font-semibold " +
-  "rounded-[10px] select-none whitespace-nowrap " +
+  "rounded-[6px] select-none whitespace-nowrap " +
   "transition-[background-color,color,border-color,box-shadow,transform] duration-200 " +
   "active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50";
 

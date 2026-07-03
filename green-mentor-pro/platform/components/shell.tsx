@@ -81,7 +81,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
           )}
         >
           <Link href="/feed" className="flex items-center gap-2.5">
-            <span className="grid size-9 shrink-0 place-items-center rounded-[10px] bg-green-500 text-teal-900">
+            <span className="grid size-9 shrink-0 place-items-center rounded-[6px] bg-green-500 text-teal-900">
               <Leaf size={20} weight="fill" />
             </span>
             {!collapsed && (
@@ -124,7 +124,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
                 href={item.href}
                 title={collapsed ? item.label : undefined}
                 className={clsx(
-                  "flex items-center gap-3 rounded-[10px] py-2.5 text-[13.5px] font-medium transition-colors",
+                  "flex items-center gap-3 rounded-[6px] py-2.5 text-[13.5px] font-medium transition-colors",
                   collapsed ? "justify-center" : "px-3",
                   isActive(item.href) && !item.children.some((c) => pathname.startsWith(c.href))
                     ? "bg-white/10 text-white"

@@ -13,7 +13,7 @@ export default async function LoginPage({
   return (
     <div className="mx-auto flex min-h-[70vh] max-w-md flex-col justify-center">
       <Card className="p-8 text-center">
-        <div className="mx-auto mb-5 grid size-12 place-items-center rounded-[14px] bg-teal-900 text-green-500">
+        <div className="mx-auto mb-5 grid size-12 place-items-center rounded-[8px] bg-teal-900 text-green-500">
           <Leaf size={26} weight="fill" />
         </div>
         <h1 className="text-[20px] font-semibold tracking-tight text-ink">Green Mentor Pro</h1>
