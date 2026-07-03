@@ -26,7 +26,6 @@ import {
   type LayerBox,
   type TransformLike,
 } from "@vismay/viz-admin";
-import { Card } from "@/components/ui";
 import { createClient } from "@/lib/supabase/client";
 import { getShareCard } from "@/lib/db/shareCards";
 import { AURA_PRESETS } from "@/lib/header/types";
@@ -236,26 +235,26 @@ export function ShareCardStudio({ initialId }: { initialId: string | null }) {
     []
   );
 
+  // The studio owns everything below the h-14 site header — full width, full height.
+  const studioHeight = "h-[calc(100dvh-3.5rem)]";
+
   if (dataLoading || loadingCard) {
     return (
-      <Card className="mb-6 grid place-items-center p-16 text-[13px] text-gray-500">
+      <div className={`${studioHeight} grid place-items-center bg-neutral-950 text-[13px] text-neutral-400`}>
         <span className="flex items-center gap-2">
           <Spinner size={16} className="animate-spin" /> Loading the studio…
         </span>
-      </Card>
+      </div>
     );
   }
 
   return (
-    <>
+    <div className={`gm-studio flex ${studioHeight} flex-col bg-neutral-950`}>
       {(dataError || loadError) && (
-        <Card className="mb-4 border-danger/30 p-4 text-[13px] text-danger">
+        <div className="border-b border-red-500/30 bg-red-500/10 px-4 py-2 text-[12.5px] text-red-300">
           {dataError ?? loadError}
-        </Card>
+        </div>
       )}
-
-      {/* Full-bleed below xl so tablets get the whole screen; a rounded island on desktop. */}
-      <div className="gm-studio -mx-5 mb-6 overflow-hidden border-y border-gray-200 bg-neutral-950 shadow-[var(--shadow-soft)] xl:mx-0 xl:rounded-2xl xl:border-x">
         {/* toolbar: new · save · download */}
         <div className="flex flex-wrap items-center gap-2 border-b border-white/10 px-4 py-3">
           <button type="button" onClick={handleNew} className={toolbarBtn}>
@@ -303,10 +302,11 @@ export function ShareCardStudio({ initialId }: { initialId: string | null }) {
           </button>
         </div>
 
-        {/* three panes */}
-        <div className="grid gap-4 p-4 lg:grid-cols-[240px_minmax(0,1fr)_280px]">
+      {/* three panes — fill the remaining height on desktop, page-scroll below lg */}
+      <div className="min-h-0 flex-1 overflow-y-auto lg:overflow-hidden">
+        <div className="grid h-full gap-4 p-4 lg:grid-cols-[240px_minmax(0,1fr)_280px] lg:grid-rows-[minmax(0,1fr)]">
           {/* left rail: tabs + active panel */}
-          <aside className="min-w-0">
+          <aside className="min-w-0 lg:flex lg:min-h-0 lg:flex-col">
             <div className="mb-3 flex gap-1">
               {TABS.map(({ id, label, Icon }) => (
                 <button
@@ -324,7 +324,7 @@ export function ShareCardStudio({ initialId }: { initialId: string | null }) {
                 </button>
               ))}
             </div>
-            <div className="max-h-[560px] overflow-y-auto pr-1">
+            <div className="max-h-[560px] overflow-y-auto pr-1 lg:min-h-0 lg:max-h-none lg:flex-1">
               {activeTab === "layers" && (
                 <LayerListPanel
                   state={composer}
@@ -349,8 +349,8 @@ export function ShareCardStudio({ initialId }: { initialId: string | null }) {
           </aside>
 
           {/* center: live preview (the PreviewPane node IS the export layout) */}
-          <section className="min-w-0">
-            <div className="h-[420px] rounded-xl border border-white/5 bg-neutral-900/60 lg:h-[560px]">
+          <section className="min-w-0 lg:min-h-0">
+            <div className="h-[420px] rounded-xl border border-white/5 bg-neutral-900/60 lg:h-full">
               <PreviewPane
                 host={gmCardHost}
                 state={composer}
@@ -365,8 +365,8 @@ export function ShareCardStudio({ initialId }: { initialId: string | null }) {
           </section>
 
           {/* right: selected-layer properties */}
-          <aside className="min-w-0">
-            <div className="max-h-[560px] overflow-y-auto pr-1">
+          <aside className="min-w-0 lg:min-h-0">
+            <div className="max-h-[560px] overflow-y-auto pr-1 lg:h-full lg:max-h-none">
               <ConfigPanel
                 host={gmCardHost}
                 state={composer}
@@ -381,7 +381,7 @@ export function ShareCardStudio({ initialId }: { initialId: string | null }) {
           </aside>
         </div>
       </div>
-    </>
+    </div>
   );
 }
 

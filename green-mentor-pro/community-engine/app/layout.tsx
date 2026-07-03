@@ -28,8 +28,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       </head>
       <body>
         {user && <SiteHeader email={user.email ?? ""} isAdmin={isAdmin(user.email)} />}
-        {/* Full-width below xl (tablets get the whole screen); centered column on desktop. */}
-        <main className="mx-auto px-5 py-8 xl:max-w-6xl">{children}</main>
+        {/* Page padding lives in the (shell) route group's layout — full-screen
+            surfaces (the share-cards studio, the export render page) opt out
+            by living outside the group. */}
+        {children}
       </body>
     </html>
   );

@@ -1,9 +1,10 @@
-import { PageHeader } from "@/components/ui";
 import { requireAdmin } from "@/lib/auth/admin";
 import { ShareCardStudio } from "./studio";
 
 export const metadata = { title: "Share cards studio — GreenMentor Community" };
 
+/** A full-screen surface: no page header, no shell padding — the studio owns
+ *  everything below the site header. */
 export default async function ShareCardsPage({
   searchParams,
 }: {
@@ -12,13 +13,5 @@ export default async function ShareCardsPage({
   await requireAdmin();
   const { id } = await searchParams;
 
-  return (
-    <div>
-      <PageHeader
-        title="Share cards studio"
-        sub="Compose on-brand social share cards from the news pipe — free-arrange layers over aura backgrounds, export pixel-perfect PNGs."
-      />
-      <ShareCardStudio initialId={id ?? null} />
-    </div>
-  );
+  return <ShareCardStudio initialId={id ?? null} />;
 }
