@@ -80,6 +80,12 @@ importers:
       '@supabase/supabase-js':
         specifier: ^2.108.1
         version: 2.108.2
+      '@vismay/viz-admin':
+        specifier: workspace:*
+        version: link:../vendor/vismay/packages/viz-admin
+      '@vismay/viz-engine':
+        specifier: workspace:*
+        version: link:../vendor/vismay/packages/viz-engine
       clsx:
         specifier: ^2.1.1
         version: 2.1.1
@@ -101,6 +107,9 @@ importers:
       tailwind-merge:
         specifier: ^2.6.0
         version: 2.6.1
+      zod:
+        specifier: ^3.23.8
+        version: 3.25.76
     devDependencies:
       '@tailwindcss/postcss':
         specifier: ^4.0.0
@@ -441,6 +450,28 @@ importers:
       '@types/node':
         specifier: ^20
         version: 20.19.43
+      typescript:
+        specifier: ^5
+        version: 5.9.3
+
+  green-mentor-pro/vendor/vismay/packages/viz-admin:
+    dependencies:
+      '@vismay/viz-engine':
+        specifier: workspace:*
+        version: link:../viz-engine
+      react:
+        specifier: ^19.0.0
+        version: 19.2.0
+      react-dom:
+        specifier: ^19.0.0
+        version: 19.2.0(react@19.2.0)
+    devDependencies:
+      '@types/react':
+        specifier: ^19
+        version: 19.2.17
+      '@types/react-dom':
+        specifier: ^19
+        version: 19.2.3(@types/react@19.2.17)
       typescript:
         specifier: ^5
         version: 5.9.3

@@ -15,6 +15,9 @@ const nextConfig: NextConfig = {
   // binaries are require()d at runtime instead of being (incorrectly) bundled.
   serverExternalPackages: ["@sparticuz/chromium", "playwright-core", "playwright"],
 
+  // The vendored vismay packages ship raw TypeScript (main: src/index.ts).
+  transpilePackages: ["@vismay/viz-engine", "@vismay/viz-admin"],
+
   // @sparticuz/chromium loads its brotli-packed Chromium (bin/*.br) from a path it
   // computes at runtime (import.meta.url of build/paths.js → ../bin), so Next's file
   // tracer can't see those binaries and drops them from the serverless bundle — the
@@ -29,6 +32,9 @@ const nextConfig: NextConfig = {
   // (Do NOT change this back to "./".)
   outputFileTracingIncludes: {
     "/api/header/export": [
+      "../../node_modules/.pnpm/@sparticuz+chromium@*/node_modules/@sparticuz/chromium/**",
+    ],
+    "/api/share-cards/export": [
       "../../node_modules/.pnpm/@sparticuz+chromium@*/node_modules/@sparticuz/chromium/**",
     ],
   },

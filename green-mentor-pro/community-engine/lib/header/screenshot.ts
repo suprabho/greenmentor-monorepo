@@ -5,40 +5,15 @@
 // frames, but a real browser screenshot captures the composited pixels — the
 // genuine animated aura included.
 //
-// Shared by both the export API route and the skill's CLI script.
+// Shared by both the export API route and the skill's CLI script. The browser
+// launcher + encoder live in lib/export/screenshot.ts, shared with the
+// share-cards export (which shoots a URL instead of an HTML string).
 
+import { encodeImage, launchBrowser, type ImageFormat } from "@/lib/export/screenshot";
 import { headerDocumentHTML } from "./render";
 import { sizeFor, type HeaderConfig } from "./types";
 
-/**
- * Launch a headless Chromium that works both locally and on serverless (Vercel).
- *
- * Locally (and for the CLI render script) we use the full `playwright` package
- * and the Chromium it downloaded via `npx playwright install`. On Vercel / AWS
- * Lambda that binary doesn't exist and the filesystem is read-only, so we drive
- * a serverless-packaged Chromium from `@sparticuz/chromium` via `playwright-core`.
- */
-async function launchBrowser() {
-  const onServerless =
-    !!process.env.AWS_LAMBDA_FUNCTION_VERSION || !!process.env.VERCEL_ENV;
-
-  if (onServerless) {
-    const chromium = (await import("@sparticuz/chromium")).default;
-    const { chromium: playwright } = await import("playwright-core");
-    return playwright.launch({
-      args: chromium.args,
-      executablePath: await chromium.executablePath(),
-      headless: true,
-    });
-  }
-
-  // Lazy import so the Next build never hard-depends on the local browser binary.
-  const { chromium } = await import("playwright");
-  return chromium.launch({ headless: true });
-}
-
-/** Output formats. Playwright only screenshots PNG/JPEG, so WebP is a post-pass. */
-export type ImageFormat = "png" | "webp";
+export type { ImageFormat };
 
 export type ScreenshotOpts = {
   /** Origin used to resolve app-relative asset paths (speaker photo). */
@@ -109,15 +84,9 @@ export async function renderHeader(
       : await page.screenshot({ type: "png" })) as Buffer;
     mark("screenshot");
 
-    if (format === "webp") {
-      // Lazy import so the PNG path (and the Next build) never hard-depends on
-      // sharp's native binary.
-      const sharp = (await import("sharp")).default;
-      const webp = await sharp(png).webp({ quality }).toBuffer();
-      mark("encoded-webp");
-      return webp;
-    }
-    return png;
+    const encoded = await encodeImage(png, format, quality);
+    if (format === "webp") mark("encoded-webp");
+    return encoded;
   } finally {
     await browser.close();
     mark("browser-closed");
