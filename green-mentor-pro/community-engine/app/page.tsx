@@ -25,12 +25,20 @@ function ago(iso: string | null): string {
 async function sectionStats(): Promise<Record<string, string>> {
   try {
     const supabase = await createClient();
-    const [{ count }, { data: latest }] = await Promise.all([
+    const [{ count }, { data: latest }, cardsRes] = await Promise.all([
       supabase.from("articles").select("id", { count: "exact", head: true }),
       supabase.from("articles").select("created_at").order("created_at", { ascending: false }).limit(1),
+      supabase.from("community_share_cards").select("id", { count: "exact", head: true }),
     ]);
     const n = count ?? 0;
-    return { "/pipeline": `${n} article${n === 1 ? "" : "s"} · last ingest ${ago(latest?.[0]?.created_at ?? null)}` };
+    const stats: Record<string, string> = {
+      "/pipeline": `${n} article${n === 1 ? "" : "s"} · last ingest ${ago(latest?.[0]?.created_at ?? null)}`,
+    };
+    // Table may not be migrated yet — skip the stat rather than lose the others.
+    if (cardsRes.count != null) {
+      stats["/share-cards"] = `${cardsRes.count} saved card${cardsRes.count === 1 ? "" : "s"}`;
+    }
+    return stats;
   } catch {
     // Feed tables unavailable (env/RLS) — fall back to no live stat rather than 500 the hub.
     return {};

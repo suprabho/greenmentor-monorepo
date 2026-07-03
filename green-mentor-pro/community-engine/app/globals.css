@@ -1,5 +1,11 @@
 @import "tailwindcss";
 
+/* Vendored composer packages ship raw TSX with plain Tailwind utilities
+   (neutral-* palette — no collision with the gm gray-* overrides below).
+   Without these @source lines the composer panels render unstyled. */
+@source "../../vendor/vismay/packages/viz-admin/src";
+@source "../../vendor/vismay/packages/viz-engine/src";
+
 /* Greenmentor design tokens — pitch-deck design system bundle.
    Same token set as green-mentor-plus. */
 

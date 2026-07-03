@@ -1,8 +1,12 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-/** Path prefixes reachable without a session (the login screen + OAuth dance). */
-const PUBLIC_PATHS = ["/login", "/auth"];
+/** Path prefixes reachable without a session: the login screen + OAuth dance,
+ *  plus the share-card export surfaces — the export API drives a cookie-less
+ *  headless browser at /share-cards/render, which in turn loads article images
+ *  through the (hardened) image proxy. Both address content only by unguessable
+ *  UUID / explicit URL; see app/share-cards/render + api/share-cards/image-proxy. */
+const PUBLIC_PATHS = ["/login", "/auth", "/share-cards/render", "/api/share-cards/image-proxy"];
 
 /**
  * Refreshes the Supabase session cookie on every request and gates the app:

@@ -13,3 +13,5 @@ packages:
   #  workspace:* deps we don't want to pull in. viz-engine + ai-gateway have none.)
   - 'green-mentor-pro/vendor/vismay/packages/viz-engine'
   - 'green-mentor-pro/vendor/vismay/packages/ai-gateway'
+  # viz-admin's only workspace peer is viz-engine (already above) — safe to add.
+  - 'green-mentor-pro/vendor/vismay/packages/viz-admin'

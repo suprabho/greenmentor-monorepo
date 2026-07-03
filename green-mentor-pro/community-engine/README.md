@@ -32,9 +32,14 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=sb_publishable_…
 These can't be done from code — do them once in the Supabase dashboard for the
 shared project (`haokazwcljdummkvufcg`):
 
-1. **Database** — apply `supabase/migrations/0001_community_headers.sql`
-   (creates `public.community_headers` + RLS). *Already applied to the shared
-   project; re-run via the SQL Editor if you point at a fresh project.*
+1. **Database** — apply, in order via the SQL Editor:
+   - `supabase/migrations/0001_community_headers.sql` (creates
+     `public.community_headers` + RLS). *Already applied to the shared project.*
+   - `supabase/migrations/0002_community_share_cards.sql` (creates
+     `public.community_share_cards` + RLS — the Share Cards Studio's saved cards).
+   - `supabase/migrations/0003_share_card_export_handoff.sql` (creates
+     `public.community_share_card_exports` — the short-lived export handoff the
+     share-card PNG export reads from a cookie-less headless browser).
 2. **Auth → Providers → Google** — enable it and paste the Google OAuth client
    ID + secret (from Google Cloud Console; authorized redirect URI there is
    `https://haokazwcljdummkvufcg.supabase.co/auth/v1/callback`).

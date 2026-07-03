@@ -31,7 +31,7 @@ export const ADMIN_SECTIONS: AdminSection[] = [
     icon: Cards,
     name: "Share cards studio",
     desc: "Compose on-brand social share cards over the aura backgrounds and export pixel-perfect PNGs.",
-    status: "soon",
+    status: "available",
   },
   {
     href: "/epics",
