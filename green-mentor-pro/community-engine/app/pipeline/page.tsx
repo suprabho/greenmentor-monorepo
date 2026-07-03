@@ -2,6 +2,7 @@ import { FlowArrow, ArrowSquareOut } from "@phosphor-icons/react/dist/ssr";
 import { Card, Chip, PageHeader, Stat } from "@/components/ui";
 import { AdminTabs, type AdminTab } from "@/components/admin-tabs";
 import { WorkersPanel } from "@/components/pipeline/workers-panel";
+import { EntitiesPanel } from "@/components/pipeline/entities-panel";
 import { requireAdmin } from "@/lib/auth/admin";
 import { ADMIN_SECTIONS } from "@/lib/admin/sections";
 import { createClient } from "@/lib/supabase/server";
@@ -149,7 +150,7 @@ export default async function PipelinePage() {
   ]);
 
   const articles = (articlesRes.data ?? []) as unknown as ArticleRow[];
-  const { articles: a, entities: ent, freshness, bySource, byDay, topEntities } = stats;
+  const { articles: a, freshness, bySource, byDay, entityList } = stats;
   const missingSummary = a.total - a.summarized;
   const ingested14d = byDay.reduce((sum, d) => sum + d.count, 0);
 
@@ -199,13 +200,9 @@ export default async function PipelinePage() {
         <Stat label="Tagged" value={pct(a.withTags, a.total)} sub={`${a.withTags} articles`} />
       </Card>
 
-      <SectionHeading>Entities</SectionHeading>
-      <Card className="mb-6 grid grid-cols-2 gap-y-5 p-5 sm:grid-cols-4">
-        <Stat label="Frameworks" value={String(ent.frameworks)} />
-        <Stat label="Topics" value={String(ent.topics)} />
-        <Stat label="Regions" value={String(ent.regions)} />
-        <Stat label="Companies" value={String(ent.companies)} />
-      </Card>
+      <div className="mb-6">
+        <EntitiesPanel entities={entityList} />
+      </div>
 
       <SectionHeading note={`${ingested14d} total`}>Ingested · last 14 days</SectionHeading>
       <Card className="mb-6 p-5">
@@ -219,19 +216,6 @@ export default async function PipelinePage() {
         ))}
         {bySource.length === 0 && <p className="p-5 text-[13px] text-gray-500">No sources yet.</p>}
       </Card>
-
-      <SectionHeading>Top tagged entities</SectionHeading>
-      <div className="mb-6 flex flex-wrap gap-1.5">
-        {topEntities.map((e) => (
-          <Chip key={e.entity_id} tone={KIND_TONE[e.kind] ?? "neutral"}>
-            {e.name}
-            <span className="opacity-60">{e.article_count}</span>
-          </Chip>
-        ))}
-        {topEntities.length === 0 && (
-          <p className="text-[13px] text-gray-500">No tags yet — trigger the ingest worker above.</p>
-        )}
-      </div>
 
       <SectionHeading note={articles.length < a.total ? `latest ${articles.length} of ${a.total}` : undefined}>
         Recent articles
