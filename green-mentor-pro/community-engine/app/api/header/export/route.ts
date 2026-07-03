@@ -1,13 +1,15 @@
 import { renderHeader, type ImageFormat } from "@/lib/header/screenshot";
+import { renderHeaderViaService, renderServiceConfigured } from "@/lib/header/remote";
 import { DEFAULT_CONFIG, type HeaderConfig } from "@/lib/header/types";
 
-// Playwright needs the Node runtime (not Edge) and time to drive a browser.
+// Node runtime (not Edge): the local-fallback path drives a browser, and the proxy
+// path awaits the render service over fetch.
 export const runtime = "nodejs";
-// Software-WebGL rendering on a GPU-less Lambda is CPU-heavy and, on a cold
-// start, also pays chromium extraction. 60s wasn't enough (FUNCTION_INVOCATION_
-// TIMEOUT); Pro allows up to 300s. This is a ceiling, not a cost — billing is on
-// actual runtime — so it only bites a genuinely slow/hung render. Tune down once
-// the [renderHeader] phase timings in the function logs show the real duration.
+// When HEADER_RENDER_URL is set, the heavy render happens on the warm Fly service
+// and this route just proxies — but it stays alive awaiting that response, so it
+// still needs headroom (bounded by the 120s fetch timeout in remote.ts). The local
+// fallback renders in-process, which is CPU-heavy software WebGL. Pro allows 300s;
+// it's a ceiling, not a cost (billing is on actual runtime).
 export const maxDuration = 300;
 
 export async function POST(req: Request) {
@@ -27,7 +29,11 @@ export async function POST(req: Request) {
 
   try {
     const origin = new URL(req.url).origin;
-    const buf = await renderHeader(config, { origin, scale: 2, format });
+    // Prefer the warm Fly render service; fall back to in-process Playwright when
+    // it isn't configured (local dev).
+    const buf = renderServiceConfigured()
+      ? await renderHeaderViaService(config, { origin, scale: 2, format })
+      : await renderHeader(config, { origin, scale: 2, format });
     const contentType = format === "webp" ? "image/webp" : "image/png";
     return new Response(new Uint8Array(buf), {
       status: 200,
