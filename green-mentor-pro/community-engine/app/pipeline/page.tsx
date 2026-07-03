@@ -1,23 +1,13 @@
 import { FlowArrow, ArrowSquareOut } from "@phosphor-icons/react/dist/ssr";
 import { Card, Chip, PageHeader, Stat } from "@/components/ui";
-import { AdminTabs, type AdminTab } from "@/components/admin-tabs";
 import { WorkersPanel } from "@/components/pipeline/workers-panel";
 import { EntitiesPanel } from "@/components/pipeline/entities-panel";
 import { requireAdmin } from "@/lib/auth/admin";
-import { ADMIN_SECTIONS } from "@/lib/admin/sections";
 import { createClient } from "@/lib/supabase/server";
 import { fetchPipelineStats, type PipelineDayPoint, type SourceStat } from "@/lib/pipeline/stats";
 
 export const metadata = { title: "Pipeline — GreenMentor Community" };
 export const dynamic = "force-dynamic";
-
-/** Tab strip derived from the section registry — soon sections show muted. */
-const tabs: AdminTab[] = ADMIN_SECTIONS.map((s) => ({
-  href: s.href,
-  label: s.name,
-  exact: s.href === "/pipeline",
-  soon: s.status === "soon",
-}));
 
 type EntityRef = { slug: string; name: string; kind: string };
 type ArticleRow = {
@@ -165,9 +155,6 @@ export default async function PipelinePage() {
           </span>
         }
       />
-      <div className="mb-6">
-        <AdminTabs tabs={tabs} />
-      </div>
 
       {/* workers + manual triggers */}
       <div className="mb-6">

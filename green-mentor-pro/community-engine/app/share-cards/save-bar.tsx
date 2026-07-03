@@ -3,18 +3,21 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { FloppyDisk, UsersThree, ArrowClockwise, Spinner } from "@phosphor-icons/react";
-import { Card } from "@/components/ui";
 import { createClient } from "@/lib/supabase/client";
 import { insertShareCard, updateShareCard } from "@/lib/db/shareCards";
 import type { Visibility } from "@/lib/db/headers";
 import type { ShareCardSnapshotV1 } from "@/lib/share-cards/types";
 
+const controlBtn =
+  "flex items-center gap-1.5 whitespace-nowrap rounded-md px-3 py-1.5 text-xs disabled:cursor-not-allowed disabled:opacity-40";
+
 /**
  * Save the current card config to Supabase — personal or shared team library.
  * When the studio was opened from a saved card the user owns, also offers an
- * in-place Update. Adapted from the header studio's SaveBar.
+ * in-place Update. Renders as inline dark-toolbar controls so it can sit in
+ * the studio toolbar next to the PNG/WebP download buttons.
  */
-export function SaveBar({
+export function SaveControls({
   snapshot,
   defaultTitle,
   loadedId,
@@ -78,18 +81,18 @@ export function SaveBar({
     });
 
   return (
-    <Card className="mb-6 flex flex-wrap items-center gap-3 p-4">
+    <>
       <input
         value={title}
         onChange={(e) => setTitle(e.target.value)}
-        placeholder={`Name (defaults to “${defaultTitle.slice(0, 40)}${defaultTitle.length > 40 ? "…" : ""}”)`}
-        className="min-w-[200px] flex-1 rounded-[10px] border border-gray-200 bg-white px-3 py-2 text-[13px] text-ink outline-none focus:border-green-500 focus:ring-2 focus:ring-green-500/20"
+        placeholder={`Name (defaults to “${defaultTitle.slice(0, 32)}${defaultTitle.length > 32 ? "…" : ""}”)`}
+        className="w-44 rounded-md border border-white/10 bg-neutral-900 px-2.5 py-1.5 text-xs text-neutral-100 outline-none placeholder:text-neutral-600 focus:border-white/30 md:w-60"
       />
       {loadedOwned && loadedId && (
         <button
           onClick={update}
           disabled={busy}
-          className="flex items-center gap-1.5 rounded-pill border border-gray-200 bg-white px-3.5 py-2 text-[12.5px] font-semibold text-gray-700 disabled:opacity-60"
+          className={`${controlBtn} border border-white/10 text-neutral-200 hover:bg-white/5`}
         >
           {busy ? <Spinner size={14} className="animate-spin" /> : <ArrowClockwise size={14} />}
           Update
@@ -98,24 +101,28 @@ export function SaveBar({
       <button
         onClick={() => save("personal")}
         disabled={busy}
-        className="flex items-center gap-1.5 rounded-pill bg-teal-900 px-4 py-2 text-[12.5px] font-semibold text-white disabled:opacity-60"
+        title="Save to my library"
+        className={`${controlBtn} bg-green-700 font-semibold text-white hover:brightness-110`}
       >
         {busy ? <Spinner size={14} className="animate-spin" /> : <FloppyDisk size={14} weight="bold" />}
-        Save to my library
+        Save
       </button>
       <button
         onClick={() => save("shared")}
         disabled={busy}
-        className="flex items-center gap-1.5 rounded-pill border border-green-200 bg-green-50 px-4 py-2 text-[12.5px] font-semibold text-green-700 disabled:opacity-60"
+        title="Save a shared copy for the whole team"
+        className={`${controlBtn} border border-green-500/40 font-semibold text-green-500 hover:bg-green-500/10`}
       >
         <UsersThree size={14} weight="bold" />
         Save to team
       </button>
       {msg && (
-        <span className={`w-full text-[12px] ${msg.kind === "ok" ? "text-green-700" : "text-danger"}`}>
+        <span
+          className={`w-full text-right text-[11px] ${msg.kind === "ok" ? "text-green-500" : "text-red-400"}`}
+        >
           {msg.text}
         </span>
       )}
-    </Card>
+    </>
   );
 }

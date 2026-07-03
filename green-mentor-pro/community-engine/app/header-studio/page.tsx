@@ -1,9 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import Link from "next/link";
 import {
-  ArrowLeft,
   DownloadSimple,
   Plus,
   X,
@@ -728,12 +726,6 @@ export default function HeaderStudioPage() {
         sub="Compose a webinar / newsletter header over a live aura background, then export a pixel-perfect image."
         action={
           <div className="flex flex-wrap items-center justify-end gap-2">
-            <Link
-              href="/"
-              className="flex items-center gap-1.5 rounded-pill border border-gray-200 bg-white px-3.5 py-2 text-[12.5px] font-semibold text-gray-700"
-            >
-              <ArrowLeft size={14} /> Tools
-            </Link>
             {/* Format toggle. WebP first — it's the lighter default; PNG for
                 email/newsletter embeds where some clients don't render WebP. */}
             <div className="flex items-center rounded-pill border border-gray-200 bg-white p-0.5 text-[11.5px] font-semibold">

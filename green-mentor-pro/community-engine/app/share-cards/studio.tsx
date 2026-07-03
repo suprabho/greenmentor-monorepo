@@ -45,7 +45,7 @@ import {
   type GmAspectRatio,
   type ShareCardSnapshotV1,
 } from "@/lib/share-cards/types";
-import { SaveBar } from "./save-bar";
+import { SaveControls } from "./save-bar";
 
 // Register the gmcard:* modules + their picker editors into the registries on
 // first import (idempotent), so the composer can resolve types + edit fields.
@@ -254,8 +254,9 @@ export function ShareCardStudio({ initialId }: { initialId: string | null }) {
         </Card>
       )}
 
-      <div className="gm-studio mb-6 overflow-hidden rounded-2xl border border-gray-200 bg-neutral-950 shadow-[var(--shadow-soft)]">
-        {/* toolbar */}
+      {/* Full-bleed below xl so tablets get the whole screen; a rounded island on desktop. */}
+      <div className="gm-studio -mx-5 mb-6 overflow-hidden border-y border-gray-200 bg-neutral-950 shadow-[var(--shadow-soft)] xl:mx-0 xl:rounded-2xl xl:border-x">
+        {/* toolbar: new · save · download */}
         <div className="flex flex-wrap items-center gap-2 border-b border-white/10 px-4 py-3">
           <button type="button" onClick={handleNew} className={toolbarBtn}>
             <ArrowCounterClockwise size={14} /> New
@@ -266,6 +267,14 @@ export function ShareCardStudio({ initialId }: { initialId: string | null }) {
               {exportError}
             </span>
           )}
+          <SaveControls
+            snapshot={snapshot}
+            defaultTitle={defaultTitle}
+            loadedId={loadedId}
+            loadedOwned={loadedOwned}
+            onSaved={handleSaved}
+          />
+          <span className="hidden h-5 w-px bg-white/10 sm:block" aria-hidden />
           <button
             type="button"
             onClick={() => void handleDownload("png")}
@@ -372,14 +381,6 @@ export function ShareCardStudio({ initialId }: { initialId: string | null }) {
           </aside>
         </div>
       </div>
-
-      <SaveBar
-        snapshot={snapshot}
-        defaultTitle={defaultTitle}
-        loadedId={loadedId}
-        loadedOwned={loadedOwned}
-        onSaved={handleSaved}
-      />
     </>
   );
 }
