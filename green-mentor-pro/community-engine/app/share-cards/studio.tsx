@@ -1,9 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowCounterClockwise,
+  CaretDown,
   DownloadSimple,
   FrameCorners,
   Image as ImageIcon,
@@ -26,7 +27,6 @@ import {
   type LayerBox,
   type TransformLike,
 } from "@vismay/viz-admin";
-import { Card } from "@/components/ui";
 import { createClient } from "@/lib/supabase/client";
 import { getShareCard } from "@/lib/db/shareCards";
 import { AURA_PRESETS } from "@/lib/header/types";
@@ -45,7 +45,7 @@ import {
   type GmAspectRatio,
   type ShareCardSnapshotV1,
 } from "@/lib/share-cards/types";
-import { SaveBar } from "./save-bar";
+import { SaveControls } from "./save-bar";
 
 // Register the gmcard:* modules + their picker editors into the registries on
 // first import (idempotent), so the composer can resolve types + edit fields.
@@ -236,68 +236,61 @@ export function ShareCardStudio({ initialId }: { initialId: string | null }) {
     []
   );
 
+  // The studio owns everything below the h-14 site header — full width, full height.
+  const studioHeight = "h-[calc(100dvh-3.5rem)]";
+
   if (dataLoading || loadingCard) {
     return (
-      <Card className="mb-6 grid place-items-center p-16 text-[13px] text-gray-500">
+      <div className={`${studioHeight} grid place-items-center bg-neutral-950 text-[13px] text-neutral-400`}>
         <span className="flex items-center gap-2">
           <Spinner size={16} className="animate-spin" /> Loading the studio…
         </span>
-      </Card>
+      </div>
     );
   }
 
   return (
-    <>
+    <div className={`gm-studio flex ${studioHeight} flex-col bg-neutral-950`}>
       {(dataError || loadError) && (
-        <Card className="mb-4 border-danger/30 p-4 text-[13px] text-danger">
+        <div className="border-b border-red-500/30 bg-red-500/10 px-4 py-2 text-[12.5px] text-red-300">
           {dataError ?? loadError}
-        </Card>
+        </div>
       )}
-
-      <div className="gm-studio mb-6 overflow-hidden rounded-2xl border border-gray-200 bg-neutral-950 shadow-[var(--shadow-soft)]">
-        {/* toolbar */}
-        <div className="flex flex-wrap items-center gap-2 border-b border-white/10 px-4 py-3">
-          <button type="button" onClick={handleNew} className={toolbarBtn}>
-            <ArrowCounterClockwise size={14} /> New
-          </button>
-          <span className="flex-1" />
-          {exportError && (
-            <span className="max-w-[360px] truncate text-[11px] text-red-400" title={exportError}>
-              {exportError}
-            </span>
-          )}
-          <button
-            type="button"
-            onClick={() => void handleDownload("png")}
-            disabled={!hasLayers || downloading !== null}
-            className={toolbarBtn}
-          >
-            {downloading === "png" ? (
-              <Spinner size={14} className="animate-spin" />
-            ) : (
-              <DownloadSimple size={14} />
+        {/* toolbar — Figma-style: actions left, name + save centered, status right */}
+        <div className="flex flex-wrap items-center gap-2 border-b border-white/10 px-4 py-3 md:grid md:grid-cols-[1fr_auto_1fr]">
+          <div className="flex items-center gap-2">
+            <button type="button" onClick={handleNew} className={toolbarBtn}>
+              <ArrowCounterClockwise size={14} /> New
+            </button>
+          </div>
+          <div className="relative flex flex-wrap items-center justify-center gap-2">
+            <SaveControls
+              snapshot={snapshot}
+              defaultTitle={defaultTitle}
+              loadedId={loadedId}
+              loadedOwned={loadedOwned}
+              onSaved={handleSaved}
+            />
+          </div>
+          <div className="flex min-w-0 items-center justify-end gap-2">
+            {exportError && (
+              <span className="truncate text-[11px] text-red-400" title={exportError}>
+                {exportError}
+              </span>
             )}
-            PNG
-          </button>
-          <button
-            type="button"
-            onClick={() => void handleDownload("webp")}
-            disabled={!hasLayers || downloading !== null}
-            className={toolbarBtn}
-          >
-            {downloading === "webp" ? (
-              <Spinner size={14} className="animate-spin" />
-            ) : (
-              <DownloadSimple size={14} />
-            )}
-            WebP
-          </button>
+            <DownloadMenu
+              disabled={!hasLayers}
+              downloading={downloading !== null}
+              onDownload={(f) => void handleDownload(f)}
+            />
+          </div>
         </div>
 
-        {/* three panes */}
-        <div className="grid gap-4 p-4 lg:grid-cols-[240px_minmax(0,1fr)_280px]">
+      {/* three panes — fill the remaining height on desktop, page-scroll below lg */}
+      <div className="min-h-0 flex-1 overflow-y-auto lg:overflow-hidden">
+        <div className="grid h-full gap-4 p-4 lg:grid-cols-[240px_minmax(0,1fr)_280px] lg:grid-rows-[minmax(0,1fr)]">
           {/* left rail: tabs + active panel */}
-          <aside className="min-w-0">
+          <aside className="min-w-0 lg:flex lg:min-h-0 lg:flex-col">
             <div className="mb-3 flex gap-1">
               {TABS.map(({ id, label, Icon }) => (
                 <button
@@ -315,7 +308,7 @@ export function ShareCardStudio({ initialId }: { initialId: string | null }) {
                 </button>
               ))}
             </div>
-            <div className="max-h-[560px] overflow-y-auto pr-1">
+            <div className="max-h-[560px] overflow-y-auto pr-1 lg:min-h-0 lg:max-h-none lg:flex-1">
               {activeTab === "layers" && (
                 <LayerListPanel
                   state={composer}
@@ -340,8 +333,8 @@ export function ShareCardStudio({ initialId }: { initialId: string | null }) {
           </aside>
 
           {/* center: live preview (the PreviewPane node IS the export layout) */}
-          <section className="min-w-0">
-            <div className="h-[420px] rounded-xl border border-white/5 bg-neutral-900/60 lg:h-[560px]">
+          <section className="min-w-0 lg:min-h-0">
+            <div className="h-[420px] rounded-xl border border-white/5 bg-neutral-900/60 lg:h-full">
               <PreviewPane
                 host={gmCardHost}
                 state={composer}
@@ -356,8 +349,8 @@ export function ShareCardStudio({ initialId }: { initialId: string | null }) {
           </section>
 
           {/* right: selected-layer properties */}
-          <aside className="min-w-0">
-            <div className="max-h-[560px] overflow-y-auto pr-1">
+          <aside className="min-w-0 lg:min-h-0">
+            <div className="max-h-[560px] overflow-y-auto pr-1 lg:h-full lg:max-h-none">
               <ConfigPanel
                 host={gmCardHost}
                 state={composer}
@@ -372,15 +365,85 @@ export function ShareCardStudio({ initialId }: { initialId: string | null }) {
           </aside>
         </div>
       </div>
+    </div>
+  );
+}
 
-      <SaveBar
-        snapshot={snapshot}
-        defaultTitle={defaultTitle}
-        loadedId={loadedId}
-        loadedOwned={loadedOwned}
-        onSaved={handleSaved}
-      />
-    </>
+// ── Download dropdown ─────────────────────────────────────────────────────────
+
+/** PNG + WebP export combined into one toolbar dropdown button. */
+function DownloadMenu({
+  disabled,
+  downloading,
+  onDownload,
+}: {
+  disabled: boolean;
+  downloading: boolean;
+  onDownload: (format: "png" | "webp") => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onPointerDown = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("mousedown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [open]);
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        disabled={disabled || downloading}
+        onClick={() => setOpen((o) => !o)}
+        className={toolbarBtn}
+      >
+        {downloading ? (
+          <Spinner size={14} className="animate-spin" />
+        ) : (
+          <DownloadSimple size={14} />
+        )}
+        {downloading ? "Rendering…" : "Download"}
+        <CaretDown
+          size={11}
+          weight="bold"
+          className={`transition-transform ${open ? "rotate-180" : ""}`}
+        />
+      </button>
+      {open && (
+        <div
+          role="menu"
+          className="absolute right-0 top-full z-20 mt-1 w-36 rounded-lg border border-white/10 bg-neutral-900 p-1 shadow-lift"
+        >
+          {(["png", "webp"] as const).map((f) => (
+            <button
+              key={f}
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                setOpen(false);
+                onDownload(f);
+              }}
+              className="flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-xs text-neutral-200 hover:bg-white/5"
+            >
+              <DownloadSimple size={13} /> {f.toUpperCase()}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 

@@ -12,9 +12,9 @@ export interface AdminSection {
 }
 
 /**
- * The community admin hub sections — vismay's app-card / tab pattern. Add a
- * section here once and it appears both on the dashboard ({@link app/page.tsx})
- * and in the section tab strip ({@link components/admin-tabs.tsx}). Flip
+ * The community admin hub sections — vismay's app-card pattern. Add a section
+ * here once and it appears both on the dashboard ({@link app/page.tsx}) and in
+ * the site header's Tools dropdown ({@link components/site-header.tsx}). Flip
  * `status` to `"available"` and build the matching `app/<slug>/page.tsx` to
  * bring one online.
  */
