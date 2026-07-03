@@ -16,12 +16,20 @@ const nextConfig: NextConfig = {
   serverExternalPackages: ["@sparticuz/chromium", "playwright-core", "playwright"],
 
   // @sparticuz/chromium loads its brotli-packed Chromium (bin/*.br) from a path it
-  // computes at runtime, so Next's file tracer can't see those binaries and drops
-  // them from the serverless bundle — the "input directory ... bin does not exist"
-  // export failure. Force-include the whole package for the export route.
+  // computes at runtime (import.meta.url of build/paths.js → ../bin), so Next's file
+  // tracer can't see those binaries and drops them from the serverless bundle — the
+  // "input directory ... bin does not exist" export failure. Force-include the package.
+  //
+  // The glob is resolved with cwd = this app dir (community-engine), but must land the
+  // binaries where the RUNTIME resolves them. At runtime the module is reached via the
+  // symlink community-engine/node_modules/@sparticuz/chromium → the pnpm store hoisted
+  // to the WORKSPACE ROOT (/var/task/node_modules/.pnpm/...), so import.meta.url points
+  // at the root store, not community-engine's own .pnpm. Hence "../../" — pointing at
+  // the app-local .pnpm ("./") copies bin/*.br to a path the runtime never reads.
+  // (Do NOT change this back to "./".)
   outputFileTracingIncludes: {
     "/api/header/export": [
-      "./node_modules/.pnpm/@sparticuz+chromium@*/node_modules/@sparticuz/chromium/**",
+      "../../node_modules/.pnpm/@sparticuz+chromium@*/node_modules/@sparticuz/chromium/**",
     ],
   },
 };
