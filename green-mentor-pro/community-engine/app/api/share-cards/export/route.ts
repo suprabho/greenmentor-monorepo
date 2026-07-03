@@ -57,8 +57,17 @@ export async function POST(req: Request) {
 
     const origin = new URL(req.url).origin;
     const size = stageSizeFor(snapshot.ratio);
+    // Vercel Deployment Protection intercepts the headless browser's visit to
+    // our own deployment URL (it has no session). When the project has
+    // "Protection Bypass for Automation" enabled, Vercel injects this secret —
+    // pass it as query params; the set-bypass-cookie flag covers the page's
+    // JS/CSS subresource requests too.
+    const bypass = process.env.VERCEL_AUTOMATION_BYPASS_SECRET;
+    const bypassParams = bypass
+      ? `&x-vercel-protection-bypass=${encodeURIComponent(bypass)}&x-vercel-set-bypass-cookie=true`
+      : "";
     const buf = await screenshotUrl(
-      `${origin}/share-cards/render?id=${encodeURIComponent(handoffId)}`,
+      `${origin}/share-cards/render?id=${encodeURIComponent(handoffId)}${bypassParams}`,
       {
         selector: "#card-stage",
         viewport: { width: size.w, height: size.h },
@@ -85,6 +94,9 @@ export async function POST(req: Request) {
     if (/community_share_card_exports/i.test(msg)) {
       hint =
         " — the export handoff table is missing: apply supabase/migrations/0003_share_card_export_handoff.sql in the Supabase SQL editor.";
+    } else if (/never showed|waitForSelector/i.test(msg) && process.env.VERCEL_ENV) {
+      hint =
+        " — likely Vercel Deployment Protection blocking the headless browser: enable 'Protection Bypass for Automation' in the Vercel project settings (adds VERCEL_AUTOMATION_BYPASS_SECRET) and redeploy.";
     } else if (/Executable doesn't exist|launch/i.test(msg)) {
       hint = " — run `npx playwright install chromium` in green-mentor-pro/community-engine.";
     }

@@ -90,7 +90,17 @@ export async function screenshotUrl(url: string, opts: ScreenshotUrlOpts): Promi
     const page = await browser.newPage({ viewport, deviceScaleFactor });
     // Not `networkidle` — the aura iframe streams continuously and would stall it.
     await page.goto(url, { waitUntil: "load", timeout: 30_000 });
-    await page.waitForSelector(selector, { timeout: 15_000 });
+    try {
+      await page.waitForSelector(selector, { timeout: 15_000 });
+    } catch {
+      // Say WHERE the browser actually landed — an auth wall / error page is
+      // indistinguishable from a render bug in a bare selector timeout.
+      const landedTitle = await page.title().catch(() => "?");
+      const landedUrl = page.url();
+      throw new Error(
+        `render page never showed ${selector} — the headless browser landed on "${landedTitle}" (${landedUrl})`
+      );
+    }
     // Fonts + images in before we measure/paint the final frame. Both waits are
     // CAPPED: document.fonts.ready (and a stalled <img> decode) can stay pending
     // forever, which would hang the invocation until the platform kills it —
