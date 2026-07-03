@@ -14,8 +14,8 @@ const controlBtn =
 /**
  * Save the current card config to Supabase — personal or shared team library.
  * When the studio was opened from a saved card the user owns, also offers an
- * in-place Update. Renders as inline dark-toolbar controls so it can sit in
- * the studio toolbar next to the PNG/WebP download buttons.
+ * in-place Update. Renders as inline dark-toolbar controls — the studio places
+ * them in the centered (Figma-style) cluster of its toolbar.
  */
 export function SaveControls({
   snapshot,
@@ -116,9 +116,14 @@ export function SaveControls({
         <UsersThree size={14} weight="bold" />
         Save to team
       </button>
+      {/* Floats below the toolbar (the parent cluster is `relative`) so the
+          centered controls don't shift when it appears. */}
       {msg && (
         <span
-          className={`w-full text-right text-[11px] ${msg.kind === "ok" ? "text-green-500" : "text-red-400"}`}
+          className={`pointer-events-none absolute left-1/2 top-full z-20 mt-2 max-w-[80vw] -translate-x-1/2 truncate rounded-md bg-neutral-900/95 px-2.5 py-1 text-[11px] ${
+            msg.kind === "ok" ? "text-green-500" : "text-red-400"
+          }`}
+          title={msg.text}
         >
           {msg.text}
         </span>

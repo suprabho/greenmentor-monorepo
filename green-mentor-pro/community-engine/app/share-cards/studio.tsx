@@ -1,9 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowCounterClockwise,
+  CaretDown,
   DownloadSimple,
   FrameCorners,
   Image as ImageIcon,
@@ -255,51 +256,34 @@ export function ShareCardStudio({ initialId }: { initialId: string | null }) {
           {dataError ?? loadError}
         </div>
       )}
-        {/* toolbar: new · save · download */}
-        <div className="flex flex-wrap items-center gap-2 border-b border-white/10 px-4 py-3">
-          <button type="button" onClick={handleNew} className={toolbarBtn}>
-            <ArrowCounterClockwise size={14} /> New
-          </button>
-          <span className="flex-1" />
-          {exportError && (
-            <span className="max-w-[360px] truncate text-[11px] text-red-400" title={exportError}>
-              {exportError}
-            </span>
-          )}
-          <SaveControls
-            snapshot={snapshot}
-            defaultTitle={defaultTitle}
-            loadedId={loadedId}
-            loadedOwned={loadedOwned}
-            onSaved={handleSaved}
-          />
-          <span className="hidden h-5 w-px bg-white/10 sm:block" aria-hidden />
-          <button
-            type="button"
-            onClick={() => void handleDownload("png")}
-            disabled={!hasLayers || downloading !== null}
-            className={toolbarBtn}
-          >
-            {downloading === "png" ? (
-              <Spinner size={14} className="animate-spin" />
-            ) : (
-              <DownloadSimple size={14} />
+        {/* toolbar — Figma-style: actions left, name + save centered, status right */}
+        <div className="flex flex-wrap items-center gap-2 border-b border-white/10 px-4 py-3 md:grid md:grid-cols-[1fr_auto_1fr]">
+          <div className="flex items-center gap-2">
+            <button type="button" onClick={handleNew} className={toolbarBtn}>
+              <ArrowCounterClockwise size={14} /> New
+            </button>
+            <DownloadMenu
+              disabled={!hasLayers}
+              downloading={downloading !== null}
+              onDownload={(f) => void handleDownload(f)}
+            />
+          </div>
+          <div className="relative flex flex-wrap items-center justify-center gap-2">
+            <SaveControls
+              snapshot={snapshot}
+              defaultTitle={defaultTitle}
+              loadedId={loadedId}
+              loadedOwned={loadedOwned}
+              onSaved={handleSaved}
+            />
+          </div>
+          <div className="flex min-w-0 items-center justify-end">
+            {exportError && (
+              <span className="truncate text-[11px] text-red-400" title={exportError}>
+                {exportError}
+              </span>
             )}
-            PNG
-          </button>
-          <button
-            type="button"
-            onClick={() => void handleDownload("webp")}
-            disabled={!hasLayers || downloading !== null}
-            className={toolbarBtn}
-          >
-            {downloading === "webp" ? (
-              <Spinner size={14} className="animate-spin" />
-            ) : (
-              <DownloadSimple size={14} />
-            )}
-            WebP
-          </button>
+          </div>
         </div>
 
       {/* three panes — fill the remaining height on desktop, page-scroll below lg */}
@@ -381,6 +365,84 @@ export function ShareCardStudio({ initialId }: { initialId: string | null }) {
           </aside>
         </div>
       </div>
+    </div>
+  );
+}
+
+// ── Download dropdown ─────────────────────────────────────────────────────────
+
+/** PNG + WebP export combined into one toolbar dropdown button. */
+function DownloadMenu({
+  disabled,
+  downloading,
+  onDownload,
+}: {
+  disabled: boolean;
+  downloading: boolean;
+  onDownload: (format: "png" | "webp") => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onPointerDown = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("mousedown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [open]);
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        disabled={disabled || downloading}
+        onClick={() => setOpen((o) => !o)}
+        className={toolbarBtn}
+      >
+        {downloading ? (
+          <Spinner size={14} className="animate-spin" />
+        ) : (
+          <DownloadSimple size={14} />
+        )}
+        {downloading ? "Rendering…" : "Download"}
+        <CaretDown
+          size={11}
+          weight="bold"
+          className={`transition-transform ${open ? "rotate-180" : ""}`}
+        />
+      </button>
+      {open && (
+        <div
+          role="menu"
+          className="absolute left-0 top-full z-20 mt-1 w-36 rounded-lg border border-white/10 bg-neutral-900 p-1 shadow-lift"
+        >
+          {(["png", "webp"] as const).map((f) => (
+            <button
+              key={f}
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                setOpen(false);
+                onDownload(f);
+              }}
+              className="flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-xs text-neutral-200 hover:bg-white/5"
+            >
+              <DownloadSimple size={13} /> {f.toUpperCase()}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
