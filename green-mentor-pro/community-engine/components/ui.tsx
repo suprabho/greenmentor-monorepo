@@ -129,15 +129,23 @@ export function Stat({
   label,
   value,
   sub,
+  tone = "default",
 }: {
   label: string;
   value: string;
   sub?: string;
+  /** Health accent on the value: ok = on track, warn = needs attention. */
+  tone?: "default" | "ok" | "warn";
 }) {
+  const tones = {
+    default: "text-ink",
+    ok: "text-green-700",
+    warn: "text-[#B25E00]",
+  };
   return (
     <div>
       <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-gray-500">{label}</div>
-      <div className="mt-1 text-[24px] font-semibold tracking-tight text-ink">{value}</div>
+      <div className={clsx("mt-1 text-[24px] font-semibold tracking-tight", tones[tone])}>{value}</div>
       {sub && <div className="text-[12px] text-gray-600">{sub}</div>}
     </div>
   );
