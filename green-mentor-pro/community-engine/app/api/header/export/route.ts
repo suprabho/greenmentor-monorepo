@@ -3,7 +3,12 @@ import { DEFAULT_CONFIG, type HeaderConfig } from "@/lib/header/types";
 
 // Playwright needs the Node runtime (not Edge) and time to drive a browser.
 export const runtime = "nodejs";
-export const maxDuration = 60;
+// Software-WebGL rendering on a GPU-less Lambda is CPU-heavy and, on a cold
+// start, also pays chromium extraction. 60s wasn't enough (FUNCTION_INVOCATION_
+// TIMEOUT); Pro allows up to 300s. This is a ceiling, not a cost — billing is on
+// actual runtime — so it only bites a genuinely slow/hung render. Tune down once
+// the [renderHeader] phase timings in the function logs show the real duration.
+export const maxDuration = 300;
 
 export async function POST(req: Request) {
   let config: HeaderConfig;
