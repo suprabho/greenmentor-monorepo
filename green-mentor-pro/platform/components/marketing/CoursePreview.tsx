@@ -72,7 +72,7 @@ export function CoursePreview() {
 
         {/* C-2 — included vs add-on legend, made visually distinct up front */}
         <div className="mt-10 grid gap-4 sm:grid-cols-2">
-          <div className="rounded-[16px] border border-green-100 bg-green-50 p-5">
+          <div className="rounded-[10px] border border-green-100 bg-green-50 p-5">
             <div className="flex items-center gap-2">
               <span className="size-2.5 rounded-full bg-green-500" aria-hidden />
               <p className="gm-eyebrow text-green-700">
@@ -84,7 +84,7 @@ export function CoursePreview() {
               subscription, with a certificate of completion.
             </p>
           </div>
-          <div className="rounded-[16px] border border-[#FFB020]/30 bg-[#FFB020]/10 p-5">
+          <div className="rounded-[10px] border border-[#FFB020]/30 bg-[#FFB020]/10 p-5">
             <div className="flex items-center gap-2">
               <span
                 className="size-2.5 rounded-full bg-[#FFB020]"
@@ -114,7 +114,7 @@ export function CoursePreview() {
                     framework: course.framework,
                   })
                 }
-                className="group flex flex-col overflow-hidden rounded-[14px] border border-gray-200 bg-white transition-[border-color,transform,box-shadow] duration-200 hover:-translate-y-0.5 hover:border-green-700 hover:shadow-soft"
+                className="group flex flex-col overflow-hidden rounded-[8px] border border-gray-200 bg-white transition-[border-color,transform,box-shadow] duration-200 hover:-translate-y-0.5 hover:border-green-700 hover:shadow-soft"
               >
                 {/* C-1 — branded title banner (no placeholder imagery). The card
                     self-describes via category + icon on a forest-green field.
@@ -174,7 +174,7 @@ export function CoursePreview() {
         {/* C-4 — frameworks as credibility logos, not footnote text. Each logo
             sits in a uniform white tile so the differing badge/wordmark shapes
             read as one consistent strip (same treatment as the About strip). */}
-        <div className="mt-10 rounded-[20px] border border-gray-200 bg-section-fade p-6 md:p-8">
+        <div className="mt-10 rounded-[12px] border border-gray-200 bg-section-fade p-6 md:p-8">
           <p className="gm-section-label text-center text-[18px] text-green-700">
             Curriculum aligned with
           </p>
@@ -182,7 +182,7 @@ export function CoursePreview() {
             {frameworks.map((f) => (
               <li
                 key={f.name}
-                className="flex h-20 items-center justify-center rounded-[14px] border border-gray-200 bg-white px-4 py-3"
+                className="flex h-20 items-center justify-center rounded-[8px] border border-gray-200 bg-white px-4 py-3"
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
@@ -202,7 +202,7 @@ export function CoursePreview() {
         </div>
 
         {/* Bundle callout — explains the curated paths that group courses */}
-        <div className="mt-5 flex items-start gap-3 rounded-[14px] bg-green-100 p-4 text-[14px] text-green-700">
+        <div className="mt-5 flex items-start gap-3 rounded-[8px] bg-green-100 p-4 text-[14px] text-green-700">
           <Stack
             size={20}
             weight="duotone"

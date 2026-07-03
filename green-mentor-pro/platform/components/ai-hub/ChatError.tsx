@@ -10,7 +10,7 @@
 export function ChatError({ error, onRetry }: { error?: Error; onRetry?: () => void }) {
   if (!error) return null;
   return (
-    <div className="mx-auto mt-3 flex max-w-2xl items-start gap-3 rounded-[10px] border border-danger/30 bg-danger/10 px-3.5 py-2.5 text-[13px] text-danger">
+    <div className="mx-auto mt-3 flex max-w-2xl items-start gap-3 rounded-[6px] border border-danger/30 bg-danger/10 px-3.5 py-2.5 text-[13px] text-danger">
       <span className="flex-1 font-medium leading-relaxed">{error.message || "Something went wrong."}</span>
       {onRetry && (
         <button

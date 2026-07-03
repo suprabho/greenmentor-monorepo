@@ -95,7 +95,7 @@ export function HiringCompanies() {
           description="The firms hiring through our community span Indian conglomerates, Big-4 advisories, and global energy & climate players."
         />
 
-        <div className="mt-14 rounded-[20px] border border-gray-200 bg-section-fade p-6 md:p-8">
+        <div className="mt-14 rounded-[12px] border border-gray-200 bg-section-fade p-6 md:p-8">
           <p className="gm-eyebrow text-green-700">Top hiring companies</p>
           <div className="mt-5 flex flex-col gap-2.5">
             <MarqueeRow companies={rowOne} duration={38} />
@@ -104,7 +104,7 @@ export function HiringCompanies() {
         </div>
 
         {/* WL-1 — placement claim (figures are placeholders, see PLACEMENT) */}
-        <div className="mt-8 rounded-[16px] border border-green-100 bg-green-50 p-6 text-center md:p-8">
+        <div className="mt-8 rounded-[10px] border border-green-100 bg-green-50 p-6 text-center md:p-8">
           <p className="text-[18px] font-semibold leading-relaxed text-ink md:text-[20px]">
             In the last 12 months,{" "}
             <span className="text-green-700">{PLACEMENT.countLast12mo}</span>{" "}
@@ -120,7 +120,7 @@ export function HiringCompanies() {
         </div>
 
         {/* WL-2 — career-context stat strip (figures are placeholders) */}
-        <div className="mt-6 grid gap-px overflow-hidden rounded-[16px] border border-gray-200 bg-gray-200 sm:grid-cols-3">
+        <div className="mt-6 grid gap-px overflow-hidden rounded-[10px] border border-gray-200 bg-gray-200 sm:grid-cols-3">
           {[
             {
               stat: PLACEMENT.avgCtc,

@@ -48,7 +48,7 @@ export function ValueProps() {
 
         <div className="mx-auto mt-14 grid max-w-4xl gap-6 md:grid-cols-2">
           {/* Difference 1 — what you pay */}
-          <div className="flex flex-col rounded-[20px] border border-gray-200 bg-white p-8">
+          <div className="flex flex-col rounded-[12px] border border-gray-200 bg-white p-8">
             <div className="grid size-11 place-items-center rounded-full border-[2.5px] border-green-500 bg-white">
               <Coins
                 size={20}
@@ -95,7 +95,7 @@ export function ValueProps() {
           </div>
 
           {/* Difference 2 — Career Services (annual only) */}
-          <div className="relative flex flex-col rounded-[20px] border border-green-700 bg-white p-8 shadow-lift">
+          <div className="relative flex flex-col rounded-[12px] border border-green-700 bg-white p-8 shadow-lift">
             <span className="absolute -top-3 left-8">
               <Badge tone="neon">Annual only</Badge>
             </span>

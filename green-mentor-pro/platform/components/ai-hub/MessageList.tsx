@@ -46,7 +46,7 @@ function ToolLine({ name, output }: { name: string; output: Record<string, unkno
       : `${output.label} isn't runnable yet (${output.reason}).`;
   if (!text) return null;
   return (
-    <div className="rounded-[10px] border border-gray-200 bg-gray-50 px-3 py-1.5 text-[12.5px] text-gray-600">{text}</div>
+    <div className="rounded-[6px] border border-gray-200 bg-gray-50 px-3 py-1.5 text-[12.5px] text-gray-600">{text}</div>
   );
 }
 
@@ -83,7 +83,7 @@ function Attachment({ url, mediaType, filename }: { url?: string; mediaType?: st
       href={url}
       target="_blank"
       rel="noopener noreferrer"
-      className="inline-flex items-center gap-2 rounded-[10px] border border-gray-200 bg-white px-3 py-2 text-[12.5px] font-medium text-gray-700 hover:border-gray-300"
+      className="inline-flex items-center gap-2 rounded-[6px] border border-gray-200 bg-white px-3 py-2 text-[12.5px] font-medium text-gray-700 hover:border-gray-300"
     >
       <FileText size={16} className="text-teal-700" />
       {filename ?? "Attachment"}
