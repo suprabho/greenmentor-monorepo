@@ -262,11 +262,6 @@ export function ShareCardStudio({ initialId }: { initialId: string | null }) {
             <button type="button" onClick={handleNew} className={toolbarBtn}>
               <ArrowCounterClockwise size={14} /> New
             </button>
-            <DownloadMenu
-              disabled={!hasLayers}
-              downloading={downloading !== null}
-              onDownload={(f) => void handleDownload(f)}
-            />
           </div>
           <div className="relative flex flex-wrap items-center justify-center gap-2">
             <SaveControls
@@ -277,12 +272,17 @@ export function ShareCardStudio({ initialId }: { initialId: string | null }) {
               onSaved={handleSaved}
             />
           </div>
-          <div className="flex min-w-0 items-center justify-end">
+          <div className="flex min-w-0 items-center justify-end gap-2">
             {exportError && (
               <span className="truncate text-[11px] text-red-400" title={exportError}>
                 {exportError}
               </span>
             )}
+            <DownloadMenu
+              disabled={!hasLayers}
+              downloading={downloading !== null}
+              onDownload={(f) => void handleDownload(f)}
+            />
           </div>
         </div>
 
@@ -425,7 +425,7 @@ function DownloadMenu({
       {open && (
         <div
           role="menu"
-          className="absolute left-0 top-full z-20 mt-1 w-36 rounded-lg border border-white/10 bg-neutral-900 p-1 shadow-lift"
+          className="absolute right-0 top-full z-20 mt-1 w-36 rounded-lg border border-white/10 bg-neutral-900 p-1 shadow-lift"
         >
           {(["png", "webp"] as const).map((f) => (
             <button
