@@ -80,10 +80,14 @@ export async function POST(req: Request) {
     });
   } catch (e) {
     const msg = (e as Error).message ?? "render failed";
-    // Most common cause: Playwright browser binary not installed.
-    const hint = /Executable doesn't exist|launch/i.test(msg)
-      ? " — run `npx playwright install chromium` in green-mentor-pro/community-engine."
-      : "";
+    // Actionable hints for the two most common setup gaps.
+    let hint = "";
+    if (/community_share_card_exports/i.test(msg)) {
+      hint =
+        " — the export handoff table is missing: apply supabase/migrations/0003_share_card_export_handoff.sql in the Supabase SQL editor.";
+    } else if (/Executable doesn't exist|launch/i.test(msg)) {
+      hint = " — run `npx playwright install chromium` in green-mentor-pro/community-engine.";
+    }
     return new Response(`Export failed: ${msg}${hint}`, { status: 500 });
   } finally {
     if (handoffId) await delHandoff(supabase, handoffId).catch(() => {});

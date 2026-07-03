@@ -42,7 +42,12 @@ export function SaveBar({
       setMsg({ kind: "ok", text });
       router.refresh();
     } catch (e) {
-      setMsg({ kind: "err", text: (e as Error).message });
+      let text = (e as Error).message;
+      if (/community_share_cards/i.test(text)) {
+        text +=
+          " — the table is missing: apply supabase/migrations/0002_community_share_cards.sql in the Supabase SQL editor.";
+      }
+      setMsg({ kind: "err", text });
     } finally {
       setBusy(false);
     }
