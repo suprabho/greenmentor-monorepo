@@ -91,17 +91,24 @@ export async function screenshotUrl(url: string, opts: ScreenshotUrlOpts): Promi
     // Not `networkidle` — the aura iframe streams continuously and would stall it.
     await page.goto(url, { waitUntil: "load", timeout: 30_000 });
     await page.waitForSelector(selector, { timeout: 15_000 });
-    // Fonts + images in before we measure/paint the final frame.
-    await page.evaluate(() => (document as Document).fonts.ready).catch(() => {});
-    await page
-      .evaluate(() =>
+    // Fonts + images in before we measure/paint the final frame. Both waits are
+    // CAPPED: document.fonts.ready (and a stalled <img> decode) can stay pending
+    // forever, which would hang the invocation until the platform kills it —
+    // the exact FUNCTION_INVOCATION_TIMEOUT class of bug the header renderer hit.
+    await Promise.race([
+      page.evaluate(() => (document as Document).fonts.ready),
+      page.waitForTimeout(5_000),
+    ]).catch(() => {});
+    await Promise.race([
+      page.evaluate(() =>
         Promise.all(
           Array.from(document.images)
             .filter((img) => !img.complete)
             .map((img) => img.decode().catch(() => {}))
         )
-      )
-      .catch(() => {});
+      ),
+      page.waitForTimeout(5_000),
+    ]).catch(() => {});
     await page.waitForTimeout(settleMs);
 
     const el = await page.$(selector);

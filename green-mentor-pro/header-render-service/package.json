@@ -1,0 +1,18 @@
+{
+  "name": "header-render-service",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Warm-browser render microservice for GreenMentor aura headers (Fly.io).",
+  "scripts": {
+    "start": "node server.mjs",
+    "dev": "node server.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "playwright": "1.61.1",
+    "sharp": "^0.34.5"
+  }
+}

@@ -12,7 +12,12 @@ import {
 
 // Playwright needs the Node runtime (not Edge) and time to drive a browser.
 export const runtime = "nodejs";
-export const maxDuration = 60;
+// The header export learned this the hard way (#68): a software-WebGL aura render
+// on the GPU-less Lambda can overrun 60s, and this route does strictly more work
+// (a full Next page load + hydration before the settle). Pro allows 300s; it's a
+// ceiling, not a cost. Follow-up: extend the Fly render service to shoot URLs and
+// proxy this route to it like the header export does.
+export const maxDuration = 300;
 
 /**
  * Render a share card to PNG/WebP: resolve the snapshot's article picks
