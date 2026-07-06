@@ -10,7 +10,7 @@ import { ProgressPanel } from "@/components/ai-hub/ProgressPanel";
 
 export default function CoworkEngagementPage({ params }: { params: Promise<{ engagementId: string }> }) {
   const { engagementId } = use(params);
-  const { snap, states, busy, progress, error, tick, runPhase, gate, reload } = useEngagementSnapshot(engagementId);
+  const { snap, states, busy, progress, error, tick, runPhase, stopPhase, gate, reload } = useEngagementSnapshot(engagementId);
   const [mobileView, setMobileView] = useState<"chat" | "progress">("chat");
   const [railOpen, setRailOpen] = useState(false);
 
@@ -90,6 +90,7 @@ export default function CoworkEngagementPage({ params }: { params: Promise<{ eng
               progress={progress}
               tick={tick}
               runPhase={runPhase}
+              stopPhase={stopPhase}
               gate={gate}
               reload={reload}
             />
