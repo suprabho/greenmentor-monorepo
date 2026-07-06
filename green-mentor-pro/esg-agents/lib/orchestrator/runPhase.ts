@@ -80,26 +80,31 @@ export async function runPhase(
   const grabbed = await transitionPhase(orgId, engagementId, phaseKey, ["not_started", "changes_requested", "failed"], "agent_running");
   if (!grabbed) throw new PhaseNotRunnableError(`Phase "${phaseKey}" is already running.`);
 
-  const def = PHASES[phaseKey];
-  const agent = loadAgent(def.agentKey);
-
-  // Assemble input from prior artifacts (one read of all phases' latest artifacts).
-  const upstream = await getArtifactsForPhases(orgId, engagementId, PHASE_ORDER);
-  const { input, sourceArtifactIds } = assemblePhaseInput(phaseKey, engagement, upstream);
-
-  const run = await createRun(orgId, {
-    engagementId, phaseKey,
-    family: agent.family,
-    agentKey: agent.name,
-    input: input as Json,
-    model: agent.model,
-    promptVersion: agent.version,
-    promptVariant: agent.promptVariant,
-    requestedBy: userUuid,
-  });
-  await setPhaseStatus(orgId, engagementId, phaseKey, "agent_running", { currentRunId: run.id });
-
+  // Everything past the grab runs with the phase held at `agent_running`. Any failure —
+  // including setup (loadAgent / assembleInput / createRun, e.g. a malformed agent
+  // package) — must release the phase to `failed`; otherwise a setup error leaves it
+  // wedged in agent_running with no run row and no way forward but a manual Stop.
+  let run: Awaited<ReturnType<typeof createRun>> | null = null;
   try {
+    const def = PHASES[phaseKey];
+    const agent = loadAgent(def.agentKey);
+
+    // Assemble input from prior artifacts (one read of all phases' latest artifacts).
+    const upstream = await getArtifactsForPhases(orgId, engagementId, PHASE_ORDER);
+    const { input, sourceArtifactIds } = assemblePhaseInput(phaseKey, engagement, upstream);
+
+    run = await createRun(orgId, {
+      engagementId, phaseKey,
+      family: agent.family,
+      agentKey: agent.name,
+      input: input as Json,
+      model: agent.model,
+      promptVersion: agent.version,
+      promptVariant: agent.promptVariant,
+      requestedBy: userUuid,
+    });
+    await setPhaseStatus(orgId, engagementId, phaseKey, "agent_running", { currentRunId: run.id });
+
     const result = await runAgent<unknown, any>(agent, input, {
       orgId, engagementId, financialYear: engagement.financial_year,
     });
@@ -153,7 +158,7 @@ export async function runPhase(
     return { runId: run.id, artifactId: artifact.id, phaseKey, status: "awaiting_human_review", confidence };
   } catch (e) {
     const raw = e instanceof Error ? e.message : "agent run failed";
-    await failRun(orgId, run.id, { message: raw } as Json).catch(() => {});
+    if (run) await failRun(orgId, run.id, { message: raw } as Json).catch(() => {});
     await setPhaseStatus(orgId, engagementId, phaseKey, "failed").catch(() => {});
     // Surface a clean, actionable message for transient Anthropic server errors
     // (overloaded 529, 5xx api_error, rate limits) instead of raw JSON.

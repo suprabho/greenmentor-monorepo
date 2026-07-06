@@ -28,6 +28,7 @@ export function ProgressPanel({
   progress,
   tick,
   runPhase,
+  stopPhase,
   gate,
   reload,
 }: {
@@ -38,10 +39,12 @@ export function ProgressPanel({
   progress?: string | null;
   tick: number;
   runPhase: (pk: PhaseKey) => void;
+  stopPhase: (pk: PhaseKey) => void;
   gate: (pk: PhaseKey, decision: "approve" | "request-changes") => void;
   reload: () => void;
 }) {
   const [open, setOpen] = useState<PhaseKey | null>(null);
+  const [stopping, setStopping] = useState<PhaseKey | null>(null);
   const completed = PHASE_ORDER.filter((pk) => states[pk] === "complete").length;
 
   return (
@@ -79,7 +82,7 @@ export function ProgressPanel({
                   </div>
                 )}
 
-                {(runnable || status === "awaiting_human_review" || artifact) && (
+                {(runnable || status === "awaiting_human_review" || artifact || isBusy) && (
                   <div className="mt-2.5 flex flex-wrap items-center gap-2 pl-[34px]">
                     {runnable && (
                       <button
@@ -88,6 +91,23 @@ export function ProgressPanel({
                         className="rounded-pill bg-green-700 px-3 py-1 text-[12px] font-semibold text-white hover:bg-green-700/90 disabled:opacity-50"
                       >
                         {busy === pk ? "Running…" : status === "changes_requested" || status === "failed" ? "Re-run" : "Run"}
+                      </button>
+                    )}
+                    {isBusy && (
+                      <button
+                        onClick={async () => {
+                          setStopping(pk);
+                          try {
+                            await stopPhase(pk);
+                          } finally {
+                            setStopping(null);
+                          }
+                        }}
+                        disabled={stopping === pk}
+                        title="Stop this run and free the phase to re-run"
+                        className="rounded-pill border border-red-300 px-3 py-1 text-[12px] font-semibold text-red-600 hover:bg-red-50 disabled:cursor-wait disabled:opacity-60"
+                      >
+                        {stopping === pk ? "Stopping…" : "■ Stop"}
                       </button>
                     )}
                     {status === "awaiting_human_review" && (

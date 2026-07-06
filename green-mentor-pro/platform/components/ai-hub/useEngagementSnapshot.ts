@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { PhaseKey, PhaseStatus } from "@/lib/engagement-ui";
 
 export interface SnapshotPhase {
@@ -33,6 +33,9 @@ export function useEngagementSnapshot(engagementId: string) {
   const [busy, setBusy] = useState<PhaseKey | null>(null);
   const [progress, setProgress] = useState<string | null>(null);
   const [tick, setTick] = useState(0);
+  // Holds the in-flight run-phase request so Stop can abort the local stream
+  // immediately (the server run is stopped separately via stopPhase).
+  const runAbort = useRef<AbortController | null>(null);
 
   const reload = useCallback(async () => {
     try {
@@ -63,11 +66,14 @@ export function useEngagementSnapshot(engagementId: string) {
       setBusy(phaseKey);
       setError(null);
       setProgress("Starting…");
+      const abort = new AbortController();
+      runAbort.current = abort;
       try {
         const res = await fetch(`/api/ai-hub/engagements/${engagementId}/run-phase`, {
           method: "POST",
           headers: { "content-type": "application/json" },
           body: JSON.stringify({ phaseKey }),
+          signal: abort.signal,
         });
 
         // Auth/validation failures still come back as a plain JSON body, not a stream.
@@ -116,6 +122,35 @@ export function useEngagementSnapshot(engagementId: string) {
         }
         await reload();
       } catch (e) {
+        // A user-initiated Stop aborts the fetch — expected, not an error. stopPhase
+        // has already flipped the phase to `failed` server-side and reloaded.
+        if (e instanceof DOMException && e.name === "AbortError") return;
+        setError(String(e instanceof Error ? e.message : e));
+      } finally {
+        if (runAbort.current === abort) runAbort.current = null;
+        setBusy(null);
+        setProgress(null);
+      }
+    },
+    [engagementId, reload]
+  );
+
+  // Stop a phase that's mid-run (or stuck in agent_running after a reload): abort the
+  // local stream, then flip it off agent_running server-side so it becomes runnable.
+  const stopPhase = useCallback(
+    async (phaseKey: PhaseKey) => {
+      runAbort.current?.abort();
+      setError(null);
+      try {
+        const res = await fetch(`/api/ai-hub/engagements/${engagementId}/stop-phase`, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ phaseKey }),
+        });
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.error ?? `HTTP ${res.status}`);
+        await reload();
+      } catch (e) {
         setError(String(e instanceof Error ? e.message : e));
       } finally {
         setBusy(null);
@@ -147,5 +182,5 @@ export function useEngagementSnapshot(engagementId: string) {
     [engagementId, reload]
   );
 
-  return { snap, states, busy, progress, error, tick, runPhase, gate, reload };
+  return { snap, states, busy, progress, error, tick, runPhase, stopPhase, gate, reload };
 }

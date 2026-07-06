@@ -1,7 +1,13 @@
 ---
 name: materiality
 description: >-
-  Phase 2 x
+  Phase 2 — Double-materiality assessment. Scores candidate ESG topics on both
+  impact (inside-out) and financial (outside-in) dimensions, builds a materiality
+  matrix, and proposes the material topics that anchor the data request list.
+model: claude-sonnet-4-6
+phase: 2
+family: stakeholder
+when_to_use: >-
   Scope is approved and stakeholder inputs (or a request to draft the questionnaire)
   are available; produce the materiality matrix and proposed material topics for
   human validation.
