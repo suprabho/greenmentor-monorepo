@@ -38,6 +38,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     status?: string;
     target_publish_date?: string | null;
     notes?: string | null;
+    body_markdown?: string | null;
   };
 
   if (body.content_type && !CONTENT_TYPES.includes(body.content_type as StoryContentType)) {
@@ -58,6 +59,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     ...(body.status !== undefined ? { status: body.status as StoryStatus } : {}),
     ...(body.target_publish_date !== undefined ? { target_publish_date: body.target_publish_date } : {}),
     ...(body.notes !== undefined ? { notes: body.notes } : {}),
+    ...(body.body_markdown !== undefined ? { body_markdown: body.body_markdown } : {}),
   });
   return NextResponse.json({ ok: true });
 }
