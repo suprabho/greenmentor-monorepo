@@ -5,6 +5,7 @@ import { Card, Chip, PageHeader } from "@/components/ui";
 import { requireAdmin } from "@/lib/auth/admin";
 import { ADMIN_SECTIONS, type AdminSection } from "@/lib/admin/sections";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient, isServiceRoleConfigured } from "@/lib/supabase/admin";
 
 export const metadata = { title: "Admin — GreenMentor Community" };
 
@@ -37,6 +38,16 @@ async function sectionStats(): Promise<Record<string, string>> {
     // Table may not be migrated yet — skip the stat rather than lose the others.
     if (cardsRes.count != null) {
       stats["/share-cards"] = `${cardsRes.count} saved card${cardsRes.count === 1 ? "" : "s"}`;
+    }
+    // community_stories has RLS enabled with no policies (admin-only, service-role reads),
+    // so the anon/authenticated client above can't see it — ask the admin client instead.
+    if (isServiceRoleConfigured()) {
+      const { count: storyCount } = await createAdminClient()
+        .from("community_stories")
+        .select("id", { count: "exact", head: true });
+      if (storyCount != null) {
+        stats["/stories"] = `${storyCount} stor${storyCount === 1 ? "y" : "ies"}`;
+      }
     }
     return stats;
   } catch {
