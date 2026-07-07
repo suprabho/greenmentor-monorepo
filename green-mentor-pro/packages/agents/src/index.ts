@@ -14,3 +14,8 @@ export { MODELS, supportsTemperature, type ModelTier } from "./anthropic/models"
 // both esg-agents (app/api/chat) and the platform (/api/buddy/chat).
 export * from "./buddy";
 export * from "./buddyTools";
+
+// Domain restriction: the shared scope/safety policy (prompt layer) and the
+// pre-flight input guard (programmatic layer) that keep every chat surface on-ESG.
+export * from "./policy";
+export * from "./guard";

@@ -9,7 +9,8 @@
     "./models": "./src/anthropic/models.ts"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "redteam": "tsx scripts/redteam-guard.ts"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.85",
@@ -22,6 +23,7 @@
   },
   "devDependencies": {
     "@types/node": "^22",
+    "tsx": "^4.19.2",
     "typescript": "^5"
   }
 }
