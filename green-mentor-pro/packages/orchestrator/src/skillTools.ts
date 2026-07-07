@@ -81,7 +81,7 @@ export function buildSkillTools(ctx: SkillToolCtx) {
   return {
     runScopingSkill: tool({
       description:
-        "Run the Kick-off & Scoping skill: turn a brief description of an ESG/BRSR reporting engagement into a structured scope charter (objectives, frameworks in scope with rationale, reporting boundary), a phased project plan, a RACI matrix, and any open questions. Call this when the user wants to scope, plan, or kick off a reporting engagement — NOT for answering a conceptual question about scoping. Infer sensible fields from the conversation; the client renders the result as a Scope card.",
+        "Run the Kick-off & Scoping skill: turn a brief description of an ESG/BRSR reporting engagement into a structured scope charter (objectives, frameworks in scope with rationale, reporting boundary), a phased project plan, a RACI matrix, and any open questions. Call this when the user wants to scope, plan, or kick off a reporting engagement — NOT for answering a conceptual question about scoping. Infer sensible fields from the conversation; the client renders the result as a Scope card. After it returns, do NOT restate the scope in your reply — the card is the answer; add only follow-up questions.",
       inputSchema: z.object({
         client_name: z.string().describe("The reporting entity, e.g. 'Acme Manufacturing Ltd'."),
         sector: z.string().nullish().describe("Sector/industry, e.g. 'Cement', 'IT Services'."),
@@ -110,7 +110,7 @@ export function buildSkillTools(ctx: SkillToolCtx) {
 
     extractBillSkill: tool({
       description:
-        "Run the Bill / Document Extraction skill: parse the text of a utility bill, fuel or waste invoice, or similar ESG evidence document into structured dataset rows (metric, value, unit, period) with per-field provenance and a confidence per row. Call this when the user has PROVIDED a document's text (pasted, or from an uploaded/parsed file) and wants the numbers pulled out. Pass the document text in `document_text`. The client renders the result as an Extracted-data table.",
+        "Run the Bill / Document Extraction skill: parse the text of a utility bill, fuel or waste invoice, or similar ESG evidence document into structured dataset rows (metric, value, unit, period) with per-field provenance and a confidence per row. Call this when the user has PROVIDED a document's text (pasted, or from an uploaded/parsed file) and wants the numbers pulled out. Pass the document text in `document_text`. The client renders the result as an Extracted-data table. After it returns, do NOT restate the extracted rows in your reply — the table is the answer; add only follow-up questions.",
       inputSchema: z.object({
         document_text: z.string().describe("The document's text content (bill/invoice/spreadsheet text). Required — do not call without it."),
         site_name: z.string().nullish().describe("Site/facility the document is for, e.g. 'Pune Plant'."),
@@ -143,7 +143,7 @@ export function buildSkillTools(ctx: SkillToolCtx) {
 
     understandEpdSkill: tool({
       description:
-        "Run the EPD Understanding skill: read the text of an Environmental Product Declaration (EPD) and extract a structured summary — product, declared/functional unit, programme operator, PCR and reference standards (EN 15804 / ISO 14025), GWP (fossil/biogenic/total) per life-cycle module (A1–A3 … C, D), validity, and verification. Call this when the user has PROVIDED EPD text and wants it explained or turned into usable embodied-carbon factors. Pass the text in `epd_text`. The client renders the result as an EPD card.",
+        "Run the EPD Understanding skill: read the text of an Environmental Product Declaration (EPD) and extract a structured summary — product, declared/functional unit, programme operator, PCR and reference standards (EN 15804 / ISO 14025), GWP (fossil/biogenic/total) per life-cycle module (A1–A3 … C, D), validity, and verification. Call this when the user has PROVIDED EPD text and wants it explained or turned into usable embodied-carbon factors. Pass the text in `epd_text`. The client renders the result as an EPD card. After it returns, do NOT restate the EPD summary in your reply — the card is the answer; add only follow-up questions.",
       inputSchema: z.object({
         epd_text: z.string().describe("The EPD document text (pasted, or parsed from a PDF). Required — do not call without it."),
         product_name: z.string().nullish().describe("Optional product-name hint."),

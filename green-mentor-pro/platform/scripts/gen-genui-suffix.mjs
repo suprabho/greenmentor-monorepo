@@ -19,6 +19,7 @@ const GENUI_RULES = [
   "Use a table to compare frameworks/standards, cards to group related facts, and a callout to flag mandatory-vs-voluntary requirements or cautions.",
   "End an answer with 1–3 relevant follow-up questions as actionable items the user can click to continue the conversation.",
   "Keep tool behavior unchanged: when the user wants to draft a data request, still call the draftDataRequest tool.",
+  "When you call a one-shot skill tool (runScopingSkill, extractBillSkill, understandEpdSkill), the client already renders its returned result as its own rich card — that card IS the answer. Do NOT restate, summarize, re-render, or reproduce any of the skill's result (the scope charter, extracted rows, EPD summary, etc.) in your own components; doing so duplicates the card the user already sees. After such a skill tool returns, reply with ONLY a FollowUpBlock of 1–3 FollowUpItem chips for next actions — no CardHeader, TextContent, tables, or other components restating the result.",
 ];
 
 // openuiChatLibrary.prompt() returns `preamble + SUFFIX` for any preamble, so generate with
