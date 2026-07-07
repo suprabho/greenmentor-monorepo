@@ -1,6 +1,8 @@
 import { convertToModelMessages, streamText, stepCountIs, type UIMessage } from "ai";
-import { resolveBuddyModel, ESG_BUDDY_SYSTEM, tools } from "@gm/agents";
+import { resolveBuddyModel, ESG_BUDDY_SYSTEM, tools, classifyUserMessage, REFUSAL_TEXT } from "@gm/agents";
+import { refusalTurn, refusalStreamResponse, latestUserText } from "@/lib/chat/guard-response";
 
+export const runtime = "nodejs";
 export const maxDuration = 30;
 
 /**
@@ -12,7 +14,13 @@ export const maxDuration = 30;
  */
 export async function POST(req: Request) {
   const { messages }: { messages: UIMessage[] } = await req.json();
-  const { model, via } = resolveBuddyModel();
+
+  // Pre-flight domain guard: refuse off-domain / code / jailbreak before the model
+  // runs. Plain-text refusal — this surface renders markdown, not OpenUI Lang.
+  const verdict = await classifyUserMessage(latestUserText(messages));
+  if (!verdict.allow) return refusalStreamResponse(refusalTurn(REFUSAL_TEXT));
+
+  const { model } = resolveBuddyModel();
 
   const result = streamText({
     model,
@@ -24,11 +32,11 @@ export async function POST(req: Request) {
 
   return result.toUIMessageStreamResponse({
     onError: (error) => {
+      // Log the real reason server-side; never leak the model provider / env-var
+      // setup to the end user.
       const msg = error instanceof Error ? error.message : String(error);
-      if (/api[_ ]?key|gateway|unauthor|forbidden|401|403/i.test(msg)) {
-        return `ESG Buddy has no working model credential (tried: ${via}). Set ANTHROPIC_API_KEY (direct Claude) or AI_GATEWAY_API_KEY in green-mentor-pro/platform/.env.local, then restart the server.`;
-      }
-      return msg;
+      console.error("[buddy/chat] stream error:", msg);
+      return "ESG Buddy is temporarily unavailable. Please try again in a moment.";
     },
   });
 }

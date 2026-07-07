@@ -1,7 +1,8 @@
 import { convertToModelMessages, streamText, stepCountIs, type UIMessage } from "ai";
-import { resolveBuddyModel, tools } from "@gm/agents";
+import { resolveBuddyModel, tools, classifyUserMessage, refusalGenuiCard } from "@gm/agents";
 import { buildSkillTools } from "@gm/orchestrator";
 import { ESG_BUDDY_GENUI_SYSTEM } from "@/lib/chat/genui-system";
+import { refusalTurn, refusalStreamResponse, latestUserText } from "@/lib/chat/guard-response";
 import { ensureOrchestratorInit } from "@/lib/orchestrator-server";
 import { getEngagementContext } from "@/lib/engagement-session";
 import {
@@ -56,6 +57,24 @@ export async function POST(req: Request, { params }: Params) {
     if (!parsed.success) return new ChatError("bad_request").toResponse();
     const messages = parsed.data.messages as unknown as UIMessage[];
 
+    // Pre-flight domain guard: classify the latest user message and short-circuit
+    // with a canned refusal BEFORE the model or any skill tools run. Off-domain,
+    // code-generation, and jailbreak/prompt-extraction attempts never reach the model.
+    const verdict = await classifyUserMessage(latestUserText(messages));
+    if (!verdict.allow) {
+      const turn = refusalTurn(refusalGenuiCard(verdict.category));
+      try {
+        await replaceMessages(ctx.orgId, conversationId, [
+          ...messages.map((m) => ({ id: m.id, role: m.role, parts: m.parts as unknown[] })),
+          turn,
+        ]);
+        await touchConversation(ctx.orgId, conversationId);
+      } catch (err) {
+        console.error(`[ai-hub/chat] failed to persist refusal for ${conversationId}:`, err);
+      }
+      return refusalStreamResponse(turn);
+    }
+
     const { model } = resolveBuddyModel();
     // Only the first exchange needs a generated title — setTitleIfEmpty never
     // clobbers a later rename, so skip the extra model call on later turns.
@@ -104,11 +123,11 @@ export async function POST(req: Request, { params }: Params) {
         }
       },
       onError: (error) => {
+        // Log the real reason server-side; never leak the model provider / env-var
+        // setup to the end user.
         const msg = error instanceof Error ? error.message : String(error);
-        if (/api[_ ]?key|gateway|unauthor|forbidden|401|403/i.test(msg)) {
-          return "Chat has no working model credential. Set ANTHROPIC_API_KEY (or AI_GATEWAY_API_KEY) in green-mentor-pro/platform/.env.local and restart.";
-        }
-        return msg;
+        console.error(`[ai-hub/chat] stream error for ${conversationId}:`, msg);
+        return "ESG Buddy is temporarily unavailable. Please try again in a moment.";
       },
     });
   } catch (e) {

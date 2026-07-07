@@ -1,5 +1,5 @@
 import { convertToModelMessages, streamText, stepCountIs, type UIMessage } from "ai";
-import { resolveBuddyModel } from "@gm/agents";
+import { resolveBuddyModel, classifyUserMessage, refusalGenuiCard } from "@gm/agents";
 import {
   engagementCopilotSystem, buildEngagementTools,
   getEngagementSnapshot, countOpenFieldReviews, nextRunnablePhase,
@@ -7,6 +7,7 @@ import {
 } from "@gm/orchestrator";
 import { getEngagementContext } from "@/lib/engagement-session";
 import { withGenerativeUi } from "@/lib/chat/genui-system";
+import { refusalTurn, refusalStreamResponse, latestUserText } from "@/lib/chat/guard-response";
 import { PHASE_ORDER, PHASE_LABEL, type PhaseKey, type PhaseStatus } from "@/lib/engagement-ui";
 import { ChatError, toChatError } from "@/lib/chat/errors";
 import { chatPostBodySchema } from "@/lib/chat/schema";
@@ -32,6 +33,24 @@ export async function POST(req: Request, { params }: { params: Promise<{ engagem
     const parsed = chatPostBodySchema.safeParse(await req.json());
     if (!parsed.success) return new ChatError("bad_request").toResponse();
     const messages = parsed.data.messages as unknown as UIMessage[];
+
+    // Pre-flight domain guard: refuse off-domain / code / jailbreak before the
+    // model or any engagement tools run (same guard as the standalone Hub chat).
+    const verdict = await classifyUserMessage(latestUserText(messages));
+    if (!verdict.allow) {
+      const turn = refusalTurn(refusalGenuiCard(verdict.category));
+      try {
+        await replaceMessages(
+          ctx.orgId,
+          engagementId,
+          [...messages.map((m) => ({ id: m.id, role: m.role, parts: m.parts as unknown[] })), turn],
+          ctx.userId,
+        );
+      } catch (err) {
+        console.error(`[ai-hub/engagement-chat] failed to persist refusal for ${engagementId}:`, err);
+      }
+      return refusalStreamResponse(turn);
+    }
 
     const phaseStatus = Object.fromEntries(PHASE_ORDER.map((k) => [k, "not_started"])) as Record<PhaseKey, PhaseStatus>;
     for (const p of snapshot.phases) phaseStatus[p.phase_key as PhaseKey] = p.status as PhaseStatus;
@@ -86,11 +105,11 @@ export async function POST(req: Request, { params }: { params: Promise<{ engagem
         }
       },
       onError: (error) => {
+        // Log the real reason server-side; never leak the model provider / env-var
+        // setup to the end user.
         const msg = error instanceof Error ? error.message : String(error);
-        if (/api[_ ]?key|gateway|unauthor|forbidden|401|403/i.test(msg)) {
-          return "The copilot has no working model credential. Set ANTHROPIC_API_KEY (or AI_GATEWAY_API_KEY) in platform/.env.local and restart.";
-        }
-        return msg;
+        console.error(`[ai-hub/engagement-chat] stream error for ${engagementId}:`, msg);
+        return "The copilot is temporarily unavailable. Please try again in a moment.";
       },
     });
   } catch (e) {

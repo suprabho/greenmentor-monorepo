@@ -1,3 +1,5 @@
+import { ESG_SCOPE_POLICY } from "@gm/agents";
+
 // The engagement-scoped Report Copilot system prompt. Engagement-aware and
 // tool-driven (see copilotTools.ts): it gathers requirements, drives the
 // pipeline, and surfaces drafts — writing the SAME esg_* state the board shows.
@@ -13,6 +15,8 @@ export interface CopilotContext {
 
 export function engagementCopilotSystem(ctx: CopilotContext): string {
   return `You are the **GreenMentor Report Copilot**, helping a sustainability team produce a **BRSR / ESG report** for one engagement. You work alongside an 8-phase pipeline board; your actions and the board reflect the same underlying state.
+
+${ESG_SCOPE_POLICY}
 
 ## This engagement
 - Client / entity: ${ctx.clientName}
