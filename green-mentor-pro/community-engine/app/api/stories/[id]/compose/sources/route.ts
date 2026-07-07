@@ -1,10 +1,12 @@
 /**
- * Sources — the link/pasted-text material an admin grounds a story's
- * AI-assisted draft in. Link sources are fetched server-side (SSRF-guarded
- * via lib/security/urlGuard) and reduced to plaintext; pasted text is stored
- * as-is. No file/PDF/Office upload and no async extraction worker — a fetch
- * or parse failure still inserts a visible `status: "failed"` row rather than
- * erroring the request, so the admin can see and retry it.
+ * Sources — the material an admin grounds a story's AI-assisted draft in.
+ * Three kinds: a link (fetched server-side, SSRF-guarded, reduced to
+ * plaintext), pasted text (stored as-is), or a pipeline article (pulled from
+ * the Pipeline tab's already-ingested + AI-summarized `articles` table — no
+ * live fetch, just its existing title/url/summary). No file/PDF/Office
+ * upload and no async extraction worker — a fetch or parse failure still
+ * inserts a visible `status: "failed"` row rather than erroring the request,
+ * so the admin can see and retry it.
  *
  * Same admin-allowlist gate + service-role read/write as /api/stories.
  */
@@ -15,6 +17,7 @@ import { createAdminClient, isServiceRoleConfigured } from "@/lib/supabase/admin
 import { listStorySources, insertStorySource } from "@/lib/db/story-sources";
 import { fetchGuarded } from "@/lib/security/urlGuard";
 import { htmlToPlainText } from "@/lib/stories/compose";
+import { fetchShareCardArticles } from "@/lib/share-cards/articles";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -40,10 +43,30 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     url?: string;
     title?: string;
     text?: string;
+    articleId?: string;
   };
 
   if (!isServiceRoleConfigured()) return NextResponse.json({ ok: true, mode: "unconfigured" });
   const client = createAdminClient();
+
+  if (body.kind === "pipeline") {
+    const articleId = body.articleId?.trim();
+    if (!articleId) return NextResponse.json({ error: "articleId is required" }, { status: 400 });
+
+    const [article] = await fetchShareCardArticles(client, { ids: [articleId] });
+    if (!article) return NextResponse.json({ error: "article not found" }, { status: 404 });
+
+    const source = await insertStorySource(client, {
+      story_id: id,
+      kind: "pipeline",
+      title: article.title,
+      url: article.url,
+      extracted_text: article.summary,
+      status: article.summary ? "extracted" : "failed",
+      error: article.summary ? null : "Article has no summary yet",
+    });
+    return NextResponse.json({ ok: true, source });
+  }
 
   if (body.kind === "link") {
     const url = body.url?.trim();
@@ -103,5 +126,5 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     return NextResponse.json({ ok: true, source });
   }
 
-  return NextResponse.json({ error: "kind must be 'link' or 'text'" }, { status: 400 });
+  return NextResponse.json({ error: "kind must be 'link', 'text', or 'pipeline'" }, { status: 400 });
 }

@@ -8,7 +8,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
  */
 export const STORY_SOURCES_TABLE = "story_sources";
 
-export type StorySourceKind = "link" | "text";
+export type StorySourceKind = "link" | "text" | "pipeline";
 export type StorySourceStatus = "pending" | "extracted" | "failed";
 
 export interface StorySourceRow {

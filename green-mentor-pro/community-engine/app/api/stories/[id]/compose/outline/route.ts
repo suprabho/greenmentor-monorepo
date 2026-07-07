@@ -43,7 +43,7 @@ const inputSchema: Anthropic.Messages.Tool["input_schema"] = {
   required: ["outline"],
 };
 
-export async function POST(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const gate = await requireAdminApiUser();
   if ("error" in gate) return gate.error;
   const { id } = await params;
@@ -64,7 +64,12 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
     return NextResponse.json({ error: "ANTHROPIC_API_KEY is not set server-side" }, { status: 500 });
   }
 
-  const system = `You are an editorial strategist for GreenMentor, a sustainability brand. Given a "${story.content_type}" piece titled "${story.title}" pursuing the angle "${angle.title}" (thesis: ${angle.thesis}), propose an ordered outline of 3-8 sections that builds the case. Ground every section in the source material below — do not invent facts. Call propose_outline.`;
+  const body = (await req.json().catch(() => ({}))) as { guidance?: unknown };
+  const guidance = typeof body.guidance === "string" ? body.guidance.trim().slice(0, 500) : "";
+
+  const system = `You are an editorial strategist for GreenMentor, a sustainability brand. Given a "${story.content_type}" piece titled "${story.title}" pursuing the angle "${angle.title}" (thesis: ${angle.thesis}), propose an ordered outline of 3-8 sections that builds the case. Ground every section in the source material below — do not invent facts.${
+    guidance ? ` The editor has given this specific guidance — prioritize it while staying grounded in the sources: ${guidance}` : ""
+  } Call propose_outline.`;
 
   const sourcesContext = buildSourcesContext(sources);
 
