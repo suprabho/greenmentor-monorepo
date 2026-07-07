@@ -45,6 +45,6 @@ export const ADMIN_SECTIONS: AdminSection[] = [
     icon: Article,
     name: "Stories",
     desc: "The individual content pieces — drafts, reviews and publishing state for each story.",
-    status: "soon",
+    status: "available",
   },
 ];
