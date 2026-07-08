@@ -102,7 +102,9 @@ Respond with ONLY a JSON array, no prose, in exactly this shape:
   const jsonStart = text.indexOf("[");
   const jsonEnd = text.lastIndexOf("]");
   if (jsonStart < 0 || jsonEnd <= jsonStart) throw new Error(`no JSON array in model response for "${lessonTitle}"`);
-  const parsed = JSON.parse(text.slice(jsonStart, jsonEnd + 1)) as SeedQuestion[];
+  // Models occasionally emit trailing commas, which JSON.parse rejects.
+  const jsonText = text.slice(jsonStart, jsonEnd + 1).replace(/,\s*([\]}])/g, "$1");
+  const parsed = JSON.parse(jsonText) as SeedQuestion[];
 
   for (const question of parsed) {
     const keys = question.options.map((o) => o.key).join(",");
