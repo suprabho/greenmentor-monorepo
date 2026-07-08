@@ -9,7 +9,10 @@
     "lint": "next lint",
     "feed:ingest": "node --env-file=.env.local --import tsx scripts/ingest-feed.ts",
     "feed:ingest:ci": "node --import tsx scripts/ingest-feed.ts",
-    "feed:local": "npm run feed:ingest && npm run dev"
+    "feed:local": "npm run feed:ingest && npm run dev",
+    "academy:seed-media": "node --env-file=.env.local --import tsx scripts/seed-academy-media.ts",
+    "academy:import": "node --env-file=.env.local --import tsx scripts/import-academy-course.ts",
+    "academy:generate-questions": "node --env-file=.env.local --import tsx scripts/generate-assessment-questions.ts"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.85",

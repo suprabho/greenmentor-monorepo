@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  ArrowLeft,
   Newspaper,
   GraduationCap,
   Briefcase,
@@ -40,7 +41,9 @@ const nav = [
   { label: "Longsite Lite", href: "/longsite", icon: SquaresFour, children: [] },
 ];
 
-const stats = [
+// Fallback shown when signed out or the stats fetch fails — the shell must
+// never break on marketing-adjacent or error states.
+const FALLBACK_STATS = [
   { label: "2,840 XP", icon: Lightning, iconClass: "text-green-400" },
   { label: "9-day", icon: Fire, iconClass: "text-orange-400" },
   { label: "1,450 cr", icon: Coins, iconClass: "text-white/70" },
@@ -48,9 +51,28 @@ const stats = [
 
 const COLLAPSED_KEY = "gm-sidebar-collapsed";
 
-export function Shell({ children }: { children: React.ReactNode }) {
+/** Deterministic "up one level" for nested Academy pages (course → catalog,
+ * lesson/assessment → course). Top-level tabs have the nav itself, so no back. */
+function backHrefFor(pathname: string): string | null {
+  const seg = pathname.split("/").filter(Boolean);
+  if (seg[0] !== "academy" || seg.length < 2) return null;
+  return seg.length === 2 ? "/academy" : `/academy/${seg[1]}`;
+}
+
+export type ShellStats = { xp: number; coins: number; streakDays: number };
+
+export function Shell({ children, stats }: { children: React.ReactNode; stats?: ShellStats }) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
+
+  const sidebarStats = stats
+    ? [
+        { label: `${stats.xp.toLocaleString()} XP`, icon: Lightning, iconClass: "text-green-400" },
+        { label: `${stats.streakDays}-day`, icon: Fire, iconClass: "text-orange-400" },
+        { label: `${stats.coins.toLocaleString()} cr`, icon: Coins, iconClass: "text-white/70" },
+      ]
+    : FALLBACK_STATS;
+  const mobileStats = stats ?? { xp: 2840, coins: 1450, streakDays: 9 };
 
   useEffect(() => {
     if (window.localStorage.getItem(COLLAPSED_KEY) === "1") setCollapsed(true);
@@ -167,7 +189,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
             collapsed ? "flex-col items-center" : "flex-wrap"
           )}
         >
-          {stats.map((s) => (
+          {sidebarStats.map((s) => (
             <span
               key={s.label}
               title={s.label}
@@ -222,18 +244,28 @@ export function Shell({ children }: { children: React.ReactNode }) {
           </div>
           <div className="ml-auto flex items-center gap-2">
             <span className="flex items-center gap-1.5 rounded-pill bg-green-50 px-2.5 py-1 text-[12px] font-semibold text-green-700">
-              <Lightning size={13} weight="fill" /> 2,840 XP
+              <Lightning size={13} weight="fill" /> {mobileStats.xp.toLocaleString()} XP
             </span>
             <span className="flex items-center gap-1.5 rounded-pill bg-[#FFF4E0] px-2.5 py-1 text-[12px] font-semibold text-[#B25E00]">
-              <Fire size={13} weight="fill" /> 9-day
+              <Fire size={13} weight="fill" /> {mobileStats.streakDays}-day
             </span>
             <span className="hidden sm:flex items-center gap-1.5 rounded-pill bg-gray-100 px-2.5 py-1 text-[12px] font-semibold text-gray-800">
-              <Coins size={13} weight="fill" /> 1,450 cr
+              <Coins size={13} weight="fill" /> {mobileStats.coins.toLocaleString()} cr
             </span>
           </div>
         </header>
 
-        <main className="px-4 py-6 pb-24 lg:px-8 lg:pt-8 lg:pb-10">{children}</main>
+        <main className="px-4 py-6 pb-24 lg:px-8 lg:pt-8 lg:pb-10">
+          {backHrefFor(pathname) && (
+            <Link
+              href={backHrefFor(pathname)!}
+              className="mb-4 inline-flex items-center gap-1.5 rounded-pill text-[12.5px] font-semibold text-gray-600 transition-colors hover:text-ink"
+            >
+              <ArrowLeft size={14} weight="bold" /> Back
+            </Link>
+          )}
+          {children}
+        </main>
 
         {/* Mobile bottom nav */}
         <nav className="fixed inset-x-0 bottom-0 z-20 flex border-t border-gray-200 bg-white pb-[env(safe-area-inset-bottom)] lg:hidden">
