@@ -39,14 +39,28 @@ async function sectionStats(): Promise<Record<string, string>> {
     if (cardsRes.count != null) {
       stats["/share-cards"] = `${cardsRes.count} saved card${cardsRes.count === 1 ? "" : "s"}`;
     }
-    // community_stories has RLS enabled with no policies (admin-only, service-role reads),
-    // so the anon/authenticated client above can't see it — ask the admin client instead.
+    // community_stories/community_webinars have RLS enabled with no policies
+    // (admin-only, service-role reads), so the anon/authenticated client
+    // above can't see them — ask the admin client instead.
     if (isServiceRoleConfigured()) {
-      const { count: storyCount } = await createAdminClient()
-        .from("community_stories")
-        .select("id", { count: "exact", head: true });
+      const admin = createAdminClient();
+      const [{ count: storyCount }, { count: webinarCount }, { count: instructorCount }] = await Promise.all([
+        admin.from("community_stories").select("id", { count: "exact", head: true }),
+        admin
+          .from("community_webinars")
+          .select("id", { count: "exact", head: true })
+          .eq("status", "published")
+          .gte("scheduled_at", new Date().toISOString()),
+        admin.from("community_instructors").select("id", { count: "exact", head: true }),
+      ]);
       if (storyCount != null) {
         stats["/stories"] = `${storyCount} stor${storyCount === 1 ? "y" : "ies"}`;
+      }
+      if (webinarCount != null) {
+        stats["/webinars"] = `${webinarCount} upcoming`;
+      }
+      if (instructorCount != null) {
+        stats["/instructors"] = `${instructorCount} instructor${instructorCount === 1 ? "" : "s"}`;
       }
     }
     return stats;

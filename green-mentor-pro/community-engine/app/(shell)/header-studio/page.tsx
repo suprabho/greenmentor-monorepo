@@ -23,11 +23,14 @@ import {
   SIZE_PRESETS,
   sizeFor,
   type AuraPreset,
+  type HeaderChip,
   type HeaderConfig,
+  type HeaderSpeaker,
 } from "@/lib/header/types";
 import { listBrands, getBrand } from "@/lib/header/brands";
 import { createClient } from "@/lib/supabase/client";
 import { getHeader } from "@/lib/db/headers";
+import type { InstructorLite } from "@/lib/db/instructors";
 import { SaveBar } from "./save-bar";
 
 const BUNDLED_AVATARS = [
@@ -41,6 +44,59 @@ const BUNDLED_AVATARS = [
   "/avatars/rao.jpg",
   "/avatars/speaker-csrd.jpg",
 ];
+
+/** A webinar (+ its resolved instructors) → header config prefill, so opening the
+ *  studio from a webinar arrives with its title, schedule and lead speaker filled. */
+function webinarToConfig(
+  w: {
+    title: string;
+    hook: string | null;
+    scheduled_at: string | null;
+    duration_minutes: number | null;
+  },
+  instructors: InstructorLite[]
+): Partial<HeaderConfig> {
+  const chips: HeaderChip[] = [{ icon: "🎥", label: "Virtual Mode" }];
+  if (w.scheduled_at) {
+    const start = new Date(w.scheduled_at);
+    chips.push({
+      icon: "📅",
+      label: start.toLocaleDateString("en-IN", {
+        day: "2-digit",
+        month: "long",
+        year: "numeric",
+        timeZone: "Asia/Kolkata",
+      }),
+    });
+    const fmtT = (d: Date) =>
+      d.toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit", timeZone: "Asia/Kolkata" });
+    const label = w.duration_minutes
+      ? `${fmtT(start)} – ${fmtT(new Date(start.getTime() + w.duration_minutes * 60_000))} IST`
+      : `${fmtT(start)} IST`;
+    chips.push({ icon: "⏰", label });
+  }
+  const lead = instructors[0];
+  // Only pass an absolute photo URL — a relative /mentors path lives on the
+  // platform origin, not community-engine's, so it wouldn't load in the render.
+  const photo = lead?.photo && /^https?:\/\//.test(lead.photo) ? lead.photo : undefined;
+  const speaker: HeaderSpeaker = lead
+    ? {
+        name: lead.name,
+        role: lead.role ?? undefined,
+        org: lead.company ?? undefined,
+        photo,
+        enabled: true,
+      }
+    : { name: "", enabled: false };
+  const headline = (w.hook || w.title).trim();
+  return {
+    badge: "WEBINAR",
+    title: headline,
+    subtitle: w.hook ? w.title : "",
+    chips,
+    speaker,
+  };
+}
 
 /** Debounce a value so the aura iframe doesn't reload on every keystroke. */
 function useDebounced<T>(value: T, ms: number): T {
@@ -138,6 +194,9 @@ export default function HeaderStudioPage() {
   const [origin, setOrigin] = useState("");
   const [loadedId, setLoadedId] = useState<string | null>(null);
   const [loadedOwned, setLoadedOwned] = useState(false);
+  // Set when opened from a webinar (/header-studio?webinar=<id>) — enables the
+  // "Save & link to webinar" action in the SaveBar.
+  const [webinarId, setWebinarId] = useState<string | null>(null);
   // Aura background options. Seeded with the bundled presets, then replaced with
   // the live green-mentor scenes from the aura DB once they load.
   const [auraPresets, setAuraPresets] = useState<AuraPreset[]>(AURA_PRESETS);
@@ -189,6 +248,31 @@ export default function HeaderStudioPage() {
         }
       } catch {
         // Ignore — fall back to the default config.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Prefill from a webinar when opened as /header-studio?webinar=<id>. Skipped
+  // when a saved header is being loaded (?load= wins — it's an explicit choice).
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const id = params.get("webinar");
+    if (!id || params.get("load")) return;
+    setWebinarId(id);
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`/api/webinars/${id}`);
+        if (!res.ok) return;
+        const { webinar, instructors } = await res.json();
+        if (!cancelled && webinar) {
+          setConfig((c) => ({ ...c, ...webinarToConfig(webinar, instructors ?? []) }));
+        }
+      } catch {
+        // Ignore — keep the default config.
       }
     })();
     return () => {
@@ -759,7 +843,7 @@ export default function HeaderStudioPage() {
         }
       />
 
-      <SaveBar config={config} loadedId={loadedId} loadedOwned={loadedOwned} />
+      <SaveBar config={config} loadedId={loadedId} loadedOwned={loadedOwned} webinarId={webinarId} />
 
       <div className="grid gap-6 lg:grid-cols-[1fr_minmax(0,600px)]">
         {/* ---- Form (left) ---- */}
