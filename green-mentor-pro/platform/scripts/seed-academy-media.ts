@@ -21,15 +21,40 @@ import { createAdminClient } from "../lib/supabase/admin";
 const run = promisify(execFile);
 const CLIP_SECONDS = 30;
 
-async function ffmpegClip(outPath: string, title: string, seconds: number): Promise<void> {
-  const hue = Math.floor(Math.random() * 360);
+/** ffmpeg's color source only takes named colors or hex — no hsl() — so
+ * convert a random hue (60% sat, 25% light) to hex here. */
+function randomDarkHex(): string {
+  const h = Math.random() * 360;
+  const s = 0.6;
+  const l = 0.25;
+  const c = (1 - Math.abs(2 * l - 1)) * s;
+  const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
+  const m = l - c / 2;
+  const [r, g, b] =
+    h < 60 ? [c, x, 0] : h < 120 ? [x, c, 0] : h < 180 ? [0, c, x] : h < 240 ? [0, x, c] : h < 300 ? [x, 0, c] : [c, 0, x];
+  const toHex = (v: number) =>
+    Math.round((v + m) * 255)
+      .toString(16)
+      .padStart(2, "0");
+  return `0x${toHex(r)}${toHex(g)}${toHex(b)}`;
+}
+
+/** drawtext needs an ffmpeg built with libfreetype (Homebrew's default build
+ * isn't) — probe once and skip the title overlay when it's unavailable. */
+async function hasDrawtext(): Promise<boolean> {
+  const { stdout } = await run("ffmpeg", ["-hide_banner", "-filters"]);
+  return stdout.includes(" drawtext ");
+}
+
+async function ffmpegClip(outPath: string, title: string, seconds: number, drawtext: boolean): Promise<void> {
   const safeTitle = title.replace(/'/g, "\\'").replace(/:/g, "\\:");
   await run("ffmpeg", [
     "-y",
-    "-f", "lavfi", "-i", `color=c=hsl(${hue}%2c60%2c25):s=1280x720:d=${seconds}`,
+    "-f", "lavfi", "-i", `color=c=${randomDarkHex()}:s=1280x720:d=${seconds}`,
     "-f", "lavfi", "-i", `sine=frequency=220:duration=${seconds}`,
-    "-vf",
-    `drawtext=text='${safeTitle}':fontcolor=white:fontsize=42:x=(w-text_w)/2:y=(h-text_h)/2`,
+    ...(drawtext
+      ? ["-vf", `drawtext=text='${safeTitle}':fontcolor=white:fontsize=42:x=(w-text_w)/2:y=(h-text_h)/2`]
+      : []),
     "-c:v", "libx264", "-pix_fmt", "yuv420p", "-c:a", "aac", "-shortest",
     outPath,
   ]);
@@ -48,6 +73,11 @@ async function main() {
     .not("video_object_path", "is", null);
   if (error) throw new Error(error.message);
 
+  const drawtext = await hasDrawtext();
+  if (!drawtext) {
+    console.warn("ffmpeg has no drawtext filter (needs libfreetype) — clips will be plain color, no title text");
+  }
+
   const dir = await mkdtemp(path.join(tmpdir(), "academy-media-"));
   try {
     for (const lesson of lessons ?? []) {
@@ -65,7 +95,7 @@ async function main() {
       const localVideo = path.join(dir, `${lesson.id}.mp4`);
       const localPoster = path.join(dir, `${lesson.id}.jpg`);
       console.log(`generating: ${lesson.title}`);
-      await ffmpegClip(localVideo, lesson.title as string, CLIP_SECONDS);
+      await ffmpegClip(localVideo, lesson.title as string, CLIP_SECONDS, drawtext);
       await ffmpegPoster(localPoster, localVideo);
 
       const videoBytes = await readFile(localVideo);
