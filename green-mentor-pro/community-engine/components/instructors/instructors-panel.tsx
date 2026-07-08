@@ -7,11 +7,12 @@
  * speaker card, so the fields mirror the platform `Mentor` shape.
  */
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowSquareOut, Plus } from "@phosphor-icons/react/dist/ssr";
+import { ArrowSquareOut, Plus, Spinner, Upload } from "@phosphor-icons/react/dist/ssr";
 import { Card, Chip } from "@/components/ui";
 import { deriveInitials, type InstructorRow } from "@/lib/db/instructors";
+import { uploadImage } from "@/lib/upload";
 
 type Status = { type: "idle" | "ok" | "err" | "info"; msg?: string };
 
@@ -77,6 +78,72 @@ function Avatar({ name, photo, initials }: { name: string; photo: string | null;
     <span className="grid size-10 shrink-0 place-items-center rounded-full bg-teal-900 text-[12px] font-semibold text-white">
       {initials || deriveInitials(name)}
     </span>
+  );
+}
+
+/** Photo field with an inline "Upload" button (→ hosted URL). Shared by the
+ *  create + edit forms so a headshot can be uploaded, not just linked. */
+function PhotoField({
+  value,
+  onChange,
+  className,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  className?: string;
+}) {
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  const upload = async (file: File) => {
+    setErr(null);
+    setUploading(true);
+    try {
+      onChange(await uploadImage(file, "instructors"));
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Upload failed");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  return (
+    <label className={`${labelCls} ${className ?? ""}`}>
+      Photo
+      <div className="flex gap-2">
+        <input
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="Upload, or paste https://… or /mentors/name.jpeg"
+          className={`${inputCls} min-w-0 flex-1`}
+        />
+        <button
+          type="button"
+          title="Upload an image"
+          disabled={uploading}
+          onClick={() => fileRef.current?.click()}
+          className="flex shrink-0 items-center gap-1 rounded-lg bg-gray-100 px-2.5 text-[12px] font-semibold normal-case tracking-normal text-gray-700 hover:bg-gray-200 disabled:opacity-50"
+        >
+          {uploading ? <Spinner size={12} className="animate-spin" /> : <Upload size={12} />}
+          Upload
+        </button>
+        <input
+          ref={fileRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            e.target.value = "";
+            if (file) void upload(file);
+          }}
+        />
+      </div>
+      {err ? (
+        <span className="text-[11px] font-normal normal-case tracking-normal text-danger">{err}</span>
+      ) : null}
+    </label>
   );
 }
 
@@ -277,15 +344,7 @@ export function InstructorsPanel({
                 className={inputCls}
               />
             </label>
-            <label className={labelCls}>
-              Photo URL
-              <input
-                value={form.photo}
-                onChange={(e) => setForm((f) => ({ ...f, photo: e.target.value }))}
-                placeholder="https://… or /mentors/name.jpeg"
-                className={inputCls}
-              />
-            </label>
+            <PhotoField value={form.photo} onChange={(v) => setForm((f) => ({ ...f, photo: v }))} />
             <label className={labelCls}>
               LinkedIn URL
               <input
@@ -434,16 +493,24 @@ export function InstructorsPanel({
                         ["linkedinUrl", "LinkedIn URL"],
                         ["tags", "Tags (comma-separated)"],
                       ] as [keyof FormState, string][]
-                    ).map(([key, label]) => (
-                      <label key={key} className={`${labelCls} ${key === "tags" ? "lg:col-span-3" : ""}`}>
-                        {label}
-                        <input
-                          value={edit[key]}
-                          onChange={(e) => setEdit((s) => s && { ...s, [key]: e.target.value })}
-                          className={inputCls}
+                    ).map(([key, label]) =>
+                      key === "photo" ? (
+                        <PhotoField
+                          key={key}
+                          value={edit.photo}
+                          onChange={(v) => setEdit((s) => s && { ...s, photo: v })}
                         />
-                      </label>
-                    ))}
+                      ) : (
+                        <label key={key} className={`${labelCls} ${key === "tags" ? "lg:col-span-3" : ""}`}>
+                          {label}
+                          <input
+                            value={edit[key]}
+                            onChange={(e) => setEdit((s) => s && { ...s, [key]: e.target.value })}
+                            className={inputCls}
+                          />
+                        </label>
+                      )
+                    )}
                     <div className="flex items-center gap-3 lg:col-span-3">
                       <button
                         type="submit"

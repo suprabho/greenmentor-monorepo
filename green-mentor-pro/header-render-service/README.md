@@ -46,10 +46,14 @@ fly secrets set HEADER_RENDER_SECRET=<generate a strong value>
 fly deploy
 ```
 
+The `greenmentor-header-render` name is taken globally, so `fly launch` assigned a
+suffixed app name — check `app = …` in `fly.toml` and use that app's `.fly.dev` URL
+(currently `greenmentor-header-render-curious-meadowland-6305`).
+
 Then, on the **`greenmentor-community-tools`** Vercel project (Production + Preview):
 
 ```
-HEADER_RENDER_URL    = https://greenmentor-header-render.fly.dev
+HEADER_RENDER_URL    = https://greenmentor-header-render-curious-meadowland-6305.fly.dev
 HEADER_RENDER_SECRET = <same value as the Fly secret>
 ```
 

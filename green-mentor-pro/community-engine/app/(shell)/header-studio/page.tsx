@@ -11,6 +11,7 @@ import {
   TextT,
   User,
   Palette,
+  Upload,
 } from "@phosphor-icons/react";
 import { Card, PageHeader, Chip } from "@/components/ui";
 import { headerDocumentHTML } from "@/lib/header/render";
@@ -30,7 +31,8 @@ import {
 import { listBrands, getBrand } from "@/lib/header/brands";
 import { createClient } from "@/lib/supabase/client";
 import { getHeader } from "@/lib/db/headers";
-import type { InstructorLite } from "@/lib/db/instructors";
+import { listInstructors, type InstructorLite } from "@/lib/db/instructors";
+import { uploadImage } from "@/lib/upload";
 import { SaveBar } from "./save-bar";
 
 const BUNDLED_AVATARS = [
@@ -44,6 +46,24 @@ const BUNDLED_AVATARS = [
   "/avatars/rao.jpg",
   "/avatars/speaker-csrd.jpg",
 ];
+
+/** Only keep an absolute http(s) photo URL: a relative /mentors path lives on
+ *  the platform origin, not community-engine's, so it wouldn't load in the
+ *  render. Returns undefined otherwise, letting the card fall back to initials. */
+function absolutePhoto(photo: string | null | undefined): string | undefined {
+  return photo && /^https?:\/\//.test(photo) ? photo : undefined;
+}
+
+/** Map a roster instructor onto the header's speaker block (and turn it on). */
+function instructorToSpeaker(inst: InstructorLite): HeaderSpeaker {
+  return {
+    name: inst.name,
+    role: inst.role ?? undefined,
+    org: inst.company ?? undefined,
+    photo: absolutePhoto(inst.photo),
+    enabled: true,
+  };
+}
 
 /** A webinar (+ its resolved instructors) → header config prefill, so opening the
  *  studio from a webinar arrives with its title, schedule and lead speaker filled. */
@@ -76,17 +96,8 @@ function webinarToConfig(
     chips.push({ icon: "⏰", label });
   }
   const lead = instructors[0];
-  // Only pass an absolute photo URL — a relative /mentors path lives on the
-  // platform origin, not community-engine's, so it wouldn't load in the render.
-  const photo = lead?.photo && /^https?:\/\//.test(lead.photo) ? lead.photo : undefined;
   const speaker: HeaderSpeaker = lead
-    ? {
-        name: lead.name,
-        role: lead.role ?? undefined,
-        org: lead.company ?? undefined,
-        photo,
-        enabled: true,
-      }
+    ? instructorToSpeaker(lead)
     : { name: "", enabled: false };
   const headline = (w.hook || w.title).trim();
   return {
@@ -195,15 +206,21 @@ export default function HeaderStudioPage() {
   const [loadedId, setLoadedId] = useState<string | null>(null);
   const [loadedOwned, setLoadedOwned] = useState(false);
   // Set when opened from a webinar (/header-studio?webinar=<id>) — enables the
-  // "Save & link to webinar" action in the SaveBar.
+  // "\\" action in the SaveBar.
   const [webinarId, setWebinarId] = useState<string | null>(null);
   // Aura background options. Seeded with the bundled presets, then replaced with
   // the live green-mentor scenes from the aura DB once they load.
   const [auraPresets, setAuraPresets] = useState<AuraPreset[]>(AURA_PRESETS);
+  // Roster for the speaker "Link an instructor" picker.
+  const [instructors, setInstructors] = useState<InstructorLite[]>([]);
   // "Draft with AI" — plain-English brief → HeaderConfig via Claude Haiku.
   const [brief, setBrief] = useState("");
   const [drafting, setDrafting] = useState(false);
   const [draftError, setDraftError] = useState<string | null>(null);
+  // Speaker photo upload — for instructors/speakers with no hosted image.
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [photoError, setPhotoError] = useState<string | null>(null);
+  const photoInputRef = useRef<HTMLInputElement>(null);
   // Mobile only: which section's bottom sheet is open (null = none). The four
   // editing sections live in a bottom nav + sheets on phones; on desktop they
   // stay inline in the left column.
@@ -224,6 +241,23 @@ export default function HeaderStudioPage() {
       .catch(() => {
         // Keep the AURA_PRESETS fallback already in state.
       });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Load the instructor roster for the speaker picker. Public read policy, so the
+  // browser client can list them directly (same pattern as getHeader below).
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const rows = await listInstructors(createClient());
+        if (!cancelled) setInstructors(rows);
+      } catch {
+        // No picker — the manual speaker fields still work.
+      }
+    })();
     return () => {
       cancelled = true;
     };
@@ -320,6 +354,25 @@ export default function HeaderStudioPage() {
       setDraftError((e as Error).message);
     } finally {
       setDrafting(false);
+    }
+  }
+
+  // Upload a speaker headshot → hosted URL on the speaker card. Useful after
+  // linking an instructor whose photo is a platform-relative path (dropped
+  // because it wouldn't load in the render).
+  async function uploadSpeakerPhoto(file: File) {
+    setPhotoError(null);
+    setUploadingPhoto(true);
+    try {
+      const url = await uploadImage(file, "speakers");
+      setConfig((c) => ({
+        ...c,
+        speaker: { ...c.speaker, name: c.speaker?.name ?? "", photo: url, enabled: true },
+      }));
+    } catch (e) {
+      setPhotoError((e as Error).message);
+    } finally {
+      setUploadingPhoto(false);
     }
   }
 
@@ -571,6 +624,28 @@ export default function HeaderStudioPage() {
           }
         />
       </div>
+      {/* Pull a speaker straight from the instructor roster. Fills the fields
+          below (and turns the card on); they stay editable afterwards. */}
+      {instructors.length > 0 && (
+        <Field label="Link an instructor">
+          <select
+            className={inputCls}
+            value=""
+            onChange={(e) => {
+              const inst = instructors.find((i) => i.id === e.target.value);
+              if (inst) set("speaker", instructorToSpeaker(inst));
+            }}
+          >
+            <option value="">Choose from the roster…</option>
+            {instructors.map((i) => (
+              <option key={i.id} value={i.id}>
+                {i.name}
+                {i.company ? ` · ${i.company}` : ""}
+              </option>
+            ))}
+          </select>
+        </Field>
+      )}
       <div
         className={`grid grid-cols-1 gap-3 sm:grid-cols-2 ${
           speakerOn ? "" : "pointer-events-none opacity-50"
@@ -603,20 +678,52 @@ export default function HeaderStudioPage() {
             }
           />
         </Field>
-        <Field label="Photo (path or URL)">
-          <input
-            list="avatars"
-            className={inputCls}
-            value={config.speaker?.photo ?? ""}
-            onChange={(e) =>
-              set("speaker", { ...config.speaker, name: config.speaker?.name ?? "", photo: e.target.value })
-            }
-          />
+        <Field label="Photo (upload, or paste a path / URL)">
+          <div className="flex gap-2">
+            <input
+              list="avatars"
+              className={inputCls}
+              placeholder="Paste an image URL…"
+              value={config.speaker?.photo ?? ""}
+              onChange={(e) =>
+                set("speaker", { ...config.speaker, name: config.speaker?.name ?? "", photo: e.target.value })
+              }
+            />
+            <button
+              type="button"
+              title="Upload an image"
+              disabled={uploadingPhoto}
+              onClick={() => photoInputRef.current?.click()}
+              className="flex shrink-0 items-center gap-1.5 rounded-[10px] bg-gray-100 px-3 text-[12.5px] font-semibold text-gray-800 hover:bg-gray-200 disabled:opacity-60"
+            >
+              {uploadingPhoto ? (
+                <Spinner size={13} className="animate-spin" />
+              ) : (
+                <Upload size={13} />
+              )}
+              Upload
+            </button>
+            <input
+              ref={photoInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                // Reset so re-picking the same file fires onChange again.
+                e.target.value = "";
+                if (file) uploadSpeakerPhoto(file);
+              }}
+            />
+          </div>
           <datalist id="avatars">
             {BUNDLED_AVATARS.map((a) => (
               <option key={a} value={a} />
             ))}
           </datalist>
+          {photoError && (
+            <span className="mt-1 block text-[11.5px] text-red-600">{photoError}</span>
+          )}
         </Field>
       </div>
     </>

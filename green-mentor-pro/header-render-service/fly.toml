@@ -1,10 +1,9 @@
-# Fly config for the aura-header render service.
-# Deploy manually (matching the efdb backend topology — no CI): from this dir run
-#   fly deploy
-# and set the shared secret once with
-#   fly secrets set HEADER_RENDER_SECRET=<same value as the Vercel env>
+# fly.toml app configuration file generated for greenmentor-header-render-curious-meadowland-6305 on 2026-07-08T23:08:44+05:30
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
 
-app = 'greenmentor-header-render'
+app = 'greenmentor-header-render-curious-meadowland-6305'
 primary_region = 'iad'
 
 [build]
@@ -13,14 +12,11 @@ primary_region = 'iad'
 [http_service]
   internal_port = 8080
   force_https = true
-  # Keep one machine always warm so the browser is hot; let extras stop when idle.
   auto_stop_machines = 'stop'
   auto_start_machines = true
   min_machines_running = 1
 
   [http_service.concurrency]
-    # A render is heavy (software WebGL). Cap requests low so a machine isn't
-    # oversubscribed; RENDER_CONCURRENCY inside the process is the real limiter.
     type = 'requests'
     hard_limit = 6
     soft_limit = 3
@@ -28,14 +24,11 @@ primary_region = 'iad'
   [[http_service.checks]]
     interval = '30s'
     timeout = '5s'
-    # Browser warm-up takes a few seconds after boot.
     grace_period = '20s'
     method = 'GET'
     path = '/health'
 
 [[vm]]
-  # Software WebGL is CPU-bound; give it 2 shared cores and headroom for a couple
-  # of concurrent Chromium pages + sharp.
-  cpu_kind = 'shared'
+  memory = '4gb'
   cpus = 2
   memory_mb = 4096
