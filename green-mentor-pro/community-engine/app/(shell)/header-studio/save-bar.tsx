@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { FloppyDisk, UsersThree, ArrowClockwise, Spinner } from "@phosphor-icons/react";
+import { FloppyDisk, UsersThree, ArrowClockwise, Spinner, LinkSimple } from "@phosphor-icons/react";
 import { Card } from "@/components/ui";
 import { createClient } from "@/lib/supabase/client";
 import { insertHeader, updateHeader, type Visibility } from "@/lib/db/headers";
@@ -17,10 +17,13 @@ export function SaveBar({
   config,
   loadedId,
   loadedOwned,
+  webinarId,
 }: {
   config: HeaderConfig;
   loadedId: string | null;
   loadedOwned: boolean;
+  /** Set when the studio was opened from a webinar — enables "Save & link". */
+  webinarId?: string | null;
 }) {
   const router = useRouter();
   const [title, setTitle] = useState("");
@@ -65,6 +68,34 @@ export function SaveBar({
       return "Updated ✓";
     });
 
+  // Save the config to the team library AND link it onto the webinar: the render
+  // route uploads the PNG and writes cover_image_url + creatives_url back.
+  const saveAndLink = () =>
+    withBusy(async () => {
+      if (!webinarId) throw new Error("No webinar to link.");
+      const supabase = createClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) throw new Error("You're signed out — refresh and sign in again.");
+      const saved = await insertHeader(supabase, {
+        title: effectiveTitle(),
+        config,
+        visibility: "shared",
+      });
+      const res = await fetch(`/api/webinars/${webinarId}/header`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ config, creativesUrl: `/header-studio?load=${saved.id}` }),
+      });
+      const b = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(b.error ?? `HTTP ${res.status}`);
+      if (b.mode === "unconfigured") {
+        return "Saved to the team library — set SUPABASE_SERVICE_ROLE_KEY to attach the cover image.";
+      }
+      return "Linked to the webinar ✓ — cover image updated.";
+    });
+
   return (
     <Card className="mb-6 flex flex-wrap items-center gap-3 p-4">
       <input
@@ -73,6 +104,16 @@ export function SaveBar({
         placeholder={`Name (defaults to “${config.title.slice(0, 40)}${config.title.length > 40 ? "…" : ""}”)`}
         className="min-w-[200px] flex-1 rounded-[10px] border border-gray-200 bg-white px-3 py-2 text-[13px] text-ink outline-none focus:border-green-500 focus:ring-2 focus:ring-green-500/20"
       />
+      {webinarId && (
+        <button
+          onClick={saveAndLink}
+          disabled={busy}
+          className="flex items-center gap-1.5 rounded-pill bg-green-600 px-4 py-2 text-[12.5px] font-semibold text-white disabled:opacity-60"
+        >
+          {busy ? <Spinner size={14} className="animate-spin" /> : <LinkSimple size={14} weight="bold" />}
+          Save &amp; link to webinar
+        </button>
+      )}
       {loadedOwned && (
         <button
           onClick={update}

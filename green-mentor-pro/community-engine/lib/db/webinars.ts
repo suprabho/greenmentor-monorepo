@@ -31,7 +31,8 @@ export interface WebinarRow {
   id: string;
   title: string;
   hook: string | null;
-  instructors: string[];
+  /** References into community_instructors (migration 0009). */
+  instructor_ids: string[];
   scheduled_at: string | null;
   duration_minutes: number | null;
   registration_url: string | null;
@@ -56,7 +57,7 @@ export type WebinarEditableFields = Partial<
     WebinarRow,
     | "title"
     | "hook"
-    | "instructors"
+    | "instructor_ids"
     | "scheduled_at"
     | "duration_minutes"
     | "registration_url"
@@ -75,6 +76,12 @@ export async function listWebinars(supabase: SupabaseClient): Promise<WebinarRow
     .order("scheduled_at", { ascending: false, nullsFirst: true });
   if (error) throw new Error(error.message);
   return (data as WebinarRow[]) ?? [];
+}
+
+export async function getWebinar(supabase: SupabaseClient, id: string): Promise<WebinarRow | null> {
+  const { data, error } = await supabase.from(WEBINARS_TABLE).select("*").eq("id", id).maybeSingle();
+  if (error) throw new Error(error.message);
+  return (data as WebinarRow | null) ?? null;
 }
 
 export async function insertWebinar(

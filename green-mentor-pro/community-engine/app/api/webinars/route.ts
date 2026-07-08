@@ -5,7 +5,7 @@
  * GET  → list every webinar plus RSVP counts (admin-only; `community_webinars`
  *        has RLS enabled with no policies, so this reads through the
  *        service-role client).
- * POST → create a webinar. Body { title: string, hook?, instructors?:
+ * POST → create a webinar. Body { title: string, hook?, instructor_ids?:
  *        string[], scheduled_at?, duration_minutes?, registration_url?,
  *        creatives_url?, notes? }. New webinars start as drafts.
  *
@@ -51,7 +51,7 @@ export async function POST(req: Request) {
   const body = (await req.json().catch(() => ({}))) as {
     title?: string;
     hook?: string | null;
-    instructors?: string[];
+    instructor_ids?: string[];
     scheduled_at?: string | null;
     duration_minutes?: number | null;
     registration_url?: string | null;
@@ -61,8 +61,11 @@ export async function POST(req: Request) {
 
   const title = body.title?.trim();
   if (!title) return NextResponse.json({ error: "title is required" }, { status: 400 });
-  if (body.instructors !== undefined && !Array.isArray(body.instructors)) {
-    return NextResponse.json({ error: "instructors must be an array of names" }, { status: 400 });
+  if (
+    body.instructor_ids !== undefined &&
+    (!Array.isArray(body.instructor_ids) || body.instructor_ids.some((id) => typeof id !== "string"))
+  ) {
+    return NextResponse.json({ error: "instructor_ids must be an array of instructor ids" }, { status: 400 });
   }
 
   if (!isServiceRoleConfigured()) {
@@ -72,7 +75,7 @@ export async function POST(req: Request) {
   const webinar = await insertWebinar(createAdminClient(), {
     title,
     hook: body.hook?.trim() || null,
-    instructors: (body.instructors ?? []).map((name) => name.trim()).filter(Boolean),
+    instructor_ids: (body.instructor_ids ?? []).map((id) => id.trim()).filter(Boolean),
     scheduled_at: body.scheduled_at ?? null,
     duration_minutes: body.duration_minutes ?? null,
     registration_url: body.registration_url?.trim() || null,

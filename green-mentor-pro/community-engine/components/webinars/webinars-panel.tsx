@@ -10,10 +10,12 @@
  */
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowSquareOut, Plus } from "@phosphor-icons/react/dist/ssr";
+import { ArrowSquareOut, Plus, Sparkle, X } from "@phosphor-icons/react/dist/ssr";
 import { Card, Chip, Stat } from "@/components/ui";
 import type { WebinarRow, WebinarStatus } from "@/lib/db/webinars";
+import type { InstructorRow } from "@/lib/db/instructors";
 
 const STATUS_OPTIONS: { key: WebinarStatus; label: string }[] = [
   { key: "draft", label: "Draft" },
@@ -95,10 +97,70 @@ function fromLocalInput(value: string): string | null {
   return value ? new Date(value).toISOString() : null;
 }
 
+/** Multi-select of instructors from the roster, stored as an ordered id list. */
+function InstructorPicker({
+  value,
+  onChange,
+  roster,
+}: {
+  value: string[];
+  onChange: (ids: string[]) => void;
+  roster: InstructorRow[];
+}) {
+  const byId = useMemo(() => Object.fromEntries(roster.map((r) => [r.id, r])), [roster]);
+  const available = roster.filter((r) => !value.includes(r.id));
+  return (
+    <div className="flex flex-col gap-2">
+      {value.length > 0 ? (
+        <div className="flex flex-wrap gap-1.5">
+          {value.map((id) => (
+            <span
+              key={id}
+              className="inline-flex items-center gap-1 rounded-pill bg-teal-50 px-2.5 py-1 text-[12px] font-medium text-teal-900"
+            >
+              {byId[id]?.name ?? "Unknown instructor"}
+              <button
+                type="button"
+                onClick={() => onChange(value.filter((v) => v !== id))}
+                className="text-teal-700 hover:text-teal-900"
+                aria-label="Remove instructor"
+              >
+                <X size={12} weight="bold" />
+              </button>
+            </span>
+          ))}
+        </div>
+      ) : null}
+      <select
+        value=""
+        onChange={(e) => {
+          if (e.target.value) onChange([...value, e.target.value]);
+        }}
+        disabled={available.length === 0 && roster.length > 0}
+        className={inputCls}
+      >
+        <option value="">
+          {roster.length === 0
+            ? "No instructors yet — add them in the Instructors section"
+            : available.length === 0
+              ? "All instructors selected"
+              : "Add instructor…"}
+        </option>
+        {available.map((r) => (
+          <option key={r.id} value={r.id}>
+            {r.name}
+            {r.company ? ` — ${r.company}` : ""}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
 interface EditState {
   title: string;
   hook: string;
-  instructors: string;
+  instructorIds: string[];
   scheduledAt: string; // datetime-local value
   durationMinutes: string;
   registrationUrl: string;
@@ -113,7 +175,7 @@ function toEditState(w: WebinarRow): EditState {
   return {
     title: w.title,
     hook: w.hook ?? "",
-    instructors: w.instructors.join(", "),
+    instructorIds: w.instructor_ids,
     scheduledAt: toLocalInput(w.scheduled_at),
     durationMinutes: w.duration_minutes == null ? "" : String(w.duration_minutes),
     registrationUrl: w.registration_url ?? "",
@@ -126,23 +188,37 @@ function toEditState(w: WebinarRow): EditState {
 export function WebinarsPanel({
   initialWebinars,
   initialRsvpCounts,
+  instructors,
   configured,
 }: {
   initialWebinars: WebinarRow[];
   initialRsvpCounts: Record<string, number>;
+  instructors: InstructorRow[];
   configured: boolean;
 }) {
   const router = useRouter();
   const [webinars, setWebinars] = useState<WebinarRow[]>(initialWebinars);
   const [rsvpCounts] = useState<Record<string, number>>(initialRsvpCounts);
+  const instructorsById = useMemo(
+    () => Object.fromEntries(instructors.map((i) => [i.id, i])),
+    [instructors]
+  );
+  const instructorNames = (ids: string[]) =>
+    ids.map((id) => instructorsById[id]?.name).filter(Boolean).join(", ");
   const [tab, setTab] = useState<(typeof TABS)[number]["key"]>("all");
   const [query, setQuery] = useState("");
   const [updating, setUpdating] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<{
+    title: string;
+    hook: string;
+    instructorIds: string[];
+    scheduledAt: string;
+    registrationUrl: string;
+  }>({
     title: "",
     hook: "",
-    instructors: "",
+    instructorIds: [],
     scheduledAt: "",
     registrationUrl: "",
   });
@@ -180,15 +256,15 @@ export function WebinarsPanel({
             !q ||
             w.title.toLowerCase().includes(q) ||
             (w.hook ?? "").toLowerCase().includes(q) ||
-            w.instructors.some((name) => name.toLowerCase().includes(q))
+            w.instructor_ids.some((id) => (instructorsById[id]?.name ?? "").toLowerCase().includes(q))
         )
         .sort((a, b) => (b.scheduled_at ?? "9999").localeCompare(a.scheduled_at ?? "9999")),
-    [webinars, tab, q]
+    [webinars, tab, q, instructorsById]
   );
 
   const closeForm = () => {
     setAdding(false);
-    setForm({ title: "", hook: "", instructors: "", scheduledAt: "", registrationUrl: "" });
+    setForm({ title: "", hook: "", instructorIds: [], scheduledAt: "", registrationUrl: "" });
   };
 
   const create = async () => {
@@ -201,7 +277,7 @@ export function WebinarsPanel({
         body: JSON.stringify({
           title: form.title.trim(),
           hook: form.hook.trim() || null,
-          instructors: form.instructors.split(",").map((s) => s.trim()).filter(Boolean),
+          instructor_ids: form.instructorIds,
           scheduled_at: fromLocalInput(form.scheduledAt),
           registration_url: form.registrationUrl.trim() || null,
         }),
@@ -277,7 +353,7 @@ export function WebinarsPanel({
     const payload = {
       title: edit.title.trim() || w.title,
       hook: edit.hook.trim() || null,
-      instructors: edit.instructors.split(",").map((s) => s.trim()).filter(Boolean),
+      instructor_ids: edit.instructorIds,
       scheduled_at: fromLocalInput(edit.scheduledAt),
       duration_minutes: edit.durationMinutes.trim() === "" ? null : Number(edit.durationMinutes),
       registration_url: edit.registrationUrl.trim() || null,
@@ -371,13 +447,12 @@ export function WebinarsPanel({
                 className={inputCls}
               />
             </label>
-            <label className={labelCls}>
+            <label className={`${labelCls} min-w-56 flex-1`}>
               Instructors
-              <input
-                value={form.instructors}
-                onChange={(e) => setForm((f) => ({ ...f, instructors: e.target.value }))}
-                placeholder="Comma-separated"
-                className={inputCls}
+              <InstructorPicker
+                value={form.instructorIds}
+                onChange={(ids) => setForm((f) => ({ ...f, instructorIds: ids }))}
+                roster={instructors}
               />
             </label>
             <label className={labelCls}>
@@ -476,7 +551,7 @@ export function WebinarsPanel({
                     </div>
                     <div className="mt-0.5 text-[12px] text-gray-500">
                       {fmtDateTime(w.scheduled_at)}
-                      {w.instructors.length > 0 ? ` · ${w.instructors.join(", ")}` : ""}
+                      {w.instructor_ids.length > 0 ? ` · ${instructorNames(w.instructor_ids)}` : ""}
                       {w.hook ? ` · ${w.hook}` : ""}
                     </div>
                     {w.registrations != null || w.attendees != null || w.revenue_inr != null ? (
@@ -560,11 +635,10 @@ export function WebinarsPanel({
                       </label>
                       <label className={labelCls}>
                         Instructors
-                        <input
-                          value={edit.instructors}
-                          onChange={(e) => setEdit((s) => s && { ...s, instructors: e.target.value })}
-                          placeholder="Comma-separated"
-                          className={inputCls}
+                        <InstructorPicker
+                          value={edit.instructorIds}
+                          onChange={(ids) => setEdit((s) => s && { ...s, instructorIds: ids })}
+                          roster={instructors}
                         />
                       </label>
                       <label className={labelCls}>
@@ -609,6 +683,34 @@ export function WebinarsPanel({
                           className={inputCls}
                         />
                       </label>
+                    </div>
+
+                    <div className="mt-4">
+                      <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-gray-500">
+                        Header image
+                      </div>
+                      <div className="flex flex-wrap items-center gap-3">
+                        {w.cover_image_url ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={w.cover_image_url}
+                            alt=""
+                            className="h-14 w-24 rounded-lg border border-gray-200 object-cover"
+                          />
+                        ) : null}
+                        <Link
+                          href={`/header-studio?webinar=${w.id}`}
+                          className="inline-flex items-center gap-1.5 rounded-pill bg-green-600 px-3.5 py-1.5 text-[12px] font-medium text-white transition-colors hover:bg-green-700"
+                        >
+                          <Sparkle size={13} weight="bold" />
+                          {w.cover_image_url ? "Redesign header" : "Design header in Aura Studio"}
+                        </Link>
+                        <span className="text-[11.5px] text-gray-500">
+                          {w.cover_image_url
+                            ? "Cover set — shown on the learner card. Redesign to replace it."
+                            : "Opens the Aura Header Studio pre-filled from this webinar; saving links the cover back here."}
+                        </span>
+                      </div>
                     </div>
 
                     <div className="mt-4">

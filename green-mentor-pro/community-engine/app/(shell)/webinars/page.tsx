@@ -3,6 +3,7 @@ import { WebinarsPanel } from "@/components/webinars/webinars-panel";
 import { requireAdmin } from "@/lib/auth/admin";
 import { createAdminClient, isServiceRoleConfigured } from "@/lib/supabase/admin";
 import { listRsvpCounts, listWebinars, type WebinarRow } from "@/lib/db/webinars";
+import { listInstructors, type InstructorRow } from "@/lib/db/instructors";
 
 export const metadata = { title: "Webinars — GreenMentor Community" };
 export const dynamic = "force-dynamic";
@@ -13,9 +14,14 @@ export default async function WebinarsPage() {
   const configured = isServiceRoleConfigured();
   let webinars: WebinarRow[] = [];
   let rsvpCounts: Record<string, number> = {};
+  let instructors: InstructorRow[] = [];
   if (configured) {
     const admin = createAdminClient();
-    [webinars, rsvpCounts] = await Promise.all([listWebinars(admin), listRsvpCounts(admin)]);
+    [webinars, rsvpCounts, instructors] = await Promise.all([
+      listWebinars(admin),
+      listRsvpCounts(admin),
+      listInstructors(admin),
+    ]);
   }
 
   return (
@@ -24,7 +30,12 @@ export default async function WebinarsPage() {
         title="Webinars"
         sub="Schedule the Academy's live webinars, publish them to the platform, and track funnel metrics."
       />
-      <WebinarsPanel initialWebinars={webinars} initialRsvpCounts={rsvpCounts} configured={configured} />
+      <WebinarsPanel
+        initialWebinars={webinars}
+        initialRsvpCounts={rsvpCounts}
+        instructors={instructors}
+        configured={configured}
+      />
     </div>
   );
 }

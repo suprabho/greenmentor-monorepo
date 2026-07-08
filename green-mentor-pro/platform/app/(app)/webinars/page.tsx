@@ -1,7 +1,13 @@
 import { ArrowSquareOut } from "@phosphor-icons/react/dist/ssr";
 import { Card, Chip, PageHeader } from "@/components/ui";
 import { RsvpButton } from "@/components/webinars/rsvp-button";
-import { fetchPastWebinars, fetchUpcomingWebinars, fetchUserRsvpIds, type Webinar } from "@/lib/webinars/repo";
+import {
+  fetchPastWebinars,
+  fetchUpcomingWebinars,
+  fetchUserRsvpIds,
+  type Webinar,
+  type WebinarInstructor,
+} from "@/lib/webinars/repo";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata = { title: "Webinars — Green Mentor Pro" };
@@ -72,7 +78,7 @@ export default async function WebinarsPage() {
                   </div>
                   <div className="shrink-0 text-[12px] text-gray-500">
                     {fmtDate(w.scheduledAt)}
-                    {w.instructors.length > 0 ? ` · ${w.instructors.join(", ")}` : ""}
+                    {w.instructors.length > 0 ? ` · ${w.instructors.map((i) => i.name).join(", ")}` : ""}
                   </div>
                 </li>
               ))}
@@ -95,6 +101,14 @@ function WebinarCard({
 }) {
   return (
     <Card className="flex h-full flex-col p-5">
+      {webinar.coverImageUrl && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={webinar.coverImageUrl}
+          alt=""
+          className="-mx-5 -mt-5 mb-4 aspect-[1200/627] w-[calc(100%+2.5rem)] max-w-none rounded-t-2xl object-cover"
+        />
+      )}
       <div className="flex items-center justify-between gap-2">
         <Chip tone="green">Free</Chip>
         <span className="text-[12px] font-semibold text-gray-600">
@@ -105,11 +119,9 @@ function WebinarCard({
       <h3 className="mt-3 text-[15.5px] font-semibold text-ink">{webinar.hook ?? webinar.title}</h3>
       {webinar.hook && <p className="mt-1 text-[12.5px] text-gray-500">{webinar.title}</p>}
       {webinar.instructors.length > 0 && (
-        <div className="mt-2.5 flex flex-wrap gap-1.5">
-          {webinar.instructors.map((name) => (
-            <Chip key={name} tone="teal">
-              {name}
-            </Chip>
+        <div className="mt-3 flex flex-col gap-2">
+          {webinar.instructors.map((instructor) => (
+            <InstructorRow key={instructor.id} instructor={instructor} />
           ))}
         </div>
       )}
@@ -127,5 +139,28 @@ function WebinarCard({
         )}
       </div>
     </Card>
+  );
+}
+
+function InstructorRow({ instructor }: { instructor: WebinarInstructor }) {
+  return (
+    <div className="flex items-center gap-2.5">
+      {instructor.photo ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={instructor.photo} alt="" className="size-8 shrink-0 rounded-full object-cover" />
+      ) : (
+        <span className="grid size-8 shrink-0 place-items-center rounded-full bg-teal-900 text-[11px] font-semibold text-white">
+          {instructor.initials}
+        </span>
+      )}
+      <div className="min-w-0">
+        <div className="truncate text-[12.5px] font-semibold text-ink">{instructor.name}</div>
+        {(instructor.role || instructor.company) && (
+          <div className="truncate text-[11.5px] text-gray-500">
+            {[instructor.role, instructor.company].filter(Boolean).join(" · ")}
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
