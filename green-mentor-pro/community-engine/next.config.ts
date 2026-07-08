@@ -37,6 +37,12 @@ const nextConfig: NextConfig = {
     "/api/share-cards/export": [
       "../../node_modules/.pnpm/@sparticuz+chromium@*/node_modules/@sparticuz/chromium/**",
     ],
+    // "Save & link to webinar" renders + uploads the cover PNG through the same
+    // in-process chromium fallback as /api/header/export. Without the binaries
+    // traced in, its Lambda throws "input directory … bin does not exist".
+    "/api/webinars/[id]/header": [
+      "../../node_modules/.pnpm/@sparticuz+chromium@*/node_modules/@sparticuz/chromium/**",
+    ],
   },
 };
 
