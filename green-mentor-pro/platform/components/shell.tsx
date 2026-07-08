@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  ArrowLeft,
   Newspaper,
   GraduationCap,
   Briefcase,
@@ -49,6 +50,14 @@ const FALLBACK_STATS = [
 ];
 
 const COLLAPSED_KEY = "gm-sidebar-collapsed";
+
+/** Deterministic "up one level" for nested Academy pages (course → catalog,
+ * lesson/assessment → course). Top-level tabs have the nav itself, so no back. */
+function backHrefFor(pathname: string): string | null {
+  const seg = pathname.split("/").filter(Boolean);
+  if (seg[0] !== "academy" || seg.length < 2) return null;
+  return seg.length === 2 ? "/academy" : `/academy/${seg[1]}`;
+}
 
 export type ShellStats = { xp: number; coins: number; streakDays: number };
 
@@ -246,7 +255,17 @@ export function Shell({ children, stats }: { children: React.ReactNode; stats?: 
           </div>
         </header>
 
-        <main className="px-4 py-6 pb-24 lg:px-8 lg:pt-8 lg:pb-10">{children}</main>
+        <main className="px-4 py-6 pb-24 lg:px-8 lg:pt-8 lg:pb-10">
+          {backHrefFor(pathname) && (
+            <Link
+              href={backHrefFor(pathname)!}
+              className="mb-4 inline-flex items-center gap-1.5 rounded-pill text-[12.5px] font-semibold text-gray-600 transition-colors hover:text-ink"
+            >
+              <ArrowLeft size={14} weight="bold" /> Back
+            </Link>
+          )}
+          {children}
+        </main>
 
         {/* Mobile bottom nav */}
         <nav className="fixed inset-x-0 bottom-0 z-20 flex border-t border-gray-200 bg-white pb-[env(safe-area-inset-bottom)] lg:hidden">
