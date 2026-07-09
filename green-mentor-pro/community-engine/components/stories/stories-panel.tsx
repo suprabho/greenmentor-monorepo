@@ -11,6 +11,7 @@
  */
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Plus } from "@phosphor-icons/react/dist/ssr";
 import { Card, Chip } from "@/components/ui";
@@ -286,7 +287,12 @@ export function StoriesPanel({
               <li key={s.id} className="flex flex-wrap items-center justify-between gap-3 p-5">
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-[14px] font-semibold text-ink">{s.title}</span>
+                    <Link
+                      href={`/stories/${s.id}`}
+                      className="text-[14px] font-semibold text-ink hover:underline"
+                    >
+                      {s.title}
+                    </Link>
                     <Chip tone={CONTENT_TYPE_TONE[s.content_type]}>{s.content_type}</Chip>
                   </div>
                   <div className="mt-0.5 text-[12px] text-gray-500">
