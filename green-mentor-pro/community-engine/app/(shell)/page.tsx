@@ -44,7 +44,12 @@ async function sectionStats(): Promise<Record<string, string>> {
     // above can't see them — ask the admin client instead.
     if (isServiceRoleConfigured()) {
       const admin = createAdminClient();
-      const [{ count: storyCount }, { count: webinarCount }, { count: instructorCount }] = await Promise.all([
+      const [
+        { count: storyCount },
+        { count: webinarCount },
+        { count: instructorCount },
+        { count: jobCount },
+      ] = await Promise.all([
         admin.from("community_stories").select("id", { count: "exact", head: true }),
         admin
           .from("community_webinars")
@@ -52,6 +57,10 @@ async function sectionStats(): Promise<Record<string, string>> {
           .eq("status", "published")
           .gte("scheduled_at", new Date().toISOString()),
         admin.from("community_instructors").select("id", { count: "exact", head: true }),
+        admin
+          .from("community_jobs")
+          .select("id", { count: "exact", head: true })
+          .eq("status", "published"),
       ]);
       if (storyCount != null) {
         stats["/stories"] = `${storyCount} stor${storyCount === 1 ? "y" : "ies"}`;
@@ -61,6 +70,9 @@ async function sectionStats(): Promise<Record<string, string>> {
       }
       if (instructorCount != null) {
         stats["/instructors"] = `${instructorCount} instructor${instructorCount === 1 ? "" : "s"}`;
+      }
+      if (jobCount != null) {
+        stats["/jobs"] = `${jobCount} published`;
       }
     }
     return stats;

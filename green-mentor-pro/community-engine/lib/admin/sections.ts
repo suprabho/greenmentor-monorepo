@@ -1,4 +1,4 @@
-import { FlowArrow, Cards, Stack, Article, VideoCamera, Users } from "@phosphor-icons/react/dist/ssr";
+import { FlowArrow, Cards, Stack, Article, VideoCamera, Users, Briefcase } from "@phosphor-icons/react/dist/ssr";
 import type { Icon } from "@phosphor-icons/react";
 
 export type SectionStatus = "available" | "soon";
@@ -59,6 +59,13 @@ export const ADMIN_SECTIONS: AdminSection[] = [
     icon: Users,
     name: "Instructors",
     desc: "The practitioner roster — profiles that power the webinar instructor picker and header speaker cards.",
+    status: "available",
+  },
+  {
+    href: "/jobs",
+    icon: Briefcase,
+    name: "Jobs",
+    desc: "Curated ESG & sustainability roles — author postings and publish them to the platform jobs board.",
     status: "available",
   },
 ];
