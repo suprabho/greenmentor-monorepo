@@ -26,6 +26,9 @@ export function EngagementRail({ activeId }: { activeId?: string }) {
   const [showNew, setShowNew] = useState(false);
   const [clientName, setClientName] = useState("");
   const [fy, setFy] = useState("FY2025-26");
+  const [sector, setSector] = useState("");
+  const [brief, setBrief] = useState("");
+  const [demo, setDemo] = useState(false);
   const [creating, setCreating] = useState(false);
 
   useEffect(() => {
@@ -43,7 +46,7 @@ export function EngagementRail({ activeId }: { activeId?: string }) {
       const res = await fetch("/api/ai-hub/engagements", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ clientName, financialYear: fy, framework: ["BRSR"] }),
+        body: JSON.stringify({ clientName, financialYear: fy, framework: ["BRSR"], sector, brief, demo }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? `HTTP ${res.status}`);
@@ -84,6 +87,23 @@ export function EngagementRail({ activeId }: { activeId?: string }) {
             placeholder="Financial year"
             className="w-full rounded-[6px] border border-gray-200 bg-white px-2.5 py-1.5 text-[12.5px] outline-none focus:border-teal-700"
           />
+          <input
+            value={sector}
+            onChange={(e) => setSector(e.target.value)}
+            placeholder="Sector / industry (recommended)"
+            className="w-full rounded-[6px] border border-gray-200 bg-white px-2.5 py-1.5 text-[12.5px] outline-none focus:border-teal-700"
+          />
+          <textarea
+            value={brief}
+            onChange={(e) => setBrief(e.target.value)}
+            placeholder="Brief (optional)"
+            rows={2}
+            className="w-full resize-none rounded-[6px] border border-gray-200 bg-white px-2.5 py-1.5 text-[12.5px] outline-none focus:border-teal-700"
+          />
+          <label className="flex items-center gap-1.5 px-0.5 text-[12px] text-gray-600">
+            <input type="checkbox" checked={demo} onChange={(e) => setDemo(e.target.checked)} className="accent-teal-900" />
+            Use sample demo data
+          </label>
           <button
             type="submit"
             disabled={creating}

@@ -21,7 +21,9 @@ export async function createEngagementAction(formData: FormData): Promise<void> 
     clientName,
     financialYear,
     framework: frameworks.length ? frameworks : ["BRSR"],
-    config: { mode: "live" },
+    // Harness engagements are explicitly demo-data-backed (the @gm/orchestrator copy
+    // used by the platform treats demo as opt-in, so keep this explicit here).
+    config: { mode: "live", data_source_mode: "demo" },
     createdBy: session.userUuid,
   });
   redirect(`/engagements/${eng.id}`);
