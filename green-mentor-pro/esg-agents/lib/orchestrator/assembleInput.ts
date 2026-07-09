@@ -3,6 +3,11 @@
  * buildPhaseInput. Each phase's input is built from the engagement config + the prior
  * phases' stored artifact payloads (not client-passed state). Demo constants are used
  * only as fallbacks so a freshly created engagement with minimal config still runs.
+ *
+ * DELIBERATE DIVERGENCE from the @gm/orchestrator copy: this dev harness keeps
+ * data_source_mode defaulting to "demo" (that's its purpose); the platform copy in
+ * packages/orchestrator treats demo as strictly opt-in and falls back to neutral
+ * "Unspecified"/empty values instead of the Acme fixtures.
  */
 import type { PhaseKey } from "./pipeline";
 import type { EsgArtifact, EsgEngagement } from "@/lib/db/types";

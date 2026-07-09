@@ -26,6 +26,9 @@ export async function POST(req: Request) {
     clientName?: string;
     financialYear?: string;
     framework?: string[];
+    sector?: string;
+    brief?: string;
+    demo?: boolean;
     config?: Record<string, unknown>;
   };
   if (!body.clientName || !body.financialYear) {
@@ -37,7 +40,12 @@ export async function POST(req: Request) {
       clientName: body.clientName,
       financialYear: body.financialYear,
       framework: body.framework ?? ["BRSR"],
-      config: body.config ?? {},
+      config: {
+        ...(body.config ?? {}),
+        ...(body.sector?.trim() ? { sector: body.sector.trim() } : {}),
+        ...(body.brief?.trim() ? { brief: body.brief.trim() } : {}),
+        ...(body.demo ? { data_source_mode: "demo" as const } : {}),
+      },
       createdBy: ctx.userId,
     });
     return NextResponse.json({ engagement }, { status: 201 });

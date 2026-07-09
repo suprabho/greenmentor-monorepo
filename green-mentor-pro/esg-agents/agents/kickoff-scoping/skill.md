@@ -61,6 +61,10 @@ frameworks. Do not over-scope; flag anything genuinely ambiguous for human decis
   scope charter and reporting boundary (e.g. include or exclude the named entities,
   set the consolidation approach) and DO NOT re-raise that question in `open_questions`.
   Only surface genuinely new ambiguities.
+- If company facts (sector, listing status, sites, boundary entities) are missing or
+  given as "Unspecified", do NOT invent them — never assume an industry. Raise each
+  missing fact in `open_questions`, keep objectives and the boundary sector-neutral,
+  and note which charter items are provisional pending those answers.
 - Keep the plan realistic against the reporting period; sequence high-effort data
   collection (Phase 4) and the long requirement-planning phase (Phase 3) early.
 

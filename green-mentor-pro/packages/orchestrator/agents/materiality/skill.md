@@ -56,6 +56,10 @@ derived and never present a topic as material without supporting rationale.
 ## Operating rules
 - Ground scores in evidence (responses, sector materiality maps, regulatory salience);
   never assign a high score without a rationale.
+- If `sector` is "Unspecified", do not assume an industry: score only cross-sector
+  topics (emissions, energy, water, waste, OHS, labour, governance, ethics), note
+  "sector unconfirmed" in each rationale, mark sector-dependent topics as borderline,
+  and include questionnaire items that establish the sector.
 - Surface borderline topics explicitly for human decision rather than silently
   including/excluding them.
 - Keep topic IDs stable and machine-usable (e.g. `ghg_emissions`, `water`, `ohs`).

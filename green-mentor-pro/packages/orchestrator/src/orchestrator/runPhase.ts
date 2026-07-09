@@ -66,14 +66,17 @@ export async function runPhase(
   const engagement = await getEngagement(orgId, engagementId);
   if (!engagement) throw new PhaseNotRunnableError("engagement not found");
 
-  // "My data" mode: data collection needs at least one parsed document to extract from.
+  // Outside demo mode, data collection needs a config-supplied collection input or at
+  // least one parsed document to extract from.
+  const cfg = engagement.config ?? {};
   if (
     phaseKey === "data_collection" &&
-    (engagement.config ?? {}).data_source_mode === "user" &&
+    cfg.data_source_mode !== "demo" &&
+    !cfg.collection_input &&
     parsedDocuments(engagement).length === 0
   ) {
     throw new PhaseNotRunnableError(
-      "Upload at least one document before running data collection (My data mode is on).",
+      "Upload at least one data document (or enable demo data) before running data collection.",
     );
   }
 
