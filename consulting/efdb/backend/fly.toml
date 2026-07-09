@@ -13,7 +13,7 @@ primary_region = 'iad'
   release_command = 'alembic upgrade head'
 
 [env]
-  CORS_ORIGINS = 'https://efdb-promad-designs-projects.vercel.app'
+  CORS_ORIGINS = 'https://efdb-delta.vercel.app'
   UPLOAD_DIR = '/data/uploads'
 
 [[mounts]]
