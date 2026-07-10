@@ -1,4 +1,4 @@
-import { FlowArrow, Cards, Stack, Article, VideoCamera, Users, Briefcase } from "@phosphor-icons/react/dist/ssr";
+import { FlowArrow, Cards, Stack, Article, VideoCamera, Users, Briefcase, ChartBarHorizontal } from "@phosphor-icons/react/dist/ssr";
 import type { Icon } from "@phosphor-icons/react";
 
 export type SectionStatus = "available" | "soon";
@@ -66,6 +66,13 @@ export const ADMIN_SECTIONS: AdminSection[] = [
     icon: Briefcase,
     name: "Jobs",
     desc: "Curated ESG & sustainability roles — author postings and publish them to the platform jobs board.",
+    status: "available",
+  },
+  {
+    href: "/brsr",
+    icon: ChartBarHorizontal,
+    name: "BRSR intelligence",
+    desc: "The NSE BRSR filings corpus — scrape health, per-year coverage, and the extracted emissions, energy, water and safety indicators.",
     status: "available",
   },
 ];
