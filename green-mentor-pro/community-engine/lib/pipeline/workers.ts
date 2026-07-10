@@ -44,6 +44,14 @@ export const PIPELINE_WORKERS: WorkerDef[] = [
       "Pulls the ESG RSS sources, summarizes + entity-tags each new article via Claude, upserts into Supabase.",
     schedule: "Daily 06:30 UTC",
   },
+  {
+    id: "brsr-scrape",
+    workflowFile: "brsr-scrape.yml",
+    label: "BRSR filings scraper",
+    description:
+      "Syncs NSE's BRSR filing index, archives each XBRL to Storage, extracts BRSR Core indicators into Supabase.",
+    schedule: "Daily 15:30 UTC",
+  },
 ];
 
 /** Most recent run of a worker's workflow, or null when it has never run. */
