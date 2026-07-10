@@ -50,6 +50,15 @@ export class BlockedError extends Error {
   }
 }
 
+/** The file is permanently gone (404) — retrying or re-warming won't help.
+ * NSE's index carries dead links for many pre-FY2023-24 filings. */
+export class NotFoundError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "NotFoundError";
+  }
+}
+
 let cookieHeader = "";
 let warmedAt = 0;
 let lastRequestAt = 0;
@@ -105,6 +114,7 @@ async function requestOnce(url: string, accept: string): Promise<Response> {
   if ([401, 403, 429].includes(res.status)) {
     throw new BlockedError(`HTTP ${res.status} from ${new URL(url).host}`);
   }
+  if (res.status === 404) throw new NotFoundError(`HTTP 404 from ${new URL(url).host}`);
   if (!res.ok) throw new Error(`HTTP ${res.status} from ${new URL(url).host}`);
   return res;
 }
@@ -117,6 +127,7 @@ async function withRetry<T>(label: string, fn: () => Promise<T>): Promise<T> {
       return await fn();
     } catch (e) {
       lastError = e;
+      if (e instanceof NotFoundError) break; // permanent — retrying won't help
       if (attempt === MAX_ATTEMPTS) break;
       const wait = BACKOFF_MS[Math.min(attempt - 1, BACKOFF_MS.length - 1)];
       const why = e instanceof Error ? e.message : String(e);
