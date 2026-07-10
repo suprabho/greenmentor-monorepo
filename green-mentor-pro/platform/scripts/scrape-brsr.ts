@@ -48,7 +48,12 @@ type CliOptions = {
 };
 
 function parseCliOptions(): CliOptions {
+  // `pnpm run script -- --flag` forwards the `--` separator verbatim, and
+  // parseArgs would then read every flag after it as a positional. Drop it.
+  const args = process.argv.slice(2);
+  if (args[0] === "--") args.shift();
   const { values } = parseArgs({
+    args,
     options: {
       stage: { type: "string", default: "all" },
       from: { type: "string" },
