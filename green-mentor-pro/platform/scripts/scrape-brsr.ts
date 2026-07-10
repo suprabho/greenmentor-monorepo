@@ -26,7 +26,7 @@
  */
 import { parseArgs } from "node:util";
 import { createAdminClient } from "../lib/supabase/admin";
-import { fetchFile, fetchIndex, type NseFilingRaw } from "../lib/brsr/nse-client";
+import { fetchFile, fetchIndex, NotFoundError, type NseFilingRaw } from "../lib/brsr/nse-client";
 import { extractContexts, extractFacts, matchIndicators, tagHistogram } from "../lib/brsr/xbrl";
 import { BRSR_TAG_MAP } from "../lib/brsr/tag-map";
 
@@ -306,9 +306,20 @@ async function archiveFiles(supabase: Supabase, opts: CliOptions): Promise<strin
 
   let stored = 0;
   let failed = 0;
+  let skipped = 0;
   let consecutiveFailures = 0;
   for (const row of queue) {
     const label = `${row.symbol} ${fyLabel(row.fy_from, row.fy_to)}`;
+    // NSE's index emits ".../xbrl/null" for some legacy filings — nothing to fetch.
+    if (row.xbrl_url.endsWith("/null")) {
+      skipped++;
+      console.log(`[files] ∅ ${label}: index has no real XBRL URL — skipped`);
+      await supabase
+        .from("brsr_filings")
+        .update({ xbrl_status: "skipped", xbrl_error: "index provided null xbrl url" })
+        .eq("id", row.id);
+      continue;
+    }
     try {
       const bytes = await fetchFile(row.xbrl_url);
       const path = `xbrl/${fyLabel(row.fy_from, row.fy_to)}/${safePathPart(row.symbol)}.xml`;
@@ -333,9 +344,20 @@ async function archiveFiles(supabase: Supabase, opts: CliOptions): Promise<strin
       consecutiveFailures = 0;
       console.log(`[files] ✓ ${label} (${(bytes.length / 1024).toFixed(0)} KB)`);
     } catch (e) {
+      const message = e instanceof Error ? e.message : String(e);
+      if (e instanceof NotFoundError) {
+        // Permanently gone at NSE (common for pre-FY23-24 filings): park as
+        // skipped so it neither retries nor trips the blocked-breaker.
+        skipped++;
+        console.log(`[files] ∅ ${label}: ${message} — file gone at NSE, skipped`);
+        await supabase
+          .from("brsr_filings")
+          .update({ xbrl_status: "skipped", xbrl_error: message.slice(0, 500) })
+          .eq("id", row.id);
+        continue;
+      }
       failed++;
       consecutiveFailures++;
-      const message = e instanceof Error ? e.message : String(e);
       console.error(`[files] ✗ ${label}: ${message}`);
       await supabase
         .from("brsr_filings")
@@ -348,7 +370,7 @@ async function archiveFiles(supabase: Supabase, opts: CliOptions): Promise<strin
       }
     }
   }
-  const summary = `files: ${stored} stored, ${failed} failed`;
+  const summary = `files: ${stored} stored, ${skipped} skipped (gone at NSE), ${failed} failed`;
   console.log(`[files] done — ${summary}`);
   return summary;
 }
