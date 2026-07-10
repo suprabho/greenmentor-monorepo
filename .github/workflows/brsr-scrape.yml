@@ -1,0 +1,96 @@
+name: BRSR filings — daily scrape
+
+# Scrapes NSE's BRSR (Business Responsibility & Sustainability Report) filing
+# index, archives each filing's XBRL into the private `brsr-filings` Storage
+# bucket, and extracts the curated BRSR Core indicators
+# (platform/lib/brsr/tag-map.ts) into brsr_filings / brsr_indicators in the
+# shared GreenMentor Supabase. The /pipeline admin view (community-engine) can
+# trigger + monitor this worker; downstream consumers read the
+# brsr_*_public views.
+#
+# Idempotent + resumable: all stage state lives in brsr_filings status columns
+# (unique on symbol × financial year), so the job is safe to re-run, and an
+# interrupted run picks up where it stopped. Politeness (1 req/s sequential,
+# Akamai-aware retries, circuit breaker) is enforced in
+# platform/lib/brsr/nse-client.ts.
+#
+# The daily scheduled run syncs NSE's default rolling ~1-year window; historical
+# backfills are manual dispatches with from_date/to_date (DD-MM-YYYY, one
+# financial-year window per dispatch, e.g. 01-04-2023 → 31-03-2024).
+#
+# Required secrets — in the "Production" environment (Settings → Environments):
+#   NEXT_PUBLIC_SUPABASE_URL    - Supabase project URL
+#   SUPABASE_SERVICE_ROLE_KEY   - service-role key (worker writes, bypasses RLS)
+# (No ANTHROPIC_API_KEY — indicator extraction is deterministic XBRL parsing.)
+
+on:
+  schedule:
+    # 15:30 UTC = 21:00 IST daily — after Indian market hours / NSE EOD updates.
+    - cron: '30 15 * * *'
+  workflow_dispatch:
+    # Every input has a safe default: the Pipeline tab dispatches with {} and
+    # gets the same daily-incremental behaviour as the cron.
+    inputs:
+      stage:
+        description: 'Stage to run: index | files | indicators | all'
+        default: 'all'
+        required: false
+      from_date:
+        description: 'Backfill window start, DD-MM-YYYY (index stage)'
+        default: ''
+        required: false
+      to_date:
+        description: 'Backfill window end, DD-MM-YYYY (index stage)'
+        default: ''
+        required: false
+      limit:
+        description: 'Max files downloaded / filings parsed this run'
+        default: ''
+        required: false
+
+concurrency:
+  group: brsr-scrape
+  cancel-in-progress: false
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    # Daily runs finish in minutes; the headroom is for per-FY backfill
+    # dispatches (~1,300 throttled downloads ≈ 45–70 min).
+    timeout-minutes: 120
+    # Secrets (Supabase URL/service-role key) live in the "Production"
+    # environment — the job must opt in to receive them.
+    environment: Production
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # No `version:` — pnpm/action-setup@v4 reads it from the root
+      # package.json `packageManager` field and rejects having both.
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          # Node 22+: @supabase/realtime-js needs native WebSocket (absent in Node 20).
+          node-version: '22'
+          cache: pnpm
+
+      - name: Install workspace
+        run: pnpm install --frozen-lockfile
+
+      - name: Scrape BRSR filings
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          # On scheduled runs `inputs` is empty, so these fall back to the
+          # daily-incremental defaults.
+          STAGE: ${{ inputs.stage || 'all' }}
+          FROM_DATE: ${{ inputs.from_date || '' }}
+          TO_DATE: ${{ inputs.to_date || '' }}
+          LIMIT: ${{ inputs.limit || '' }}
+        run: |
+          ARGS="--stage=$STAGE"
+          [ -n "$FROM_DATE" ] && ARGS="$ARGS --from=$FROM_DATE"
+          [ -n "$TO_DATE" ] && ARGS="$ARGS --to=$TO_DATE"
+          [ -n "$LIMIT" ] && ARGS="$ARGS --limit=$LIMIT"
+          pnpm --filter @gm/platform brsr:scrape:ci -- $ARGS
