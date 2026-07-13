@@ -143,7 +143,10 @@ export function validateMappings(
     if (typeof canonical_topic !== "string") continue;
     const proposed = canonical_topic.replace(/\s+/g, " ").trim();
     if (!proposed || proposed.length > 80) continue;
-    if (/^(other|others|miscellaneous|misc|general)$/i.test(proposed)) continue;
+    // Reject bucket-of-last-resort proposals in any dressing — vocabKey strips
+    // punctuation, so this also catches "<UNKNOWN>", "N/A", "Un-classified".
+    const rejected = ["other", "others", "misc", "miscellaneous", "general", "unknown", "unclassified", "na", "none", "tbd", "notapplicable"];
+    if (rejected.includes(vocabKey(proposed))) continue;
     if (!PILLARS.includes(pillar as Pillar)) continue;
 
     const existing = byKey.get(vocabKey(proposed));

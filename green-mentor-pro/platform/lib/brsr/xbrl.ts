@@ -264,6 +264,9 @@ export function extractMaterialTopics(xml: string): MaterialTopic[] {
     if (!("MaterialIssueIdentified" in facts)) continue;
     const topicRaw = cleanText(facts.MaterialIssueIdentified, 600);
     if (!topicRaw) continue; // empty topic name → not a usable row
+    // Junk placeholders some filers put in the table ("NA", "Nil", "-", a lone
+    // character) — not material topics, drop the row.
+    if (/^(?:na|n\.?a\.?|nil|none|nan|not applicable|-{1,3}|\W{1,2}|.)$/i.test(normalizeTopic(topicRaw))) continue;
     topics.push({
       contextRef,
       rowOrd: rowOrds.get(contextRef) ?? null,
