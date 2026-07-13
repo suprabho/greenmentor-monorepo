@@ -168,6 +168,117 @@ export function matchIndicators(
   };
 }
 
+// ---------------------------------------------------------------------------
+// Material topics (BRSR Section A "material responsible business conduct issues")
+
+export type MaterialTopic = {
+  contextRef: string;
+  rowOrd: number | null; // typed-member row number; null when unparseable
+  topicRaw: string; // decoded MaterialIssueIdentified, <=600 chars
+  riskOpportunity: "R" | "O" | "RO" | null;
+  rationale: string | null; // <=2000 chars each
+  approach: string | null;
+  financialImplications: string | null;
+};
+
+/** Named + numeric XML entities (ingest-feed's decode() lacks the numeric forms). */
+export function decodeXmlEntities(s: string): string {
+  return s
+    .replace(/&#(\d+);/g, (_, d) => String.fromCodePoint(Number(d)))
+    .replace(/&#x([0-9a-fA-F]+);/g, (_, h) => String.fromCodePoint(parseInt(h, 16)))
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'")
+    .replace(/&amp;/g, "&");
+}
+
+/** The canon join key: decoded, lowercased, whitespace-squeezed. */
+export function normalizeTopic(raw: string): string {
+  return raw.toLowerCase().replace(/\s+/g, " ").trim();
+}
+
+/** Exact-match lookup after decode → uppercase → strip non-letters. Substring
+ * tests are wrong here ("OPPORTUNITY" contains "R"); unknown values → null. */
+const RISK_OPPORTUNITY: Record<string, "R" | "O" | "RO"> = {
+  R: "R",
+  RISK: "R",
+  RISKS: "R",
+  O: "O",
+  OPPORTUNITY: "O",
+  OPPORTUNITIES: "O",
+  RO: "RO",
+  RANDO: "RO",
+  OANDR: "RO",
+  BOTH: "RO",
+  RISKOPPORTUNITY: "RO",
+  RISKANDOPPORTUNITY: "RO",
+  RISKSANDOPPORTUNITIES: "RO",
+  OPPORTUNITYANDRISK: "RO",
+  RISKASWELLASOPPORTUNITY: "RO",
+};
+
+function normalizeRiskOpportunity(value: string | undefined): "R" | "O" | "RO" | null {
+  if (!value) return null;
+  const key = decodeXmlEntities(value).toUpperCase().replace(/[^A-Z]/g, "");
+  return RISK_OPPORTUNITY[key] ?? null;
+}
+
+const cleanText = (value: string | undefined, cap: number): string | null => {
+  if (!value) return null;
+  const decoded = decodeXmlEntities(value).replace(/\s+/g, " ").trim();
+  return decoded ? decoded.slice(0, cap) : null;
+};
+
+/**
+ * Extract the material-issues table. Detection is fact-first: any context
+ * carrying a MaterialIssueIdentified fact IS an issue row — robust to axis
+ * naming drift and independent of typed-dimension parsing (extractContexts
+ * deliberately ignores typedMember; changing its members would break stage 3's
+ * whole-entity matching). The typed member only supplies the row number.
+ */
+export function extractMaterialTopics(xml: string): MaterialTopic[] {
+  const byContext = new Map<string, Record<string, string>>();
+  for (const fact of extractFacts(xml)) {
+    let entry = byContext.get(fact.contextRef);
+    if (!entry) byContext.set(fact.contextRef, (entry = {}));
+    if (!(fact.tag in entry)) entry[fact.tag] = fact.value;
+  }
+
+  // contextRef → typed-member row number, from the raw context bodies
+  const rowOrds = new Map<string, number>();
+  const contextRe = /<(?:\w+:)?context\s[^>]*id="([^"]+)"[^>]*>([\s\S]*?)<\/(?:\w+:)?context>/g;
+  for (const m of xml.matchAll(contextRe)) {
+    const typed = m[2].match(
+      /<(?:[\w.-]+:)?typedMember[^>]*dimension="[^"]*MaterialResponsibleBusinessConductIssues[^"]*"[^>]*>([\s\S]*?)<\/(?:[\w.-]+:)?typedMember>/,
+    );
+    if (!typed) continue;
+    // Member value is "<domain-element>…Domain12</domain-element>" — the row
+    // number is the trailing digit run of the inner text.
+    const ord = typed[1].match(/(\d+)\s*<\//) ?? typed[1].match(/(\d+)\s*$/);
+    if (ord) rowOrds.set(m[1], Number(ord[1]));
+  }
+
+  const topics: MaterialTopic[] = [];
+  for (const [contextRef, facts] of byContext) {
+    if (!("MaterialIssueIdentified" in facts)) continue;
+    const topicRaw = cleanText(facts.MaterialIssueIdentified, 600);
+    if (!topicRaw) continue; // empty topic name → not a usable row
+    topics.push({
+      contextRef,
+      rowOrd: rowOrds.get(contextRef) ?? null,
+      topicRaw,
+      riskOpportunity: normalizeRiskOpportunity(facts.IndicateWhetherRiskOrOpportunity),
+      rationale: cleanText(facts.RationaleForIdentifyingTheRiskOpportunity, 2000),
+      approach: cleanText(facts.InCaseOfRiskApproachToAdaptOrMitigate, 2000),
+      financialImplications: cleanText(facts.FinancialImplicationsOfTheRiskOrOpportunity, 2000),
+    });
+  }
+  return topics.sort(
+    (a, b) => (a.rowOrd ?? Infinity) - (b.rowOrd ?? Infinity) || a.contextRef.localeCompare(b.contextRef),
+  );
+}
+
 /** Tag → {count, sample} histogram of numeric facts — backs --dump-tags. */
 export function tagHistogram(xml: string): Map<string, { count: number; unit: string | null; sample: string }> {
   const hist = new Map<string, { count: number; unit: string | null; sample: string }>();
