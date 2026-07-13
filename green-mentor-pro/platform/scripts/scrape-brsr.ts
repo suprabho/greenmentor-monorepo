@@ -262,6 +262,9 @@ async function syncIndex(supabase: Supabase, opts: CliOptions): Promise<string> 
           xbrl_error: null,
           parse_status: "pending",
           parse_error: null,
+          // Topics come from the same XBRL — a revision staled them too.
+          topics_status: "pending",
+          topics_error: null,
         })
         .eq("id", prior.id);
       if (error) throw new Error(`revision update failed for ${row.symbol}: ${error.message}`);
