@@ -10,25 +10,47 @@
  *   indicators  parse stored XBRL (lib/brsr/xbrl.ts + tag-map.ts) → brsr_indicators
  *
  * Flags:
- *   --stage=index|files|indicators|all   default all
+ *   index       fetch NSE's BRSR filing index → upsert brsr_filings metadata
+ *   topics      extract Section A material topics from stored XBRL → brsr_material_topics
+ *   canon       map new topic phrasings to canonical topics via Claude → brsr_topic_canon
+ *
+ *   --stage=index|files|indicators|topics|canon|all   default all
  *   --from=DD-MM-YYYY --to=DD-MM-YYYY    index backfill window (NSE param format);
  *                                        omitted → NSE's default rolling ~1-year window
  *   --limit=N                            cap files downloaded / filings parsed this run
  *   --symbol=RELIANCE                    restrict files/indicators stages to one company
  *   --dry-run                            log decisions, write nothing
  *   --reparse                            indicators stage: re-extract already-parsed filings
+ *   --retopics                           topics stage: re-extract already-extracted filings
  *   --dump-tags                          dev: print a numeric-tag histogram from stored XBRLs
  *
  * Writes use the service-role client, so NEXT_PUBLIC_SUPABASE_URL +
- * SUPABASE_SERVICE_ROLE_KEY must be set. No LLM involved — extraction is
- * deterministic. Politeness (1 req/s, sequential, Akamai-aware retries) is
- * enforced inside lib/brsr/nse-client.ts.
+ * SUPABASE_SERVICE_ROLE_KEY must be set. Indicator and topic extraction are
+ * deterministic; only the `canon` stage calls Claude (Haiku), and it degrades
+ * to a logged skip when ANTHROPIC_API_KEY is absent. Politeness (1 req/s,
+ * sequential, Akamai-aware retries) is enforced inside lib/brsr/nse-client.ts.
  */
 import { parseArgs } from "node:util";
 import { createAdminClient } from "../lib/supabase/admin";
 import { fetchFile, fetchIndex, NotFoundError, type NseFilingRaw } from "../lib/brsr/nse-client";
-import { extractContexts, extractFacts, matchIndicators, tagHistogram } from "../lib/brsr/xbrl";
+import { getClient } from "@gm/agents";
+import {
+  extractContexts,
+  extractFacts,
+  extractMaterialTopics,
+  matchIndicators,
+  normalizeTopic,
+  tagHistogram,
+} from "../lib/brsr/xbrl";
 import { BRSR_TAG_MAP } from "../lib/brsr/tag-map";
+import {
+  buildCanonSystemPrompt,
+  MAP_TOPICS_TOOL,
+  SEED_VOCAB,
+  validateMappings,
+  vocabKey,
+  type VocabEntry,
+} from "../lib/brsr/topic-canon";
 
 const BUCKET = "brsr-filings";
 const MAX_DOWNLOAD_ATTEMPTS = Number(process.env.BRSR_MAX_ATTEMPTS ?? 4);
@@ -37,13 +59,14 @@ const BREAKER_LIMIT = Number(process.env.BRSR_BREAKER_LIMIT ?? 5);
 type Supabase = ReturnType<typeof createAdminClient>;
 
 type CliOptions = {
-  stage: "index" | "files" | "indicators" | "all";
+  stage: "index" | "files" | "indicators" | "topics" | "canon" | "all";
   from?: string;
   to?: string;
   limit: number;
   symbol?: string;
   dryRun: boolean;
   reparse: boolean;
+  retopics: boolean;
   dumpTags: boolean;
 };
 
@@ -62,12 +85,13 @@ function parseCliOptions(): CliOptions {
       symbol: { type: "string" },
       "dry-run": { type: "boolean", default: false },
       reparse: { type: "boolean", default: false },
+      retopics: { type: "boolean", default: false },
       "dump-tags": { type: "boolean", default: false },
     },
   });
   const stage = values.stage as CliOptions["stage"];
-  if (!["index", "files", "indicators", "all"].includes(stage)) {
-    throw new Error(`--stage must be index|files|indicators|all, got "${stage}"`);
+  if (!["index", "files", "indicators", "topics", "canon", "all"].includes(stage)) {
+    throw new Error(`--stage must be index|files|indicators|topics|canon|all, got "${stage}"`);
   }
   for (const [flag, v] of [["from", values.from], ["to", values.to]] as const) {
     if (v && !/^\d{2}-\d{2}-\d{4}$/.test(v)) {
@@ -84,6 +108,7 @@ function parseCliOptions(): CliOptions {
     symbol: values.symbol,
     dryRun: values["dry-run"],
     reparse: values.reparse,
+    retopics: values.retopics,
     dumpTags: values["dump-tags"],
   };
 }
@@ -464,6 +489,196 @@ async function extractIndicators(supabase: Supabase, opts: CliOptions): Promise<
 }
 
 // ---------------------------------------------------------------------------
+// stage 4 — material-topics extraction (Section A, deterministic)
+
+async function extractTopics(supabase: Supabase, opts: CliOptions): Promise<string> {
+  let extracted = 0;
+  let failed = 0;
+  let topicRows = 0;
+  let remaining = Number.isFinite(opts.limit) ? opts.limit : Infinity;
+
+  // Outer drain-loop: PostgREST caps each select at 1000 rows, but processed
+  // filings leave the queue (topics_status flips), so re-querying until empty
+  // covers the whole backlog in one run. --retopics keeps rows in the queue,
+  // so it deliberately runs a single pass (use with --symbol/--limit).
+  while (remaining > 0) {
+    let query = supabase
+      .from("brsr_filings")
+      .select("id, symbol, fy_from, fy_to, xbrl_storage_path")
+      .eq("xbrl_status", "stored")
+      .order("submission_date", { ascending: false, nullsFirst: false });
+    if (!opts.retopics) query = query.eq("topics_status", "pending");
+    if (opts.symbol) query = query.eq("symbol", opts.symbol);
+    if (Number.isFinite(remaining)) query = query.limit(Math.min(remaining, 1000));
+
+    const { data, error } = await query;
+    if (error) throw new Error(`could not read topics queue (${error.message}) — has migration 0012 been applied?`);
+    const queue = (data ?? []) as ParseRow[];
+    if (queue.length === 0) break;
+    console.log(`[topics] ${queue.length} filing(s) queued${opts.retopics ? " (retopics)" : ""}`);
+
+    for (const filing of queue) {
+      const label = `${filing.symbol} ${fyLabel(filing.fy_from, filing.fy_to)}`;
+      try {
+        const { data: blob, error: dlErr } = await supabase.storage.from(BUCKET).download(filing.xbrl_storage_path);
+        if (dlErr || !blob) throw new Error(`storage download failed: ${dlErr?.message ?? "no data"}`);
+        const topics = extractMaterialTopics(await blob.text());
+        console.log(`[topics] ${opts.dryRun ? "would extract" : "✓"} ${label}: ${topics.length} topic(s)`);
+        if (opts.dryRun) continue;
+
+        const { error: delErr } = await supabase.from("brsr_material_topics").delete().eq("filing_id", filing.id);
+        if (delErr) throw new Error(`topics delete failed: ${delErr.message}`);
+        for (const batch of chunk(topics, 500)) {
+          const { error: insErr } = await supabase.from("brsr_material_topics").insert(
+            batch.map((t) => ({
+              filing_id: filing.id,
+              context_ref: t.contextRef,
+              row_ord: t.rowOrd,
+              topic_raw: t.topicRaw,
+              topic_norm: normalizeTopic(t.topicRaw),
+              risk_opportunity: t.riskOpportunity,
+              rationale: t.rationale,
+              approach: t.approach,
+              financial_implications: t.financialImplications,
+            })),
+          );
+          if (insErr) throw new Error(`topics insert failed: ${insErr.message}`);
+        }
+        const { error: updErr } = await supabase
+          .from("brsr_filings")
+          .update({
+            topics_status: "extracted",
+            topic_count: topics.length,
+            topics_extracted_at: new Date().toISOString(),
+            topics_error: null,
+          })
+          .eq("id", filing.id);
+        if (updErr) throw new Error(`row update failed: ${updErr.message}`);
+        extracted++;
+        topicRows += topics.length;
+      } catch (e) {
+        failed++;
+        const message = e instanceof Error ? e.message : String(e);
+        console.error(`[topics] ✗ ${label}: ${message}`);
+        if (!opts.dryRun) {
+          await supabase
+            .from("brsr_filings")
+            .update({ topics_status: "failed", topics_error: message.slice(0, 500) })
+            .eq("id", filing.id);
+        }
+      }
+    }
+    remaining -= queue.length;
+    if (opts.dryRun || opts.retopics) break; // single pass — queue doesn't shrink
+  }
+
+  const summary = `topics: ${extracted} extracted (${topicRows} rows), ${failed} failed`;
+  console.log(`[topics] done — ${summary}${opts.dryRun ? " (dry-run, nothing written)" : ""}`);
+  return summary;
+}
+
+// ---------------------------------------------------------------------------
+// stage 5 — canonicalization of new topic phrasings (Claude, cached)
+
+const CANON_MODEL = process.env.BRSR_CANON_MODEL ?? "claude-haiku-4-5";
+const CANON_BATCH = Number(process.env.BRSR_CANON_BATCH ?? 50);
+
+/** Working vocabulary = seed list + every canonical the cache already holds. */
+async function loadVocab(supabase: Supabase): Promise<VocabEntry[]> {
+  const vocab = [...SEED_VOCAB];
+  const keys = new Set(vocab.map((v) => vocabKey(v.topic)));
+  const pageSize = 1000;
+  for (let fromRow = 0; ; fromRow += pageSize) {
+    const { data, error } = await supabase
+      .from("brsr_topic_canon")
+      .select("canonical_topic, pillar")
+      .range(fromRow, fromRow + pageSize - 1);
+    if (error) throw new Error(`could not read brsr_topic_canon (${error.message}) — has migration 0012 been applied?`);
+    for (const row of data ?? []) {
+      const key = vocabKey(row.canonical_topic);
+      if (keys.has(key)) continue;
+      keys.add(key);
+      vocab.push({ topic: row.canonical_topic, pillar: row.pillar });
+    }
+    if (!data || data.length < pageSize) return vocab;
+  }
+}
+
+async function canonTopics(supabase: Supabase, opts: CliOptions): Promise<string> {
+  if (!process.env.ANTHROPIC_API_KEY) {
+    console.warn("[canon] ANTHROPIC_API_KEY not set — skipping canonicalization");
+    return "canon: skipped (no ANTHROPIC_API_KEY)";
+  }
+  const client = getClient();
+  const vocab = await loadVocab(supabase);
+  console.log(`[canon] vocabulary: ${vocab.length} canonical topics (${SEED_VOCAB.length} seeded)`);
+
+  let mapped = 0;
+  let calls = 0;
+  let newCanonicals = 0;
+  const limit = Number.isFinite(opts.limit) ? opts.limit : Infinity;
+
+  while (mapped < limit) {
+    const { data, error } = await supabase.rpc("brsr_unmapped_topic_norms", {
+      batch_size: Math.min(CANON_BATCH, limit - mapped),
+    });
+    if (error) throw new Error(`unmapped-norms rpc failed (${error.message}) — has migration 0012 been applied?`);
+    const norms = ((data ?? []) as { topic_norm: string; mentions: number }[]).map((r) => r.topic_norm);
+    if (norms.length === 0) break;
+
+    calls++;
+    const msg = await client.messages.create({
+      model: CANON_MODEL,
+      max_tokens: 4000,
+      system: buildCanonSystemPrompt(vocab),
+      tools: [MAP_TOPICS_TOOL],
+      tool_choice: { type: "tool", name: "map_topics" },
+      messages: [{ role: "user", content: norms.map((n, i) => `${i}. ${n}`).join("\n") }],
+    });
+    const use = msg.content.find((b) => b.type === "tool_use");
+    const { mappings, newEntries } = validateMappings(norms, use?.input, vocab);
+
+    if (opts.dryRun) {
+      for (const m of mappings) {
+        console.log(`[canon]   ${m.topicNorm.slice(0, 60)} → ${m.canonicalTopic} (${m.pillar}, ${m.confidence})`);
+      }
+      console.log(`[canon] dry-run — ${mappings.length}/${norms.length} would be mapped; stopping after one batch`);
+      return `canon: dry-run, ${mappings.length} proposed`;
+    }
+    if (mappings.length === 0) {
+      // Writing nothing means the same batch would return forever — bail loudly.
+      console.error(`[canon] ✗ batch of ${norms.length} produced no valid mappings — stopping`);
+      process.exitCode = 1;
+      break;
+    }
+
+    const { error: upErr } = await supabase.from("brsr_topic_canon").upsert(
+      mappings.map((m) => ({
+        topic_norm: m.topicNorm,
+        canonical_topic: m.canonicalTopic,
+        pillar: m.pillar,
+        confidence: m.confidence,
+        model: CANON_MODEL,
+      })),
+      { onConflict: "topic_norm", ignoreDuplicates: true },
+    );
+    if (upErr) throw new Error(`canon upsert failed: ${upErr.message}`);
+
+    for (const entry of newEntries) {
+      vocab.push(entry);
+      newCanonicals++;
+      console.log(`[canon]   new canonical: ${entry.topic} (${entry.pillar})`);
+    }
+    mapped += mappings.length;
+    console.log(`[canon] ✓ batch ${calls}: ${mappings.length}/${norms.length} mapped (${mapped} total)`);
+  }
+
+  const summary = `canon: ${mapped} mapped in ${calls} call(s)${newCanonicals ? `, ${newCanonicals} new canonical(s)` : ""}`;
+  console.log(`[canon] done — ${summary}`);
+  return summary;
+}
+
+// ---------------------------------------------------------------------------
 // --dump-tags — tag-map calibration helper
 
 async function dumpTags(supabase: Supabase, opts: CliOptions): Promise<void> {
@@ -517,11 +732,14 @@ async function main() {
     return;
   }
 
-  const stages = opts.stage === "all" ? (["index", "files", "indicators"] as const) : ([opts.stage] as const);
+  const stages =
+    opts.stage === "all" ? (["index", "files", "indicators", "topics", "canon"] as const) : ([opts.stage] as const);
   const summaries: string[] = [];
   if (stages.includes("index")) summaries.push(await syncIndex(supabase, opts));
   if (stages.includes("files")) summaries.push(await archiveFiles(supabase, opts));
   if (stages.includes("indicators")) summaries.push(await extractIndicators(supabase, opts));
+  if (stages.includes("topics")) summaries.push(await extractTopics(supabase, opts));
+  if (stages.includes("canon")) summaries.push(await canonTopics(supabase, opts));
 
   console.log(`\n${process.exitCode ? "✗ brsr scrape finished with errors" : "✓ brsr scrape complete"} — ${summaries.join(" · ")}`);
 }

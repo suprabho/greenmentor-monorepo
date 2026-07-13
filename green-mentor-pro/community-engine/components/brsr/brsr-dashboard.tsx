@@ -10,7 +10,7 @@
  * re-declared here). This app is light-only.
  */
 import { Card, Stat } from "@/components/ui";
-import type { BrsrDashboard } from "@/lib/db/brsr";
+import type { BrsrDashboard, Pillar, TopicDatum } from "@/lib/db/brsr";
 
 const SERIES_1 = "#2a78d6"; // categorical slot 1 (blue)
 const SERIES_2 = "#1baf7a"; // categorical slot 2 (aqua)
@@ -78,24 +78,34 @@ function TableView({ head, rows }: { head: string[]; rows: (string | number)[][]
 function BarRow({
   name,
   fy,
+  badge,
   value,
   tooltip,
   ariaLabel,
+  wide = false,
   children,
 }: {
   name: string;
-  fy: string;
+  fy?: string;
+  badge?: React.ReactNode;
   value: string;
   tooltip: React.ReactNode;
   ariaLabel: string;
+  /** Wider label column — canonical topic names run longer than tickers. */
+  wide?: boolean;
   children: React.ReactNode; // the track contents
 }) {
   return (
-    <div className="group relative grid grid-cols-[170px_1fr_64px] items-center gap-3 py-[3px]" tabIndex={0} aria-label={ariaLabel}>
+    <div
+      className={`group relative grid items-center gap-3 py-[3px] ${wide ? "grid-cols-[230px_1fr_64px]" : "grid-cols-[170px_1fr_64px]"}`}
+      tabIndex={0}
+      aria-label={ariaLabel}
+    >
       <Tooltip>{tooltip}</Tooltip>
-      <span className="flex min-w-0 items-baseline gap-1.5 text-[12.5px] text-ink">
+      <span className="flex min-w-0 items-center gap-1.5 text-[12.5px] text-ink">
         <span className="truncate">{name}</span>
-        <span className="shrink-0 text-[11px] text-gray-400">{fy}</span>
+        {fy && <span className="shrink-0 text-[11px] text-gray-400">{fy}</span>}
+        {badge}
       </span>
       <span className="flex h-4 items-center border-l border-[#c3c2b7]">{children}</span>
       <span className="text-right text-[12px] tabular-nums text-gray-600">{value}</span>
@@ -103,8 +113,57 @@ function BarRow({
   );
 }
 
+const PILLAR_LABELS: Record<Pillar, string> = {
+  environment: "Environment",
+  social: "Social",
+  governance: "Governance",
+  cross_cutting: "Cross-cutting",
+};
+
+/** Prevalence-tier badge: Tier 1 = house teal, Tier 2 = outlined, Tier 3 = plain. */
+function TierChip({ tier }: { tier: 1 | 2 | 3 }) {
+  const cls =
+    tier === 1
+      ? "bg-teal-900 text-white"
+      : tier === 2
+        ? "border border-gray-200 bg-white text-gray-600"
+        : "bg-gray-100 text-gray-500";
+  return (
+    <span className={`shrink-0 rounded-pill px-1.5 py-px text-[10px] font-semibold ${cls}`} title={`Tier ${tier}`}>
+      T{tier}
+    </span>
+  );
+}
+
+function TopicRow({ t }: { t: TopicDatum }) {
+  const pct = Math.round(t.prevalence * 100);
+  const roTotal = t.ro.r + t.ro.o + t.ro.ro;
+  const roText =
+    roTotal > 0
+      ? ` · R ${Math.round((100 * t.ro.r) / roTotal)}% / O ${Math.round((100 * t.ro.o) / roTotal)}% / R&O ${Math.round((100 * t.ro.ro) / roTotal)}%`
+      : "";
+  return (
+    <BarRow
+      name={t.topic}
+      badge={<TierChip tier={t.tier} />}
+      wide
+      value={`${pct}% · ${full(t.companies)}`}
+      ariaLabel={`${t.topic}: tier ${t.tier}, cited by ${t.companies} companies (${pct}% of topic-reporting companies)`}
+      tooltip={
+        <>
+          {t.topic} · {full(t.companies)} companies ({pct}%) · {full(t.mentions)} mentions{roText}
+        </>
+      }
+    >
+      <span className="h-4 w-full rounded-r-[4px]" style={{ background: TRACK }}>
+        <span className="block h-4 rounded-r-[4px]" style={{ width: `${Math.max(pct, 0.5)}%`, background: SERIES_1 }} />
+      </span>
+    </BarRow>
+  );
+}
+
 export function BrsrDashboardView({ data }: { data: BrsrDashboard }) {
-  const { corpus, byFy, emitters, emittersExcluded, renewables, ltifr, water, fatalities } = data;
+  const { corpus, byFy, emitters, emittersExcluded, renewables, ltifr, water, fatalities, topics } = data;
   const maxEmit = Math.max(1, ...emitters.map((d) => d.scope1 + d.scope2));
   const maxWater = Math.max(1, ...water.map((d) => d.kl));
   const maxLtifr = Math.max(1, ...ltifr.bins.map((b) => b.count));
@@ -159,6 +218,85 @@ export function BrsrDashboardView({ data }: { data: BrsrDashboard }) {
           </div>
         ))}
       </Card>
+
+      {/* material topics */}
+      <SectionHeading note="tier = share of topic-reporting companies citing it: T1 ≥50% · T2 10–50% · T3 <10%">
+        Material topics — Section A, consolidated
+      </SectionHeading>
+      {!topics ? (
+        <Card className="mb-6">
+          <p className="p-5 text-[13px] text-gray-500">
+            Material topics appear after migration 0012_brsr_material_topics.sql is applied and the scrape worker&apos;s
+            topics + canon stages have run.
+          </p>
+        </Card>
+      ) : (
+        <>
+          <Card className="mb-6 grid grid-cols-2 gap-y-5 p-5 sm:grid-cols-4">
+            <Stat label="Topic mentions" value={full(topics.mentions)} sub="material-issue rows" />
+            <Stat label="Canonical topics" value={full(topics.canonicalCount)} sub="consolidated vocabulary" />
+            <Stat label="Companies covered" value={full(topics.companiesWithTopics)} sub="disclose material topics" />
+            <Stat
+              label="Awaiting canonicalization"
+              value={full(topics.unmappedMentions)}
+              sub="mentions not yet mapped"
+              tone={topics.unmappedMentions > 0 ? "warn" : "ok"}
+            />
+          </Card>
+          <div className="mb-6 grid gap-6 lg:grid-cols-2">
+            {topics.pillars.map(({ pillar, topics: pillarTopics }) => (
+              <Card key={pillar} className="p-5">
+                <h3 className="text-[14px] font-semibold text-ink">{PILLAR_LABELS[pillar]}</h3>
+                <p className="mb-3 text-[12px] text-gray-500">
+                  {full(pillarTopics.length)} canonical topic{pillarTopics.length === 1 ? "" : "s"}
+                </p>
+                {pillarTopics.map((t) => (
+                  <TopicRow key={t.topic} t={t} />
+                ))}
+                <TableView
+                  head={["Topic", "Tier", "Companies", "Prevalence", "Mentions", "R", "O", "R&O"]}
+                  rows={pillarTopics.map((t) => [
+                    t.topic,
+                    `T${t.tier}`,
+                    full(t.companies),
+                    `${Math.round(t.prevalence * 100)}%`,
+                    full(t.mentions),
+                    full(t.ro.r),
+                    full(t.ro.o),
+                    full(t.ro.ro),
+                  ])}
+                />
+              </Card>
+            ))}
+          </div>
+          <Card className="mb-6 p-5">
+            <details>
+              <summary className="cursor-pointer text-[12px] text-gray-500">
+                Raw phrasing variants — how filings word each canonical topic
+              </summary>
+              <div className="mt-3 grid gap-x-8 gap-y-4 sm:grid-cols-2">
+                {topics.pillars
+                  .flatMap((p) => p.topics)
+                  .filter((t) => t.variants.length > 0)
+                  .map((t) => (
+                    <div key={t.topic}>
+                      <div className="flex items-center gap-1.5 text-[12.5px] font-semibold text-ink">
+                        {t.topic} <TierChip tier={t.tier} />
+                      </div>
+                      <ul className="mt-1 space-y-0.5">
+                        {t.variants.map((v) => (
+                          <li key={v.sample} className="truncate text-[12px] text-gray-600" title={v.sample}>
+                            {v.sample} <span className="text-gray-400">· {full(v.mentions)}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
+              </div>
+            </details>
+          </Card>
+        </>
+      )}
 
       {/* emitters */}
       <SectionHeading note="latest filed FY per company">Largest emitters — Scope 1 + 2 (tCO₂e, as filed)</SectionHeading>

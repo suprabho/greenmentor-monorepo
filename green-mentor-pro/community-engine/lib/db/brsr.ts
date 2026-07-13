@@ -56,6 +56,28 @@ export type EmitterDatum = {
   scope2: number;
 };
 
+export type Pillar = "environment" | "social" | "governance" | "cross_cutting";
+
+export type TopicDatum = {
+  topic: string;
+  pillar: Pillar;
+  /** 1: ≥50% of topic-reporting companies · 2: 10–50% · 3: <10% */
+  tier: 1 | 2 | 3;
+  companies: number;
+  prevalence: number; // 0..1 share of topic-reporting companies
+  mentions: number;
+  ro: { r: number; o: number; ro: number };
+  variants: { sample: string; mentions: number }[]; // top raw phrasings
+};
+
+export type TopicsSection = {
+  companiesWithTopics: number;
+  mentions: number;
+  canonicalCount: number;
+  unmappedMentions: number; // extracted but not yet canonicalized
+  pillars: { pillar: Pillar; topics: TopicDatum[] }[];
+};
+
 export type BrsrDashboard = {
   corpus: {
     filings: number;
@@ -76,6 +98,8 @@ export type BrsrDashboard = {
   ltifr: { bins: { label: string; count: number }[]; reported: number };
   water: { symbol: string; name: string; fy: string; kl: number }[];
   fatalities: { workers: number; employees: number; companies: number };
+  /** null until migration 0012 is applied and the topics backfill has run. */
+  topics: TopicsSection | null;
 };
 
 /** "2024-25" for April–March fiscal years; "CY 2024" for calendar-year filers. */
@@ -109,14 +133,100 @@ function latestPerCompany(rows: IndicatorRow[]): Map<string, IndicatorRow> {
 
 const shortName = (companyName: string) => companyName.replace(/ (LIMITED|Limited|LTD\.?|Ltd\.?)$/g, "").trim();
 
+// Prevalence tiers: share of topic-reporting companies that cite the topic.
+const TIER1_MIN = 0.5;
+const TIER2_MIN = 0.1;
+const PILLAR_ORDER: Pillar[] = ["environment", "social", "governance", "cross_cutting"];
+const TOPIC_VARIANT_LIMIT = 8;
+
+type RollupRow = {
+  canonical_topic: string;
+  pillar: Pillar;
+  mentions: number;
+  companies: number;
+  risk_n: number;
+  opportunity_n: number;
+  risk_and_opp_n: number;
+};
+
+type VariantRow = { canonical_topic: string; sample_raw: string; mentions: number };
+
+/**
+ * Material-topics rollup for the dashboard. Isolated + fail-soft: these tables
+ * arrive with migration 0012, and the section simply shows its empty state
+ * until the migration is applied and the topics/canon backfill has run.
+ */
+async function fetchTopicsSection(supabase: SupabaseClient): Promise<TopicsSection | null> {
+  try {
+    const [topicFilings, rollup, variantsRes] = await Promise.all([
+      fetchAllRows<{ symbol: string; topic_count: number }>((from, to) =>
+        supabase
+          .from("brsr_filings")
+          .select("symbol, topic_count")
+          .eq("topics_status", "extracted")
+          .gt("topic_count", 0)
+          .range(from, to),
+      ),
+      fetchAllRows<RollupRow>((from, to) => supabase.from("brsr_topic_rollup_public").select("*").range(from, to)),
+      // top variants only — enough to show the top phrasings under every topic
+      supabase
+        .from("brsr_topic_variants_public")
+        .select("canonical_topic, sample_raw, mentions")
+        .order("mentions", { ascending: false })
+        .limit(2000),
+    ]);
+    if (variantsRes.error) throw new Error(variantsRes.error.message);
+
+    const companiesWithTopics = new Set(topicFilings.map((f) => f.symbol)).size;
+    if (companiesWithTopics === 0) return null; // migration applied but backfill hasn't run
+
+    const variantsByTopic = new Map<string, { sample: string; mentions: number }[]>();
+    for (const v of (variantsRes.data ?? []) as VariantRow[]) {
+      const list = variantsByTopic.get(v.canonical_topic) ?? [];
+      if (list.length < TOPIC_VARIANT_LIMIT) list.push({ sample: v.sample_raw, mentions: v.mentions });
+      variantsByTopic.set(v.canonical_topic, list);
+    }
+
+    const topics: TopicDatum[] = rollup.map((r) => {
+      const prevalence = r.companies / companiesWithTopics;
+      return {
+        topic: r.canonical_topic,
+        pillar: r.pillar,
+        tier: prevalence >= TIER1_MIN ? 1 : prevalence >= TIER2_MIN ? 2 : 3,
+        companies: r.companies,
+        prevalence,
+        mentions: r.mentions,
+        ro: { r: r.risk_n, o: r.opportunity_n, ro: r.risk_and_opp_n },
+        variants: variantsByTopic.get(r.canonical_topic) ?? [],
+      };
+    });
+
+    const totalMentions = topicFilings.reduce((s, f) => s + f.topic_count, 0);
+    const canonMentions = rollup.reduce((s, r) => s + r.mentions, 0);
+    return {
+      companiesWithTopics,
+      mentions: totalMentions,
+      canonicalCount: topics.length,
+      unmappedMentions: Math.max(0, totalMentions - canonMentions),
+      pillars: PILLAR_ORDER.map((pillar) => ({
+        pillar,
+        topics: topics.filter((t) => t.pillar === pillar).sort((a, b) => b.prevalence - a.prevalence),
+      })).filter((p) => p.topics.length > 0),
+    };
+  } catch {
+    return null; // pre-0012 project — the section renders its awaiting state
+  }
+}
+
 export async function fetchBrsrDashboard(supabase: SupabaseClient): Promise<BrsrDashboard> {
-  const [filings, ...slices] = await Promise.all([
+  const [filings, topics, ...slices] = await Promise.all([
     fetchAllRows<FilingRow>((from, to) =>
       supabase
         .from("brsr_filings")
         .select("symbol, fy_from, fy_to, submission_date, xbrl_status, parse_status, indicator_count")
         .range(from, to),
     ),
+    fetchTopicsSection(supabase),
     ...INDICATOR_KEYS.map((key) =>
       fetchAllRows<IndicatorRow>((from, to) =>
         supabase
@@ -225,5 +335,6 @@ export async function fetchBrsrDashboard(supabase: SupabaseClient): Promise<Brsr
     ltifr: { bins, reported: ltifrValues.length },
     water,
     fatalities: { workers: fatalitiesWorkers, employees: fatalitiesEmployees, companies: byKey.get("fatalities_workers")!.size },
+    topics,
   };
 }

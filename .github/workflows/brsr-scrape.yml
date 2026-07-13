@@ -2,11 +2,13 @@ name: BRSR filings — daily scrape
 
 # Scrapes NSE's BRSR (Business Responsibility & Sustainability Report) filing
 # index, archives each filing's XBRL into the private `brsr-filings` Storage
-# bucket, and extracts the curated BRSR Core indicators
-# (platform/lib/brsr/tag-map.ts) into brsr_filings / brsr_indicators in the
-# shared GreenMentor Supabase. The /pipeline admin view (community-engine) can
+# bucket, extracts the curated BRSR Core indicators
+# (platform/lib/brsr/tag-map.ts) into brsr_filings / brsr_indicators, extracts
+# Section A material topics into brsr_material_topics, and canonicalizes new
+# topic phrasings via Claude Haiku into brsr_topic_canon — all in the shared
+# GreenMentor Supabase. The /pipeline admin view (community-engine) can
 # trigger + monitor this worker; downstream consumers read the
-# brsr_*_public views.
+# brsr_*_public views (the /brsr dashboard included).
 #
 # Idempotent + resumable: all stage state lives in brsr_filings status columns
 # (unique on symbol × financial year), so the job is safe to re-run, and an
@@ -21,7 +23,8 @@ name: BRSR filings — daily scrape
 # Required secrets — in the "Production" environment (Settings → Environments):
 #   NEXT_PUBLIC_SUPABASE_URL    - Supabase project URL
 #   SUPABASE_SERVICE_ROLE_KEY   - service-role key (worker writes, bypasses RLS)
-# (No ANTHROPIC_API_KEY — indicator extraction is deterministic XBRL parsing.)
+#   ANTHROPIC_API_KEY           - Claude key, `canon` stage only (topic
+#                                 canonicalization; absent → canon logs a skip)
 
 on:
   schedule:
@@ -32,7 +35,7 @@ on:
     # gets the same daily-incremental behaviour as the cron.
     inputs:
       stage:
-        description: 'Stage to run: index | files | indicators | all'
+        description: 'Stage to run: index | files | indicators | topics | canon | all'
         default: 'all'
         required: false
       from_date:
@@ -82,6 +85,7 @@ jobs:
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           # On scheduled runs `inputs` is empty, so these fall back to the
           # daily-incremental defaults.
           STAGE: ${{ inputs.stage || 'all' }}

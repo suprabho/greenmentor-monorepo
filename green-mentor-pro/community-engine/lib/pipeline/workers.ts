@@ -49,7 +49,7 @@ export const PIPELINE_WORKERS: WorkerDef[] = [
     workflowFile: "brsr-scrape.yml",
     label: "BRSR filings scraper",
     description:
-      "Syncs NSE's BRSR filing index, archives each XBRL to Storage, extracts BRSR Core indicators into Supabase.",
+      "Syncs NSE's BRSR filing index, archives each XBRL to Storage, extracts BRSR Core indicators + Section A material topics, and canonicalizes new topic phrasings via Claude.",
     schedule: "Daily 15:30 UTC",
   },
 ];
