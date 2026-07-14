@@ -12,16 +12,19 @@
  * Flags:
  *   index       fetch NSE's BRSR filing index → upsert brsr_filings metadata
  *   topics      extract Section A material topics from stored XBRL → brsr_material_topics
+ *   profile     extract Section A contact block + turnover-weighted NIC sector +
+ *               disclosure-coverage scorecard → brsr_filings + brsr_company_activities
  *   canon       map new topic phrasings to canonical topics via Claude → brsr_topic_canon
  *
- *   --stage=index|files|indicators|topics|canon|all   default all
+ *   --stage=index|files|indicators|topics|profile|canon|all   default all
  *   --from=DD-MM-YYYY --to=DD-MM-YYYY    index backfill window (NSE param format);
  *                                        omitted → NSE's default rolling ~1-year window
  *   --limit=N                            cap files downloaded / filings parsed this run
- *   --symbol=RELIANCE                    restrict files/indicators stages to one company
+ *   --symbol=RELIANCE                    restrict files/indicators/profile stages to one company
  *   --dry-run                            log decisions, write nothing
  *   --reparse                            indicators stage: re-extract already-parsed filings
  *   --retopics                           topics stage: re-extract already-extracted filings
+ *   --reprofile                          profile stage: re-extract already-profiled filings
  *   --dump-tags                          dev: print a numeric-tag histogram from stored XBRLs
  *
  * Writes use the service-role client, so NEXT_PUBLIC_SUPABASE_URL +
@@ -35,14 +38,18 @@ import { createAdminClient } from "../lib/supabase/admin";
 import { fetchFile, fetchIndex, NotFoundError, type NseFilingRaw } from "../lib/brsr/nse-client";
 import { getClient } from "@gm/agents";
 import {
+  extractCompanyProfile,
   extractContexts,
   extractFacts,
   extractMaterialTopics,
+  extractProductTurnover,
   matchIndicators,
   normalizeTopic,
   tagHistogram,
 } from "../lib/brsr/xbrl";
 import { BRSR_TAG_MAP } from "../lib/brsr/tag-map";
+import { resolveNic, turnoverWeightedSector } from "../lib/brsr/nic-sector";
+import { computeScorecard } from "../lib/brsr/scorecard";
 import {
   buildCanonSystemPrompt,
   MAP_TOPICS_TOOL,
@@ -59,7 +66,7 @@ const BREAKER_LIMIT = Number(process.env.BRSR_BREAKER_LIMIT ?? 5);
 type Supabase = ReturnType<typeof createAdminClient>;
 
 type CliOptions = {
-  stage: "index" | "files" | "indicators" | "topics" | "canon" | "all";
+  stage: "index" | "files" | "indicators" | "topics" | "canon" | "profile" | "all";
   from?: string;
   to?: string;
   limit: number;
@@ -67,6 +74,7 @@ type CliOptions = {
   dryRun: boolean;
   reparse: boolean;
   retopics: boolean;
+  reprofile: boolean;
   dumpTags: boolean;
 };
 
@@ -86,12 +94,13 @@ function parseCliOptions(): CliOptions {
       "dry-run": { type: "boolean", default: false },
       reparse: { type: "boolean", default: false },
       retopics: { type: "boolean", default: false },
+      reprofile: { type: "boolean", default: false },
       "dump-tags": { type: "boolean", default: false },
     },
   });
   const stage = values.stage as CliOptions["stage"];
-  if (!["index", "files", "indicators", "topics", "canon", "all"].includes(stage)) {
-    throw new Error(`--stage must be index|files|indicators|topics|canon|all, got "${stage}"`);
+  if (!["index", "files", "indicators", "topics", "canon", "profile", "all"].includes(stage)) {
+    throw new Error(`--stage must be index|files|indicators|topics|canon|profile|all, got "${stage}"`);
   }
   for (const [flag, v] of [["from", values.from], ["to", values.to]] as const) {
     if (v && !/^\d{2}-\d{2}-\d{4}$/.test(v)) {
@@ -109,6 +118,7 @@ function parseCliOptions(): CliOptions {
     dryRun: values["dry-run"],
     reparse: values.reparse,
     retopics: values.retopics,
+    reprofile: values.reprofile,
     dumpTags: values["dump-tags"],
   };
 }
@@ -581,6 +591,124 @@ async function extractTopics(supabase: Supabase, opts: CliOptions): Promise<stri
 }
 
 // ---------------------------------------------------------------------------
+// stage — company profile: contact block + turnover-weighted sector + coverage
+// scorecard, all from the stored XBRL (deterministic, no network, no LLM).
+
+async function extractProfiles(supabase: Supabase, opts: CliOptions): Promise<string> {
+  let extracted = 0;
+  let failed = 0;
+  let activityRows = 0;
+  let remaining = Number.isFinite(opts.limit) ? opts.limit : Infinity;
+
+  // Same drain-loop as `topics`: profiled filings leave the queue (status flips),
+  // so re-querying until empty covers a >1000-row backlog. --reprofile keeps rows
+  // in the queue, so it runs a single pass (use with --symbol/--limit).
+  while (remaining > 0) {
+    let query = supabase
+      .from("brsr_filings")
+      .select("id, symbol, fy_from, fy_to, xbrl_storage_path")
+      .eq("xbrl_status", "stored")
+      .order("submission_date", { ascending: false, nullsFirst: false });
+    if (!opts.reprofile) query = query.eq("profile_status", "pending");
+    if (opts.symbol) query = query.eq("symbol", opts.symbol);
+    if (Number.isFinite(remaining)) query = query.limit(Math.min(remaining, 1000));
+
+    const { data, error } = await query;
+    if (error) throw new Error(`could not read profile queue (${error.message}) — has migration 0017 been applied?`);
+    const queue = (data ?? []) as ParseRow[];
+    if (queue.length === 0) break;
+    console.log(`[profile] ${queue.length} filing(s) queued${opts.reprofile ? " (reprofile)" : ""}`);
+
+    for (const filing of queue) {
+      const label = `${filing.symbol} ${fyLabel(filing.fy_from, filing.fy_to)}`;
+      try {
+        const { data: blob, error: dlErr } = await supabase.storage.from(BUCKET).download(filing.xbrl_storage_path);
+        if (dlErr || !blob) throw new Error(`storage download failed: ${dlErr?.message ?? "no data"}`);
+        const xml = await blob.text();
+
+        const profile = extractCompanyProfile(xml);
+        const products = extractProductTurnover(xml);
+        const sector = turnoverWeightedSector(products.map((p) => ({ nicCode: p.nicCode, turnover: p.turnover })));
+        const { coverage } = matchIndicators(extractFacts(xml), extractContexts(xml));
+        const scorecard = computeScorecard(coverage.matchedKeys);
+
+        console.log(
+          `[profile] ${opts.dryRun ? "would extract" : "✓"} ${label}: sector ${sector.primarySection?.letter ?? "?"}` +
+            ` (${sector.primaryDivision?.code ?? "--"}) · ${products.length} activities · coverage ${scorecard.overall.score}`,
+        );
+        if (opts.dryRun) continue;
+
+        const { error: updErr } = await supabase
+          .from("brsr_filings")
+          .update({
+            legal_name: profile.legalName,
+            cin: profile.cin,
+            contact_email: profile.email,
+            contact_phone: profile.telephone,
+            website: profile.website,
+            primary_section: sector.primarySection?.letter ?? null,
+            primary_section_title: sector.primarySection?.title ?? null,
+            super_sector: sector.primarySection?.superSector ?? null,
+            primary_division: sector.primaryDivision?.code ?? null,
+            primary_division_title: sector.primaryDivision?.title ?? null,
+            sector_mapped_coverage: sector.mappedCoverage,
+            sector_shares: sector.sectionShares,
+            coverage_score: scorecard.overall.score,
+            scorecard,
+            profile_status: "extracted",
+            profile_extracted_at: new Date().toISOString(),
+            profile_error: null,
+          })
+          .eq("id", filing.id);
+        if (updErr) throw new Error(`row update failed: ${updErr.message}`);
+
+        const { error: delErr } = await supabase
+          .from("brsr_company_activities")
+          .delete()
+          .eq("filing_id", filing.id);
+        if (delErr) throw new Error(`activities delete failed: ${delErr.message}`);
+        const rows = products.map((p) => {
+          const res = resolveNic(p.nicCode);
+          return {
+            filing_id: filing.id,
+            context_ref: p.contextRef,
+            nic_code: p.nicCode,
+            product_name: p.name,
+            turnover: p.turnover,
+            division_code: res?.divisionCode ?? null,
+            section_letter: res?.sectionLetter ?? null,
+            super_sector: res?.superSector ?? null,
+          };
+        });
+        for (const batch of chunk(rows, 500)) {
+          const { error: insErr } = await supabase.from("brsr_company_activities").insert(batch);
+          if (insErr) throw new Error(`activities insert failed: ${insErr.message}`);
+        }
+
+        extracted++;
+        activityRows += rows.length;
+      } catch (e) {
+        failed++;
+        const message = e instanceof Error ? e.message : String(e);
+        console.error(`[profile] ✗ ${label}: ${message}`);
+        if (!opts.dryRun) {
+          await supabase
+            .from("brsr_filings")
+            .update({ profile_status: "failed", profile_error: message.slice(0, 500) })
+            .eq("id", filing.id);
+        }
+      }
+    }
+    remaining -= queue.length;
+    if (opts.dryRun || opts.reprofile) break; // single pass — queue doesn't shrink
+  }
+
+  const summary = `profile: ${extracted} extracted (${activityRows} activity rows), ${failed} failed`;
+  console.log(`[profile] done — ${summary}${opts.dryRun ? " (dry-run, nothing written)" : ""}`);
+  return summary;
+}
+
+// ---------------------------------------------------------------------------
 // stage 5 — canonicalization of new topic phrasings (Claude, cached)
 
 const CANON_MODEL = process.env.BRSR_CANON_MODEL ?? "claude-haiku-4-5";
@@ -736,12 +864,15 @@ async function main() {
   }
 
   const stages =
-    opts.stage === "all" ? (["index", "files", "indicators", "topics", "canon"] as const) : ([opts.stage] as const);
+    opts.stage === "all"
+      ? (["index", "files", "indicators", "topics", "profile", "canon"] as const)
+      : ([opts.stage] as const);
   const summaries: string[] = [];
   if (stages.includes("index")) summaries.push(await syncIndex(supabase, opts));
   if (stages.includes("files")) summaries.push(await archiveFiles(supabase, opts));
   if (stages.includes("indicators")) summaries.push(await extractIndicators(supabase, opts));
   if (stages.includes("topics")) summaries.push(await extractTopics(supabase, opts));
+  if (stages.includes("profile")) summaries.push(await extractProfiles(supabase, opts));
   if (stages.includes("canon")) summaries.push(await canonTopics(supabase, opts));
 
   console.log(`\n${process.exitCode ? "✗ brsr scrape finished with errors" : "✓ brsr scrape complete"} — ${summaries.join(" · ")}`);
