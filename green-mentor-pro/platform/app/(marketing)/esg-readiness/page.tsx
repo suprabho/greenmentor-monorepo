@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { ArrowRight } from "@phosphor-icons/react";
 
+import { AssessmentHeader } from "@/components/esg-readiness/Header";
 import { QuestionCard } from "@/components/esg-readiness/QuestionCard";
 import { Results, type AssessmentResponse } from "@/components/esg-readiness/Results";
 import { QUESTIONS, type QuestionSpec } from "@/lib/esg-readiness/wizard-config";
@@ -71,16 +72,21 @@ export default function EsgReadinessPage() {
 
   if (result) {
     return (
-      <div className="px-5 pt-28 pb-20">
-        <Results result={result} />
-      </div>
+      <>
+        <AssessmentHeader />
+        <div className="px-5 pt-12 pb-20">
+          <Results result={result} />
+        </div>
+      </>
     );
   }
 
   const totalQuestions = QUESTIONS.length;
 
   return (
-    <div className="px-5 pt-28 pb-20">
+    <>
+      <AssessmentHeader />
+      <div className="px-5 pt-12 pb-20">
       <div className="mx-auto max-w-2xl space-y-7">
         {/* progress */}
         {screen.type === "question" && (
@@ -101,17 +107,6 @@ export default function EsgReadinessPage() {
         {/* intro */}
         {screen.type === "intro" && (
           <section className="space-y-5">
-            <div className="space-y-2">
-              <p className="text-[12px] font-semibold uppercase tracking-wide text-green-700">
-                ESG Applicability &amp; Readiness Assessment
-              </p>
-              <h1 className="text-[30px] font-semibold leading-tight tracking-tight text-ink">
-                Which ESG regulations apply to your business — and how ready are you?
-              </h1>
-              <p className="text-[15px] leading-relaxed text-gray-600">
-                A 6-minute assessment. Get an instant applicability check and a personalised readiness report.
-              </p>
-            </div>
             <label className="block">
               <span className="mb-1 block text-[12.5px] font-medium text-gray-600">Your company name</span>
               <input
@@ -175,6 +170,7 @@ export default function EsgReadinessPage() {
           </p>
         )}
       </div>
-    </div>
+      </div>
+    </>
   );
 }
