@@ -614,7 +614,7 @@ async function extractProfiles(supabase: Supabase, opts: CliOptions): Promise<st
     if (Number.isFinite(remaining)) query = query.limit(Math.min(remaining, 1000));
 
     const { data, error } = await query;
-    if (error) throw new Error(`could not read profile queue (${error.message}) — has migration 0013 been applied?`);
+    if (error) throw new Error(`could not read profile queue (${error.message}) — has migration 0017 been applied?`);
     const queue = (data ?? []) as ParseRow[];
     if (queue.length === 0) break;
     console.log(`[profile] ${queue.length} filing(s) queued${opts.reprofile ? " (reprofile)" : ""}`);
