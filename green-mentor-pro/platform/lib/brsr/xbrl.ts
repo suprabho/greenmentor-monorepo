@@ -282,6 +282,98 @@ export function extractMaterialTopics(xml: string): MaterialTopic[] {
   );
 }
 
+// ---------------------------------------------------------------------------
+// Company profile — BRSR Section A identity block (contact + legal identity)
+
+export type CompanyProfile = {
+  legalName: string | null; // as filed, e.g. "Yatra Online Limited" (may differ from the NSE index name)
+  cin: string | null; // Corporate Identity Number, e.g. "L63040MH2005PLC158404"
+  email: string | null;
+  telephone: string | null; // free-form, e.g. "0884-2383904" — kept verbatim, not normalized
+  website: string | null;
+};
+
+// in-capmkt local names for the identity/contact fields. Company-level fields
+// sit in the whole-entity current-year context (DCYMain/ICYMain); we take the
+// first non-empty value per tag, which is unambiguous since identity facts are
+// reported once (no per-period or dimensional variants).
+const PROFILE_TAGS = {
+  legalName: "NameOfTheCompany",
+  cin: "CorporateIdentityNumber",
+  email: "EMailOfTheCompany",
+  telephone: "TelephoneOfCompany",
+  website: "WebsiteOfCompany",
+} as const;
+
+const cleanContact = (value: string): string | null => {
+  const v = decodeXmlEntities(value).replace(/\s+/g, " ").trim();
+  // Filers use "-", "NA", "Nil" etc. as null sentinels in text fields too.
+  if (!v || /^(?:na|n\.?a\.?|nil|none|not applicable|-{1,3})$/i.test(v)) return null;
+  return v.slice(0, 512);
+};
+
+/** Extract the Section A contact/identity fields. Missing tags → null. */
+export function extractCompanyProfile(xml: string): CompanyProfile {
+  const firstByTag = new Map<string, string>();
+  for (const fact of extractFacts(xml)) {
+    if (!firstByTag.has(fact.tag) && fact.value) firstByTag.set(fact.tag, fact.value);
+  }
+  const pick = (tag: string): string | null => {
+    const raw = firstByTag.get(tag);
+    return raw ? cleanContact(raw) : null;
+  };
+  return {
+    legalName: pick(PROFILE_TAGS.legalName),
+    cin: pick(PROFILE_TAGS.cin),
+    email: pick(PROFILE_TAGS.email),
+    telephone: pick(PROFILE_TAGS.telephone),
+    website: pick(PROFILE_TAGS.website),
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Products/services turnover split — BRSR Section A, the NIC-coded table that
+// backs turnover-weighted sector/industry classification (see nic-sector.ts).
+
+export type ProductTurnover = {
+  contextRef: string; // the row's XBRL context, e.g. "D_ProductServiceSold1"
+  nicCode: string; // as filed (digits kept verbatim; resolveNic normalizes)
+  turnover: number; // share of turnover, as filed (fraction like 0.94 or a percent)
+  name: string | null;
+};
+
+const PRODUCT_NIC_TAG = "NICCodeOfProductOrServiceSoldByTheEntity";
+const PRODUCT_TURNOVER_TAG = "PercentageOfTotalTurnoverForProductOrServiceSold";
+const PRODUCT_NAME_TAG = "ProductOrServiceSoldByTheEntity";
+
+/**
+ * Extract the "products/services accounting for 90% of turnover" rows. Each row
+ * is one dimensional context (D_ProductServiceSold1, …) carrying a NIC code and
+ * its turnover share; detection is fact-first (any context with a NIC-code fact
+ * is a row), robust to axis-naming drift. Rows without a parseable NIC code or a
+ * positive turnover are dropped — they carry no sector signal.
+ */
+export function extractProductTurnover(xml: string): ProductTurnover[] {
+  const byContext = new Map<string, Record<string, string>>();
+  for (const fact of extractFacts(xml)) {
+    let entry = byContext.get(fact.contextRef);
+    if (!entry) byContext.set(fact.contextRef, (entry = {}));
+    if (!(fact.tag in entry)) entry[fact.tag] = fact.value;
+  }
+
+  const rows: ProductTurnover[] = [];
+  for (const [contextRef, facts] of byContext) {
+    const nicRaw = facts[PRODUCT_NIC_TAG];
+    if (!nicRaw) continue;
+    const nicCode = nicRaw.replace(/\D/g, "");
+    if (!nicCode) continue;
+    const turnover = toNumber(facts[PRODUCT_TURNOVER_TAG] ?? "");
+    if (turnover === null || turnover <= 0) continue;
+    rows.push({ contextRef, nicCode, turnover, name: cleanContact(facts[PRODUCT_NAME_TAG] ?? "") });
+  }
+  return rows;
+}
+
 /** Tag → {count, sample} histogram of numeric facts — backs --dump-tags. */
 export function tagHistogram(xml: string): Map<string, { count: number; unit: string | null; sample: string }> {
   const hist = new Map<string, { count: number; unit: string | null; sample: string }>();
