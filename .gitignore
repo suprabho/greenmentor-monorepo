@@ -16,6 +16,7 @@
 **/.env
 **/.env.*
 !**/.env.example
+!**/.env.shared.example
 
 # Nested product repos — own git remotes (Greenmentor org), managed independently
 /greenmentor-in-um/
