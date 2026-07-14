@@ -5,11 +5,12 @@
 "use client";
 
 import { useState } from "react";
-import { Plus } from "@phosphor-icons/react";
+import { Plus, Sparkle } from "@phosphor-icons/react";
 import { Card, Chip, PageHeader } from "@/components/ui";
 import { Field, Input, Select, Button, Table, Th, Td } from "@/components/esg/ui";
 import { HierarchyPicker } from "./HierarchyPicker";
 import { EvidenceUpload, type EvidenceFile } from "./EvidenceUpload";
+import { SmartUpload, type SmartResult } from "./SmartUpload";
 import { StatusBadge } from "./StatusBadge";
 import { ApprovalActions } from "./ApprovalActions";
 import type { EnergyMasters, EnergySite, FuelEntry } from "@/lib/energy/types";
@@ -46,11 +47,27 @@ export function FuelClient({
   const [form, setForm] = useState(EMPTY);
   const [evidence, setEvidence] = useState<EvidenceFile[]>([]);
   const [showForm, setShowForm] = useState(initialEntries.length === 0);
+  const [showUpload, setShowUpload] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const fuelUnits = masters.units.filter((u) => u.kind === "fuel" || u.kind === "both");
   const set = (patch: Partial<typeof form>) => setForm((f) => ({ ...f, ...patch }));
+
+  function applySmart({ extracted: ex, resolved, evidence }: SmartResult) {
+    setForm((f) => ({
+      ...f,
+      bill_date: ex.bill_date || f.bill_date,
+      fuel_type_id: resolved.fuel_type_id || f.fuel_type_id,
+      quantity: ex.quantity != null ? String(ex.quantity) : f.quantity,
+      unit_id: resolved.unit_id || f.unit_id,
+      amount_paid: ex.amount_paid != null ? String(ex.amount_paid) : f.amount_paid,
+      currency_id: resolved.currency_id || f.currency_id,
+    }));
+    if (evidence) setEvidence((prev) => [...prev, evidence]);
+    setShowForm(true);
+    setShowUpload(false);
+  }
 
   async function refresh() {
     const res = await fetch("/api/energy/fuel");
@@ -100,11 +117,18 @@ export function FuelClient({
         title="Fuel — Scope 1"
         sub="Stationary & mobile combustion. The emission factor is looked up automatically; override it if you have a bill-specific value."
         action={
-          <Button onClick={() => setShowForm((v) => !v)}>
-            <Plus size={15} weight="bold" /> Add entry
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="secondary" onClick={() => setShowUpload(true)}>
+              <Sparkle size={15} weight="fill" /> Smart Upload
+            </Button>
+            <Button onClick={() => setShowForm((v) => !v)}>
+              <Plus size={15} weight="bold" /> Add entry
+            </Button>
+          </div>
         }
       />
+
+      {showUpload && <SmartUpload billType="fuel" onApply={applySmart} onClose={() => setShowUpload(false)} />}
 
       {showForm && (
         <Card className="mb-6 p-5">
