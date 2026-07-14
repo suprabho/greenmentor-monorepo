@@ -3,11 +3,12 @@
 "use client";
 
 import { useState } from "react";
-import { Plus } from "@phosphor-icons/react";
+import { Plus, Sparkle } from "@phosphor-icons/react";
 import { Card, Chip, PageHeader } from "@/components/ui";
 import { Field, Input, Select, Button, Table, Th, Td } from "@/components/esg/ui";
 import { HierarchyPicker } from "./HierarchyPicker";
 import { EvidenceUpload, type EvidenceFile } from "./EvidenceUpload";
+import { SmartUpload, type SmartResult } from "./SmartUpload";
 import { StatusBadge } from "./StatusBadge";
 import { ApprovalActions } from "./ApprovalActions";
 import type { EnergyMasters, EnergySite, ElectricityEntry } from "@/lib/energy/types";
@@ -49,11 +50,28 @@ export function ElectricityClient({
   const [form, setForm] = useState(EMPTY);
   const [evidence, setEvidence] = useState<EvidenceFile[]>([]);
   const [showForm, setShowForm] = useState(initialEntries.length === 0);
+  const [showUpload, setShowUpload] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const elecUnits = masters.units.filter((u) => u.kind === "electricity" || u.kind === "both");
   const set = (patch: Partial<typeof form>) => setForm((f) => ({ ...f, ...patch }));
+
+  function applySmart({ extracted: ex, resolved, evidence }: SmartResult) {
+    setForm((f) => ({
+      ...f,
+      bill_date: ex.bill_date || f.bill_date,
+      bill_start: ex.bill_start || f.bill_start,
+      bill_end: ex.bill_end || f.bill_end,
+      electricity_source_id: resolved.electricity_source_id || f.electricity_source_id,
+      unit_used: ex.units_kwh != null ? String(ex.units_kwh) : f.unit_used,
+      amount_paid: ex.amount_paid != null ? String(ex.amount_paid) : f.amount_paid,
+      currency_id: resolved.currency_id || f.currency_id,
+    }));
+    if (evidence) setEvidence((prev) => [...prev, evidence]);
+    setShowForm(true);
+    setShowUpload(false);
+  }
 
   async function refresh() {
     const res = await fetch("/api/energy/electricity");
@@ -119,11 +137,18 @@ export function ElectricityClient({
         title="Electricity — Scope 2"
         sub="Grid and self-generated electricity. On-site solar export is netted out; renewable sources carry a zero factor."
         action={
-          <Button onClick={() => setShowForm((v) => !v)}>
-            <Plus size={15} weight="bold" /> Add entry
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="secondary" onClick={() => setShowUpload(true)}>
+              <Sparkle size={15} weight="fill" /> Smart Upload
+            </Button>
+            <Button onClick={() => setShowForm((v) => !v)}>
+              <Plus size={15} weight="bold" /> Add entry
+            </Button>
+          </div>
         }
       />
+
+      {showUpload && <SmartUpload billType="electricity" onApply={applySmart} onClose={() => setShowUpload(false)} />}
 
       {showForm && (
         <Card className="mb-6 p-5">
