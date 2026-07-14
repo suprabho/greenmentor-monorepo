@@ -30,6 +30,19 @@ const BAND_BAR: Record<string, string> = {
   green: "bg-green-700",
 };
 
+/**
+ * Validate an Indian mobile number. Accepts a bare 10-digit number (6–9 start),
+ * or one prefixed with the +91 country code / a leading 0, stripping the prefix
+ * only when it is genuinely there — a bare number like 9123456789 must NOT have
+ * its leading "91" removed. Returns the normalised 10 digits, or null.
+ */
+function normalizeIndianMobile(raw: string): string | null {
+  let d = raw.replace(/\D/g, "");
+  if (d.length === 12 && d.startsWith("91")) d = d.slice(2); // +91 country code
+  else if (d.length === 11 && d.startsWith("0")) d = d.slice(1); // trunk 0
+  return /^[6-9]\d{9}$/.test(d) ? d : null;
+}
+
 export function Results({ result }: { result: AssessmentResponse }) {
   const [form, setForm] = useState({
     name: "",
@@ -58,7 +71,7 @@ export function Results({ result }: { result: AssessmentResponse }) {
   const canSubmit =
     form.name.trim() &&
     /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(form.workEmail) &&
-    /^\d{10}$/.test(form.phone.replace(/\D/g, "").replace(/^91/, "")) &&
+    normalizeIndianMobile(form.phone) !== null &&
     form.companyName.trim();
 
   async function submit() {
