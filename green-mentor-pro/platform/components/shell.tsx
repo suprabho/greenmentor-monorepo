@@ -12,6 +12,7 @@ import {
   Sparkle,
   SquaresFour,
   Fire,
+  Flame,
   Lightning,
   Coins,
   MagnifyingGlass,
@@ -34,6 +35,15 @@ const nav = [
       { label: "Calendar", href: "/feed/calendar", icon: CalendarDots },
       { label: "Leaderboards", href: "/feed/leaderboards", icon: Trophy },
       { label: "Library", href: "/feed/library", icon: Books },
+    ],
+  },
+  {
+    label: "Energy",
+    href: "/energy",
+    icon: Lightning,
+    children: [
+      { label: "Fuel", href: "/energy/fuel", icon: Flame },
+      { label: "Electricity", href: "/energy/electricity", icon: Lightning },
     ],
   },
   { label: "Academy", href: "/academy", icon: GraduationCap, children: [] },
@@ -162,7 +172,7 @@ export function Shell({ children, stats }: { children: React.ReactNode; stats?: 
                 />
                 {!collapsed && <span className="whitespace-nowrap">{item.label}</span>}
               </Link>
-              {!collapsed && item.children.length > 0 && pathname.startsWith("/feed") && (
+              {!collapsed && item.children.length > 0 && pathname.startsWith(item.href) && (
                 <div className="ml-4 mt-0.5 space-y-0.5 border-l border-white/10 pl-3">
                   {item.children.map((c) => (
                     <Link

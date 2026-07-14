@@ -7,7 +7,7 @@ import { NextResponse, type NextRequest } from "next/server";
  * Only these prefixes require a signed-in user; everything else stays open. The
  * session cookie is still refreshed on every matched request.
  */
-const PROTECTED_PATHS = ["/profile", "/onboarding", "/ai-hub", "/academy"];
+const PROTECTED_PATHS = ["/profile", "/onboarding", "/ai-hub", "/academy", "/energy"];
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
