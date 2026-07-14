@@ -86,6 +86,37 @@ export interface EfProvenance {
   dq_score: number | null;
 }
 
+export interface FugitiveEntry {
+  id: string;
+  site_id: string | null;
+  method: number;
+  method_label: string | null;
+  reporting_year: number | null;
+  gas: string | null;
+  database_source: string | null;
+  gwp: number | null;
+  equipment_type: string | null;
+  unit_name: string | null;
+  inputs: Record<string, number | null>;
+  released_kg: number | null;
+  tco2e: number | null;
+  calc_formula: string | null;
+  scope: number;
+  evidence_paths: string[];
+  status: EntryStatus;
+  comment: string | null;
+  created_at: string;
+}
+
+/** Fugitive reference data for the method forms. */
+export interface FugitiveMasters {
+  /** Distinct gases, each with the GWP sources available for it. */
+  gases: { gas: string; sources: { source: string; gwp: number }[] }[];
+  refrigerationEquipment: { id: string; name: string; leak_rate: number | null; min_capacity: number | null; max_capacity: number | null }[];
+  fireEquipment: { id: string; name: string; leak_rate: number | null }[];
+  units: { id: string; name: string }[];
+}
+
 /** The seeded master/reference sets served to the forms. */
 export interface EnergyMasters {
   fuelTypes: { id: string; name: string; source_type: SourceType }[];

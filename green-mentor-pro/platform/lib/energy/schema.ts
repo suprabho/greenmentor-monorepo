@@ -64,6 +64,34 @@ export const electricityEntrySchema = z
   );
 export type ElectricityEntryInput = z.infer<typeof electricityEntrySchema>;
 
+export const fugitiveEntrySchema = z.object({
+  method: z.preprocess((v) => Number(v), z.number().int().min(1).max(5)),
+  site_id: optUuid,
+  reporting_year: optNum,
+  gas: z.string().min(1, "gas is required").nullable().optional(),
+  database_source: z.string().min(1).nullable().optional(),
+  equipment_type: z.string().nullable().optional(), // equipment master name
+  unit_id: optUuid,
+  evidence_paths: z.array(z.string()).default([]),
+  // Method-specific numeric inputs (all optional; each method uses a subset).
+  amount_refrigerant_charged: optNum,
+  refrigerant_capacity: optNum,
+  quantity_purchased: optNum,
+  inventory_start: optNum,
+  inventory_end: optNum,
+  purchased: optNum,
+  disposed: optNum,
+  service_refrigerant_purchases: optNum,
+  retiring_equipment_capacity: optNum,
+  recovered_refrigerant: optNum,
+  new_equipment_capacity: optNum,
+  new_equipment_refrigerant_purchases: optNum,
+  suppressant_capacity: optNum,
+  number_of_units: optNum,
+  emission_factor: optNum,
+});
+export type FugitiveEntryInput = z.infer<typeof fugitiveEntrySchema>;
+
 export const siteSchema = z.object({
   business_unit: z.string().min(1),
   location: z.string().min(1),
