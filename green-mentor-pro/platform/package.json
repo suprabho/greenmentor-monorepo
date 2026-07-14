@@ -15,7 +15,8 @@
     "academy:generate-questions": "node --env-file=.env.local --import tsx scripts/generate-assessment-questions.ts",
     "instructors:upload-photos": "node --env-file=.env.local --import tsx scripts/upload-instructor-photos.ts",
     "brsr:scrape": "node --env-file=.env.local --import tsx scripts/scrape-brsr.ts",
-    "brsr:scrape:ci": "node --import tsx scripts/scrape-brsr.ts"
+    "brsr:scrape:ci": "node --import tsx scripts/scrape-brsr.ts",
+    "esg:test": "node --import tsx --test lib/esg-readiness/__tests__/*.test.ts"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.85",
@@ -27,6 +28,7 @@
     "@openuidev/react-lang": "^0.2.8",
     "@openuidev/react-ui": "^0.12.1",
     "@phosphor-icons/react": "^2.1.10",
+    "@sparticuz/chromium": "^149.0.0",
     "@supabase/ssr": "^0.12.0",
     "@supabase/supabase-js": "^2.108.1",
     "@vismay/ai-gateway": "workspace:*",
@@ -35,8 +37,11 @@
     "clsx": "^2.1.1",
     "framer-motion": "^11.18.2",
     "next": "16.2.2",
+    "playwright": "^1.49.0",
+    "playwright-core": "^1.49.0",
     "react": "19.2.0",
     "react-dom": "19.2.0",
+    "resend": "^4.0.0",
     "tailwind-merge": "^2.6.0",
     "zod": "^3.25.0",
     "zustand": "^5.0.3"
