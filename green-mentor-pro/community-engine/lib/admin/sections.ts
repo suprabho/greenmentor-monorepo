@@ -1,4 +1,4 @@
-import { FlowArrow, Cards, Stack, Article, VideoCamera, Users, Briefcase, ChartBarHorizontal } from "@phosphor-icons/react/dist/ssr";
+import { FlowArrow, Cards, Stack, Article, VideoCamera, Users, Briefcase, ChartBarHorizontal, TreeStructure } from "@phosphor-icons/react/dist/ssr";
 import type { Icon } from "@phosphor-icons/react";
 
 export type SectionStatus = "available" | "soon";
@@ -73,6 +73,13 @@ export const ADMIN_SECTIONS: AdminSection[] = [
     icon: ChartBarHorizontal,
     name: "BRSR intelligence",
     desc: "The NSE BRSR filings corpus — scrape health, per-year coverage, and the extracted emissions, energy, water and safety indicators.",
+    status: "available",
+  },
+  {
+    href: "/nic",
+    icon: TreeStructure,
+    name: "NIC classification",
+    desc: "India's NIC-2008 sector → industry taxonomy — 21 sectors, 88 industries, 238 groups, scraped from the CSO and visualised.",
     status: "available",
   },
 ];
