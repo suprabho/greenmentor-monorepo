@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Flame, Lightning, Wind, ArrowRight } from "@phosphor-icons/react/dist/ssr";
+import { Flame, Lightning, Wind, ChartBar, ArrowRight } from "@phosphor-icons/react/dist/ssr";
 import { Card, PageHeader, Stat } from "@/components/ui";
 import { loadEnergyContext } from "@/lib/energy/page-data";
 import { listFuelEntries, listElectricityEntries, listFugitiveEntries } from "@/lib/energy/repo";
@@ -30,6 +30,14 @@ export default async function EnergyPage() {
       <PageHeader
         title="Energy"
         sub="Scope 1 (fuel combustion) and Scope 2 (electricity) emissions. Enter activity data; the platform looks up the emission factor and computes tCO₂e."
+        action={
+          <Link
+            href="/energy/analyze"
+            className="inline-flex items-center gap-1.5 rounded-lg bg-teal-900 px-3.5 py-2 text-[13px] font-semibold text-white transition-colors hover:bg-teal-800"
+          >
+            <ChartBar size={15} weight="fill" /> View analytics
+          </Link>
+        }
       />
 
       <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
