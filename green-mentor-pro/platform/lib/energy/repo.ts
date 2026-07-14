@@ -11,14 +11,22 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { calcFuelEmission, calcElectricityEmission } from "./calc";
+import { calcFugitive, METHOD_LABELS, type FugitiveInputs } from "./fugitive-calc";
 import { resolveFactor } from "./factors";
 import type {
   EnergyMasters,
   FuelEntry,
   ElectricityEntry,
   EnergySite,
+  FugitiveEntry,
+  FugitiveMasters,
 } from "./types";
-import type { FuelEntryInput, ElectricityEntryInput, SiteInput } from "./schema";
+import type {
+  FuelEntryInput,
+  ElectricityEntryInput,
+  SiteInput,
+  FugitiveEntryInput,
+} from "./schema";
 
 function admin(): SupabaseClient {
   return createAdminClient();
@@ -275,8 +283,120 @@ export async function updateElectricityEntry(
   return data as unknown as ElectricityEntry;
 }
 
+// ── Fugitive entries (Scope 1) ───────────────────────────────────────────────
+const FUGITIVE_COLS =
+  "id, site_id, method, method_label, reporting_year, gas, database_source, gwp, equipment_type, unit_name, inputs, released_kg, tco2e, calc_formula, scope, evidence_paths, status, comment, created_at";
+
+const FUGITIVE_INPUT_KEYS: (keyof FugitiveInputs)[] = [
+  "amount_refrigerant_charged", "refrigerant_capacity", "quantity_purchased",
+  "inventory_start", "inventory_end", "purchased", "disposed",
+  "service_refrigerant_purchases", "retiring_equipment_capacity", "recovered_refrigerant",
+  "new_equipment_capacity", "new_equipment_refrigerant_purchases",
+  "suppressant_capacity", "number_of_units", "emission_factor",
+];
+
+export async function getFugitiveMasters(): Promise<FugitiveMasters> {
+  const db = admin();
+  const [gwp, equipment, units] = await Promise.all([
+    db.from("energy_gas_gwp").select("gas, source, gwp").order("sort").order("source"),
+    db.from("energy_equipment_types").select("id, name, category, leak_rate, min_capacity, max_capacity").order("sort"),
+    db.from("energy_units").select("id, name").order("sort"),
+  ]);
+  const byGas = new Map<string, { gas: string; sources: { source: string; gwp: number }[] }>();
+  for (const r of (gwp.data ?? []) as { gas: string; source: string; gwp: number }[]) {
+    if (!byGas.has(r.gas)) byGas.set(r.gas, { gas: r.gas, sources: [] });
+    byGas.get(r.gas)!.sources.push({ source: r.source, gwp: r.gwp });
+  }
+  const equ = (equipment.data ?? []) as { id: string; name: string; category: string; leak_rate: number | null; min_capacity: number | null; max_capacity: number | null }[];
+  return {
+    gases: [...byGas.values()],
+    refrigerationEquipment: equ.filter((e) => e.category === "refrigeration"),
+    fireEquipment: equ.filter((e) => e.category === "fire_suppression").map((e) => ({ id: e.id, name: e.name, leak_rate: e.leak_rate })),
+    units: (units.data ?? []) as FugitiveMasters["units"],
+  };
+}
+
+export async function listFugitiveEntries(orgId: string): Promise<FugitiveEntry[]> {
+  const { data } = await admin()
+    .from("energy_fugitive_entries")
+    .select(FUGITIVE_COLS)
+    .eq("org_id", orgId)
+    .order("created_at", { ascending: false });
+  return (data ?? []) as unknown as FugitiveEntry[];
+}
+
+async function buildFugitiveRow(input: FugitiveEntryInput) {
+  const db = admin();
+  const [gwpRow, equipmentRow, unitName] = await Promise.all([
+    input.gas && input.database_source
+      ? db.from("energy_gas_gwp").select("gwp").eq("gas", input.gas).eq("source", input.database_source).maybeSingle()
+      : Promise.resolve({ data: null }),
+    input.equipment_type
+      ? db.from("energy_equipment_types").select("leak_rate").eq("name", input.equipment_type).maybeSingle()
+      : Promise.resolve({ data: null }),
+    nameById("energy_units", input.unit_id),
+  ]);
+  const gwp = (gwpRow.data as { gwp?: number } | null)?.gwp ?? null;
+  const leakRate = (equipmentRow.data as { leak_rate?: number } | null)?.leak_rate ?? null;
+
+  const inputs: FugitiveInputs = {};
+  for (const k of FUGITIVE_INPUT_KEYS) {
+    const v = (input as Record<string, unknown>)[k];
+    if (v != null) inputs[k] = v as number;
+  }
+  // Fire suppression: default the annual emission factor to the equipment's rate
+  // when the user didn't supply one.
+  if (input.method === 5 && inputs.emission_factor == null && leakRate != null) {
+    inputs.emission_factor = leakRate;
+  }
+
+  const calc = calcFugitive(input.method, inputs, gwp, leakRate);
+
+  return {
+    site_id: input.site_id ?? null,
+    method: input.method,
+    method_label: METHOD_LABELS[input.method] ?? null,
+    reporting_year: input.reporting_year ?? null,
+    gas: input.gas ?? null,
+    database_source: input.database_source ?? null,
+    gwp,
+    equipment_type: input.equipment_type ?? null,
+    unit_name: unitName,
+    inputs: inputs as Record<string, number>,
+    released_kg: calc.released_kg,
+    tco2e: calc.tco2e,
+    calc_formula: calc.formula,
+    scope: 1,
+    evidence_paths: input.evidence_paths,
+  };
+}
+
+export async function createFugitiveEntry(orgId: string, userId: string, input: FugitiveEntryInput): Promise<FugitiveEntry> {
+  const row = await buildFugitiveRow(input);
+  const { data, error } = await admin()
+    .from("energy_fugitive_entries")
+    .insert({ ...row, org_id: orgId, user_id: userId, status: "Submitted" })
+    .select(FUGITIVE_COLS)
+    .single();
+  if (error) throw new Error(error.message);
+  return data as unknown as FugitiveEntry;
+}
+
+export async function updateFugitiveEntry(orgId: string, id: string, input: FugitiveEntryInput): Promise<FugitiveEntry> {
+  const row = await buildFugitiveRow(input);
+  const { data, error } = await admin()
+    .from("energy_fugitive_entries")
+    .update({ ...row, status: "Submitted", comment: null, reviewed_by: null, reviewed_at: null })
+    .eq("org_id", orgId)
+    .eq("id", id)
+    .select(FUGITIVE_COLS)
+    .single();
+  if (error) throw new Error(error.message);
+  return data as unknown as FugitiveEntry;
+}
+
 // ── Shared delete / approve / reject (table name passed in) ──────────────────
-type EnergyTable = "energy_fuel_entries" | "energy_electricity_entries";
+type EnergyTable = "energy_fuel_entries" | "energy_electricity_entries" | "energy_fugitive_entries";
 
 export async function deleteEntry(table: EnergyTable, orgId: string, id: string): Promise<void> {
   const { error } = await admin().from(table).delete().eq("org_id", orgId).eq("id", id);

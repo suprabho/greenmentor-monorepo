@@ -1,10 +1,33 @@
 import { NextResponse } from "next/server";
+import { getEngagementContext } from "@/lib/engagement-session";
+import { buildEnergyChart } from "@/lib/energy/charts";
+import { jsonError } from "@/lib/api-error";
 
-// Static chart-data endpoint that GenericChart fetches from
-// (/api/chart-data/<slug>/<id>). Color values use $-prefixed theme tokens
-// which viz-engine resolves against the live ChartColors palette. This stands
-// in for the real ingest-generated chart JSON until the Feed worker lands.
-export async function GET() {
+// Chart-data endpoint that @vismay/viz-engine's GenericChart fetches from
+// (/api/chart-data/<slug>/<id>). Returns { steps: [{ title, option }] } where
+// option is an echarts spec.
+//
+// slug === "energy": real, org-scoped Energy analytics (auth required).
+// Everything else: the static demo below (colors use $-prefixed theme tokens
+// which viz-engine resolves against the live ChartColors palette) — stands in
+// for ingest-generated chart JSON until the Feed worker lands.
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+export async function GET(_req: Request, { params }: { params: Promise<{ slug: string; id: string }> }) {
+  const { slug, id } = await params;
+
+  if (slug === "energy") {
+    try {
+      const ctx = await getEngagementContext();
+      if (!ctx) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+      return NextResponse.json(await buildEnergyChart(ctx.orgId, id));
+    } catch (e) {
+      return jsonError(e);
+    }
+  }
+
   return NextResponse.json({
     steps: [
       {

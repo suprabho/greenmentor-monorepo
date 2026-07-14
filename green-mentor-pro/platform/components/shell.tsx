@@ -13,6 +13,8 @@ import {
   SquaresFour,
   Fire,
   Flame,
+  Wind,
+  ChartBar,
   Lightning,
   Coins,
   MagnifyingGlass,
@@ -44,6 +46,8 @@ const nav = [
     children: [
       { label: "Fuel", href: "/energy/fuel", icon: Flame },
       { label: "Electricity", href: "/energy/electricity", icon: Lightning },
+      { label: "Fugitive", href: "/energy/fugitive", icon: Wind },
+      { label: "Analyze", href: "/energy/analyze", icon: ChartBar },
     ],
   },
   { label: "Academy", href: "/academy", icon: GraduationCap, children: [] },
