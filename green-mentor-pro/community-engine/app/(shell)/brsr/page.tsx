@@ -28,12 +28,20 @@ export default async function BrsrPage() {
         title="BRSR intelligence"
         sub="Every listed company's Business Responsibility & Sustainability Report, scraped from NSE and parsed into comparable indicators — corpus health first, then what the filings say."
         action={
-          <Link
-            href="/pipeline"
-            className="rounded-pill border border-gray-200 bg-white px-3 py-1 text-[12px] font-medium text-gray-700 transition-colors hover:bg-gray-50"
-          >
-            Scrape worker →
-          </Link>
+          <div className="flex gap-2">
+            <Link
+              href="/brsr/companies"
+              className="rounded-pill border border-gray-200 bg-white px-3 py-1 text-[12px] font-medium text-gray-700 transition-colors hover:bg-gray-50"
+            >
+              Companies →
+            </Link>
+            <Link
+              href="/pipeline"
+              className="rounded-pill border border-gray-200 bg-white px-3 py-1 text-[12px] font-medium text-gray-700 transition-colors hover:bg-gray-50"
+            >
+              Scrape worker →
+            </Link>
+          </div>
         }
       />
 
