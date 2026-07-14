@@ -6,7 +6,7 @@ import { getEngagementContext } from "@/lib/engagement-session";
 import { getMemberRole, isChecker, setEntryReview } from "@/lib/energy/repo";
 import { jsonError } from "@/lib/api-error";
 
-type EnergyTable = "energy_fuel_entries" | "energy_electricity_entries";
+type EnergyTable = "energy_fuel_entries" | "energy_electricity_entries" | "energy_fugitive_entries";
 
 export async function handleReview(req: Request, table: EnergyTable, id: string) {
   try {

@@ -11,7 +11,7 @@ export function ApprovalActions({
   id,
   onDone,
 }: {
-  kind: "fuel" | "electricity";
+  kind: "fuel" | "electricity" | "fugitive";
   id: string;
   onDone: () => void;
 }) {
