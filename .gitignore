@@ -18,6 +18,10 @@
 !**/.env.example
 !**/.env.shared.example
 
+# MSCI materiality-map extraction artifacts — authenticated session state + raw
+# export (see platform/scripts/extract-msci-materiality.ts). Local only, never commit.
+**/scripts/.out/
+
 # Nested product repos — own git remotes (Greenmentor org), managed independently
 /greenmentor-in-um/
 /greenmentor-in-fe/

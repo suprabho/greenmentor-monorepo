@@ -16,6 +16,9 @@
     "instructors:upload-photos": "node --env-file=.env.local --import tsx scripts/upload-instructor-photos.ts",
     "brsr:scrape": "node --env-file=.env.local --import tsx scripts/scrape-brsr.ts",
     "brsr:scrape:ci": "node --import tsx scripts/scrape-brsr.ts",
+    "msci:login": "node --import tsx scripts/extract-msci-materiality.ts --login",
+    "msci:extract": "node --import tsx scripts/extract-msci-materiality.ts",
+    "msci:gen": "node --import tsx scripts/gen-msci-data.ts",
     "esg:test": "node --import tsx --test lib/esg-readiness/__tests__/*.test.ts"
   },
   "dependencies": {
