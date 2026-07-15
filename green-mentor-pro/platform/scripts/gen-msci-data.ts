@@ -10,12 +10,18 @@
  * reference data for INTERNAL USE ONLY (see the emitted header).
  */
 import { parseArgs } from "node:util";
+import { existsSync } from "node:fs";
 import { readFile, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
-const OUT = resolve(HERE, "../lib/msci/materiality-data.ts");
+// The dataset is duplicated per app (same precedent as lib/nic). Write every copy
+// whose target dir already exists so the annual refresh keeps them in sync.
+const OUTS = [
+  resolve(HERE, "../lib/msci/materiality-data.ts"), // @gm/platform (source of truth)
+  resolve(HERE, "../../community-engine/lib/msci/materiality-data.ts"), // community-engine (admin dashboard)
+];
 
 type RawIssue = { name: string; description?: string };
 type RawTheme = { name: string; classification: string; issues: RawIssue[] };
@@ -151,9 +157,15 @@ ${subs.map(([g, n, s, d, r]) => `  [${j(g)}, ${j(n)}, ${j(s)}, [${d.join(",")}],
 ];
 `;
 
-  await writeFile(OUT, body);
+  const written: string[] = [];
+  for (const out of OUTS) {
+    if (!existsSync(dirname(out))) continue; // app not present / lib/msci not created there
+    await writeFile(out, body);
+    written.push(out);
+  }
   console.log(
-    `✓ wrote ${OUT}\n  ${issues.length} issues (${weightedOrder.length} weighted) · ` +
+    `✓ wrote ${written.length} cop${written.length === 1 ? "y" : "ies"}:\n  ${written.join("\n  ")}\n` +
+      `  ${issues.length} issues (${weightedOrder.length} weighted) · ` +
       `${sectors.length} sectors · ${subs.length} sub-industries`,
   );
 }
