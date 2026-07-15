@@ -21,7 +21,10 @@ async function main() {
   const { values } = parseArgs({ args, options: { "dry-run": { type: "boolean", default: false } } });
   const dryRun = values["dry-run"];
 
-  // Resolve + validate every crosswalk entry against the NIC tree.
+  // Resolve + validate every crosswalk entry against the NIC tree. seeded_at is
+  // set explicitly (one timestamp per run) so re-seeds refresh it — the column
+  // DEFAULT only fires on INSERT, not on the upsert's ON CONFLICT update.
+  const seededAt = new Date().toISOString();
   const rows = SUBINDUSTRY_NIC_CROSSWALK.map((e) => {
     const nic = resolveNic(e.division);
     if (!nic) throw new Error(`${e.slug}: NIC division "${e.division}" is not a real NIC-2008 Division`);
@@ -37,6 +40,7 @@ async function main() {
       nic_division: nic.divisionCode,
       nic_division_title: nic.divisionTitle,
       confidence: e.confidence,
+      seeded_at: seededAt,
     };
   });
 
