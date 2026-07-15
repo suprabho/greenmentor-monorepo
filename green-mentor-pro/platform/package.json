@@ -16,6 +16,8 @@
     "instructors:upload-photos": "node --env-file=.env.local --import tsx scripts/upload-instructor-photos.ts",
     "brsr:scrape": "node --env-file=.env.local --import tsx scripts/scrape-brsr.ts",
     "brsr:scrape:ci": "node --import tsx scripts/scrape-brsr.ts",
+    "sustainalytics:scrape": "node --env-file=.env.local --import tsx scripts/scrape-sustainalytics.ts",
+    "sustainalytics:scrape:ci": "node --import tsx scripts/scrape-sustainalytics.ts",
     "esg:test": "node --import tsx --test lib/esg-readiness/__tests__/*.test.ts"
   },
   "dependencies": {
