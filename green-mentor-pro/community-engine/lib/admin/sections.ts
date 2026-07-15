@@ -1,4 +1,4 @@
-import { FlowArrow, Cards, Stack, Article, VideoCamera, Users, Briefcase, ChartBarHorizontal, TreeStructure, Target } from "@phosphor-icons/react/dist/ssr";
+import { FlowArrow, Cards, Stack, Article, VideoCamera, Users, Briefcase, ChartBarHorizontal, TreeStructure, Target, ListChecks } from "@phosphor-icons/react/dist/ssr";
 import type { Icon } from "@phosphor-icons/react";
 
 export type SectionStatus = "available" | "soon";
@@ -80,6 +80,13 @@ export const ADMIN_SECTIONS: AdminSection[] = [
     icon: TreeStructure,
     name: "NIC classification",
     desc: "India's NIC-2008 sector → industry taxonomy — 21 sectors, 88 industries, 238 groups, scraped from the CSO and visualised.",
+    status: "available",
+  },
+  {
+    href: "/sustainalytics",
+    icon: ListChecks,
+    name: "Material ESG Issues",
+    desc: "Sustainalytics' materiality taxonomy — the ESG issues financially material to each subindustry, crosswalked to India's NIC-2008 sectors so it lines up with BRSR.",
     status: "available",
   },
   {
