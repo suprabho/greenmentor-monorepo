@@ -18,6 +18,11 @@
     "brsr:scrape:ci": "node --import tsx scripts/scrape-brsr.ts",
     "sustainalytics:scrape": "node --env-file=.env.local --import tsx scripts/scrape-sustainalytics.ts",
     "sustainalytics:scrape:ci": "node --import tsx scripts/scrape-sustainalytics.ts",
+    "sustainalytics:crosswalk": "node --env-file=.env.local --import tsx scripts/seed-sustainalytics-nic.ts",
+    "sustainalytics:crosswalk:ci": "node --import tsx scripts/seed-sustainalytics-nic.ts",
+    "sustainalytics:test": "node --import tsx --test lib/sustainalytics/__tests__/*.test.ts",
+    "msci:login": "node --import tsx scripts/extract-msci-materiality.ts --login",
+    "msci:extract": "node --import tsx scripts/extract-msci-materiality.ts",
     "esg:test": "node --import tsx --test lib/esg-readiness/__tests__/*.test.ts"
   },
   "dependencies": {
