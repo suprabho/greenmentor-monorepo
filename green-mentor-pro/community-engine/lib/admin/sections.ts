@@ -1,4 +1,4 @@
-import { FlowArrow, Cards, Stack, Article, VideoCamera, Users, Briefcase, ChartBarHorizontal, TreeStructure, Target, ListChecks } from "@phosphor-icons/react/dist/ssr";
+import { FlowArrow, Cards, Stack, Article, VideoCamera, Users, Briefcase, ChartBarHorizontal, TreeStructure, Target, ListChecks, Compass } from "@phosphor-icons/react/dist/ssr";
 import type { Icon } from "@phosphor-icons/react";
 
 export type SectionStatus = "available" | "soon";
@@ -94,6 +94,13 @@ export const ADMIN_SECTIONS: AdminSection[] = [
     icon: Target,
     name: "ESG Materiality Map",
     desc: "MSCI's ESG Industry Materiality Map — the Key Issues material to each GICS sector and sub-industry, with average weights. Internal reference only.",
+    status: "available",
+  },
+  {
+    href: "/sasb",
+    icon: Compass,
+    name: "SASB Materiality Finder",
+    desc: "SASB's 77 SICS industries → financially-material issue categories and disclosure topics, crosswalked to India's NIC-2008 sectors.",
     status: "available",
   },
 ];
