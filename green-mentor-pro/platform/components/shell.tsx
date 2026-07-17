@@ -23,10 +23,10 @@ import {
   Books,
   Leaf,
   SidebarSimple,
+  SignIn,
 } from "@phosphor-icons/react";
 import { clsx } from "clsx";
 import { Avatar } from "@/components/ui";
-import { me } from "@/lib/data";
 
 const nav = [
   {
@@ -57,14 +57,6 @@ const nav = [
   { label: "Longsite Lite", href: "/longsite", icon: SquaresFour, children: [] },
 ];
 
-// Fallback shown when signed out or the stats fetch fails — the shell must
-// never break on marketing-adjacent or error states.
-const FALLBACK_STATS = [
-  { label: "2,840 XP", icon: Lightning, iconClass: "text-green-400" },
-  { label: "9-day", icon: Fire, iconClass: "text-orange-400" },
-  { label: "1,450 cr", icon: Coins, iconClass: "text-white/70" },
-];
-
 const COLLAPSED_KEY = "gm-sidebar-collapsed";
 
 /** Deterministic "up one level" for nested Academy pages (course → catalog,
@@ -76,19 +68,29 @@ function backHrefFor(pathname: string): string | null {
 }
 
 export type ShellStats = { xp: number; coins: number; streakDays: number };
+export type ShellViewer = { name: string; avatarUrl: string | null };
 
-export function Shell({ children, stats }: { children: React.ReactNode; stats?: ShellStats }) {
+export function Shell({
+  children,
+  stats,
+  viewer,
+}: {
+  children: React.ReactNode;
+  stats?: ShellStats;
+  viewer?: ShellViewer;
+}) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
 
+  // Stats/identity come from the server layout; absent means signed out (or the
+  // fetch failed), in which case we show a sign-in prompt rather than fake numbers.
   const sidebarStats = stats
     ? [
         { label: `${stats.xp.toLocaleString()} XP`, icon: Lightning, iconClass: "text-green-400" },
         { label: `${stats.streakDays}-day`, icon: Fire, iconClass: "text-orange-400" },
         { label: `${stats.coins.toLocaleString()} cr`, icon: Coins, iconClass: "text-white/70" },
       ]
-    : FALLBACK_STATS;
-  const mobileStats = stats ?? { xp: 2840, coins: 1450, streakDays: 9 };
+    : [];
 
   useEffect(() => {
     if (window.localStorage.getItem(COLLAPSED_KEY) === "1") setCollapsed(true);
@@ -199,49 +201,72 @@ export function Shell({ children, stats }: { children: React.ReactNode; stats?: 
           ))}
         </nav>
 
-        <div
-          className={clsx(
-            "mx-3 mt-3 flex gap-1.5",
-            collapsed ? "flex-col items-center" : "flex-wrap"
-          )}
-        >
-          {sidebarStats.map((s) => (
-            <span
-              key={s.label}
-              title={s.label}
-              className={clsx(
-                "flex items-center gap-1.5 rounded-pill bg-white/10 text-[12px] font-semibold text-white/90",
-                collapsed ? "size-8 justify-center" : "px-2.5 py-1"
-              )}
-            >
-              <s.icon size={13} weight="fill" className={clsx("shrink-0", s.iconClass)} />
-              {!collapsed && s.label}
-            </span>
-          ))}
-        </div>
+        {sidebarStats.length > 0 && (
+          <div
+            className={clsx(
+              "mx-3 mt-3 flex gap-1.5",
+              collapsed ? "flex-col items-center" : "flex-wrap"
+            )}
+          >
+            {sidebarStats.map((s) => (
+              <span
+                key={s.label}
+                title={s.label}
+                className={clsx(
+                  "flex items-center gap-1.5 rounded-pill bg-white/10 text-[12px] font-semibold text-white/90",
+                  collapsed ? "size-8 justify-center" : "px-2.5 py-1"
+                )}
+              >
+                <s.icon size={13} weight="fill" className={clsx("shrink-0", s.iconClass)} />
+                {!collapsed && s.label}
+              </span>
+            ))}
+          </div>
+        )}
 
-        <Link
-          href="/profile"
-          title={collapsed ? "Green Learning Profile" : undefined}
-          className={clsx(
-            "m-3 flex items-center gap-3 rounded-xl transition-colors",
-            collapsed ? "justify-center p-2" : "p-3",
-            pathname.startsWith("/profile") ? "bg-white/10" : "bg-white/5 hover:bg-white/10"
-          )}
-        >
-          <Avatar
-            src={me.avatar}
-            name={me.name}
-            size={36}
-            className="shrink-0 ring-2 ring-green-500/60"
-          />
-          {!collapsed && (
-            <span className="min-w-0">
-              <span className="block truncate text-[13px] font-semibold">Supro</span>
-              <span className="block text-[11px] text-green-100/70">Green Learning Profile</span>
+        {viewer ? (
+          <Link
+            href="/profile"
+            title={collapsed ? "Green Learning Profile" : undefined}
+            className={clsx(
+              "m-3 flex items-center gap-3 rounded-xl transition-colors",
+              collapsed ? "justify-center p-2" : "p-3",
+              pathname.startsWith("/profile") ? "bg-white/10" : "bg-white/5 hover:bg-white/10"
+            )}
+          >
+            <Avatar
+              src={viewer.avatarUrl ?? undefined}
+              name={viewer.name}
+              size={36}
+              className="shrink-0 ring-2 ring-green-500/60"
+            />
+            {!collapsed && (
+              <span className="min-w-0">
+                <span className="block truncate text-[13px] font-semibold">{viewer.name}</span>
+                <span className="block text-[11px] text-green-100/70">Green Learning Profile</span>
+              </span>
+            )}
+          </Link>
+        ) : (
+          <Link
+            href="/login"
+            title={collapsed ? "Sign in" : undefined}
+            className={clsx(
+              "m-3 flex items-center gap-3 rounded-xl bg-white/5 transition-colors hover:bg-white/10",
+              collapsed ? "justify-center p-2" : "p-3"
+            )}
+          >
+            <span className="grid size-9 shrink-0 place-items-center rounded-full bg-white/10 text-green-400">
+              <SignIn size={18} weight="bold" />
             </span>
-          )}
-        </Link>
+            {!collapsed && (
+              <span className="min-w-0">
+                <span className="block text-[13px] font-semibold">Sign in</span>
+                <span className="block text-[11px] text-green-100/70">Track XP, streaks &amp; credits</span>
+              </span>
+            )}
+          </Link>
+        )}
       </aside>
 
       {/* Main column */}
@@ -259,15 +284,28 @@ export function Shell({ children, stats }: { children: React.ReactNode; stats?: 
             Search courses, jobs, library…
           </div>
           <div className="ml-auto flex items-center gap-2">
-            <span className="flex items-center gap-1.5 rounded-pill bg-green-50 px-2.5 py-1 text-[12px] font-semibold text-green-700">
-              <Lightning size={13} weight="fill" /> {mobileStats.xp.toLocaleString()} XP
-            </span>
-            <span className="flex items-center gap-1.5 rounded-pill bg-[#FFF4E0] px-2.5 py-1 text-[12px] font-semibold text-[#B25E00]">
-              <Fire size={13} weight="fill" /> {mobileStats.streakDays}-day
-            </span>
-            <span className="hidden sm:flex items-center gap-1.5 rounded-pill bg-gray-100 px-2.5 py-1 text-[12px] font-semibold text-gray-800">
-              <Coins size={13} weight="fill" /> {mobileStats.coins.toLocaleString()} cr
-            </span>
+            {stats ? (
+              <>
+                <span className="flex items-center gap-1.5 rounded-pill bg-green-50 px-2.5 py-1 text-[12px] font-semibold text-green-700">
+                  <Lightning size={13} weight="fill" /> {stats.xp.toLocaleString()} XP
+                </span>
+                <span className="flex items-center gap-1.5 rounded-pill bg-[#FFF4E0] px-2.5 py-1 text-[12px] font-semibold text-[#B25E00]">
+                  <Fire size={13} weight="fill" /> {stats.streakDays}-day
+                </span>
+                <span className="hidden sm:flex items-center gap-1.5 rounded-pill bg-gray-100 px-2.5 py-1 text-[12px] font-semibold text-gray-800">
+                  <Coins size={13} weight="fill" /> {stats.coins.toLocaleString()} cr
+                </span>
+              </>
+            ) : (
+              !viewer && (
+                <Link
+                  href="/login"
+                  className="flex items-center gap-1.5 rounded-pill bg-green-50 px-2.5 py-1 text-[12px] font-semibold text-green-700"
+                >
+                  <SignIn size={13} weight="bold" /> Sign in
+                </Link>
+              )
+            )}
           </div>
         </header>
 
