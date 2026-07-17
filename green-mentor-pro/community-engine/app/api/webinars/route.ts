@@ -56,6 +56,8 @@ export async function POST(req: Request) {
     duration_minutes?: number | null;
     registration_url?: string | null;
     creatives_url?: string | null;
+    zoom_meeting_number?: string | null;
+    zoom_passcode?: string | null;
     notes?: string | null;
   };
 
@@ -80,6 +82,8 @@ export async function POST(req: Request) {
     duration_minutes: body.duration_minutes ?? null,
     registration_url: body.registration_url?.trim() || null,
     creatives_url: body.creatives_url?.trim() || null,
+    zoom_meeting_number: body.zoom_meeting_number?.trim() || null,
+    zoom_passcode: body.zoom_passcode?.trim() || null,
     notes: body.notes?.trim() || null,
   });
   return NextResponse.json({ ok: true, mode: "created", webinar });

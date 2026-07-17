@@ -14,6 +14,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowSquareOut, Plus, Sparkle, X } from "@phosphor-icons/react/dist/ssr";
 import { Card, Chip, Stat } from "@/components/ui";
+import { WebinarPollsEditor } from "@/components/webinars/webinar-polls-editor";
 import type { WebinarRow, WebinarStatus } from "@/lib/db/webinars";
 import type { InstructorRow } from "@/lib/db/instructors";
 
@@ -165,6 +166,8 @@ interface EditState {
   durationMinutes: string;
   registrationUrl: string;
   creativesUrl: string;
+  zoomMeetingNumber: string;
+  zoomPasscode: string;
   notes: string;
   metrics: Record<MetricKey, string>;
 }
@@ -180,6 +183,8 @@ function toEditState(w: WebinarRow): EditState {
     durationMinutes: w.duration_minutes == null ? "" : String(w.duration_minutes),
     registrationUrl: w.registration_url ?? "",
     creativesUrl: w.creatives_url ?? "",
+    zoomMeetingNumber: w.zoom_meeting_number ?? "",
+    zoomPasscode: w.zoom_passcode ?? "",
     notes: w.notes ?? "",
     metrics,
   };
@@ -358,6 +363,8 @@ export function WebinarsPanel({
       duration_minutes: edit.durationMinutes.trim() === "" ? null : Number(edit.durationMinutes),
       registration_url: edit.registrationUrl.trim() || null,
       creatives_url: edit.creativesUrl.trim() || null,
+      zoom_meeting_number: edit.zoomMeetingNumber.trim() || null,
+      zoom_passcode: edit.zoomPasscode.trim() || null,
       notes: edit.notes.trim() || null,
       ...metricPayload,
     };
@@ -676,6 +683,25 @@ export function WebinarsPanel({
                         />
                       </label>
                       <label className={labelCls}>
+                        Zoom meeting number
+                        <input
+                          inputMode="numeric"
+                          value={edit.zoomMeetingNumber}
+                          onChange={(e) => setEdit((s) => s && { ...s, zoomMeetingNumber: e.target.value })}
+                          placeholder="e.g. 84512345678"
+                          className={inputCls}
+                        />
+                      </label>
+                      <label className={labelCls}>
+                        Zoom passcode
+                        <input
+                          value={edit.zoomPasscode}
+                          onChange={(e) => setEdit((s) => s && { ...s, zoomPasscode: e.target.value })}
+                          placeholder="Join passcode"
+                          className={inputCls}
+                        />
+                      </label>
+                      <label className={labelCls}>
                         Notes
                         <input
                           value={edit.notes}
@@ -733,6 +759,8 @@ export function WebinarsPanel({
                         ))}
                       </div>
                     </div>
+
+                    <WebinarPollsEditor webinarId={w.id} />
 
                     <div className="mt-4 flex items-center gap-3">
                       <button

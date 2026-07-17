@@ -100,6 +100,12 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     ...(body.cover_image_url !== undefined
       ? { cover_image_url: (body.cover_image_url as string | null)?.trim() || null }
       : {}),
+    ...(body.zoom_meeting_number !== undefined
+      ? { zoom_meeting_number: (body.zoom_meeting_number as string | null)?.trim() || null }
+      : {}),
+    ...(body.zoom_passcode !== undefined
+      ? { zoom_passcode: (body.zoom_passcode as string | null)?.trim() || null }
+      : {}),
     ...(body.status !== undefined ? { status: body.status as WebinarStatus } : {}),
     ...(body.notes !== undefined ? { notes: body.notes as string | null } : {}),
   };
