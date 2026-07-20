@@ -22,8 +22,12 @@ const WARMUP_URL =
 const INDEX_URL = "https://www.nseindia.com/api/corporate-bussiness-sustainabilitiy";
 
 const RATE_MS = Number(process.env.BRSR_RATE_MS ?? 1000);
-const MAX_ATTEMPTS = Number(process.env.BRSR_MAX_ATTEMPTS ?? 4);
-const BACKOFF_MS = [2_000, 8_000, 30_000];
+const MAX_ATTEMPTS = Number(process.env.BRSR_MAX_ATTEMPTS ?? 6);
+// Exponential-ish ladder capped at 2 min. When NSE blackholes the runner IP
+// (every request hits REQUEST_TIMEOUT_MS), the old 4-attempt / 40s-backoff ladder
+// gave the block only ~2.5 min to clear before the whole scrape failed; extending
+// to 6 attempts buys ~6-7 min, still far inside the job's 120-min budget.
+const BACKOFF_MS = [2_000, 8_000, 30_000, 60_000, 120_000];
 const SESSION_TTL_MS = 25 * 60 * 1000;
 const REQUEST_TIMEOUT_MS = 30_000;
 
