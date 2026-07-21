@@ -9,8 +9,29 @@
  * signed-in session — the SDK secret never reaches the browser.
  */
 
+import * as React from "react";
 import { useEffect, useRef, useState } from "react";
 import { VideoCamera, CircleNotch } from "@phosphor-icons/react";
+
+/**
+ * @zoom/meetingsdk's Component View reads React's internal
+ * ReactCurrentOwner/ReactCurrentBatchConfig, which React 19 restructured —
+ * without this shim, joining throws "Cannot read properties of undefined
+ * (reading 'ReactCurrentOwner')". No official Zoom fix exists yet
+ * (devforum.zoom.us/t/react-19-not-supported-with-embedded-sdk/134827).
+ * Guarded so it's a harmless no-op once Zoom ships real React 19 support (or
+ * if a future React release removes/renames the internals object again).
+ */
+function patchReactInternalsForZoomSdk() {
+  const internals = (
+    React as unknown as {
+      __SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED?: Record<string, unknown>;
+    }
+  ).__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED;
+  if (!internals) return;
+  if (!internals.ReactCurrentOwner) internals.ReactCurrentOwner = { current: null };
+  if (!internals.ReactCurrentBatchConfig) internals.ReactCurrentBatchConfig = { transition: 0 };
+}
 
 type Phase = "idle" | "joining" | "joined" | "error";
 
@@ -54,6 +75,7 @@ export function ZoomEmbed({ webinarId }: { webinarId: string }) {
       if (!res.ok) throw new Error(body.error ?? `Could not get a join signature (HTTP ${res.status})`);
       const creds = body as JoinCredentials;
 
+      patchReactInternalsForZoomSdk();
       const ZoomMtgEmbedded = (await import("@zoom/meetingsdk/embedded")).default;
       const client = ZoomMtgEmbedded.createClient() as unknown as EmbeddedClient;
       clientRef.current = client;
