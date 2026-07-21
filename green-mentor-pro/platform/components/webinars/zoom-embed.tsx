@@ -2,35 +2,69 @@
 
 /**
  * Embedded Zoom webinar player (Meeting SDK — Component View). The heavy SDK is
- * dynamically imported on a user gesture (the "Join" click) so it never loads
- * during SSR or before it's needed, and so the browser's camera/mic prompt is
- * tied to an explicit action. Join credentials come from the server-side
- * signature route (app/api/webinars/[id]/zoom-signature), which is gated on a
- * signed-in session — the SDK secret never reaches the browser.
+ * loaded on a user gesture (the "Join" click) so it never loads during SSR or
+ * before it's needed, and so the browser's camera/mic prompt is tied to an
+ * explicit action. Join credentials come from the server-side signature route
+ * (app/api/webinars/[id]/zoom-signature), which is gated on a signed-in
+ * session — the SDK secret never reaches the browser.
+ *
+ * The SDK is loaded from Zoom's CDN (their documented script-tag setup: React
+ * 18 + redux vendor globals, then the SDK bundle), NOT from the npm package.
+ * The npm build declares react as an external, and Next's App Router forces
+ * every client module onto the app's React 19, whose internals the SDK can't
+ * use — joining then throws "Cannot read properties of undefined (reading
+ * 'ReactCurrentOwner')"
+ * (devforum.zoom.us/t/react-19-not-supported-with-embedded-sdk/134827). The
+ * script tags keep the SDK outside the bundler, so it runs on Zoom's own
+ * React 18 globals while the app's module-scoped React 19 is untouched. The
+ * SDK pulls its media/wasm assets from source.zoom.us either way, so this
+ * adds no new runtime dependency.
  */
 
-import * as React from "react";
 import { useEffect, useRef, useState } from "react";
 import { VideoCamera, CircleNotch } from "@phosphor-icons/react";
 
-/**
- * @zoom/meetingsdk's Component View reads React's internal
- * ReactCurrentOwner/ReactCurrentBatchConfig, which React 19 restructured —
- * without this shim, joining throws "Cannot read properties of undefined
- * (reading 'ReactCurrentOwner')". No official Zoom fix exists yet
- * (devforum.zoom.us/t/react-19-not-supported-with-embedded-sdk/134827).
- * Guarded so it's a harmless no-op once Zoom ships real React 19 support (or
- * if a future React release removes/renames the internals object again).
- */
-function patchReactInternalsForZoomSdk() {
-  const internals = (
-    React as unknown as {
-      __SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED?: Record<string, unknown>;
-    }
-  ).__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED;
-  if (!internals) return;
-  if (!internals.ReactCurrentOwner) internals.ReactCurrentOwner = { current: null };
-  if (!internals.ReactCurrentBatchConfig) internals.ReactCurrentBatchConfig = { transition: 0 };
+// Keep in sync with the CDN bundles Zoom publishes (source.zoom.us).
+const ZOOM_SDK_VERSION = "3.13.2";
+
+// Zoom's documented load order: vendor globals first, SDK bundle last.
+const ZOOM_SDK_SCRIPTS = [
+  `https://source.zoom.us/${ZOOM_SDK_VERSION}/lib/vendor/react.min.js`,
+  `https://source.zoom.us/${ZOOM_SDK_VERSION}/lib/vendor/react-dom.min.js`,
+  `https://source.zoom.us/${ZOOM_SDK_VERSION}/lib/vendor/redux.min.js`,
+  `https://source.zoom.us/${ZOOM_SDK_VERSION}/lib/vendor/redux-thunk.min.js`,
+  `https://source.zoom.us/${ZOOM_SDK_VERSION}/lib/vendor/lodash.min.js`,
+  `https://source.zoom.us/${ZOOM_SDK_VERSION}/zoom-meeting-embedded-${ZOOM_SDK_VERSION}.min.js`,
+];
+
+type EmbeddedSdk = { createClient: () => unknown };
+
+const scriptPromises = new Map<string, Promise<void>>();
+
+function loadScript(src: string): Promise<void> {
+  const cached = scriptPromises.get(src);
+  if (cached) return cached;
+  const promise = new Promise<void>((resolve, reject) => {
+    const script = document.createElement("script");
+    script.src = src;
+    script.addEventListener("load", () => resolve());
+    script.addEventListener("error", () => {
+      scriptPromises.delete(src); // allow a retry after e.g. a network blip
+      script.remove();
+      reject(new Error("Could not load the Zoom SDK."));
+    });
+    document.head.appendChild(script);
+  });
+  scriptPromises.set(src, promise);
+  return promise;
+}
+
+async function loadZoomEmbeddedSdk(): Promise<EmbeddedSdk> {
+  const w = window as unknown as { ZoomMtgEmbedded?: EmbeddedSdk };
+  if (w.ZoomMtgEmbedded) return w.ZoomMtgEmbedded;
+  for (const src of ZOOM_SDK_SCRIPTS) await loadScript(src);
+  if (!w.ZoomMtgEmbedded) throw new Error("The Zoom SDK loaded but did not initialise.");
+  return w.ZoomMtgEmbedded;
 }
 
 type Phase = "idle" | "joining" | "joined" | "error";
@@ -44,8 +78,8 @@ interface JoinCredentials {
   userEmail: string;
 }
 
-// The Component View client, kept loosely typed — @zoom/meetingsdk ships its
-// own .d.ts but we only touch init/join/leave here.
+// The Component View client, kept loosely typed — the CDN bundle has no types
+// and we only touch init/join/leave here.
 type EmbeddedClient = {
   init: (opts: Record<string, unknown>) => Promise<void>;
   join: (opts: Record<string, unknown>) => Promise<void>;
@@ -75,9 +109,8 @@ export function ZoomEmbed({ webinarId }: { webinarId: string }) {
       if (!res.ok) throw new Error(body.error ?? `Could not get a join signature (HTTP ${res.status})`);
       const creds = body as JoinCredentials;
 
-      patchReactInternalsForZoomSdk();
-      const ZoomMtgEmbedded = (await import("@zoom/meetingsdk/embedded")).default;
-      const client = ZoomMtgEmbedded.createClient() as unknown as EmbeddedClient;
+      const ZoomMtgEmbedded = await loadZoomEmbeddedSdk();
+      const client = ZoomMtgEmbedded.createClient() as EmbeddedClient;
       clientRef.current = client;
 
       await client.init({
