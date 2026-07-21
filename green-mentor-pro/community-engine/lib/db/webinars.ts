@@ -38,6 +38,11 @@ export interface WebinarRow {
   registration_url: string | null;
   creatives_url: string | null;
   cover_image_url: string | null;
+  /** Zoom Meeting SDK join credentials for the embedded player. Admin-only —
+   *  never exposed through webinars_public; the platform mints a join
+   *  signature from these behind an auth gate. */
+  zoom_meeting_number: string | null;
+  zoom_passcode: string | null;
   status: WebinarStatus;
   registrations: number | null;
   attendees: number | null;
@@ -63,6 +68,8 @@ export type WebinarEditableFields = Partial<
     | "registration_url"
     | "creatives_url"
     | "cover_image_url"
+    | "zoom_meeting_number"
+    | "zoom_passcode"
     | "status"
     | "notes"
     | WebinarMetricField

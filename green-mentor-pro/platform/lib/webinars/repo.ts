@@ -115,3 +115,94 @@ export async function fetchUserRsvpIds(userId: string): Promise<Set<string>> {
   if (error) throw new Error(error.message);
   return new Set((data ?? []).map((r) => r.webinar_id as string));
 }
+
+/** A single published/completed webinar, for the live page header. */
+export async function fetchWebinarById(id: string): Promise<Webinar | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("webinars_public").select(WEBINAR_COLUMNS).eq("id", id).maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!data) return null;
+  const row = data as WebinarRowRaw;
+  const byId = await resolveInstructors(supabase, [row]);
+  return mapWebinar(row, byId);
+}
+
+// ── Live polls ──────────────────────────────────────────────────────────────
+// Polls are authored in community-engine and exposed to learners through the
+// webinar_polls_public / webinar_poll_options_public views (community-engine
+// migration 0016). Answers live in webinar_poll_responses (platform migration
+// 0023) under an "own rows" RLS policy, and aggregate counts come from the
+// webinar_poll_results SECURITY DEFINER view.
+
+export interface WebinarPollOption {
+  id: string;
+  label: string;
+}
+
+export interface WebinarPoll {
+  id: string;
+  question: string;
+  options: WebinarPollOption[];
+}
+
+/** Published polls (with options, in display order) for a webinar. */
+export async function fetchWebinarPolls(webinarId: string): Promise<WebinarPoll[]> {
+  const supabase = await createClient();
+  const { data: polls, error } = await supabase
+    .from("webinar_polls_public")
+    .select("id, question, position")
+    .eq("webinar_id", webinarId)
+    .order("position", { ascending: true });
+  if (error) throw new Error(error.message);
+  const pollRows = (polls ?? []) as { id: string; question: string; position: number }[];
+  if (pollRows.length === 0) return [];
+
+  const { data: opts, error: optErr } = await supabase
+    .from("webinar_poll_options_public")
+    .select("id, poll_id, label, position")
+    .in(
+      "poll_id",
+      pollRows.map((p) => p.id)
+    )
+    .order("position", { ascending: true });
+  if (optErr) throw new Error(optErr.message);
+
+  const byPoll = new Map<string, WebinarPollOption[]>();
+  for (const o of (opts ?? []) as { id: string; poll_id: string; label: string }[]) {
+    const list = byPoll.get(o.poll_id);
+    if (list) list.push({ id: o.id, label: o.label });
+    else byPoll.set(o.poll_id, [{ id: o.id, label: o.label }]);
+  }
+  return pollRows.map((p) => ({ id: p.id, question: p.question, options: byPoll.get(p.id) ?? [] }));
+}
+
+/** The signed-in user's chosen option per poll (poll_id → option_id). RLS
+ *  "own rows" scopes this to the current user, so no explicit user filter. */
+export async function fetchUserPollResponses(pollIds: string[]): Promise<Record<string, string>> {
+  if (pollIds.length === 0) return {};
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("webinar_poll_responses")
+    .select("poll_id, option_id")
+    .in("poll_id", pollIds);
+  if (error) throw new Error(error.message);
+  const map: Record<string, string> = {};
+  for (const r of (data ?? []) as { poll_id: string; option_id: string }[]) map[r.poll_id] = r.option_id;
+  return map;
+}
+
+/** Aggregate vote counts: poll_id → { option_id → votes }. */
+export async function fetchPollResults(pollIds: string[]): Promise<Record<string, Record<string, number>>> {
+  if (pollIds.length === 0) return {};
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("webinar_poll_results")
+    .select("poll_id, option_id, votes")
+    .in("poll_id", pollIds);
+  if (error) throw new Error(error.message);
+  const map: Record<string, Record<string, number>> = {};
+  for (const r of (data ?? []) as { poll_id: string; option_id: string; votes: number }[]) {
+    (map[r.poll_id] ??= {})[r.option_id] = r.votes;
+  }
+  return map;
+}
