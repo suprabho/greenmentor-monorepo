@@ -125,6 +125,41 @@ export function ProgressBar({ value, className }: { value: number; className?: s
   );
 }
 
+export function ProgressRing({
+  value,
+  size = 88,
+  strokeWidth = 8,
+  className,
+}: {
+  value: number; // 0–100
+  size?: number;
+  strokeWidth?: number;
+  className?: string;
+}) {
+  const pct = Math.max(0, Math.min(100, value));
+  const r = (size - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * r;
+  return (
+    <div className={clsx("relative inline-grid place-items-center", className)} style={{ width: size, height: size }}>
+      <svg width={size} height={size} className="-rotate-90">
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" strokeWidth={strokeWidth} className="stroke-gray-100" />
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={r}
+          fill="none"
+          strokeWidth={strokeWidth}
+          strokeLinecap="round"
+          strokeDasharray={circumference}
+          strokeDashoffset={circumference * (1 - pct / 100)}
+          className="stroke-green-500"
+        />
+      </svg>
+      <span className="absolute text-[18px] font-semibold tracking-tight text-ink">{Math.round(pct)}%</span>
+    </div>
+  );
+}
+
 export function Stat({
   label,
   value,

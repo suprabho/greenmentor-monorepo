@@ -59,6 +59,7 @@ export default async function LessonPage({
       alreadyCompleted={!!existingProgress?.completedAt}
       furthestPositionS={existingProgress?.furthestPositionS ?? 0}
       nextHref={nextHref}
+      backHref={`/academy/${courseSlug}`}
     />
   );
 }

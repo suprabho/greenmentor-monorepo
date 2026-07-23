@@ -21,7 +21,7 @@ export default async function LoginPage({
           Sign in to run AI Hub agents, save your work, and join the ESG feed.
         </p>
         <div className="mt-6">
-          <LoginForm next={next ?? "/feed"} initialError={error} />
+          <LoginForm next={next ?? "/home"} initialError={error} />
         </div>
       </Card>
     </div>

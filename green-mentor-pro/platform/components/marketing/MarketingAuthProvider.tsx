@@ -28,5 +28,5 @@ export function MarketingAuthProvider({
 /** Where a primary "Get started" CTA should lead for the current visitor. */
 export function useCtaHref() {
   const { isAuthed } = useContext(MarketingAuthContext);
-  return isAuthed ? "/feed" : "/login";
+  return isAuthed ? "/home" : "/login";
 }

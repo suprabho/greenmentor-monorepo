@@ -1,10 +1,21 @@
-import Link from "next/link";
-import { Card, Chip, PageHeader, ProgressBar } from "@/components/ui";
+import { Card, PageHeader } from "@/components/ui";
+import { BundleCard } from "@/components/academy/bundle-card";
+import { CourseCard } from "@/components/academy/course-card";
+import { LiveCourseCard } from "@/components/academy/live-course-card";
+import { liveCourses, plusEssentialBundle } from "@/lib/academy/catalog-extras";
+import { sumDurations } from "@/lib/academy/format";
 import { fetchCourseCatalog, fetchCourseTree, fetchLearnerProgress } from "@/lib/academy/repo";
 import { computeCourseState } from "@/lib/academy/state";
+import type { CourseTree } from "@/lib/academy/types";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata = { title: "Academy — Green Mentor Pro" };
+
+function SectionHeading({ children }: { children: React.ReactNode }) {
+  return (
+    <h2 className="mb-3 text-[13px] font-semibold uppercase tracking-[0.08em] text-gray-500">{children}</h2>
+  );
+}
 
 export default async function AcademyPage() {
   const supabase = await createClient();
@@ -14,8 +25,17 @@ export default async function AcademyPage() {
 
   const courses = await fetchCourseCatalog();
 
-  // Overall progress per enrolled course, via the same computeCourseState the
-  // course overview uses so the two screens never disagree.
+  // Course trees give the card meta line (modules · lessons · duration); the
+  // catalog is tiny, so per-course fetches are fine. Progress reuses the same
+  // computeCourseState as the course overview so the two screens never disagree.
+  const treeBySlug = new Map<string, CourseTree>();
+  await Promise.all(
+    courses.map(async (course) => {
+      const tree = await fetchCourseTree(course.slug);
+      if (tree) treeBySlug.set(course.slug, tree);
+    })
+  );
+
   const progressBySlug = new Map<string, number>();
   if (user && courses.length) {
     const { data: enrolments } = await supabase.from("enrolments").select("course_id").eq("user_id", user.id);
@@ -24,7 +44,7 @@ export default async function AcademyPage() {
       courses
         .filter((course) => enrolledIds.has(course.id))
         .map(async (course) => {
-          const tree = await fetchCourseTree(course.slug);
+          const tree = treeBySlug.get(course.slug);
           if (!tree) return;
           const { lessonProgress, moduleProgress } = await fetchLearnerProgress(user.id, tree);
           progressBySlug.set(course.slug, computeCourseState(tree, lessonProgress, moduleProgress).overallPct);
@@ -39,38 +59,45 @@ export default async function AcademyPage() {
         sub="Bite-sized ESG courses — short videos, a quick check after every module, and real credentials."
       />
 
-      {courses.length === 0 ? (
-        <Card className="p-6 text-[13.5px] text-gray-600">No published courses yet — check back soon.</Card>
-      ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {courses.map((course) => {
-            const pct = progressBySlug.get(course.slug);
-            return (
-              <Link key={course.id} href={`/academy/${course.slug}`}>
-                <Card className="flex h-full flex-col p-5 transition-shadow hover:shadow-md">
-                  <div className="flex items-center justify-between gap-2">
-                    <Chip tone={course.priceCredits === 0 ? "green" : "neutral"}>
-                      {course.priceCredits === 0 ? "Free" : `${course.priceCredits} cr`}
-                    </Chip>
-                    <Chip tone="teal">{course.level}</Chip>
-                  </div>
-                  <h2 className="mt-3 text-[15.5px] font-semibold text-ink">{course.title}</h2>
-                  {course.description && <p className="mt-1.5 text-[12.5px] text-gray-600">{course.description}</p>}
-                  {pct !== undefined && (
-                    <div className="mt-auto pt-4">
-                      <div className="mb-1 flex items-center justify-between text-[11px] font-semibold text-gray-600">
-                        <span>{pct === 100 ? "Complete" : pct === 0 ? "Enrolled" : "In progress"}</span>
-                        <span>{pct}%</span>
-                      </div>
-                      <ProgressBar value={pct} />
-                    </div>
-                  )}
-                </Card>
-              </Link>
-            );
-          })}
-        </div>
+      <section>
+        <SectionHeading>Self-paced courses</SectionHeading>
+        {courses.length === 0 ? (
+          <Card className="p-6 text-[13.5px] text-gray-600">No published courses yet — check back soon.</Card>
+        ) : (
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {courses.map((course) => {
+              const tree = treeBySlug.get(course.slug);
+              const lessons = tree?.modules.flatMap((m) => m.lessons) ?? [];
+              return (
+                <CourseCard
+                  key={course.id}
+                  course={course}
+                  moduleCount={tree?.modules.length ?? 0}
+                  lessonCount={lessons.length}
+                  totalDurationS={sumDurations(lessons)}
+                  progressPct={progressBySlug.get(course.slug)}
+                />
+              );
+            })}
+          </div>
+        )}
+      </section>
+
+      {liveCourses.length > 0 && (
+        <section className="mt-10">
+          <SectionHeading>Live training</SectionHeading>
+          <div className="grid gap-4 sm:grid-cols-2">
+            {liveCourses.map((course) => (
+              <LiveCourseCard key={course.id} course={course} />
+            ))}
+          </div>
+        </section>
       )}
+
+      <section className="mt-10">
+        <SectionHeading>Bundles</SectionHeading>
+        <BundleCard bundle={plusEssentialBundle} />
+      </section>
     </div>
   );
 }
