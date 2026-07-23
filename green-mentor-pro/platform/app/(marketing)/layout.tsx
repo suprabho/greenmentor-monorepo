@@ -7,7 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 /**
  * Marketing shell — full-bleed, no app Shell (sidebar/topbar). Scopes the
  * Manrope display font to the landing subtree; app routes keep Inter. Reads the
- * session so signed-in visitors get CTAs that lead into the app (`/feed`).
+ * session so signed-in visitors get CTAs that lead into the app (`/home`).
  */
 export default async function MarketingLayout({
   children,

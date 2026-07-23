@@ -101,9 +101,9 @@ export function ZoomEmbed({ webinarId }: { webinarId: string }) {
   };
 
   return (
-    <div className="relative overflow-hidden rounded-2xl border border-gray-200 bg-gray-900">
+    <div className="relative h-full min-h-[420px] overflow-hidden rounded-2xl border border-gray-200 bg-gray-900">
       {/* Zoom renders its client into this element once joined. */}
-      <div ref={rootRef} className="min-h-[420px] w-full" />
+      <div ref={rootRef} className="h-full min-h-[420px] w-full" />
 
       {phase !== "joined" && (
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 p-8 text-center">

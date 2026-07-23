@@ -38,7 +38,7 @@ export default async function EnergyAnalyzePage() {
 
   return (
     <div>
-      <PageHeader title="Energy · Analyze" sub="Scope 1 + 2 emissions across fuel, electricity and fugitive sources." />
+      <PageHeader title="Longsite Lite · Analyze" sub="Scope 1 + 2 emissions across fuel, electricity and fugitive sources." />
 
       <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card className="p-5"><Stat label="Total (S1 + S2)" value={`${t(totalEm)} tCO₂e`} /></Card>

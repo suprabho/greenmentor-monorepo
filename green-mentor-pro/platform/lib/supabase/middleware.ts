@@ -49,11 +49,11 @@ export async function updateSession(request: NextRequest) {
 
   // Already signed in? Skip the login screen and go to the app. Honor a safe
   // `?next=` (e.g. the protected-path bounce that sent us here) so a freshly
-  // set session lands where it was headed instead of falling back to the feed.
+  // set session lands where it was headed instead of falling back to home.
   if (user && pathname === "/login") {
     const url = request.nextUrl.clone();
     const nextParam = url.searchParams.get("next");
-    url.pathname = nextParam && nextParam.startsWith("/") ? nextParam : "/feed";
+    url.pathname = nextParam && nextParam.startsWith("/") ? nextParam : "/home";
     url.search = "";
     return NextResponse.redirect(url);
   }

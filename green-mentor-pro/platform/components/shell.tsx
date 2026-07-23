@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   ArrowLeft,
+  House,
   Newspaper,
   GraduationCap,
   VideoCamera,
@@ -18,43 +19,72 @@ import {
   Lightning,
   Coins,
   MagnifyingGlass,
-  CalendarDots,
   Trophy,
   Books,
   Leaf,
   SidebarSimple,
   SignIn,
+  type Icon,
 } from "@phosphor-icons/react";
 import { clsx } from "clsx";
 import { Avatar } from "@/components/ui";
 
-const nav = [
+type NavChild = { label: string; href: string; icon: Icon };
+type NavItem = { label: string; href: string; icon: Icon; children: NavChild[] };
+type NavGroup = { heading: string | null; items: NavItem[] };
+
+const NAV_GROUPS: NavGroup[] = [
   {
-    label: "Feed",
-    href: "/feed",
-    icon: Newspaper,
-    children: [
-      { label: "Calendar", href: "/feed/calendar", icon: CalendarDots },
-      { label: "Leaderboards", href: "/feed/leaderboards", icon: Trophy },
-      { label: "Library", href: "/feed/library", icon: Books },
+    heading: null,
+    items: [{ label: "Home", href: "/home", icon: House, children: [] }],
+  },
+  {
+    heading: "Learn",
+    items: [{ label: "Academy", href: "/academy", icon: GraduationCap, children: [] }],
+  },
+  {
+    heading: "Work",
+    items: [
+      { label: "AI", href: "/ai-hub", icon: Sparkle, children: [] },
+      {
+        label: "Longsite Lite",
+        href: "/energy",
+        icon: SquaresFour,
+        children: [
+          { label: "Fuel", href: "/energy/fuel", icon: Flame },
+          { label: "Electricity", href: "/energy/electricity", icon: Lightning },
+          { label: "Fugitive", href: "/energy/fugitive", icon: Wind },
+          { label: "Analyze", href: "/energy/analyze", icon: ChartBar },
+        ],
+      },
     ],
   },
   {
-    label: "Energy",
-    href: "/energy",
-    icon: Lightning,
-    children: [
-      { label: "Fuel", href: "/energy/fuel", icon: Flame },
-      { label: "Electricity", href: "/energy/electricity", icon: Lightning },
-      { label: "Fugitive", href: "/energy/fugitive", icon: Wind },
-      { label: "Analyze", href: "/energy/analyze", icon: ChartBar },
+    heading: "Grow",
+    items: [
+      {
+        label: "News",
+        href: "/feed",
+        icon: Newspaper,
+        children: [
+          { label: "Leaderboards", href: "/feed/leaderboards", icon: Trophy },
+          { label: "Library", href: "/feed/library", icon: Books },
+        ],
+      },
+      { label: "Jobs", href: "/jobs", icon: Briefcase, children: [] },
+      { label: "Webinars & Events", href: "/webinars", icon: VideoCamera, children: [] },
     ],
   },
-  { label: "Academy", href: "/academy", icon: GraduationCap, children: [] },
-  { label: "Webinars", href: "/webinars", icon: VideoCamera, children: [] },
-  { label: "Jobs", href: "/jobs", icon: Briefcase, children: [] },
-  { label: "AI Hub", href: "/ai-hub", icon: Sparkle, children: [] },
-  { label: "Longsite Lite", href: "/longsite", icon: SquaresFour, children: [] },
+];
+
+// Bottom tabs are a deliberate subset: Webinars are reachable from Home's
+// "happening soon" section, and Longsite Lite is desktop data-entry work.
+const MOBILE_NAV: NavChild[] = [
+  { label: "Home", href: "/home", icon: House },
+  { label: "News", href: "/feed", icon: Newspaper },
+  { label: "Academy", href: "/academy", icon: GraduationCap },
+  { label: "AI", href: "/ai-hub", icon: Sparkle },
+  { label: "Jobs", href: "/jobs", icon: Briefcase },
 ];
 
 const COLLAPSED_KEY = "gm-sidebar-collapsed";
@@ -102,8 +132,7 @@ export function Shell({
       return !prev;
     });
 
-  const isActive = (href: string) =>
-    href === "/feed" ? pathname === "/feed" : pathname.startsWith(href);
+  const isActive = (href: string) => pathname === href || pathname.startsWith(href + "/");
 
   return (
     <div className="min-h-screen lg:flex">
@@ -120,7 +149,7 @@ export function Shell({
             collapsed ? "flex-col gap-2" : "justify-between pl-5 pr-3"
           )}
         >
-          <Link href="/feed" className="flex items-center gap-2.5">
+          <Link href="/home" className="flex items-center gap-2.5">
             <span className="grid size-9 shrink-0 place-items-center rounded-[6px] bg-green-500 text-teal-900">
               <Leaf size={20} weight="fill" />
             </span>
@@ -158,45 +187,57 @@ export function Shell({
         </div>
 
         <nav className="flex-1 space-y-0.5 overflow-y-auto px-3">
-          {nav.map((item) => (
-            <div key={item.href}>
-              <Link
-                href={item.href}
-                title={collapsed ? item.label : undefined}
-                className={clsx(
-                  "flex items-center gap-3 rounded-[6px] py-2.5 text-[13.5px] font-medium transition-colors",
-                  collapsed ? "justify-center" : "px-3",
-                  isActive(item.href) && !item.children.some((c) => pathname.startsWith(c.href))
-                    ? "bg-white/10 text-white"
-                    : "text-white/65 hover:bg-white/5 hover:text-white"
-                )}
-              >
-                <item.icon
-                  size={19}
-                  className="shrink-0"
-                  weight={isActive(item.href) ? "fill" : "regular"}
-                />
-                {!collapsed && <span className="whitespace-nowrap">{item.label}</span>}
-              </Link>
-              {!collapsed && item.children.length > 0 && pathname.startsWith(item.href) && (
-                <div className="ml-4 mt-0.5 space-y-0.5 border-l border-white/10 pl-3">
-                  {item.children.map((c) => (
-                    <Link
-                      key={c.href}
-                      href={c.href}
-                      className={clsx(
-                        "flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-[12.5px] transition-colors",
-                        pathname.startsWith(c.href)
-                          ? "text-green-500"
-                          : "text-white/55 hover:text-white"
-                      )}
-                    >
-                      <c.icon size={15} />
-                      {c.label}
-                    </Link>
-                  ))}
+          {NAV_GROUPS.map((group) => (
+            <div key={group.heading ?? "top"}>
+              {group.heading !== null &&
+                (collapsed ? (
+                  <div className="mx-auto my-2 w-6 border-t border-white/10" />
+                ) : (
+                  <p className="px-3 pt-4 pb-1 text-[10.5px] font-semibold uppercase tracking-[0.14em] text-white/35">
+                    {group.heading}
+                  </p>
+                ))}
+              {group.items.map((item) => (
+                <div key={item.href}>
+                  <Link
+                    href={item.href}
+                    title={collapsed ? item.label : undefined}
+                    className={clsx(
+                      "flex items-center gap-3 rounded-[6px] py-2.5 text-[13.5px] font-medium transition-colors",
+                      collapsed ? "justify-center" : "px-3",
+                      isActive(item.href) && !item.children.some((c) => pathname.startsWith(c.href))
+                        ? "bg-white/10 text-white"
+                        : "text-white/65 hover:bg-white/5 hover:text-white"
+                    )}
+                  >
+                    <item.icon
+                      size={19}
+                      className="shrink-0"
+                      weight={isActive(item.href) ? "fill" : "regular"}
+                    />
+                    {!collapsed && <span className="whitespace-nowrap">{item.label}</span>}
+                  </Link>
+                  {!collapsed && item.children.length > 0 && pathname.startsWith(item.href) && (
+                    <div className="ml-4 mt-0.5 space-y-0.5 border-l border-white/10 pl-3">
+                      {item.children.map((c) => (
+                        <Link
+                          key={c.href}
+                          href={c.href}
+                          className={clsx(
+                            "flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-[12.5px] transition-colors",
+                            pathname.startsWith(c.href)
+                              ? "text-green-500"
+                              : "text-white/55 hover:text-white"
+                          )}
+                        >
+                          <c.icon size={15} />
+                          {c.label}
+                        </Link>
+                      ))}
+                    </div>
+                  )}
                 </div>
-              )}
+              ))}
             </div>
           ))}
         </nav>
@@ -273,7 +314,7 @@ export function Shell({
       <div className="min-w-0 flex-1">
         {/* Top bar (mobile/tablet only — search and stats live in the sidebar on desktop) */}
         <header className="sticky top-0 z-20 flex h-14 items-center gap-3 border-b border-gray-200 bg-white/90 px-4 backdrop-blur lg:hidden">
-          <Link href="/feed" className="mr-1 flex items-center gap-2">
+          <Link href="/home" className="mr-1 flex items-center gap-2">
             <span className="grid size-7 place-items-center rounded-lg bg-teal-900 text-green-500">
               <Leaf size={15} weight="fill" />
             </span>
@@ -323,7 +364,7 @@ export function Shell({
 
         {/* Mobile bottom nav */}
         <nav className="fixed inset-x-0 bottom-0 z-20 flex border-t border-gray-200 bg-white pb-[env(safe-area-inset-bottom)] lg:hidden">
-          {nav.map((item) => (
+          {MOBILE_NAV.map((item) => (
             <Link
               key={item.href}
               href={item.href}
@@ -333,7 +374,7 @@ export function Shell({
               )}
             >
               <item.icon size={20} weight={isActive(item.href) ? "fill" : "regular"} />
-              {item.label === "Longsite Lite" ? "Longsite" : item.label}
+              {item.label}
             </Link>
           ))}
         </nav>

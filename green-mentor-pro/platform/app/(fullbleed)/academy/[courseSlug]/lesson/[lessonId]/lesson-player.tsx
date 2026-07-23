@@ -3,8 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowRight, CheckCircle, Coins, Lightning, WarningCircle } from "@phosphor-icons/react";
-import { Card, Chip, PageHeader, ProgressBar } from "@/components/ui";
+import { ArrowLeft, ArrowRight, CheckCircle, Coins, Lightning, WarningCircle } from "@phosphor-icons/react";
+import { Card, Chip } from "@/components/ui";
 
 type LessonPlayerLesson = {
   id: string;
@@ -29,12 +29,14 @@ export function LessonPlayer({
   alreadyCompleted,
   furthestPositionS,
   nextHref,
+  backHref,
 }: {
   lesson: LessonPlayerLesson;
   moduleTitle: string;
   alreadyCompleted: boolean;
   furthestPositionS: number;
   nextHref: string;
+  backHref: string;
 }) {
   const router = useRouter();
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -148,20 +150,26 @@ export function LessonPlayer({
   };
 
   return (
-    <div className="mx-auto max-w-3xl">
-      <PageHeader title={lesson.title} sub={moduleTitle} />
+    <div className="flex h-dvh flex-col bg-black">
+      {/* Video stage */}
+      <div className="relative min-h-0 flex-1">
+        <Link
+          href={backHref}
+          className="absolute left-4 top-4 z-20 inline-flex items-center gap-1.5 rounded-pill bg-black/60 px-3.5 py-2 text-[12.5px] font-semibold text-white backdrop-blur transition-colors hover:bg-black/80"
+        >
+          <ArrowLeft size={14} weight="bold" /> Back to course
+        </Link>
 
-      <Card className="overflow-hidden">
         {alreadyCompleted ? (
-          <div className="grid aspect-video place-items-center bg-gray-50 text-[13px] text-gray-500">
+          <div className="grid h-full place-items-center text-[13px] text-white/70">
             <div className="flex items-center gap-2">
               <CheckCircle size={18} weight="fill" className="text-green-500" /> Already completed
             </div>
           </div>
         ) : videoError ? (
-          <div className="grid aspect-video place-items-center bg-gray-50 px-6 text-center text-[13px] text-gray-500">
+          <div className="grid h-full place-items-center px-6 text-center text-[13px] text-white/70">
             <div>
-              <WarningCircle size={22} className="mx-auto mb-2 text-gray-400" />
+              <WarningCircle size={22} className="mx-auto mb-2 text-white/50" />
               Video not yet uploaded for this lesson.
             </div>
           </div>
@@ -172,7 +180,7 @@ export function LessonPlayer({
             src={videoUrl}
             controls
             playsInline
-            className="aspect-video w-full bg-black"
+            className="h-full w-full object-contain"
             onLoadedMetadata={onLoadedMetadata}
             onPlay={onPlay}
             onTimeUpdate={onTimeUpdate}
@@ -181,59 +189,77 @@ export function LessonPlayer({
             onEnded={onPauseOrSeekingOrEnded}
           />
         ) : (
-          <div className="grid aspect-video place-items-center bg-gray-50 text-[13px] text-gray-500">
-            Loading video…
-          </div>
+          <div className="grid h-full place-items-center text-[13px] text-white/70">Loading video…</div>
         )}
 
-        <div className="space-y-3 p-5">
-          <div className="flex items-center justify-between text-[11.5px] font-semibold text-gray-600">
-            <span>Watched {pctWatched}%</span>
-            <span>Complete at {lesson.completionThresholdPct}%</span>
+        {result && (
+          <div className="pointer-events-none absolute inset-x-0 bottom-4 z-10 flex justify-center px-4">
+            <Card className="pointer-events-auto flex w-full max-w-xl flex-wrap items-center justify-between gap-4 p-5">
+              <div>
+                <div className="flex items-center gap-2 text-[14px] font-semibold text-ink">
+                  <CheckCircle size={18} weight="fill" className="text-green-500" /> Lesson complete
+                </div>
+                {lesson.summaryBlock && (
+                  <p className="mt-1 max-w-md text-[12.5px] text-gray-600">{lesson.summaryBlock}</p>
+                )}
+                {(result.xpAwarded > 0 || result.coinsAwarded > 0) && (
+                  <div className="mt-2 flex gap-2">
+                    {result.xpAwarded > 0 && (
+                      <Chip tone="green">
+                        <Lightning size={12} weight="fill" /> +{result.xpAwarded} XP
+                      </Chip>
+                    )}
+                    {result.coinsAwarded > 0 && (
+                      <Chip>
+                        <Coins size={12} weight="fill" /> +{result.coinsAwarded} cr
+                      </Chip>
+                    )}
+                  </div>
+                )}
+              </div>
+              <Link
+                href={nextHref}
+                className="flex shrink-0 items-center gap-1.5 rounded-pill bg-teal-900 px-4 py-2 text-[12.5px] font-semibold text-white"
+              >
+                Continue <ArrowRight size={13} weight="bold" />
+              </Link>
+            </Card>
           </div>
-          <ProgressBar value={pctWatched} />
+        )}
+      </div>
 
-          {lesson.objective && <p className="text-[13px] text-gray-700">{lesson.objective}</p>}
+      {/* Bottom info strip */}
+      <div className="border-t border-white/10 bg-black px-4 py-3 lg:px-6">
+        <div className="mx-auto flex max-w-4xl flex-col gap-2">
+          <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+            <div className="min-w-0">
+              <div className="truncate text-[14px] font-semibold text-white">{lesson.title}</div>
+              <div className="truncate text-[11.5px] text-white/50">{moduleTitle}</div>
+            </div>
+            <div className="text-[11.5px] font-semibold text-white/60">
+              Watched {pctWatched}% · Complete at {lesson.completionThresholdPct}%
+            </div>
+          </div>
+          <div className="h-1.5 w-full overflow-hidden rounded-pill bg-white/15">
+            <div className="h-full rounded-pill bg-green-500" style={{ width: `${pctWatched}%` }} />
+          </div>
+          {lesson.objective && (
+            <p className="hidden text-[12.5px] text-white/60 sm:block">{lesson.objective}</p>
+          )}
           {lesson.keyTopics.length > 0 && (
-            <div className="flex flex-wrap gap-1.5">
+            <div className="hidden flex-wrap gap-1.5 sm:flex">
               {lesson.keyTopics.map((topic) => (
-                <Chip key={topic}>{topic}</Chip>
+                <span
+                  key={topic}
+                  className="inline-flex items-center rounded-pill bg-white/10 px-2.5 py-0.5 text-[11.5px] font-semibold text-white/80"
+                >
+                  {topic}
+                </span>
               ))}
             </div>
           )}
         </div>
-      </Card>
-
-      {result && (
-        <Card className="mt-4 flex flex-wrap items-center justify-between gap-4 p-5">
-          <div>
-            <div className="flex items-center gap-2 text-[14px] font-semibold text-ink">
-              <CheckCircle size={18} weight="fill" className="text-green-500" /> Lesson complete
-            </div>
-            {lesson.summaryBlock && <p className="mt-1 max-w-md text-[12.5px] text-gray-600">{lesson.summaryBlock}</p>}
-            {(result.xpAwarded > 0 || result.coinsAwarded > 0) && (
-              <div className="mt-2 flex gap-2">
-                {result.xpAwarded > 0 && (
-                  <Chip tone="green">
-                    <Lightning size={12} weight="fill" /> +{result.xpAwarded} XP
-                  </Chip>
-                )}
-                {result.coinsAwarded > 0 && (
-                  <Chip>
-                    <Coins size={12} weight="fill" /> +{result.coinsAwarded} cr
-                  </Chip>
-                )}
-              </div>
-            )}
-          </div>
-          <Link
-            href={nextHref}
-            className="flex shrink-0 items-center gap-1.5 rounded-pill bg-teal-900 px-4 py-2 text-[12.5px] font-semibold text-white"
-          >
-            Continue <ArrowRight size={13} weight="bold" />
-          </Link>
-        </Card>
-      )}
+      </div>
     </div>
   );
 }

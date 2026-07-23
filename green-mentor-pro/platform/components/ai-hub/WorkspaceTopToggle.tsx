@@ -2,19 +2,19 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ChatCircle, SquaresFour, Files, Sparkle } from "@phosphor-icons/react";
+import { ChatCircle, Files, Sparkle } from "@phosphor-icons/react";
 import { clsx } from "clsx";
 
 const TABS = [
   { label: "Chat", href: "/ai-hub/chat", icon: ChatCircle },
-  { label: "Cowork", href: "/ai-hub/cowork", icon: SquaresFour },
   { label: "Artifacts", href: "/ai-hub/artifacts", icon: Files },
 ] as const;
 
 /**
- * Persistent Chat · Cowork · Artifacts segmented control. Lives in the
- * WorkspaceFrame toolbar (rendered by ai-hub/layout.tsx), so it stays mounted as
- * you move between the three surfaces.
+ * Persistent Chat · Artifacts segmented control. Lives in the WorkspaceFrame
+ * toolbar (rendered by ai-hub/layout.tsx), so it stays mounted as you move
+ * between the surfaces. Cowork is hidden for launch — its routes still resolve,
+ * it just has no tab.
  */
 export function WorkspaceTopToggle() {
   const pathname = usePathname();

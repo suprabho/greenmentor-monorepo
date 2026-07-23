@@ -4,7 +4,7 @@ import { Card } from "@/components/ui";
 import { FeedCard, type FeedArticle, type FeedEntity } from "./feed-card";
 import type { ArticleStat, CurrentUser, ReactionKind } from "./feed-actions";
 
-export const metadata = { title: "Feed — Green Mentor Pro" };
+export const metadata = { title: "News — Green Mentor Pro" };
 
 // Broad tags shown in the feed filter bar (order = display order).
 // Everything else (companies, long-tail entities) is filterable via the

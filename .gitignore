@@ -26,3 +26,6 @@
 /greenmentor-in-um/
 /greenmentor-in-fe/
 /greenmentor-in-be/
+
+# Supabase CLI scratch state
+green-mentor-pro/*/supabase/.temp/
