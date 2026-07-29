@@ -22,8 +22,25 @@ export async function GET(request: Request) {
   if (!code) return loginWithError("No authorization code returned");
 
   const supabase = await createClient();
-  const { error } = await supabase.auth.exchangeCodeForSession(code);
+  const { data, error } = await supabase.auth.exchangeCodeForSession(code);
   if (error) return loginWithError(error.message);
+
+  // Send anyone who hasn't finished onboarding there first, whatever `next`
+  // said. Without this an OAuth sign-up would land straight in the app — the
+  // hardcoded redirect on the email/password path never covered Google.
+  const userId = data?.user?.id;
+  if (userId) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("onboarded")
+      .eq("id", userId)
+      .maybeSingle();
+    // Explicit `=== false` so a missing row (migration not run) doesn't trap
+    // the user in a flow whose columns don't exist yet.
+    if (profile?.onboarded === false) {
+      return NextResponse.redirect(`${origin}/onboarding`);
+    }
+  }
 
   return NextResponse.redirect(`${origin}${next}`);
 }
