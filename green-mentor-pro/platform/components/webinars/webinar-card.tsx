@@ -1,6 +1,6 @@
-import Link from "next/link";
-import { ArrowSquareOut, VideoCamera } from "@phosphor-icons/react/dist/ssr";
+import { ArrowSquareOut } from "@phosphor-icons/react/dist/ssr";
 import { Card, Chip } from "@/components/ui";
+import { JoinButton } from "@/components/webinars/join-button";
 import { RsvpButton } from "@/components/webinars/rsvp-button";
 import type { Webinar, WebinarInstructor } from "@/lib/webinars/repo";
 
@@ -60,12 +60,12 @@ export function WebinarCard({
       )}
       <div className="mt-auto flex flex-wrap items-center gap-2 pt-4">
         {signedIn && (
-          <Link
-            href={`/webinars/${webinar.id}/live`}
-            className="inline-flex items-center gap-1.5 rounded-full bg-teal-900 px-3.5 py-1.5 text-[12.5px] font-semibold text-white transition-colors hover:bg-teal-800"
-          >
-            <VideoCamera size={14} weight="fill" /> Join
-          </Link>
+          <JoinButton
+            webinarId={webinar.id}
+            scheduledAt={webinar.scheduledAt}
+            durationMinutes={webinar.durationMinutes}
+            serverNow={new Date().toISOString()}
+          />
         )}
         <RsvpButton webinarId={webinar.id} initialAttending={attending} signedIn={signedIn} />
         {webinar.registrationUrl && (

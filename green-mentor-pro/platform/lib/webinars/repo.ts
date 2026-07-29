@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { getWebinarPhase, UPCOMING_LOOKBACK_MS } from "@/lib/webinars/status";
 import { createClient } from "@/lib/supabase/server";
 
 // Webinars are authored in the community-engine admin hub (community_webinars,
@@ -80,19 +81,29 @@ function mapWebinar(row: WebinarRowRaw, byId: Map<string, WebinarInstructor>): W
   };
 }
 
+// "Upcoming" spans a session's whole slot, not just the run-up to it — a
+// webinar in progress has to stay on the card grid so latecomers can still
+// join. PostgREST can't compare against scheduled_at + duration_minutes, so
+// both queries take a superset and getWebinarPhase() applies the exact
+// per-row end time in JS. That also keeps the two lists disjoint: a session
+// that started ten minutes ago is upcoming, not past.
+
 export async function fetchUpcomingWebinars(): Promise<Webinar[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("webinars_public")
     .select(WEBINAR_COLUMNS)
     .eq("status", "published")
-    .gte("scheduled_at", new Date().toISOString())
+    .gte("scheduled_at", new Date(Date.now() - UPCOMING_LOOKBACK_MS).toISOString())
     .order("scheduled_at", { ascending: true });
   if (error) throw new Error(error.message);
   const rows = (data ?? []) as WebinarRowRaw[];
   const byId = await resolveInstructors(supabase, rows);
-  return rows.map((r) => mapWebinar(r, byId));
+  return rows.map((r) => mapWebinar(r, byId)).filter((w) => getWebinarPhase(w) !== "ended");
 }
+
+/** Headroom for the in-progress rows dropped below, so `limit` still fills. */
+const PAST_OVERFETCH = 8;
 
 export async function fetchPastWebinars(limit = 12): Promise<Webinar[]> {
   const supabase = await createClient();
@@ -101,11 +112,14 @@ export async function fetchPastWebinars(limit = 12): Promise<Webinar[]> {
     .select(WEBINAR_COLUMNS)
     .lt("scheduled_at", new Date().toISOString())
     .order("scheduled_at", { ascending: false })
-    .limit(limit);
+    .limit(limit + PAST_OVERFETCH);
   if (error) throw new Error(error.message);
   const rows = (data ?? []) as WebinarRowRaw[];
   const byId = await resolveInstructors(supabase, rows);
-  return rows.map((r) => mapWebinar(r, byId));
+  return rows
+    .map((r) => mapWebinar(r, byId))
+    .filter((w) => getWebinarPhase(w) === "ended")
+    .slice(0, limit);
 }
 
 /** Webinar ids the signed-in user has RSVP'd to (empty when signed out). */
