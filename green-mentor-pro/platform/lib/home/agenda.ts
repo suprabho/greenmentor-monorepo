@@ -1,3 +1,4 @@
+import { jobHref, webinarHref } from "@/lib/share/href";
 import type { Job } from "@/lib/jobs/repo";
 import type { Webinar } from "@/lib/webinars/repo";
 
@@ -46,7 +47,7 @@ export function buildAgenda(webinars: Webinar[], jobs: Job[], horizonDays = 21, 
         [w.instructors.map((i) => i.name).join(", ") || null, w.durationMinutes ? `${w.durationMinutes} min` : null]
           .filter(Boolean)
           .join(" · ") || null,
-      href: "/webinars",
+      href: webinarHref(w),
     });
   }
 
@@ -61,7 +62,7 @@ export function buildAgenda(webinars: Webinar[], jobs: Job[], horizonDays = 21, 
       allDay: true,
       title: j.title,
       meta: j.company,
-      href: "/jobs",
+      href: jobHref(j),
     });
   }
 

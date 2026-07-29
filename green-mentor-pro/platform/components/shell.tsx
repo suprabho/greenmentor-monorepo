@@ -21,12 +21,17 @@ import { MOBILE_NAV, NAV_GROUPS } from "@/lib/app-nav";
 
 const COLLAPSED_KEY = "gm-sidebar-collapsed";
 
-/** Deterministic "up one level" for nested Academy pages (course → catalog,
- * lesson/assessment → course). Top-level tabs have the nav itself, so no back. */
+/** Deterministic "up one level" for nested pages: Academy (course → catalog,
+ * lesson/assessment → course) and the shareable webinar/job/feed detail pages
+ * (item → its list). Top-level tabs have the nav itself, so no back. */
+const DETAIL_SECTIONS = new Set(["webinars", "jobs", "feed"]);
+
 function backHrefFor(pathname: string): string | null {
   const seg = pathname.split("/").filter(Boolean);
-  if (seg[0] !== "academy" || seg.length < 2) return null;
-  return seg.length === 2 ? "/academy" : `/academy/${seg[1]}`;
+  if (seg.length < 2) return null;
+  if (seg[0] === "academy") return seg.length === 2 ? "/academy" : `/academy/${seg[1]}`;
+  if (DETAIL_SECTIONS.has(seg[0]) && seg.length === 2) return `/${seg[0]}`;
+  return null;
 }
 
 export type ShellStats = { xp: number; coins: number; streakDays: number };

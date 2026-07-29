@@ -29,6 +29,10 @@ export type WebinarMetricField = (typeof WEBINAR_METRIC_FIELDS)[number];
 
 export interface WebinarRow {
   id: string;
+  /** URL parts for the platform's /webinars/:slug deeplink. Filled by the
+   *  gm_set_share_keys() trigger (migration 0017); not editable here. */
+  slug: string | null;
+  id_prefix: string | null;
   title: string;
   hook: string | null;
   /** References into community_instructors (migration 0009). */

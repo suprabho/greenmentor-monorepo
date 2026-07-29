@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { Card } from "@/components/ui";
-import { FeedCard, type FeedArticle, type FeedEntity } from "./feed-card";
+import { ARTICLE_COLUMNS, mapArticle, type ArticleRowRaw, type FeedEntity } from "@/lib/feed/repo";
+import { FeedCard } from "./feed-card";
 import type { ArticleStat, CurrentUser, ReactionKind } from "./feed-actions";
 
 export const metadata = { title: "News — Green Mentor Pro" };
@@ -30,12 +31,12 @@ export default async function FeedPage({
     supabase.from("entities").select("slug, name, kind").order("kind"),
     supabase
       .from("articles")
-      .select("id, source, title, url, summary, image_url, published_at, article_entities(entities(slug, name, kind))")
+      .select(ARTICLE_COLUMNS)
       .order("published_at", { ascending: false, nullsFirst: false })
       .limit(50),
   ]);
 
-  const rows = (articles ?? []) as unknown as FeedArticle[];
+  const rows = ((articles ?? []) as unknown as ArticleRowRaw[]).map(mapArticle);
   const ids = rows.map((a) => a.id);
 
   // Social layer. The two views come from 0004_feed_social.sql; if that

@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { safeNextHref, splitHref } from "@/lib/auth/next-href";
 
 /**
  * Unlike community-engine (which gates the whole app), the platform is largely
@@ -9,8 +10,22 @@ import { NextResponse, type NextRequest } from "next/server";
  */
 const PROTECTED_PATHS = ["/profile", "/onboarding", "/ai-hub", "/academy", "/energy"];
 
+/** Lets server components learn the current path — see PATHNAME_HEADER usage in
+ *  app/(app)/layout.tsx, which needs it to build a `?next=` it can't otherwise
+ *  derive (layouts receive neither pathname nor searchParams). */
+export const PATHNAME_HEADER = "x-pathname";
+
 export async function updateSession(request: NextRequest) {
-  let supabaseResponse = NextResponse.next({ request });
+  // Rebuilt on every NextResponse.next() below rather than captured once:
+  // request.cookies.set() writes through to the request's cookie header, so a
+  // stale copy would drop the refreshed session on its way to the RSC render.
+  const forwardedHeaders = () => {
+    const headers = new Headers(request.headers);
+    headers.set(PATHNAME_HEADER, request.nextUrl.pathname);
+    return headers;
+  };
+
+  let supabaseResponse = NextResponse.next({ request: { headers: forwardedHeaders() } });
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -22,7 +37,7 @@ export async function updateSession(request: NextRequest) {
         },
         setAll(cookiesToSet) {
           cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
-          supabaseResponse = NextResponse.next({ request });
+          supabaseResponse = NextResponse.next({ request: { headers: forwardedHeaders() } });
           cookiesToSet.forEach(({ name, value, options }) =>
             supabaseResponse.cookies.set(name, value, options),
           );
@@ -43,7 +58,9 @@ export async function updateSession(request: NextRequest) {
   if (!user && isProtected) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
-    url.search = `?next=${encodeURIComponent(pathname)}`;
+    // Keep the query string: assigning url.search used to wipe it, so a
+    // deeplink like /academy/x?tab=notes came back from login as bare /academy/x.
+    url.search = `?next=${encodeURIComponent(pathname + request.nextUrl.search)}`;
     return NextResponse.redirect(url);
   }
 
@@ -52,9 +69,11 @@ export async function updateSession(request: NextRequest) {
   // set session lands where it was headed instead of falling back to home.
   if (user && pathname === "/login") {
     const url = request.nextUrl.clone();
-    const nextParam = url.searchParams.get("next");
-    url.pathname = nextParam && nextParam.startsWith("/") ? nextParam : "/home";
-    url.search = "";
+    // `next` can now carry its own query string, so split it rather than
+    // dropping the whole value into pathname.
+    const target = splitHref(safeNextHref(request.nextUrl.searchParams.get("next")));
+    url.pathname = target.pathname;
+    url.search = target.search;
     return NextResponse.redirect(url);
   }
 

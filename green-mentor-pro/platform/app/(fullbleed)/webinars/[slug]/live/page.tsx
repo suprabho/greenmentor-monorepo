@@ -3,11 +3,12 @@ import Link from "next/link";
 import { ArrowLeft } from "@phosphor-icons/react/dist/ssr";
 import { ZoomEmbed } from "@/components/webinars/zoom-embed";
 import { WebinarPolls } from "@/components/webinars/webinar-polls";
+import { webinarHref } from "@/lib/share/href";
 import {
   fetchPollResults,
   fetchUserPollResponses,
-  fetchWebinarById,
   fetchWebinarPolls,
+  resolveWebinar,
 } from "@/lib/webinars/repo";
 import { createClient } from "@/lib/supabase/server";
 
@@ -28,18 +29,22 @@ function fmtWhen(iso: string | null): string {
 // The live room requires a signed-in user (any signed-in learner — no RSVP
 // gate). Gated here in-page rather than via middleware PROTECTED_PATHS, which
 // is prefix-based and would wrongly gate the public /webinars listing.
-export default async function WebinarLivePage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
+//
+// `slug` is a share slug ("scope-3-3f8a1c2e9d"), but resolveWebinar also takes
+// a bare uuid so the /webinars/<uuid>/live links that predate slugs still work.
+export default async function WebinarLivePage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect(`/login?next=${encodeURIComponent(`/webinars/${id}/live`)}`);
+  if (!user) redirect(`/login?next=${encodeURIComponent(`/webinars/${slug}/live`)}`);
 
-  const webinar = await fetchWebinarById(id);
+  const webinar = await resolveWebinar(slug);
   if (!webinar) notFound();
+  if (slug !== webinar.shareSlug) redirect(`${webinarHref(webinar)}/live`);
 
-  const polls = await fetchWebinarPolls(id);
+  const polls = await fetchWebinarPolls(webinar.id);
   const pollIds = polls.map((p) => p.id);
   const [responses, results] = await Promise.all([
     fetchUserPollResponses(pollIds),
@@ -69,7 +74,8 @@ export default async function WebinarLivePage({ params }: { params: Promise<{ id
       {/* Stage: Zoom fills the main cell, polls live in a scrollable rail */}
       <div className="grid min-h-0 flex-1 lg:grid-cols-[minmax(0,1fr)_340px]">
         <div className="min-h-0 overflow-hidden p-3 lg:p-4">
-          <ZoomEmbed webinarId={id} />
+          {/* Raw uuid — /api/webinars/[id]/zoom-signature is keyed by id, not slug. */}
+          <ZoomEmbed webinarId={webinar.id} />
         </div>
         <aside className="min-h-0 overflow-y-auto border-t border-white/10 bg-gray-50 p-4 lg:border-l lg:border-t-0">
           <WebinarPolls polls={polls} initialResponses={responses} initialResults={results} userId={user.id} />

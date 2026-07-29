@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getWebinarPhase, UPCOMING_LOOKBACK_MS } from "@/lib/webinars/status";
+import { parseShareParam, pickCanonical, shareSlug } from "@/lib/share/slug";
 import { createClient } from "@/lib/supabase/server";
 
 // Webinars are authored in the community-engine admin hub (community_webinars,
@@ -25,6 +26,8 @@ export interface WebinarInstructor {
 
 export interface Webinar {
   id: string;
+  /** Canonical URL segment, `{slug}-{idPrefix}`. Use webinarHref() to build a path. */
+  shareSlug: string;
   title: string;
   hook: string | null;
   instructors: WebinarInstructor[];
@@ -36,10 +39,12 @@ export interface Webinar {
 }
 
 const WEBINAR_COLUMNS =
-  "id, title, hook, instructor_ids, scheduled_at, duration_minutes, registration_url, cover_image_url, status";
+  "id, slug, id_prefix, title, hook, instructor_ids, scheduled_at, duration_minutes, registration_url, cover_image_url, status";
 
 interface WebinarRowRaw {
   id: string;
+  slug: string | null;
+  id_prefix: string | null;
   title: string;
   hook: string | null;
   instructor_ids: string[] | null;
@@ -49,6 +54,7 @@ interface WebinarRowRaw {
   cover_image_url: string | null;
   status: string;
 }
+
 
 /** Fetch the instructors referenced across a set of webinar rows, keyed by id. */
 async function resolveInstructors(
@@ -68,6 +74,7 @@ async function resolveInstructors(
 function mapWebinar(row: WebinarRowRaw, byId: Map<string, WebinarInstructor>): Webinar {
   return {
     id: row.id,
+    shareSlug: shareSlug(row.slug, row.id),
     title: row.title,
     hook: row.hook,
     instructors: (row.instructor_ids ?? [])
@@ -130,13 +137,37 @@ export async function fetchUserRsvpIds(userId: string): Promise<Set<string>> {
   return new Set((data ?? []).map((r) => r.webinar_id as string));
 }
 
-/** A single published/completed webinar, for the live page header. */
+/** A single published/completed webinar, by raw uuid. */
 export async function fetchWebinarById(id: string): Promise<Webinar | null> {
   const supabase = await createClient();
   const { data, error } = await supabase.from("webinars_public").select(WEBINAR_COLUMNS).eq("id", id).maybeSingle();
   if (error) throw new Error(error.message);
   if (!data) return null;
   const row = data as WebinarRowRaw;
+  const byId = await resolveInstructors(supabase, [row]);
+  return mapWebinar(row, byId);
+}
+
+/**
+ * Resolve a `[slug]` route param — either a share slug ("scope-3-3f8a1c2e9d")
+ * or a bare uuid, so links minted before slugs existed still work. Callers
+ * compare the result's shareSlug against the incoming param and redirect when
+ * they differ, which is what keeps renamed items on stable URLs.
+ */
+export async function resolveWebinar(param: string): Promise<Webinar | null> {
+  const parsed = parseShareParam(param);
+  if (!parsed) return null;
+  if (parsed.kind === "uuid") return fetchWebinarById(parsed.id);
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("webinars_public")
+    .select(WEBINAR_COLUMNS)
+    .eq("id_prefix", parsed.idPrefix)
+    .limit(2); // 2 is enough to notice a prefix collision; pickCanonical breaks the tie
+  if (error) throw new Error(error.message);
+  const row = pickCanonical((data ?? []) as WebinarRowRaw[], parsed.slug);
+  if (!row) return null;
   const byId = await resolveInstructors(supabase, [row]);
   return mapWebinar(row, byId);
 }

@@ -15,6 +15,8 @@ import { useRouter } from "next/navigation";
 import { ArrowSquareOut, Plus, Sparkle, X } from "@phosphor-icons/react/dist/ssr";
 import { Card, Chip, Stat } from "@/components/ui";
 import { WebinarPollsEditor } from "@/components/webinars/webinar-polls-editor";
+import { PublicLink } from "@/components/public-link";
+import { publicWebinarUrl } from "@/lib/share-link";
 import type { WebinarRow, WebinarStatus } from "@/lib/db/webinars";
 import type { InstructorRow } from "@/lib/db/instructors";
 
@@ -561,6 +563,11 @@ export function WebinarsPanel({
                       {w.instructor_ids.length > 0 ? ` · ${instructorNames(w.instructor_ids)}` : ""}
                       {w.hook ? ` · ${w.hook}` : ""}
                     </div>
+                    {/* webinars_public also exposes completed rows, so past
+                        sessions stay linkable for recaps. */}
+                    {w.status === "published" || w.status === "completed" ? (
+                      <PublicLink url={publicWebinarUrl(w)} />
+                    ) : null}
                     {w.registrations != null || w.attendees != null || w.revenue_inr != null ? (
                       <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1 text-[12px] text-gray-600">
                         <span>Reg {w.registrations ?? "—"}</span>

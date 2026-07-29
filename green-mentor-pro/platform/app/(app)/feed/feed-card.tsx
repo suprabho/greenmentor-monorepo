@@ -1,19 +1,13 @@
 import Link from "next/link";
 import { clsx } from "clsx";
 import { Card, Chip } from "@/components/ui";
+import { articleHref } from "@/lib/share/href";
+import type { FeedArticle, FeedEntity } from "@/lib/feed/repo";
 import { ArticleActions, type ArticleStat, type CurrentUser, type ReactionKind } from "./feed-actions";
 
-export type FeedEntity = { slug: string; name: string; kind: string };
-export type FeedArticle = {
-  id: string;
-  source: string;
-  title: string;
-  url: string;
-  summary: string | null;
-  image_url: string | null;
-  published_at: string | null;
-  article_entities: { entities: FeedEntity | null }[] | null;
-};
+// The row types live in lib/feed/repo.ts alongside the query that produces
+// them; re-exported here so existing `from "./feed-card"` imports keep working.
+export type { FeedArticle, FeedEntity };
 
 const KIND_TONE: Record<string, "green" | "teal" | "neutral" | "warn"> = {
   framework: "teal",
@@ -92,7 +86,11 @@ export function FeedCard({
       <div className={clsx("flex flex-col gap-2.5 p-5", fill && "min-h-0 flex-1")}>
         <div className="flex items-center gap-2 text-[12px] text-gray-500">
           <span className="rounded-pill bg-gray-100 px-2 py-0.5 font-semibold text-gray-700">{article.source}</span>
-          <span>{ago(article.published_at)}</span>
+          {/* Timestamp-as-permalink, the usual social convention. The headline
+              itself stays pointed at the publisher so the reading flow is unchanged. */}
+          <Link href={articleHref(article)} className="hover:text-gray-700 hover:underline">
+            {ago(article.published_at)}
+          </Link>
         </div>
 
         <a href={article.url} target="_blank" rel="noopener noreferrer" className="block">
@@ -128,7 +126,7 @@ export function FeedCard({
           <ArticleActions
             articleId={article.id}
             title={article.title}
-            url={article.url}
+            sharePath={articleHref(article)}
             stats={stats}
             initialReaction={reaction}
             currentUser={currentUser}

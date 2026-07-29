@@ -21,12 +21,13 @@ import {
  * takes over with the client clock only after mount.
  */
 export function JoinButton({
-  webinarId,
+  shareSlug,
   scheduledAt,
   durationMinutes,
   serverNow,
 }: {
-  webinarId: string;
+  /** The webinar's canonical URL segment, `{slug}-{idPrefix}`. */
+  shareSlug: string;
   scheduledAt: string | null;
   durationMinutes: number | null;
   serverNow: string;
@@ -52,7 +53,7 @@ export function JoinButton({
   if (view.phase === "joinable") {
     return (
       <Link
-        href={`/webinars/${webinarId}/live`}
+        href={`/webinars/${shareSlug}/live`}
         className="inline-flex items-center gap-1.5 rounded-full bg-teal-900 px-3.5 py-1.5 text-[12.5px] font-semibold text-white transition-colors hover:bg-teal-800"
       >
         <VideoCamera size={14} weight="fill" /> Join

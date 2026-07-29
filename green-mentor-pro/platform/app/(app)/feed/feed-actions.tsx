@@ -2,10 +2,11 @@
 
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { clsx } from "clsx";
-import { ThumbsUp, ThumbsDown, ChatCircle, ShareNetwork, X, PaperPlaneRight, CircleNotch } from "@phosphor-icons/react";
+import { ThumbsUp, ThumbsDown, ChatCircle, Check, ShareNetwork, X, PaperPlaneRight, CircleNotch } from "@phosphor-icons/react";
 import { Avatar } from "@/components/ui";
+import { useShare } from "@/components/share/share-button";
 import { createClient } from "@/lib/supabase/client";
 
 export type ReactionKind = "like" | "dislike";
@@ -20,8 +21,14 @@ type FeedComment = {
   author_avatar: string | null;
 };
 
-const LOGIN = `/login?next=${encodeURIComponent("/feed")}`;
 const MAX_COMMENT = 1000;
+
+/** Bounce to sign-in and come back to wherever the reader actually was — the
+ *  feed list, an `?entity=` filter, or a shared /feed/:slug permalink. */
+function useLoginHref(): string {
+  const pathname = usePathname();
+  return `/login?next=${encodeURIComponent(pathname || "/feed")}`;
+}
 
 // One browser client per card, created lazily so it never runs during SSR.
 function useSupabase() {
@@ -60,20 +67,24 @@ function ActionButton({
 export function ArticleActions({
   articleId,
   title,
-  url,
+  sharePath,
   stats,
   initialReaction,
   currentUser,
 }: {
   articleId: string;
   title: string;
-  url: string;
+  /** The Green Mentor permalink (/feed/:slug) — NOT the publisher's URL, which
+   *  is what this button used to share. */
+  sharePath: string;
   stats?: ArticleStat;
   initialReaction: ReactionKind | null;
   currentUser: CurrentUser | null;
 }) {
   const router = useRouter();
   const getSupabase = useSupabase();
+  const login = useLoginHref();
+  const { share, copied } = useShare(sharePath, title);
 
   const baseLikes = stats?.like_count ?? 0;
   const baseDislikes = stats?.dislike_count ?? 0;
@@ -85,7 +96,6 @@ export function ArticleActions({
   const [reaction, setReaction] = useState<ReactionKind | null>(initialReaction);
   const [commentDelta, setCommentDelta] = useState(0);
   const [open, setOpen] = useState(false);
-  const [copied, setCopied] = useState(false);
   const busyRef = useRef(false);
 
   const likes = baseLikes - (initialReaction === "like" ? 1 : 0) + (reaction === "like" ? 1 : 0);
@@ -94,7 +104,7 @@ export function ArticleActions({
 
   const toggle = async (kind: ReactionKind) => {
     if (!currentUser) {
-      router.push(LOGIN);
+      router.push(login);
       return;
     }
     if (busyRef.current) return; // drop overlapping clicks so writes can't race
@@ -114,24 +124,6 @@ export function ArticleActions({
     if (error) setReaction(prev); // rollback
   };
 
-  const share = async () => {
-    if (typeof navigator !== "undefined" && navigator.share) {
-      try {
-        await navigator.share({ title, url });
-      } catch {
-        /* dismissed */
-      }
-      return;
-    }
-    try {
-      await navigator.clipboard?.writeText(url);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
-    } catch {
-      /* clipboard unavailable */
-    }
-  };
-
   return (
     <>
       <div className="flex items-center gap-0.5 border-t border-gray-100 pt-2.5">
@@ -148,8 +140,8 @@ export function ArticleActions({
           {comments}
         </ActionButton>
 
-        <ActionButton onClick={share} className="ml-auto">
-          <ShareNetwork size={17} />
+        <ActionButton onClick={() => void share()} className="ml-auto">
+          {copied ? <Check size={17} weight="bold" className="text-green-700" /> : <ShareNetwork size={17} />}
           {copied ? "Copied" : "Share"}
         </ActionButton>
       </div>
@@ -182,6 +174,7 @@ function CommentSheet({
 }) {
   const router = useRouter();
   const getSupabase = useSupabase();
+  const login = useLoginHref();
   const [show, setShow] = useState(false); // drives slide-up / slide-down
   const [loading, setLoading] = useState(true);
   const [comments, setComments] = useState<FeedComment[]>([]);
@@ -272,7 +265,7 @@ function CommentSheet({
     const body = text.trim().slice(0, MAX_COMMENT);
     if (!body || posting) return;
     if (!currentUser) {
-      router.push(LOGIN);
+      router.push(login);
       return;
     }
 
@@ -404,7 +397,7 @@ function CommentSheet({
           ) : (
             <button
               type="button"
-              onClick={() => router.push(LOGIN)}
+              onClick={() => router.push(login)}
               className="w-full rounded-pill bg-teal-900 py-2.5 text-[13.5px] font-semibold text-white transition hover:bg-teal-800"
             >
               Sign in to join the conversation
