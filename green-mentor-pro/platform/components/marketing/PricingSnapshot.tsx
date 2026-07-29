@@ -18,9 +18,10 @@ import { Button } from "@/components/marketing-ui/Button";
 import {
   plans,
   annualSavingsPercent,
-  valueStack,
+  buildValueStack,
   discountedPrice,
 } from "@/lib/data/plans";
+import type { CatalogCourse } from "@/lib/academy/types";
 import { guarantee } from "@/lib/data/guarantee";
 import { cn } from "@/lib/utils/cn";
 import { track } from "@/lib/utils/analytics";
@@ -35,15 +36,18 @@ function formatINR(n: number) {
 
 interface PricingSnapshotProps {
   compact?: boolean;
+  /** Catalog rows backing the value stack, so it can't drift from the course grid. */
+  courses?: CatalogCourse[];
 }
 
 // Marketing-side pricing block. Mirrors the onboarding /plan step: one
 // membership, two side-by-side billing-cycle cards. Each card deep-links to
 // /onboarding/welcome with both plan + cycle preselected so the onboarding
 // store can skip ahead.
-export function PricingSnapshot({ compact = false }: PricingSnapshotProps) {
+export function PricingSnapshot({ compact = false, courses = [] }: PricingSnapshotProps) {
   const plan = plans[0];
   const ctaHref = useCtaHref();
+  const valueStack = buildValueStack(courses);
 
   // Flat launch discount applied to each cycle's first charge (see
   // `flatDiscount`, mirrored by the auto-applied Razorpay offers at checkout).
@@ -105,7 +109,10 @@ export function PricingSnapshot({ compact = false }: PricingSnapshotProps) {
         />
 
         {/* PR-1 — value stack: what's included, and what it would cost standalone.
-            Counts every included item (see plans.ts). */}
+            Course rows come from the catalog (see buildValueStack in plans.ts);
+            hidden entirely if the catalog read came back empty, rather than
+            claiming a standalone value made only of the non-course extras. */}
+        {courses.length > 0 && (
         <div className="mx-auto mt-12 max-w-2xl rounded-[12px] border border-gray-200 bg-white p-6 shadow-soft md:p-8">
           <p className="gm-eyebrow text-green-700">What you&apos;re getting</p>
           <h3 className="mt-2 text-[20px] font-bold text-ink">
@@ -155,6 +162,7 @@ export function PricingSnapshot({ compact = false }: PricingSnapshotProps) {
             </span>
           </div>
         </div>
+        )}
 
         <div className="mx-auto mt-12 grid max-w-4xl gap-6 md:grid-cols-2">
           {cycleCards.map((card) => (

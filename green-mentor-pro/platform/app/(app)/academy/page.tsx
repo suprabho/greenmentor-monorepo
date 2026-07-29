@@ -1,8 +1,8 @@
 import { Card, PageHeader } from "@/components/ui";
 import { BundleCard } from "@/components/academy/bundle-card";
 import { CourseCard } from "@/components/academy/course-card";
-import { LiveCourseCard } from "@/components/academy/live-course-card";
-import { liveCourses, plusEssentialBundle } from "@/lib/academy/catalog-extras";
+import { LearnystCourseCard } from "@/components/academy/learnyst-course-card";
+import { buildPlusEssentialBundle, fetchCatalog } from "@/lib/academy/catalog";
 import { sumDurations } from "@/lib/academy/format";
 import { fetchCourseCatalog, fetchCourseTree, fetchLearnerProgress } from "@/lib/academy/repo";
 import { computeCourseState } from "@/lib/academy/state";
@@ -24,6 +24,13 @@ export default async function AcademyPage() {
   } = await supabase.auth.getUser();
 
   const courses = await fetchCourseCatalog();
+
+  // The merchandising catalog is a separate table from the player content above:
+  // most of it lives on Learnyst and has no modules/lessons here.
+  const catalog = await fetchCatalog();
+  const liveCourses = catalog.filter((c) => c.delivery === "live");
+  const learnystSelfPaced = catalog.filter((c) => c.delivery === "self_paced" && c.hostedOn === "learnyst");
+  const plusEssentialBundle = buildPlusEssentialBundle(catalog);
 
   // Course trees give the card meta line (modules · lessons · duration); the
   // catalog is tiny, so per-course fetches are fine. Progress reuses the same
@@ -88,16 +95,29 @@ export default async function AcademyPage() {
           <SectionHeading>Live training</SectionHeading>
           <div className="grid gap-4 sm:grid-cols-2">
             {liveCourses.map((course) => (
-              <LiveCourseCard key={course.id} course={course} />
+              <LearnystCourseCard key={course.slug} course={course} />
             ))}
           </div>
         </section>
       )}
 
-      <section className="mt-10">
-        <SectionHeading>Bundles</SectionHeading>
-        <BundleCard bundle={plusEssentialBundle} />
-      </section>
+      {learnystSelfPaced.length > 0 && (
+        <section className="mt-10">
+          <SectionHeading>Also on Learnyst</SectionHeading>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {learnystSelfPaced.map((course) => (
+              <LearnystCourseCard key={course.slug} course={course} />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {plusEssentialBundle.courses.length > 0 && (
+        <section className="mt-10">
+          <SectionHeading>Bundles</SectionHeading>
+          <BundleCard bundle={plusEssentialBundle} />
+        </section>
+      )}
     </div>
   );
 }
