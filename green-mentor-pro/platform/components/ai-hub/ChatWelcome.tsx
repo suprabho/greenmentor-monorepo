@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ChatComposer, type ComposerAttachment } from "./ChatComposer";
 import { SuggestionChips } from "./SuggestionChips";
@@ -10,24 +10,38 @@ import { setPendingMessage } from "@/lib/chat/pending";
 /**
  * Chat welcome / empty state. The first send creates a conversation row, stashes
  * the message for the conversation page to fire on mount, and routes there.
- * Attachments aren't offered here (the upload route is per-conversation) — they
- * light up once inside a conversation.
+ *
+ * Attachments work here too, even though the upload route is per-conversation: the
+ * conversation row is created lazily on the first attach (or on send, whichever comes
+ * first) and cached in `conversationId`, so the upload and the message it belongs to
+ * land in the same conversation. Without this the document-shaped skills
+ * (/extract-bill, /understand-epd) had no way to receive a document on the very first
+ * message — the paperclip only appeared after a round-trip.
  */
 export function ChatWelcome({ displayName }: { displayName: string }) {
   const router = useRouter();
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const conversationId = useRef<string | null>(null);
+
+  /** Create-once: the id is reused by a later attach and by the eventual send. */
+  async function ensureConversation(): Promise<string> {
+    if (conversationId.current) return conversationId.current;
+    const res = await fetch("/api/ai-hub/chat/conversations", { method: "POST" });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.error ?? `HTTP ${res.status}`);
+    conversationId.current = json.id as string;
+    return conversationId.current;
+  }
 
   async function start(text: string, files: ComposerAttachment[]) {
-    if (creating || !text.trim()) return;
+    if (creating || (!text.trim() && files.length === 0)) return;
     setCreating(true);
     setError(null);
     try {
-      const res = await fetch("/api/ai-hub/chat/conversations", { method: "POST" });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error ?? `HTTP ${res.status}`);
-      setPendingMessage(json.id, { text, files });
-      router.push(`/ai-hub/chat/${json.id}`);
+      const id = await ensureConversation();
+      setPendingMessage(id, { text, files });
+      router.push(`/ai-hub/chat/${id}`);
     } catch (e) {
       setError(String(e instanceof Error ? e.message : e));
       setCreating(false);
@@ -42,6 +56,7 @@ export function ChatWelcome({ displayName }: { displayName: string }) {
           onSend={start}
           busy={creating}
           placeholder="How can I help with your ESG reporting?"
+          uploadUrl={async () => `/api/ai-hub/chat/conversations/${await ensureConversation()}/upload`}
           skills={CHAT_SKILLS}
           size="hero"
           autoFocus

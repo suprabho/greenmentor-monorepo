@@ -12,7 +12,12 @@ export async function generateConversationTitle(firstUserText: string): Promise<
     const { model } = resolveBuddyModel();
     const { text } = await generateText({
       model,
-      system: "You write short, specific chat titles. Return ONLY a 3-6 word title — no quotes, no trailing punctuation.",
+      // "Do NOT answer it" matters: a first message like "Extract the ESG data from
+      // this document." (the document itself being an attachment the titler can't
+      // see) otherwise gets *replied to* — the rail ends up titled
+      // "Please share the document you'd like me to extract".
+      system:
+        "You label chat threads. Given the user's first message, return ONLY a 3-6 word title for the thread — no quotes, no trailing punctuation. Do NOT answer, respond to, or ask anything about the message; describe what the thread is about. If the message refers to a document you cannot see, title it by the task (e.g. \"Bill data extraction\").",
       prompt: `First user message:\n${firstUserText.slice(0, 500)}\n\nTitle:`,
     });
     const cleaned = text.trim().replace(/^["']|["']$/g, "").replace(/\.$/, "").trim();

@@ -31,6 +31,11 @@ export async function listConversations(orgId: string, userId: string): Promise<
     .select("id, title, created_at, updated_at, last_message_at")
     .eq("org_id", orgId)
     .eq("user_id", userId)
+    // Only conversations that have actually had a turn (last_message_at is stamped by
+    // touchConversation on finish). Rows are created before the first message is sent —
+    // and the welcome state creates one as soon as a file is attached — so without this
+    // an abandoned new chat would sit in the rail forever as an empty "New chat".
+    .not("last_message_at", "is", null)
     .order("updated_at", { ascending: false });
   if (error) throw new Error(`listConversations: ${error.message}`);
   return (data ?? []) as Conversation[];
