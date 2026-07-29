@@ -28,6 +28,7 @@ import {
 } from "@phosphor-icons/react";
 import { clsx } from "clsx";
 import { Avatar } from "@/components/ui";
+import { Logo } from "@/components/marketing/Logo";
 
 type NavChild = { label: string; href: string; icon: Icon };
 type NavItem = { label: string; href: string; icon: Icon; children: NavChild[] };
@@ -149,14 +150,16 @@ export function Shell({
             collapsed ? "flex-col gap-2" : "justify-between pl-5 pr-3"
           )}
         >
-          <Link href="/home" className="flex items-center gap-2.5">
+          <Link href="/home" aria-label="Green Mentor Pro home" className="flex items-center gap-2.5">
             <span className="grid size-9 shrink-0 place-items-center rounded-[6px] bg-green-500 text-teal-900">
               <Leaf size={20} weight="fill" />
             </span>
             {!collapsed && (
               <span className="leading-tight whitespace-nowrap">
-                <span className="block text-[15px] font-semibold tracking-tight">Green Mentor</span>
-                <span className="block text-[11px] font-medium uppercase tracking-[0.18em] text-green-500">Pro</span>
+                <Logo bare variant="dark" className="block h-5" />
+                <span className="mt-0.5 block text-[11px] font-medium uppercase tracking-[0.18em] text-green-500">
+                  Pro
+                </span>
               </span>
             )}
           </Link>
@@ -314,11 +317,16 @@ export function Shell({
       <div className="min-w-0 flex-1">
         {/* Top bar (mobile/tablet only — search and stats live in the sidebar on desktop) */}
         <header className="sticky top-0 z-20 flex h-14 items-center gap-3 border-b border-gray-200 bg-white/90 px-4 backdrop-blur lg:hidden">
-          <Link href="/home" className="mr-1 flex items-center gap-2">
+          <Link href="/home" aria-label="Green Mentor Pro home" className="mr-1 flex items-center gap-2">
             <span className="grid size-7 place-items-center rounded-lg bg-teal-900 text-green-500">
               <Leaf size={15} weight="fill" />
             </span>
-            <span className="text-[13px] font-semibold">GM Pro</span>
+            <span className="flex items-center gap-1.5">
+              <Logo bare variant="light" className="block h-4" />
+              <span className="text-[11px] font-medium uppercase tracking-[0.18em] text-ink/70">
+                Pro
+              </span>
+            </span>
           </Link>
           <div className="hidden md:flex flex-1 max-w-md items-center gap-2 rounded-pill border border-gray-200 bg-gray-50 px-3.5 py-1.5 text-[13px] text-gray-500">
             <MagnifyingGlass size={15} />
