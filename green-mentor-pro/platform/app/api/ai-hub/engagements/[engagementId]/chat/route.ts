@@ -11,6 +11,7 @@ import { refusalTurn, refusalStreamResponse, latestUserText } from "@/lib/chat/g
 import { PHASE_ORDER, PHASE_LABEL, type PhaseKey, type PhaseStatus } from "@/lib/engagement-ui";
 import { ChatError, toChatError } from "@/lib/chat/errors";
 import { chatPostBodySchema } from "@/lib/chat/schema";
+import { checkAiAllowance, insufficientCreditsMessage, recordAiUsage } from "@/lib/ai/usage";
 
 export const runtime = "nodejs";
 export const maxDuration = 60; // tools are fast; long phase runs go through the run route
@@ -33,6 +34,13 @@ export async function POST(req: Request, { params }: { params: Promise<{ engagem
     const parsed = chatPostBodySchema.safeParse(await req.json());
     if (!parsed.success) return new ChatError("bad_request").toResponse();
     const messages = parsed.data.messages as unknown as UIMessage[];
+
+    // Credits gate: free daily allowance first, then a balance floor. Before the
+    // domain guard so a refused turn costs the user nothing.
+    const allowance = await checkAiAllowance(ctx.userId, "engagement_chat");
+    if (!allowance.allowed) {
+      return new ChatError("insufficient_credits", insufficientCreditsMessage("engagement_chat")).toResponse();
+    }
 
     // Pre-flight domain guard: refuse off-domain / code / jailbreak before the
     // model or any engagement tools run (same guard as the standalone Hub chat).
@@ -78,6 +86,17 @@ export async function POST(req: Request, { params }: { params: Promise<{ engagem
       messages: await convertToModelMessages(messages),
       tools: buildEngagementTools({ orgId: ctx.orgId, engagementId, userUuid: ctx.userId }),
       stopWhen: stepCountIs(6),
+      // Metering hook — `totalUsage` covers every step of the tool loop.
+      onFinish: ({ totalUsage, response, model }) =>
+        recordAiUsage({
+          userId: ctx.userId,
+          orgId: ctx.orgId,
+          surface: "engagement_chat",
+          ref: engagementId,
+          model: response.modelId || model.modelId,
+          usage: totalUsage,
+          freeTier: allowance.freeTier,
+        }),
     });
 
     // Drive the stream to completion server-side so onFinish still persists the

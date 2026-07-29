@@ -5,7 +5,7 @@
 // generateObject with a strict schema instead of a bespoke endpoint. The bill
 // file is sent straight to the vision model — no separate OCR step.
 
-import { generateObject } from "ai";
+import { generateObject, type LanguageModelUsage } from "ai";
 import { resolveBuddyModel } from "@gm/agents";
 import { z } from "zod";
 import type { EnergyMasters } from "./types";
@@ -37,15 +37,25 @@ export type FuelExtraction = z.infer<typeof fuelExtraction>;
 export type ElectricityExtraction = z.infer<typeof electricityExtraction>;
 export type Extraction = Partial<FuelExtraction & ElectricityExtraction>;
 
-/** Send the bill to the vision model and get structured fields back. */
+/** What the extraction cost, for the credits ledger (see lib/ai/usage.ts). */
+export interface ExtractionMeter {
+  model: string;
+  usage: LanguageModelUsage;
+}
+
+/**
+ * Send the bill to the vision model and get structured fields back, alongside the
+ * token usage so the caller can meter it. Usage is returned rather than recorded
+ * here because this module is pure model plumbing — it has no session or org.
+ */
 export async function extractBill(
   billType: BillType,
   bytes: Uint8Array,
   mediaType: string,
-): Promise<Extraction> {
+): Promise<{ extracted: Extraction; meter: ExtractionMeter }> {
   const { model } = resolveBuddyModel();
   const schema = billType === "fuel" ? fuelExtraction : electricityExtraction;
-  const { object } = await generateObject({
+  const { object, usage, response } = await generateObject({
     model,
     schema,
     messages: [
@@ -64,7 +74,13 @@ export async function extractBill(
       },
     ],
   });
-  return object as Extraction;
+  // resolveBuddyModel may hand back a plain gateway string, in which case there's
+  // no local model id — fall back to what the provider reported.
+  const requested = typeof model === "string" ? model : response.modelId;
+  return {
+    extracted: object as Extraction,
+    meter: { model: response.modelId || requested, usage },
+  };
 }
 
 // ── Resolve extracted strings → master ids ──────────────────────────────────

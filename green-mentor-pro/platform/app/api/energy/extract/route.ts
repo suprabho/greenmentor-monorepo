@@ -7,6 +7,7 @@ import { getEngagementContext } from "@/lib/engagement-session";
 import { getMasters } from "@/lib/energy/repo";
 import { extractBill, resolveToMasters, runBillValidation, type BillType } from "@/lib/energy/extract";
 import { jsonError } from "@/lib/api-error";
+import { checkAiAllowance, insufficientCreditsMessage, recordAiUsage } from "@/lib/ai/usage";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -34,8 +35,27 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: `File too large (max ${MAX_BYTES / 1024 / 1024} MB)` }, { status: 400 });
     }
 
+    // Credits gate: free daily allowance, then a balance floor. After the cheap
+    // validation above so a rejected file never burns an allowance slot.
+    const allowance = await checkAiAllowance(ctx.userId, "energy_extract");
+    if (!allowance.allowed) {
+      return NextResponse.json(
+        { error: insufficientCreditsMessage("energy_extract"), code: "insufficient_credits" },
+        { status: 402 },
+      );
+    }
+
     const bytes = new Uint8Array(await file.arrayBuffer());
-    const extracted = await extractBill(billType, bytes, file.type);
+    const { extracted, meter } = await extractBill(billType, bytes, file.type);
+    await recordAiUsage({
+      userId: ctx.userId,
+      orgId: ctx.orgId,
+      surface: "energy_extract",
+      ref: billType,
+      model: meter.model,
+      usage: meter.usage,
+      freeTier: allowance.freeTier,
+    });
     const masters = await getMasters();
     const resolved = resolveToMasters(billType, extracted, masters);
     const validation = runBillValidation(billType, extracted);

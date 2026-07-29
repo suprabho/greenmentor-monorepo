@@ -15,6 +15,7 @@ export type ChatErrorCode =
   | "unauthorized"
   | "not_found"
   | "bad_request"
+  | "insufficient_credits"
   | "no_model_credential"
   | "offline"
   | "internal";
@@ -23,6 +24,7 @@ const STATUS: Record<ChatErrorCode, number> = {
   unauthorized: 401,
   not_found: 404,
   bad_request: 400,
+  insufficient_credits: 402,
   no_model_credential: 503,
   offline: 503,
   internal: 500,
@@ -32,6 +34,8 @@ const DEFAULT_MESSAGE: Record<ChatErrorCode, string> = {
   unauthorized: "Please sign in to continue.",
   not_found: "This conversation no longer exists.",
   bad_request: "The chat request was malformed. Please retry.",
+  // Callers pass the surface-specific text from insufficientCreditsMessage().
+  insufficient_credits: "You're out of credits for this AI feature.",
   no_model_credential:
     "Chat has no working model credential. Set ANTHROPIC_API_KEY (or AI_GATEWAY_API_KEY) in green-mentor-pro/platform/.env.local and restart.",
   offline: "You appear to be offline. Check your connection and retry.",
