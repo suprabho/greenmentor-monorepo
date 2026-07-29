@@ -17,6 +17,7 @@ import {
 import { generateConversationTitle } from "@/lib/chat/title";
 import { ChatError, toChatError } from "@/lib/chat/errors";
 import { chatPostBodySchema } from "@/lib/chat/schema";
+import { checkAiAllowance, insufficientCreditsMessage, recordAiUsage } from "@/lib/ai/usage";
 
 export const runtime = "nodejs";
 // A skill tool (runScopingSkill / extractBillSkill / understandEpdSkill) runs a full
@@ -57,6 +58,14 @@ export async function POST(req: Request, { params }: Params) {
     if (!parsed.success) return new ChatError("bad_request").toResponse();
     const messages = parsed.data.messages as unknown as UIMessage[];
 
+    // Credits gate: free daily allowance first, then a balance floor. Runs before
+    // the domain guard so a refused turn costs the user nothing — the guard itself
+    // makes a (small, house-paid) model call.
+    const allowance = await checkAiAllowance(ctx.userId, "hub_chat");
+    if (!allowance.allowed) {
+      return new ChatError("insufficient_credits", insufficientCreditsMessage("hub_chat")).toResponse();
+    }
+
     // Pre-flight domain guard: classify the latest user message and short-circuit
     // with a canned refusal BEFORE the model or any skill tools run. Off-domain,
     // code-generation, and jailbreak/prompt-extraction attempts never reach the model.
@@ -92,6 +101,19 @@ export async function POST(req: Request, { params }: Params) {
       // packaged agent and returns a structured card).
       tools: { ...tools, ...buildSkillTools({ orgId: ctx.orgId }) },
       stopWhen: stepCountIs(6),
+      // Metering hook. `totalUsage` sums every step, so a turn that ran a skill
+      // agent mid-stream is billed for all of it, not just the last model call.
+      // recordAiUsage never throws — the response is already on the wire by now.
+      onFinish: ({ totalUsage, response, model }) =>
+        recordAiUsage({
+          userId: ctx.userId,
+          orgId: ctx.orgId,
+          surface: "hub_chat",
+          ref: conversationId,
+          model: response.modelId || model.modelId,
+          usage: totalUsage,
+          freeTier: allowance.freeTier,
+        }),
     });
 
     // Drive the stream to completion server-side so onFinish still persists the

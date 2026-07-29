@@ -1,6 +1,8 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { Avatar, Card, Chip, PageHeader } from "@/components/ui";
+import { CreditsCard } from "@/components/wallet/CreditsCard";
+import { fetchWalletSummary } from "@/lib/ai/usage";
 
 export const metadata = { title: "Profile — Green Mentor Pro" };
 
@@ -14,11 +16,14 @@ export default async function ProfilePage() {
 
   // Profile row is created by the handle_new_user trigger (see supabase/migrations).
   // maybeSingle so a missing row (migration not yet run) doesn't throw.
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("display_name, avatar_url, created_at")
-    .eq("id", user.id)
-    .maybeSingle();
+  const [{ data: profile }, wallet] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select("display_name, avatar_url, created_at")
+      .eq("id", user.id)
+      .maybeSingle(),
+    fetchWalletSummary(user.id),
+  ]);
 
   const name = profile?.display_name ?? (user.user_metadata?.full_name as string) ?? user.email ?? "You";
 
@@ -56,6 +61,8 @@ export default async function ProfilePage() {
           </button>
         </form>
       </Card>
+
+      <CreditsCard summary={wallet} />
     </div>
   );
 }
