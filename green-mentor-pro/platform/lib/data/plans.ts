@@ -13,7 +13,12 @@
  * lookup (`RAZORPAY_PLAN_${id.toUpperCase()}_${cycle}`). Keep it stable.
  */
 
-import type { BillingCycle } from "@/lib/store/onboarding";
+/**
+ * Owned here rather than imported from the onboarding store: this is marketing
+ * pricing data, and the store no longer tracks a billing cycle now that the
+ * subscription step is deferred.
+ */
+export type BillingCycle = "monthly" | "annual";
 
 export interface Plan {
   id: string;

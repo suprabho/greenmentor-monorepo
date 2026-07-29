@@ -52,7 +52,8 @@ export function LoginForm({ next, initialError }: { next: string; initialError?:
         setLoading(false);
         return;
       }
-      // New accounts go through onboarding first.
+      // New accounts go straight to onboarding. The gate in (app)/layout.tsx
+      // would send them there anyway — this just skips the extra bounce.
       window.location.href = "/onboarding";
       return;
     }
