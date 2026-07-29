@@ -4,14 +4,14 @@ import { persist, createJSONStorage } from "zustand/middleware";
 import { DEFAULT_COUNTRY_ISO } from "@/lib/data/country-codes";
 
 // Ported from green-mentor-plus's onboarding store — keeps identity capture
-// (name + phone) and the funnel state (audience → goals → plan + billing
-// cycle), and drops the Razorpay/lead-sync legs (checkout is stubbed here).
+// (name + phone) and the funnel state (audience → goals), and drops the
+// Razorpay/lead-sync legs. The plan/billing step is deferred for now, so this
+// no longer tracks it either.
 //
 // Unlike the source, each step also writes through to PATCH /api/profile, so
 // this store is a draft cache for the in-flight wizard rather than the only
 // copy of the answers.
 export type AudienceSegment = "student" | "mid-career" | "business-leader";
-export type BillingCycle = "monthly" | "annual";
 
 export interface OnboardingState {
   displayName: string;
@@ -21,14 +21,10 @@ export interface OnboardingState {
   phoneCountry: string;
   segment: AudienceSegment | null;
   goals: string[];
-  planId: string | null;
-  billingCycle: BillingCycle;
 
   setIdentity: (input: { displayName: string; phone: string; phoneCountry: string }) => void;
   setSegment: (s: AudienceSegment) => void;
   toggleGoal: (id: string) => void;
-  setPlan: (id: string) => void;
-  setBillingCycle: (c: BillingCycle) => void;
   /** Seed the draft from the profile row so a resumed flow shows prior answers. */
   hydrateFrom: (input: Partial<Omit<OnboardingState, keyof OnboardingActions>>) => void;
   reset: () => void;
@@ -36,7 +32,7 @@ export interface OnboardingState {
 
 type OnboardingActions = Pick<
   OnboardingState,
-  "setIdentity" | "setSegment" | "toggleGoal" | "setPlan" | "setBillingCycle" | "hydrateFrom" | "reset"
+  "setIdentity" | "setSegment" | "toggleGoal" | "hydrateFrom" | "reset"
 >;
 
 const initial = {
@@ -45,8 +41,6 @@ const initial = {
   phoneCountry: DEFAULT_COUNTRY_ISO,
   segment: null as AudienceSegment | null,
   goals: [] as string[],
-  planId: null as string | null,
-  billingCycle: "annual" as BillingCycle,
 };
 
 export const useOnboarding = create<OnboardingState>()(
@@ -64,10 +58,6 @@ export const useOnboarding = create<OnboardingState>()(
           goals: s.goals.includes(id) ? s.goals.filter((g) => g !== id) : [...s.goals, id],
         })),
 
-      setPlan: (planId) => set({ planId }),
-
-      setBillingCycle: (billingCycle) => set({ billingCycle }),
-
       // Only fill blanks — never clobber an answer the user just changed but
       // hasn't saved yet (the server copy would be one step behind).
       hydrateFrom: (input) =>
@@ -77,8 +67,6 @@ export const useOnboarding = create<OnboardingState>()(
           phoneCountry: s.phone ? s.phoneCountry : (input.phoneCountry ?? s.phoneCountry),
           segment: s.segment ?? input.segment ?? null,
           goals: s.goals.length > 0 ? s.goals : (input.goals ?? []),
-          planId: s.planId ?? input.planId ?? null,
-          billingCycle: input.billingCycle ?? s.billingCycle,
         })),
 
       reset: () => set({ ...initial }),

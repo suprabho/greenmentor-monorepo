@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { useOnboarding } from "@/lib/store/onboarding";
 import { goals as goalOptions } from "@/lib/onboarding-data";
@@ -11,7 +10,6 @@ import { StepError } from "@/components/onboarding/StepError";
 import { saveProfile } from "@/lib/onboarding/save";
 
 export default function GoalsStep() {
-  const router = useRouter();
   const { goals: selected, toggleGoal } = useOnboarding();
 
   const [saving, setSaving] = useState(false);
@@ -19,13 +17,16 @@ export default function GoalsStep() {
 
   const canContinue = selected.length > 0;
 
-  async function handleContinue() {
+  async function handleFinish() {
     if (!canContinue || saving) return;
     setSaving(true);
     setError(null);
     try {
-      await saveProfile({ goals: selected });
-      router.push("/onboarding/plan");
+      await saveProfile({ goals: selected, onboarded: true });
+      // Hard navigation: the gate in (app)/layout.tsx reads `onboarded` server
+      // side, so we want a fresh render rather than a cached RSC payload that
+      // would bounce us straight back here.
+      window.location.assign("/home");
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
       setSaving(false);
@@ -61,7 +62,8 @@ export default function GoalsStep() {
 
       <BottomNav
         backHref="/onboarding/audience"
-        onContinue={handleContinue}
+        onContinue={handleFinish}
+        continueLabel="Finish & enter Green Mentor Pro"
         continueDisabled={!canContinue}
         continueLoading={saving}
       />

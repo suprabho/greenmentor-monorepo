@@ -8,24 +8,23 @@ import { PhoneInput } from "@/components/onboarding/PhoneInput";
 import { ChoiceCard } from "@/components/onboarding/ChoiceCard";
 import { MultiSelectChips } from "@/components/onboarding/MultiSelectChips";
 import { EditableSection } from "@/components/profile/EditableSection";
-import { audiences, goals as goalOptions, plan, annualSavingsPercent } from "@/lib/onboarding-data";
+import { audiences, goals as goalOptions } from "@/lib/onboarding-data";
 import { saveProfile } from "@/lib/onboarding/save";
 import { DEFAULT_COUNTRY_ISO } from "@/lib/data/country-codes";
 import { isValidName, isValidPhone, phoneLengthHint, toE164, fromE164 } from "@/lib/utils/validation";
-import type { AudienceSegment, BillingCycle } from "@/lib/store/onboarding";
-import { cn } from "@/lib/utils/cn";
+import type { AudienceSegment } from "@/lib/store/onboarding";
 
+// The membership/billing section is omitted while the subscription step is
+// deferred — onboarding no longer sets plan_id, so an editor here would offer
+// a plan the user was never asked about. The columns still exist.
 export interface ProfileFormValues {
   displayName: string;
   phone: string | null;
   phoneCountry: string | null;
   segment: AudienceSegment | null;
   goals: string[];
-  planId: string | null;
-  billingCycle: BillingCycle;
 }
 
-const inr = (n: number) => `₹${n.toLocaleString("en-IN")}`;
 const Empty = () => <span className="text-gray-400">Not set</span>;
 
 /**
@@ -44,10 +43,9 @@ export function ProfileForm({ initial }: { initial: ProfileFormValues }) {
   const [iso, setIso] = useState(startIso);
   const [touched, setTouched] = useState(false);
 
-  // Audience / goals / plan
+  // Audience / goals
   const [segment, setSegment] = useState(saved.segment);
   const [chosenGoals, setChosenGoals] = useState(saved.goals);
-  const [cycle, setCycle] = useState<BillingCycle>(saved.billingCycle);
 
   const nameValid = isValidName(name);
   const phoneValid = isValidPhone(phone, iso);
@@ -187,53 +185,6 @@ export function ProfileForm({ initial }: { initial: ProfileFormValues }) {
               ? "Pick at least one goal."
               : `${chosenGoals.length} selected.`}
           </p>
-        </div>
-      </EditableSection>
-
-      <EditableSection
-        title="Membership"
-        onCancel={() => setCycle(saved.billingCycle)}
-        onSave={async () =>
-          commit(
-            { planId: saved.planId ?? plan.id, billingCycle: cycle },
-            { planId: saved.planId ?? plan.id, billingCycle: cycle },
-          )
-        }
-        summary={
-          <div className="flex items-baseline justify-between gap-4 text-[13.5px]">
-            <span className="text-ink">{plan.name}</span>
-            <span className="text-gray-600">
-              {saved.billingCycle === "annual"
-                ? `${inr(plan.priceAnnualTotal)} / year`
-                : `${inr(plan.priceMonthly)} / month`}
-            </span>
-          </div>
-        }
-      >
-        <div
-          className="inline-flex rounded-pill border border-gray-200 bg-gray-50 p-1 text-[12.5px] font-semibold"
-          role="group"
-          aria-label="Billing cycle"
-        >
-          {(["annual", "monthly"] as const).map((c) => (
-            <button
-              key={c}
-              type="button"
-              aria-pressed={cycle === c}
-              onClick={() => setCycle(c)}
-              className={cn(
-                "rounded-pill px-3.5 py-1.5 capitalize transition-colors",
-                cycle === c ? "bg-teal-900 text-white" : "text-gray-600 hover:text-ink",
-              )}
-            >
-              {c}
-              {c === "annual" && (
-                <span className={cn("ml-1", cycle === c ? "text-green-500" : "text-green-700")}>
-                  · save {annualSavingsPercent}%
-                </span>
-              )}
-            </button>
-          ))}
         </div>
       </EditableSection>
     </div>

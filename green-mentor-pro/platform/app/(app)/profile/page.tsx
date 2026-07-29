@@ -4,7 +4,7 @@ import { Avatar, Card, Chip, PageHeader } from "@/components/ui";
 import { CreditsCard } from "@/components/wallet/CreditsCard";
 import { ProfileForm, type ProfileFormValues } from "@/components/profile/ProfileForm";
 import { fetchWalletSummary } from "@/lib/ai/usage";
-import type { AudienceSegment, BillingCycle } from "@/lib/store/onboarding";
+import type { AudienceSegment } from "@/lib/store/onboarding";
 
 export const metadata = { title: "Profile — Green Mentor Pro" };
 
@@ -21,9 +21,7 @@ export default async function ProfilePage() {
   const [{ data: profile, error: profileError }, wallet] = await Promise.all([
     supabase
       .from("profiles")
-      .select(
-        "display_name, avatar_url, created_at, phone, phone_country, segment, goals, plan_id, billing_cycle",
-      )
+      .select("display_name, avatar_url, created_at, phone, phone_country, segment, goals")
       .eq("id", user.id)
       .maybeSingle(),
     fetchWalletSummary(user.id),
@@ -37,8 +35,6 @@ export default async function ProfilePage() {
     phoneCountry: profile?.phone_country ?? null,
     segment: (profile?.segment as AudienceSegment | null) ?? null,
     goals: (profile?.goals as string[] | null) ?? [],
-    planId: profile?.plan_id ?? null,
-    billingCycle: (profile?.billing_cycle as BillingCycle | null) ?? "annual",
   };
 
   return (

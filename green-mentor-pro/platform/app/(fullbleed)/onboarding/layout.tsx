@@ -6,8 +6,7 @@ import type { OnboardingProfile } from "@/lib/onboarding/steps";
 
 export const metadata = { title: "Get started — Green Mentor Pro" };
 
-const PROFILE_COLUMNS =
-  "display_name, phone, phone_country, segment, goals, plan_id, billing_cycle, onboarded";
+const PROFILE_COLUMNS = "display_name, phone, phone_country, segment, goals, onboarded";
 
 /**
  * Onboarding lives in (fullbleed) so it escapes the app Shell — a first-run

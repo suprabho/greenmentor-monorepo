@@ -2,11 +2,13 @@
  * Onboarding step order — the single source of truth for the progress meter,
  * the Back links, and the "resume where you left off" redirect on /onboarding.
  */
+// The plan/subscription step is deferred for now. The profiles.plan_id and
+// billing_cycle columns stay in place (see 0002_onboarding.sql), so restoring
+// it later is a UI-only change.
 export const ONBOARDING_STEPS = [
   "/onboarding/welcome",
   "/onboarding/audience",
   "/onboarding/goals",
-  "/onboarding/plan",
 ] as const;
 
 export type OnboardingStepPath = (typeof ONBOARDING_STEPS)[number];
@@ -18,8 +20,6 @@ export interface OnboardingProfile {
   phone_country: string | null;
   segment: string | null;
   goals: string[] | null;
-  plan_id: string | null;
-  billing_cycle: string | null;
   onboarded: boolean | null;
 }
 
@@ -33,6 +33,5 @@ export function firstUnfinishedStep(
 ): OnboardingStepPath {
   if (!profile?.display_name || !profile?.phone) return "/onboarding/welcome";
   if (!profile.segment) return "/onboarding/audience";
-  if (!profile.goals || profile.goals.length === 0) return "/onboarding/goals";
-  return "/onboarding/plan";
+  return "/onboarding/goals";
 }

@@ -1,8 +1,9 @@
 "use client";
 
 import { usePathname } from "next/navigation";
+import { Leaf } from "@phosphor-icons/react/dist/ssr";
 import { Container } from "@/components/marketing/Container";
-import { Logo, SubBrand } from "@/components/marketing/Logo";
+import { Logo } from "@/components/marketing/Logo";
 import { ProgressBar } from "@/components/onboarding/ProgressBar";
 import { ONBOARDING_STEPS } from "@/lib/onboarding/steps";
 
@@ -21,10 +22,19 @@ export function OnboardingChrome({ children }: { children: React.ReactNode }) {
     <main className="flex flex-1 flex-col overflow-y-auto">
       <Container width="wide" className="flex-none">
         <div className="flex h-18 items-center justify-between gap-6 md:h-20">
-          <div className="flex items-center gap-3">
-            <Logo variant="dark" />
-            <span className="block h-5 w-px bg-white/20" aria-hidden />
-            <SubBrand className="text-green-100" />
+          {/* The Pro lockup from the app sidebar (components/shell.tsx), not the
+              Plus sub-brand. Deliberately not a link — the user is mid-flow and
+              the onboarding gate would bounce them straight back anyway. */}
+          <div className="flex items-center gap-2.5" aria-label="Green Mentor Pro">
+            <span className="grid size-9 shrink-0 place-items-center rounded-[6px] bg-green-500 text-teal-900">
+              <Leaf size={20} weight="fill" />
+            </span>
+            <span className="leading-tight whitespace-nowrap">
+              <Logo bare variant="dark" className="block h-5" />
+              <span className="mt-0.5 block text-[11px] font-medium uppercase tracking-[0.18em] text-green-500">
+                Pro
+              </span>
+            </span>
           </div>
           <div className="hidden w-64 sm:block">
             <ProgressBar step={step} total={total} />

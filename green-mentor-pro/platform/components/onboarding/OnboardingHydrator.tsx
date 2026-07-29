@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { useOnboarding, type AudienceSegment, type BillingCycle } from "@/lib/store/onboarding";
+import { useOnboarding, type AudienceSegment } from "@/lib/store/onboarding";
 import { fromE164 } from "@/lib/utils/validation";
 import { DEFAULT_COUNTRY_ISO } from "@/lib/data/country-codes";
 import type { OnboardingProfile } from "@/lib/onboarding/steps";
@@ -25,8 +25,6 @@ export function OnboardingHydrator({ profile }: { profile: OnboardingProfile | n
       phoneCountry: iso,
       segment: (profile.segment as AudienceSegment | null) ?? null,
       goals: profile.goals ?? [],
-      planId: profile.plan_id ?? null,
-      billingCycle: (profile.billing_cycle as BillingCycle | null) ?? undefined,
     });
   }, [profile, hydrateFrom]);
 
