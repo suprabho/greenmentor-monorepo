@@ -1,6 +1,6 @@
 import { ArrowSquareOut, CheckCircle, Stack } from "@phosphor-icons/react/dist/ssr";
 import { Card, Chip } from "@/components/ui";
-import type { BundleCatalogEntry } from "@/lib/academy/catalog-extras";
+import type { BundleCatalogEntry } from "@/lib/academy/types";
 
 /**
  * Full-width bundle card — deliberately a different shape from the course
@@ -31,12 +31,12 @@ export function BundleCard({ bundle }: { bundle: BundleCatalogEntry }) {
       </div>
       <ul className="grid content-start gap-x-6 gap-y-2.5 sm:grid-cols-2">
         {bundle.courses.map((c) => (
-          <li key={c.id} className="flex items-start gap-2">
+          <li key={c.slug} className="flex items-start gap-2">
             <CheckCircle size={16} weight="fill" className="mt-0.5 shrink-0 text-green-500" />
             <span className="min-w-0">
               <span className="block text-[13px] font-semibold text-ink">{c.title}</span>
               <span className="block text-[11.5px] text-gray-500">
-                {c.framework} · {c.lessons} {c.lessons === 1 ? "lesson" : "lessons"}
+                {[c.framework, c.lessonCount ? `${c.lessonCount} lessons` : null].filter(Boolean).join(" · ")}
               </span>
             </span>
           </li>

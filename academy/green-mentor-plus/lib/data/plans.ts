@@ -14,6 +14,7 @@
  */
 
 import type { BillingCycle } from "@/lib/store/onboarding";
+import { courses } from "@/lib/data/courses.generated";
 
 export interface Plan {
   id: string;
@@ -177,15 +178,11 @@ export function discountedPrice(
  * Value stack shown above the pricing cards (PR-1) — "what you're getting, and
  * what it would cost standalone."
  *
- * Counts every INCLUDED item — all five named courses (the two premium live
- * programs, Live LCA ₹20,000 and ESG Reporting Pro ₹35,000, are now bundled
- * into the subscription and counted here), the rest of the library, and the
- * annual live Q&A.
- *
- * Rows flagged `estimated` are best-effort standalone values, shown with an
- * "est." marker in the UI and summed into a clearly-labelled *estimated* total.
- * TODO[pricing]: confirm the real Learnyst list prices for the 5 non-foundational
- * library courses and the annual live-Q&A value, then drop the `estimated` flags.
+ * Course rows are derived from the generated catalog rather than hand-listed, so
+ * this block and the course grid on the same page can't disagree. Every course
+ * price is a real list price from the intake sheet; only the live-Q&A row is
+ * still an estimate.
+ * TODO[pricing]: confirm the annual live-Q&A value and drop its `estimated` flag.
  */
 export interface ValueStackRow {
   label: string;
@@ -195,27 +192,43 @@ export interface ValueStackRow {
   estimated?: boolean;
 }
 
-export const valueStack: {
-  rows: ValueStackRow[];
-  /** Sum of the priced rows. Labelled "estimated" because some rows are. */
-  total: number;
-} = {
-  rows: [
-    { label: "Fundamentals of ESG & BRSR", value: 999 },
-    { label: "GHG Accounting Mastery", value: 6999 },
-    { label: "ESG Readiness", value: 6999 },
-    { label: "Live Training: Master LCA", value: 20000 },
-    { label: "Become an ESG Reporting Pro", value: 35000 },
-    { label: "5 more foundational courses", value: 25000, estimated: true },
-    {
-      label: "Bi-weekly live Q&A with practitioners (a year)",
-      value: 12000,
-      estimated: true,
-    },
-    {
-      label: "40,000+ community · weekly insights · curated jobs feed",
-      value: null,
-    },
-  ],
-  total: 999 + 6999 + 6999 + 20000 + 35000 + 25000 + 12000, // ₹106,997
-};
+/** Named individually before the rest are grouped — keeps the card scannable. */
+const VALUE_STACK_NAMED_COURSES = 6;
+
+/** Non-course membership benefits, appended after the courses. */
+const VALUE_STACK_EXTRAS: ValueStackRow[] = [
+  {
+    label: "Bi-weekly live Q&A with practitioners (a year)",
+    value: 12000,
+    estimated: true,
+  },
+  {
+    label: "40,000+ community · weekly insights · curated jobs feed",
+    value: null,
+  },
+];
+
+/**
+ * Free courses are skipped — a ₹0 row adds nothing to a standalone-value
+ * argument. The grouped remainder is an exact sum, not an estimate, so it
+ * carries no "est." marker.
+ */
+function buildValueStack(): { rows: ValueStackRow[]; total: number } {
+  const priced = courses
+    .filter((c) => c.includedInPlus && c.priceInr !== null && c.priceInr > 0)
+    .sort((a, b) => (b.priceInr as number) - (a.priceInr as number));
+
+  const named = priced.slice(0, VALUE_STACK_NAMED_COURSES);
+  const rest = priced.slice(VALUE_STACK_NAMED_COURSES);
+  const restTotal = rest.reduce((sum, c) => sum + (c.priceInr as number), 0);
+
+  const rows: ValueStackRow[] = [
+    ...named.map((c) => ({ label: c.title, value: c.priceInr })),
+    ...(rest.length ? [{ label: `${rest.length} more courses`, value: restTotal }] : []),
+    ...VALUE_STACK_EXTRAS,
+  ];
+
+  return { rows, total: rows.reduce((sum, r) => sum + (r.value ?? 0), 0) };
+}
+
+export const valueStack = buildValueStack();

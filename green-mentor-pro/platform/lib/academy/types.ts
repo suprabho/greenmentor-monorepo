@@ -1,3 +1,8 @@
+/**
+ * Authored player content: modules, lessons, assessments, enrolments and both
+ * progress tables all hang off this. Only courses that actually run in the
+ * in-app player have one — see CatalogCourse for the merchandising record.
+ */
 export type Course = {
   id: string;
   slug: string;
@@ -8,6 +13,50 @@ export type Course = {
   status: "draft" | "review" | "published";
   coverImageObjectPath: string | null;
   position: number;
+};
+
+export type CatalogDelivery = "self_paced" | "live";
+export type CatalogHost = "in_app" | "learnyst";
+export type CatalogLevel = "beginner" | "foundation" | "intermediate" | "advanced";
+
+/**
+ * The merchandising record for a course we sell — what the marketing grid, the
+ * live-training cards and the bundle render. Most of these live on Learnyst and
+ * have no player content here at all, so this is deliberately NOT `Course`:
+ * there is no id, no track, no modules, and `courseUrl` may leave the app.
+ *
+ * `framework` is free text — the taxonomy is marketing's to rename.
+ */
+export type CatalogCourse = {
+  slug: string;
+  delivery: CatalogDelivery;
+  hostedOn: CatalogHost;
+  title: string;
+  framework: string;
+  level: CatalogLevel;
+  description: string;
+  outcome: string;
+  moduleCount: number | null;
+  lessonCount: number | null;
+  /** Verbatim display string — "~67 min", "9.5 hours", "4 days". */
+  durationLabel: string | null;
+  /** Standalone INR list price. 0 = free, null = not sold standalone. */
+  priceInr: number | null;
+  includedInPlus: boolean;
+  /** Absolute Learnyst URL, or an internal path when hostedOn is "in_app". */
+  courseUrl: string;
+  nextCohortAt: string | null;
+  nextCohortLabel: string | null;
+  instructors: string[];
+  coverImageUrl: string | null;
+  position: number;
+};
+
+export type BundleCatalogEntry = {
+  name: string;
+  description: string;
+  learnystUrl: string;
+  courses: CatalogCourse[];
 };
 
 export type Module = {
