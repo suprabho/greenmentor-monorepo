@@ -35,7 +35,7 @@ export default async function HomePage() {
     fetchJobs(),
     supabase
       .from("articles")
-      .select("id, source, title, url, image_url, published_at")
+      .select("id, slug, source, title, image_url, published_at")
       .order("published_at", { ascending: false, nullsFirst: false })
       .limit(5),
     user

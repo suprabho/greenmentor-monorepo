@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import {
   MapPin,
   Briefcase,
@@ -10,6 +11,8 @@ import {
   MagnifyingGlass,
 } from "@phosphor-icons/react/dist/ssr";
 import { Card, Chip } from "@/components/ui";
+import { ShareButton } from "@/components/share/share-button";
+import { jobHref } from "@/lib/share/href";
 import type { Job, JobSeniority } from "@/lib/jobs/repo";
 
 const SENIORITY_FILTERS: { value: "all" | JobSeniority; label: string }[] = [
@@ -140,7 +143,11 @@ function JobCard({ job }: { job: Job }) {
         </span>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <h2 className="text-[16px] font-semibold tracking-tight text-ink">{job.title}</h2>
+            <h2 className="text-[16px] font-semibold tracking-tight text-ink">
+              <Link href={jobHref(job)} className="transition-colors hover:text-teal-700">
+                {job.title}
+              </Link>
+            </h2>
             <Chip tone="neutral">{job.employmentType}</Chip>
           </div>
           {job.company && <div className="mt-0.5 text-[13px] text-gray-700">{job.company}</div>}
@@ -172,20 +179,23 @@ function JobCard({ job }: { job: Job }) {
         </div>
         <div className="flex w-full shrink-0 flex-col items-start gap-2 sm:w-auto sm:items-end">
           {job.salary && <div className="text-[12.5px] font-semibold text-teal-800">{job.salary}</div>}
-          {applyHref ? (
-            <a
-              href={applyHref}
-              target={job.applyUrl ? "_blank" : undefined}
-              rel="noreferrer"
-              className="inline-flex items-center gap-1.5 rounded-pill bg-teal-900 px-4 py-2 text-[12.5px] font-semibold text-white hover:bg-teal-800"
-            >
-              Apply <ArrowSquareOut size={13} />
-            </a>
-          ) : (
-            <span className="inline-flex items-center gap-1.5 rounded-pill border border-gray-200 px-4 py-2 text-[12.5px] font-medium text-gray-400">
-              <Briefcase size={13} /> No link
-            </span>
-          )}
+          <div className="flex items-center gap-2">
+            {applyHref ? (
+              <a
+                href={applyHref}
+                target={job.applyUrl ? "_blank" : undefined}
+                rel="noreferrer"
+                className="inline-flex items-center gap-1.5 rounded-pill bg-teal-900 px-4 py-2 text-[12.5px] font-semibold text-white hover:bg-teal-800"
+              >
+                Apply <ArrowSquareOut size={13} />
+              </a>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 rounded-pill border border-gray-200 px-4 py-2 text-[12.5px] font-medium text-gray-400">
+                <Briefcase size={13} /> No link
+              </span>
+            )}
+            <ShareButton path={jobHref(job)} title={job.title} />
+          </div>
         </div>
       </div>
     </Card>

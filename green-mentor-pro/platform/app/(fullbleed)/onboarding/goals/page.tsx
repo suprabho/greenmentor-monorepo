@@ -10,7 +10,7 @@ import { StepError } from "@/components/onboarding/StepError";
 import { saveProfile } from "@/lib/onboarding/save";
 
 export default function GoalsStep() {
-  const { goals: selected, toggleGoal } = useOnboarding();
+  const { goals: selected, toggleGoal, nextHref, setNextHref } = useOnboarding();
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -23,10 +23,14 @@ export default function GoalsStep() {
     setError(null);
     try {
       await saveProfile({ goals: selected, onboarded: true });
+      // Land on whatever brought them here — a shared webinar/job/post link
+      // that bounced through sign-in — rather than always /home.
+      const destination = nextHref ?? "/home";
+      setNextHref(null); // one-shot; don't misroute a future run
       // Hard navigation: the gate in (app)/layout.tsx reads `onboarded` server
       // side, so we want a fresh render rather than a cached RSC payload that
       // would bounce us straight back here.
-      window.location.assign("/home");
+      window.location.assign(destination);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
       setSaving(false);

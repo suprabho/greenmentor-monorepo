@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { safeNextHref } from "@/lib/auth/next-href";
 import { createClient } from "@/lib/supabase/server";
 
 /**
@@ -10,9 +11,9 @@ import { createClient } from "@/lib/supabase/server";
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
-  const nextParam = searchParams.get("next") ?? "/";
-  // Only allow same-origin relative redirects.
-  const next = nextParam.startsWith("/") ? nextParam : "/";
+  // Only allow same-origin relative redirects — safeNextHref also rejects the
+  // protocol-relative "//evil.com" form that a bare startsWith("/") lets past.
+  const next = safeNextHref(searchParams.get("next"), "/");
   const errorDescription = searchParams.get("error_description");
 
   const loginWithError = (msg: string) =>
@@ -38,7 +39,11 @@ export async function GET(request: Request) {
     // Explicit `=== false` so a missing row (migration not run) doesn't trap
     // the user in a flow whose columns don't exist yet.
     if (profile?.onboarded === false) {
-      return NextResponse.redirect(`${origin}/onboarding`);
+      // Carry `next` through onboarding rather than dropping it — otherwise
+      // everyone who signs up from a shared link finishes the wizard on /home
+      // instead of the webinar/job/post that brought them here.
+      const target = next === "/" ? "/onboarding" : `/onboarding?next=${encodeURIComponent(next)}`;
+      return NextResponse.redirect(`${origin}${target}`);
     }
   }
 

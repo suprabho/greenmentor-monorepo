@@ -11,6 +11,8 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowSquareOut, Briefcase, Plus } from "@phosphor-icons/react/dist/ssr";
 import { Card, Chip, Stat } from "@/components/ui";
+import { PublicLink } from "@/components/public-link";
+import { publicJobUrl } from "@/lib/share-link";
 import type { JobRow, JobSeniority, JobStatus } from "@/lib/db/jobs";
 
 type Toast = { type: "idle" | "ok" | "err" | "info"; msg?: string };
@@ -534,6 +536,7 @@ export function JobsPanel({ initialJobs, configured }: { initialJobs: JobRow[]; 
                         {[j.company, j.location].filter(Boolean).join(" · ") || "—"}
                         {j.experience ? ` · ${j.experience}` : ""}
                       </div>
+                      {j.status === "published" ? <PublicLink url={publicJobUrl(j)} /> : null}
                       {j.tags.length > 0 ? (
                         <div className="mt-1.5 flex flex-wrap gap-1.5">
                           {j.tags.map((t) => (

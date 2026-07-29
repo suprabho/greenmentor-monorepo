@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { CalendarCheck, CalendarPlus } from "@phosphor-icons/react";
 
 /**
@@ -19,11 +20,14 @@ export function RsvpButton({
 }) {
   const [attending, setAttending] = useState(initialAttending);
   const [busy, setBusy] = useState(false);
+  // Someone who followed a shared /webinars/:slug link should land back on that
+  // webinar after signing in, not on /home.
+  const pathname = usePathname();
 
   if (!signedIn) {
     return (
       <Link
-        href="/login"
+        href={`/login?next=${encodeURIComponent(pathname || "/webinars")}`}
         className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 px-3.5 py-1.5 text-[12.5px] font-semibold text-gray-700 transition-colors hover:bg-gray-50"
       >
         <CalendarPlus size={14} /> Sign in to RSVP

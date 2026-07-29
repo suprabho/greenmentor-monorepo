@@ -21,10 +21,14 @@ export interface OnboardingState {
   phoneCountry: string;
   segment: AudienceSegment | null;
   goals: string[];
+  /** Where to land once the wizard finishes — set from `?next=` when someone
+   *  arrives here mid-flight from a shared link. Null means /home. */
+  nextHref: string | null;
 
   setIdentity: (input: { displayName: string; phone: string; phoneCountry: string }) => void;
   setSegment: (s: AudienceSegment) => void;
   toggleGoal: (id: string) => void;
+  setNextHref: (href: string | null) => void;
   /** Seed the draft from the profile row so a resumed flow shows prior answers. */
   hydrateFrom: (input: Partial<Omit<OnboardingState, keyof OnboardingActions>>) => void;
   reset: () => void;
@@ -32,7 +36,7 @@ export interface OnboardingState {
 
 type OnboardingActions = Pick<
   OnboardingState,
-  "setIdentity" | "setSegment" | "toggleGoal" | "hydrateFrom" | "reset"
+  "setIdentity" | "setSegment" | "toggleGoal" | "setNextHref" | "hydrateFrom" | "reset"
 >;
 
 const initial = {
@@ -41,6 +45,7 @@ const initial = {
   phoneCountry: DEFAULT_COUNTRY_ISO,
   segment: null as AudienceSegment | null,
   goals: [] as string[],
+  nextHref: null as string | null,
 };
 
 export const useOnboarding = create<OnboardingState>()(
@@ -57,6 +62,8 @@ export const useOnboarding = create<OnboardingState>()(
         set((s) => ({
           goals: s.goals.includes(id) ? s.goals.filter((g) => g !== id) : [...s.goals, id],
         })),
+
+      setNextHref: (nextHref) => set({ nextHref }),
 
       // Only fill blanks — never clobber an answer the user just changed but
       // hasn't saved yet (the server copy would be one step behind).

@@ -1,3 +1,4 @@
+import { shareSlug } from "@/lib/share/slug";
 import { createClient } from "@/lib/supabase/server";
 import { anyColumnMatches, rankAndCap, sanitizeQuery, scoreHit } from "./rank";
 import type { SearchHit, SearchResults } from "./rank";
@@ -59,17 +60,17 @@ export async function searchAll(raw: string, perKind = 5): Promise<SearchResults
       .limit(FETCH_LIMIT),
     supabase
       .from("jobs_public")
-      .select("id, title, company, location, details")
+      .select("id, slug, title, company, location, details")
       .or(anyColumnMatches(["title", "company", "location", "details"], q))
       .limit(FETCH_LIMIT),
     supabase
       .from("webinars_public")
-      .select("id, title, hook")
+      .select("id, slug, title, hook")
       .or(anyColumnMatches(["title", "hook"], q))
       .limit(FETCH_LIMIT),
     supabase
       .from("articles")
-      .select("id, title, summary, source, url")
+      .select("id, slug, title, summary, source, url")
       .or(anyColumnMatches(["title", "summary", "source"], q))
       .limit(FETCH_LIMIT),
   ]);
@@ -109,13 +110,16 @@ export async function searchAll(raw: string, perKind = 5): Promise<SearchResults
     });
   }
 
+  // Jobs, webinars and articles all have per-item pages now, so a hit lands on
+  // the thing you searched for rather than dumping you on the list page (or,
+  // for articles, straight off-site to the publisher).
   for (const row of jobs.data ?? []) {
     hits.push({
       kind: "job",
       id: row.id,
       title: row.title,
       subtitle: [row.company, row.location].filter(Boolean).join(" · ") || null,
-      href: "/jobs",
+      href: `/jobs/${shareSlug(row.slug, row.id)}`,
       score: scoreHit(row.title, q, [row.company, row.location, row.details]),
     });
   }
@@ -126,7 +130,7 @@ export async function searchAll(raw: string, perKind = 5): Promise<SearchResults
       id: row.id,
       title: row.title,
       subtitle: row.hook,
-      href: "/webinars",
+      href: `/webinars/${shareSlug(row.slug, row.id)}`,
       score: scoreHit(row.title, q, [row.hook]),
     });
   }
@@ -137,8 +141,7 @@ export async function searchAll(raw: string, perKind = 5): Promise<SearchResults
       id: row.id,
       title: row.title,
       subtitle: row.source,
-      href: row.url,
-      external: true,
+      href: `/feed/${shareSlug(row.slug, row.id)}`,
       score: scoreHit(row.title, q, [row.summary, row.source]),
     });
   }

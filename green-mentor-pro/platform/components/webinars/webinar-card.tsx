@@ -1,7 +1,10 @@
+import Link from "next/link";
 import { ArrowSquareOut } from "@phosphor-icons/react/dist/ssr";
 import { Card, Chip } from "@/components/ui";
+import { ShareButton } from "@/components/share/share-button";
 import { JoinButton } from "@/components/webinars/join-button";
 import { RsvpButton } from "@/components/webinars/rsvp-button";
+import { webinarHref } from "@/lib/share/href";
 import type { Webinar, WebinarInstructor } from "@/lib/webinars/repo";
 
 export function fmtDate(iso: string | null): string {
@@ -32,15 +35,19 @@ export function WebinarCard({
   attending: boolean;
   signedIn: boolean;
 }) {
+  const href = webinarHref(webinar);
+
   return (
     <Card className="flex h-full flex-col p-5">
       {webinar.coverImageUrl && (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={webinar.coverImageUrl}
-          alt=""
-          className="-mx-5 -mt-5 mb-4 aspect-[1200/627] w-[calc(100%+2.5rem)] max-w-none rounded-t-2xl object-cover"
-        />
+        <Link href={href} className="-mx-5 -mt-5 mb-4 block">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={webinar.coverImageUrl}
+            alt=""
+            className="aspect-[1200/627] w-full max-w-none rounded-t-2xl object-cover"
+          />
+        </Link>
       )}
       <div className="flex items-center justify-between gap-2">
         <Chip tone="green">Free</Chip>
@@ -49,8 +56,12 @@ export function WebinarCard({
           {webinar.scheduledAt ? ` · ${fmtTime(webinar.scheduledAt)} IST` : ""}
         </span>
       </div>
-      <h3 className="mt-3 text-[15.5px] font-semibold text-ink">{webinar.hook ?? webinar.title}</h3>
-      {webinar.hook && <p className="mt-1 text-[12.5px] text-gray-500">{webinar.title}</p>}
+      <Link href={href} className="mt-3 block">
+        <h3 className="text-[15.5px] font-semibold text-ink transition-colors hover:text-teal-700">
+          {webinar.hook ?? webinar.title}
+        </h3>
+        {webinar.hook && <p className="mt-1 text-[12.5px] text-gray-500">{webinar.title}</p>}
+      </Link>
       {webinar.instructors.length > 0 && (
         <div className="mt-3 flex flex-col gap-2">
           {webinar.instructors.map((instructor) => (
@@ -61,7 +72,7 @@ export function WebinarCard({
       <div className="mt-auto flex flex-wrap items-center gap-2 pt-4">
         {signedIn && (
           <JoinButton
-            webinarId={webinar.id}
+            shareSlug={webinar.shareSlug}
             scheduledAt={webinar.scheduledAt}
             durationMinutes={webinar.durationMinutes}
             serverNow={new Date().toISOString()}
@@ -78,6 +89,7 @@ export function WebinarCard({
             Register <ArrowSquareOut size={13} />
           </a>
         )}
+        <ShareButton path={href} title={webinar.hook ?? webinar.title} className="ml-auto" />
       </div>
     </Card>
   );

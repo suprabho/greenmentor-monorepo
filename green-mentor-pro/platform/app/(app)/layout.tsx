@@ -1,6 +1,8 @@
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { Shell, type ShellStats, type ShellViewer } from "@/components/shell";
 import { fetchHeaderStats } from "@/lib/academy/repo";
+import { PATHNAME_HEADER } from "@/lib/supabase/middleware";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
@@ -27,7 +29,13 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     // request. Onboarding itself is in (fullbleed), outside this layout, so
     // there's no loop. A missing row (migration not run) must not lock anyone
     // out, hence the explicit `=== false`.
-    if (profile && profile.onboarded === false) redirect("/onboarding");
+    if (profile && profile.onboarded === false) {
+      // Carry the page they were trying to reach through the wizard. Layouts
+      // get neither pathname nor searchParams, so middleware stamps the path
+      // onto a request header for us.
+      const pathname = (await headers()).get(PATHNAME_HEADER);
+      redirect(pathname ? `/onboarding?next=${encodeURIComponent(pathname)}` : "/onboarding");
+    }
 
     stats = s;
     viewer = {

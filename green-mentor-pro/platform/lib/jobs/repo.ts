@@ -1,3 +1,4 @@
+import { parseShareParam, pickCanonical, shareSlug } from "@/lib/share/slug";
 import { createClient } from "@/lib/supabase/server";
 
 // Jobs are authored in the community-engine admin hub (community_jobs, RLS with
@@ -9,6 +10,8 @@ export type JobSeniority = "entry" | "mid" | "senior" | "lead";
 
 export interface Job {
   id: string;
+  /** Canonical URL segment, `{slug}-{idPrefix}`. Use jobHref() to build a path. */
+  shareSlug: string;
   title: string;
   company: string | null;
   location: string | null;
@@ -27,10 +30,12 @@ export interface Job {
 }
 
 const JOB_COLUMNS =
-  "id, title, company, location, country, employment_type, experience, seniority, details, tags, apply_url, apply_email, salary, application_deadline, preferred, posted_on";
+  "id, slug, id_prefix, title, company, location, country, employment_type, experience, seniority, details, tags, apply_url, apply_email, salary, application_deadline, preferred, posted_on";
 
 interface JobRowRaw {
   id: string;
+  slug: string | null;
+  id_prefix: string | null;
   title: string;
   company: string | null;
   location: string | null;
@@ -51,6 +56,7 @@ interface JobRowRaw {
 function mapJob(row: JobRowRaw): Job {
   return {
     id: row.id,
+    shareSlug: shareSlug(row.slug, row.id),
     title: row.title,
     company: row.company,
     location: row.location,
@@ -79,4 +85,32 @@ export async function fetchJobs(): Promise<Job[]> {
     .order("title", { ascending: true });
   if (error) throw new Error(error.message);
   return ((data ?? []) as JobRowRaw[]).map(mapJob);
+}
+
+/** A single published job, by raw uuid. */
+export async function fetchJobById(id: string): Promise<Job | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("jobs_public").select(JOB_COLUMNS).eq("id", id).maybeSingle();
+  if (error) throw new Error(error.message);
+  return data ? mapJob(data as JobRowRaw) : null;
+}
+
+/**
+ * Resolve a `[slug]` route param — either a share slug or a bare uuid. See
+ * resolveWebinar() in lib/webinars/repo.ts for the canonical-redirect contract.
+ */
+export async function resolveJob(param: string): Promise<Job | null> {
+  const parsed = parseShareParam(param);
+  if (!parsed) return null;
+  if (parsed.kind === "uuid") return fetchJobById(parsed.id);
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("jobs_public")
+    .select(JOB_COLUMNS)
+    .eq("id_prefix", parsed.idPrefix)
+    .limit(2);
+  if (error) throw new Error(error.message);
+  const row = pickCanonical((data ?? []) as JobRowRaw[], parsed.slug);
+  return row ? mapJob(row) : null;
 }

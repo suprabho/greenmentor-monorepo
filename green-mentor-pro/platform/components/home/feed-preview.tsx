@@ -1,12 +1,13 @@
 import Link from "next/link";
 import { ArrowRight, Newspaper } from "@phosphor-icons/react/dist/ssr";
 import { Card } from "@/components/ui";
+import { shareSlug } from "@/lib/share/slug";
 
 export type FeedPreviewArticle = {
   id: string;
+  slug: string | null;
   source: string;
   title: string;
-  url: string;
   image_url: string | null;
   published_at: string | null;
 };
@@ -21,8 +22,9 @@ function ago(iso: string | null): string | null {
   return days === 1 ? "1d ago" : `${days}d ago`;
 }
 
-/** Compact "from the feed" preview on Home. Rows open the article (external),
- * like FeedCard; the header link goes to the full news feed. */
+/** Compact "from the feed" preview on Home. Rows open the article's Green
+ * Mentor permalink (summary, tags and discussion, with the publisher a click
+ * away); the header link goes to the full news feed. */
 export function FeedPreview({ articles }: { articles: FeedPreviewArticle[] }) {
   return (
     <Card className="p-5">
@@ -41,10 +43,8 @@ export function FeedPreview({ articles }: { articles: FeedPreviewArticle[] }) {
         <ul className="mt-3 divide-y divide-gray-100">
           {articles.map((article) => (
             <li key={article.id}>
-              <a
-                href={article.url}
-                target="_blank"
-                rel="noreferrer"
+              <Link
+                href={`/feed/${shareSlug(article.slug, article.id)}`}
                 className="-mx-2 flex items-center gap-3 rounded-lg px-2 py-2.5 transition-colors hover:bg-gray-50"
               >
                 {article.image_url ? (
@@ -67,7 +67,7 @@ export function FeedPreview({ articles }: { articles: FeedPreviewArticle[] }) {
                     {[article.source, ago(article.published_at)].filter(Boolean).join(" · ")}
                   </span>
                 </span>
-              </a>
+              </Link>
             </li>
           ))}
         </ul>

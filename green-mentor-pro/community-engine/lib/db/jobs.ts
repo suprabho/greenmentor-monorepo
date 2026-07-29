@@ -17,6 +17,10 @@ export type JobSeniority = "entry" | "mid" | "senior" | "lead";
 
 export interface JobRow {
   id: string;
+  /** URL parts for the platform's /jobs/:slug deeplink. Filled by the
+   *  gm_set_share_keys() trigger (migration 0017); not editable here. */
+  slug: string | null;
+  id_prefix: string | null;
   title: string;
   company: string | null;
   location: string | null;
