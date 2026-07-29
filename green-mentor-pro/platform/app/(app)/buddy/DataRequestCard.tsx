@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 const ACCENT = "#1f8a5b";
 const BORDER = "#e3e8e5";
 
-/** Structured shape produced by the draftDataRequest tool (lib/ai/tools.ts). */
+/** Structured shape produced by the draftDataRequest tool (@gm/agents buddyTools.ts). */
 export interface DataRequestData {
   request_id?: string;
   metric?: string;
@@ -18,14 +18,38 @@ export interface DataRequestData {
   disclosure_codes?: string[];
   evidence_required?: string[];
   deadline?: string | null;
-  channel?: string;
   status?: string;
+  /** Subject line for the drafted message. */
+  subject?: string;
+  /** The request as plain text, ready to paste into an email or WhatsApp. */
+  message?: string;
 }
 
-/** Renders the draftDataRequest tool's structured input/output as an editable card. */
+/**
+ * Renders the draftDataRequest tool's result: the structured fields as context, and
+ * the drafted request as editable plain text the user copies out. There is no
+ * collection portal yet — copying the message IS how the request gets sent.
+ */
 export default function DataRequestCard({ data, loading }: { data: DataRequestData; loading?: boolean }) {
-  const [sent, setSent] = useState(false);
+  const [copied, setCopied] = useState(false);
   const d = data ?? {};
+  const [draft, setDraft] = useState(d.message ?? "");
+
+  // The tool streams: adopt the message once it arrives, but keep the user's edits after.
+  useEffect(() => {
+    setDraft((prev) => (prev ? prev : (d.message ?? "")));
+  }, [d.message]);
+
+  const copy = async () => {
+    const text = d.subject ? `${d.subject}\n\n${draft}` : draft;
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      /* clipboard blocked — the textarea is selectable as a fallback */
+    }
+  };
 
   const Field = ({ label, value }: { label: string; value?: React.ReactNode }) =>
     value == null || value === "" ? null : (
@@ -55,7 +79,6 @@ export default function DataRequestCard({ data, loading }: { data: DataRequestDa
         <Field label="Period" value={d.period} />
         <Field label="Data owner" value={d.data_owner} />
         <Field label="Granularity" value={d.granularity?.replace(/_/g, " ")} />
-        <Field label="Channel" value={d.channel} />
         <Field label="Deadline" value={d.deadline ?? undefined} />
       </div>
 
@@ -77,16 +100,41 @@ export default function DataRequestCard({ data, loading }: { data: DataRequestDa
         </div>
       )}
 
-      {!loading && (
-        <div style={{ display: "flex", gap: 8, alignItems: "center", borderTop: `1px solid ${BORDER}`, paddingTop: 12 }}>
-          <button
-            onClick={() => setSent(true)}
-            disabled={sent}
-            style={{ background: sent ? "#e9f2ec" : ACCENT, color: sent ? ACCENT : "#fff", border: "none", borderRadius: 8, padding: "7px 14px", fontSize: 13, fontWeight: 650, cursor: sent ? "default" : "pointer" }}
-          >
-            {sent ? "✓ Queued to portal" : "Send to portal"}
-          </button>
-          {d.request_id && <span style={{ fontSize: 11.5, color: "#9aa6a0", fontFamily: "ui-monospace, Menlo, monospace" }}>{d.request_id}</span>}
+      {!loading && !!d.message && (
+        <div style={{ borderTop: `1px solid ${BORDER}`, paddingTop: 12 }}>
+          <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 0.4, color: "#8a958f", textTransform: "uppercase", marginBottom: 6 }}>
+            Message to send
+          </div>
+          {d.subject && (
+            <div style={{ fontSize: 12.5, fontWeight: 650, color: "#1a2420", marginBottom: 6 }}>{d.subject}</div>
+          )}
+          <textarea
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            rows={12}
+            spellCheck={false}
+            style={{
+              width: "100%",
+              resize: "vertical",
+              background: "#f7faf8",
+              border: `1px solid ${BORDER}`,
+              borderRadius: 8,
+              padding: "10px 12px",
+              fontSize: 13,
+              lineHeight: 1.55,
+              color: "#1a2420",
+              fontFamily: "inherit",
+            }}
+          />
+          <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 10 }}>
+            <button
+              onClick={copy}
+              style={{ background: copied ? "#e9f2ec" : ACCENT, color: copied ? ACCENT : "#fff", border: "none", borderRadius: 8, padding: "7px 14px", fontSize: 13, fontWeight: 650, cursor: "pointer" }}
+            >
+              {copied ? "✓ Copied" : "Copy message"}
+            </button>
+            <span style={{ fontSize: 11.5, color: "#9aa6a0" }}>Edit as needed, then paste into email or WhatsApp.</span>
+          </div>
         </div>
       )}
     </div>
