@@ -5,88 +5,19 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   ArrowLeft,
-  House,
-  Newspaper,
-  GraduationCap,
-  VideoCamera,
-  Briefcase,
-  Sparkle,
-  SquaresFour,
-  Fire,
-  Flame,
-  Wind,
-  ChartBar,
-  Lightning,
   Coins,
-  MagnifyingGlass,
-  Trophy,
-  Books,
+  Fire,
   Leaf,
+  Lightning,
+  MagnifyingGlass,
   SidebarSimple,
   SignIn,
-  type Icon,
 } from "@phosphor-icons/react";
 import { clsx } from "clsx";
 import { Avatar } from "@/components/ui";
 import { Logo } from "@/components/marketing/Logo";
-
-type NavChild = { label: string; href: string; icon: Icon };
-type NavItem = { label: string; href: string; icon: Icon; children: NavChild[] };
-type NavGroup = { heading: string | null; items: NavItem[] };
-
-const NAV_GROUPS: NavGroup[] = [
-  {
-    heading: null,
-    items: [{ label: "Home", href: "/home", icon: House, children: [] }],
-  },
-  {
-    heading: "Learn",
-    items: [{ label: "Academy", href: "/academy", icon: GraduationCap, children: [] }],
-  },
-  {
-    heading: "Work",
-    items: [
-      { label: "AI", href: "/ai-hub", icon: Sparkle, children: [] },
-      {
-        label: "Longsite Lite",
-        href: "/energy",
-        icon: SquaresFour,
-        children: [
-          { label: "Fuel", href: "/energy/fuel", icon: Flame },
-          { label: "Electricity", href: "/energy/electricity", icon: Lightning },
-          { label: "Fugitive", href: "/energy/fugitive", icon: Wind },
-          { label: "Analyze", href: "/energy/analyze", icon: ChartBar },
-        ],
-      },
-    ],
-  },
-  {
-    heading: "Grow",
-    items: [
-      {
-        label: "News",
-        href: "/feed",
-        icon: Newspaper,
-        children: [
-          { label: "Leaderboards", href: "/feed/leaderboards", icon: Trophy },
-          { label: "Library", href: "/feed/library", icon: Books },
-        ],
-      },
-      { label: "Jobs", href: "/jobs", icon: Briefcase, children: [] },
-      { label: "Webinars & Events", href: "/webinars", icon: VideoCamera, children: [] },
-    ],
-  },
-];
-
-// Bottom tabs are a deliberate subset: Webinars are reachable from Home's
-// "happening soon" section, and Longsite Lite is desktop data-entry work.
-const MOBILE_NAV: NavChild[] = [
-  { label: "Home", href: "/home", icon: House },
-  { label: "News", href: "/feed", icon: Newspaper },
-  { label: "Academy", href: "/academy", icon: GraduationCap },
-  { label: "AI", href: "/ai-hub", icon: Sparkle },
-  { label: "Jobs", href: "/jobs", icon: Briefcase },
-];
+import { CommandPalette } from "@/components/search/command-palette";
+import { MOBILE_NAV, NAV_GROUPS } from "@/lib/app-nav";
 
 const COLLAPSED_KEY = "gm-sidebar-collapsed";
 
@@ -112,6 +43,7 @@ export function Shell({
 }) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
 
   // Stats/identity come from the server layout; absent means signed out (or the
   // fetch failed), in which case we show a sign-in prompt rather than fake numbers.
@@ -126,6 +58,28 @@ export function Shell({
   useEffect(() => {
     if (window.localStorage.getItem(COLLAPSED_KEY) === "1") setCollapsed(true);
   }, []);
+
+  // ⌘K / Ctrl-K opens search from anywhere. Ignored while the user is typing
+  // in a field — otherwise it would hijack the shortcut inside the AI Hub
+  // composer and the Energy forms.
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== "k" || (!e.metaKey && !e.ctrlKey)) return;
+      const el = e.target as HTMLElement | null;
+      const typing =
+        el?.isContentEditable ||
+        el?.tagName === "INPUT" ||
+        el?.tagName === "TEXTAREA" ||
+        el?.tagName === "SELECT";
+      // …but once the palette is open its own input is the focused field, so
+      // ⌘K still has to toggle it back shut.
+      if (typing && !searchOpen) return;
+      e.preventDefault();
+      setSearchOpen((prev) => !prev);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [searchOpen]);
 
   const toggleSidebar = () =>
     setCollapsed((prev) => {
@@ -178,14 +132,22 @@ export function Shell({
         <div className="px-3 pb-4">
           <button
             type="button"
-            title="Search courses, jobs, library"
+            onClick={() => setSearchOpen(true)}
+            title="Search courses, jobs, webinars (⌘K)"
             className={clsx(
               "flex w-full items-center gap-2 rounded-pill border border-white/10 bg-white/5 text-[13px] text-white/55 transition-colors hover:bg-white/10 hover:text-white",
               collapsed ? "justify-center py-2" : "px-3.5 py-2"
             )}
           >
             <MagnifyingGlass size={15} className="shrink-0" />
-            {!collapsed && <span className="truncate">Search courses, jobs, library…</span>}
+            {!collapsed && (
+              <>
+                <span className="truncate">Search courses, jobs, webinars…</span>
+                <kbd className="ml-auto shrink-0 rounded border border-white/15 px-1.5 py-0.5 font-sans text-[10.5px] font-semibold text-white/45">
+                  ⌘K
+                </kbd>
+              </>
+            )}
           </button>
         </div>
 
@@ -328,11 +290,25 @@ export function Shell({
               </span>
             </span>
           </Link>
-          <div className="hidden md:flex flex-1 max-w-md items-center gap-2 rounded-pill border border-gray-200 bg-gray-50 px-3.5 py-1.5 text-[13px] text-gray-500">
-            <MagnifyingGlass size={15} />
-            Search courses, jobs, library…
-          </div>
+          <button
+            type="button"
+            onClick={() => setSearchOpen(true)}
+            className="hidden md:flex flex-1 max-w-md items-center gap-2 rounded-pill border border-gray-200 bg-gray-50 px-3.5 py-1.5 text-[13px] text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700"
+          >
+            <MagnifyingGlass size={15} className="shrink-0" />
+            Search courses, jobs, webinars…
+          </button>
           <div className="ml-auto flex items-center gap-2">
+            {/* Below md the bar above is hidden, so phones get their own
+                affordance rather than no search at all. */}
+            <button
+              type="button"
+              onClick={() => setSearchOpen(true)}
+              aria-label="Search"
+              className="grid size-8 shrink-0 place-items-center rounded-full text-gray-500 transition-colors hover:bg-gray-100 hover:text-ink md:hidden"
+            >
+              <MagnifyingGlass size={17} />
+            </button>
             {stats ? (
               <>
                 <span className="flex items-center gap-1.5 rounded-pill bg-green-50 px-2.5 py-1 text-[12px] font-semibold text-green-700">
@@ -387,6 +363,8 @@ export function Shell({
           ))}
         </nav>
       </div>
+
+      <CommandPalette open={searchOpen} onOpenChange={setSearchOpen} />
     </div>
   );
 }

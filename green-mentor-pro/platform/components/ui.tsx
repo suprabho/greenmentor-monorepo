@@ -160,6 +160,21 @@ export function ProgressRing({
   );
 }
 
+/** Wrap the first match of `q` inside `text` in a highlight mark. Shared by the
+ *  Sustainalytics explorer and the ⌘K search palette. */
+export function Highlight({ text, q }: { text: string; q: string }) {
+  if (!q) return <>{text}</>;
+  const i = text.toLowerCase().indexOf(q.toLowerCase());
+  if (i < 0) return <>{text}</>;
+  return (
+    <>
+      {text.slice(0, i)}
+      <mark className="rounded-[3px] bg-green-100 px-0.5 text-ink">{text.slice(i, i + q.length)}</mark>
+      {text.slice(i + q.length)}
+    </>
+  );
+}
+
 export function Stat({
   label,
   value,

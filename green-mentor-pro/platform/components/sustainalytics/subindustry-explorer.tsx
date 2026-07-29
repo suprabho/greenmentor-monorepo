@@ -2,22 +2,8 @@
 
 import { useMemo, useState } from "react";
 import { CaretRight, MagnifyingGlass, X } from "@phosphor-icons/react/dist/ssr";
-import { Card, Chip } from "@/components/ui";
+import { Card, Chip, Highlight } from "@/components/ui";
 import type { SubindustryView } from "@/lib/sustainalytics/repo";
-
-/** Wrap the matched substring in a highlight mark. */
-function Highlight({ text, q }: { text: string; q: string }) {
-  if (!q) return <>{text}</>;
-  const i = text.toLowerCase().indexOf(q);
-  if (i < 0) return <>{text}</>;
-  return (
-    <>
-      {text.slice(0, i)}
-      <mark className="rounded-[3px] bg-green-100 px-0.5 text-ink">{text.slice(i, i + q.length)}</mark>
-      {text.slice(i + q.length)}
-    </>
-  );
-}
 
 const CONFIDENCE_TONE: Record<"high" | "medium" | "low", "green" | "warn" | "neutral"> = {
   high: "green",
