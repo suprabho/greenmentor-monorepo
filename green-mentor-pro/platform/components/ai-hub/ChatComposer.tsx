@@ -23,8 +23,12 @@ interface ChatComposerProps {
   onSend: (text: string, files: ComposerAttachment[]) => void;
   busy?: boolean;
   placeholder?: string;
-  /** When set, an attach button uploads files here (POST FormData → { url, mediaType, filename }). */
-  uploadUrl?: string;
+  /**
+   * When set, an attach button uploads files here (POST FormData → { url, mediaType, filename }).
+   * Pass a thunk when the endpoint isn't known until the user attaches — the welcome
+   * state uses one to create the conversation on first attach.
+   */
+  uploadUrl?: string | (() => Promise<string>);
   /** When set, typing "/" opens a skill menu of prompt starters. */
   skills?: ComposerSkill[];
   autoFocus?: boolean;
@@ -75,10 +79,11 @@ export function ChatComposer({
     setUploading(true);
     setUploadError(null);
     try {
+      const endpoint = typeof uploadUrl === "string" ? uploadUrl : await uploadUrl();
       for (const file of Array.from(list)) {
         const fd = new FormData();
         fd.append("file", file);
-        const res = await fetch(uploadUrl, { method: "POST", body: fd });
+        const res = await fetch(endpoint, { method: "POST", body: fd });
         const json = await res.json();
         if (!res.ok) throw new Error(json.error ?? `Upload failed (${res.status})`);
         setFiles((prev) => [...prev, { type: "file", url: json.url, mediaType: json.mediaType, filename: json.filename }]);
@@ -148,7 +153,8 @@ export function ChatComposer({
                 onClick={() => fileRef.current?.click()}
                 disabled={uploading}
                 className="grid size-9 shrink-0 place-items-center rounded-xl text-gray-500 hover:bg-gray-100 hover:text-gray-700 disabled:opacity-50"
-                aria-label="Attach file"
+                aria-label="Attach a document"
+                title="Attach a PDF or image (bill, invoice, EPD…)"
               >
                 {uploading ? <SpinnerGap size={18} className="animate-spin" /> : <Paperclip size={18} />}
               </button>

@@ -37,13 +37,14 @@ export function ChatConversation({
   const sentPending = useRef(false);
   const prevStatus = useRef(status);
 
-  // Fire the handoff message from the welcome state exactly once.
+  // Fire the handoff message from the welcome state exactly once. The first message
+  // may be attachment-only ("here's the bill" with no prose), so gate on either.
   useEffect(() => {
     if (sentPending.current) return;
     const pending = takePendingMessage(conversationId);
-    if (pending?.text) {
+    if (pending && (pending.text || pending.files.length > 0)) {
       sentPending.current = true;
-      sendMessage({ text: pending.text, files: pending.files });
+      sendMessage(pending.text ? { text: pending.text, files: pending.files } : { files: pending.files });
     }
   }, [conversationId, sendMessage]);
 
@@ -53,7 +54,10 @@ export function ChatConversation({
     prevStatus.current = status;
   }, [status, router]);
 
-  const send = (text: string, files: ComposerAttachment[]) => sendMessage({ text, files });
+  // Omit `text` entirely when empty — the SDK would otherwise append a blank text
+  // part alongside an attachment-only message.
+  const send = (text: string, files: ComposerAttachment[]) =>
+    sendMessage(text ? { text, files } : { files });
 
   return (
     <div className="flex h-full flex-col">
