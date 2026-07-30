@@ -59,7 +59,7 @@ export const plans: Plan[] = [
     priceAnnualTotal: 44000,
     highlight: true,
     features: [
-      "Full library: 8 courses, all included",
+      "Full library: every course included",
       "Bi-weekly live Q&A with practitioners",
       "40,000+ learner WhatsApp community",
       "Weekly industry insights & case studies",
@@ -67,7 +67,7 @@ export const plans: Plan[] = [
       "Personalised career guidance & resume review",
     ],
     included: [
-      "Full library: 8 foundational courses",
+      "Full library: every foundational course",
       "Certificate of completion for every course",
       "Bi-weekly live Q&A with practitioners",
       "40,000+ learner WhatsApp community",

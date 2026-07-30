@@ -2,7 +2,7 @@ import { Card, PageHeader } from "@/components/ui";
 import { BundleCard } from "@/components/academy/bundle-card";
 import { CourseCard } from "@/components/academy/course-card";
 import { LearnystCourseCard } from "@/components/academy/learnyst-course-card";
-import { buildPlusEssentialBundle, fetchCatalog } from "@/lib/academy/catalog";
+import { fetchCatalog } from "@/lib/academy/catalog";
 import { sumDurations } from "@/lib/academy/format";
 import { fetchCourseCatalog, fetchCourseTree, fetchLearnerProgress } from "@/lib/academy/repo";
 import { computeCourseState } from "@/lib/academy/state";
@@ -28,9 +28,9 @@ export default async function AcademyPage() {
   // The merchandising catalog is a separate table from the player content above:
   // most of it lives on Learnyst and has no modules/lessons here.
   const catalog = await fetchCatalog();
-  const liveCourses = catalog.filter((c) => c.delivery === "live");
-  const learnystSelfPaced = catalog.filter((c) => c.delivery === "self_paced" && c.hostedOn === "learnyst");
-  const plusEssentialBundle = buildPlusEssentialBundle(catalog);
+  const liveCourses = catalog.courses.filter((c) => c.delivery === "live");
+  const learnystSelfPaced = catalog.courses.filter((c) => c.delivery === "self_paced" && c.hostedOn === "learnyst");
+  const bundles = catalog.bundles;
 
   // Course trees give the card meta line (modules · lessons · duration); the
   // catalog is tiny, so per-course fetches are fine. Progress reuses the same
@@ -112,10 +112,14 @@ export default async function AcademyPage() {
         </section>
       )}
 
-      {plusEssentialBundle.courses.length > 0 && (
+      {bundles.length > 0 && (
         <section className="mt-10">
           <SectionHeading>Bundles</SectionHeading>
-          <BundleCard bundle={plusEssentialBundle} />
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {bundles.map((bundle) => (
+              <BundleCard key={bundle.slug} bundle={bundle} />
+            ))}
+          </div>
         </section>
       )}
     </div>

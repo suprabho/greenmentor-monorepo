@@ -15,6 +15,7 @@ export type AnalyticsEvent =
   | "onboarding_step_completed"
   | "handoff_initiated"
   | "course_card_clicked"
+  | "bundle_card_clicked"
   | "faq_opened"
   | "begin_checkout"
   | "checkout_opened"

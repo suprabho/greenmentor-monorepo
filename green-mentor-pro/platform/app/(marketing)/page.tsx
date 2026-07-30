@@ -1,5 +1,6 @@
 import { Hero } from "@/components/marketing/Hero";
 import { ProblemSolutionSection } from "@/components/marketing/ProblemSolutionSection";
+import { BundlePreview } from "@/components/marketing/BundlePreview";
 import { CoursePreview } from "@/components/marketing/CoursePreview";
 import { LandingAnalytics } from "@/components/marketing/LandingAnalytics";
 import { ValueProps } from "@/components/marketing/ValueProps";
@@ -31,11 +32,14 @@ export default async function LandingPage() {
       <Hero />
       <ProblemSolutionSection />
       <HiringCompanies />
-      <CoursePreview courses={catalog} />
+      <CoursePreview courses={catalog.courses} />
+      <BundlePreview bundles={catalog.bundles} />
       <ValueProps />
       <SocialProof />
       <AboutSection />
-      <PricingSnapshot courses={catalog} />
+      {/* Courses only — bundles are priced separately and are not part of the
+          subscription, so counting them would double-count their members. */}
+      <PricingSnapshot courses={catalog.courses} />
       <TeamSection />
       <FaqSection limit={8} />
       <FinalCta />

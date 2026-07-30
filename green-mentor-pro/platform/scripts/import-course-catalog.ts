@@ -37,8 +37,10 @@ async function main() {
   const dryRun = values["dry-run"];
   const csvPath = values.file ? new URL(values.file, `file://${process.cwd()}/`) : new URL("./data/course-catalog.csv", import.meta.url);
 
-  const { rows, overridden: overrides } = parseIntakeSheet(await readFile(csvPath, "utf8"));
+  const { rows, overridden: overrides, warnings } = parseIntakeSheet(await readFile(csvPath, "utf8"));
   if (!rows.length) throw new Error(`no rows in ${csvPath.pathname}`);
+
+  for (const w of warnings) console.warn(`[catalog] ! ${w}`);
 
   if (overrides.length) {
     console.log(`[catalog] included_in_plus OVERRIDE applied to ${overrides.length} row(s) whose sheet said "No": ${overrides.join(", ")}`);
@@ -96,26 +98,51 @@ async function main() {
   console.table(
     rows.map((r) => ({
       slug: r.slug,
-      delivery: r.delivery,
+      kind: r.kind,
+      delivery: r.delivery ?? "",
       host: r.hosted_on,
       level: r.level,
-      framework: r.framework,
+      framework: r.framework ?? "",
       "₹": r.price_inr,
       plus: r.included_in_plus,
+      courses: r.course_count ?? "",
       lessons: r.lesson_count,
-      cohort: r.next_cohort_at ?? "",
+      members: r.members.length || "",
       status: r.status,
     })),
   );
 
+  // `members` is sheet-only — it becomes course_bundle_items rows, not a column.
+  const catalogRows = rows.map(({ members: _members, ...row }) => row);
+  const bundleItems = rows.flatMap((r) =>
+    r.members.map((course_slug, i) => ({ bundle_slug: r.slug, course_slug, position: i })),
+  );
+
   if (dryRun) {
-    console.log(`✓ dry-run — ${rows.length} rows parsed, ${overrides.length} override(s), ${stale.length} stale — nothing written`);
+    console.log(
+      `✓ dry-run — ${rows.length} rows parsed (${rows.filter((r) => r.kind === "bundle").length} bundles, ` +
+        `${bundleItems.length} membership links), ${overrides.length} override(s), ${warnings.length} warning(s), ` +
+        `${stale.length} stale — nothing written`,
+    );
     return;
   }
 
-  const { error } = await supabase.from("course_catalog").upsert(rows, { onConflict: "slug" });
+  const { error } = await supabase.from("course_catalog").upsert(catalogRows, { onConflict: "slug" });
   if (error) throw new Error(`course_catalog upsert failed: ${error.message}`);
-  console.log(`✓ course_catalog imported — ${rows.length} rows upserted`);
+  console.log(`✓ course_catalog imported — ${catalogRows.length} rows upserted`);
+
+  // Replace each bundle's membership wholesale: a course removed from the sheet
+  // must disappear, which an upsert alone would not do.
+  const bundleSlugs = rows.filter((r) => r.kind === "bundle").map((r) => r.slug);
+  if (bundleSlugs.length) {
+    const { error: delErr } = await supabase.from("course_bundle_items").delete().in("bundle_slug", bundleSlugs);
+    if (delErr) throw new Error(`could not clear bundle membership: ${delErr.message}`);
+  }
+  if (bundleItems.length) {
+    const { error: itemErr } = await supabase.from("course_bundle_items").insert(bundleItems);
+    if (itemErr) throw new Error(`bundle membership insert failed: ${itemErr.message}`);
+  }
+  console.log(`✓ bundle membership set — ${bundleItems.length} link(s) across ${bundleSlugs.length} bundle(s)`);
 
   if (values.prune && stale.length) {
     const { error: pruneErr } = await supabase
