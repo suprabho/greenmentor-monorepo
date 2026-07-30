@@ -139,15 +139,109 @@ describe("normaliseRow", () => {
   });
 });
 
-describe("parseIntakeSheet on the committed sheet", () => {
-  const { rows, overridden } = parseIntakeSheet(SHEET);
+/** A minimal valid Bundle record; override fields per test. */
+function bundleRec(over: Record<string, string> = {}): Record<string, string> {
+  return rec({
+    Type: "Bundle",
+    "Course ID / Slug": "demo-bundle",
+    Framework: "",
+    Modules: "2 courses",
+    "Included in Plus Essential": "No",
+    "Bundle Courses": "",
+    ...over,
+  });
+}
 
-  it("reads all twelve courses", () => {
-    expect(rows).toHaveLength(12);
-    expect(new Set(rows.map((r) => r.slug)).size).toBe(12);
+describe("normaliseRow — bundles", () => {
+  it("reads Type: Bundle with no framework and no delivery", () => {
+    const { row } = normaliseRow(bundleRec(), 0);
+    expect(row.kind).toBe("bundle");
+    expect(row.delivery).toBeNull();
+    expect(row.framework).toBeNull();
   });
 
-  it("overrides every row the sheet excluded from Plus Essential", () => {
+  it("pulls the course count out of the Modules prose", () => {
+    expect(normaliseRow(bundleRec({ Modules: "8 courses" }), 0).row.course_count).toBe(8);
+    // The sheet writes "3 course" singular; still a valid count.
+    expect(normaliseRow(bundleRec({ Modules: "3 course" }), 0).row.course_count).toBe(3);
+    expect(normaliseRow(bundleRec({ Modules: "2" }), 0).row.course_count).toBe(2);
+  });
+
+  it("keeps module_count null for bundles — Modules means courses there", () => {
+    expect(normaliseRow(bundleRec({ Modules: "8 courses" }), 0).row.module_count).toBeNull();
+  });
+
+  it("throws when a bundle's course count is unreadable", () => {
+    expect(() => normaliseRow(bundleRec({ Modules: "a few courses" }), 0)).toThrow(/unreadable Modules/);
+    expect(() => normaliseRow(bundleRec({ Modules: "" }), 0)).toThrow(/need a course count/);
+  });
+
+  it("does NOT apply the plus override to bundles", () => {
+    // A separately-priced bundle marked "No" must stay excluded, or it would
+    // double-count its member courses into the pricing page's value total.
+    const { row, overridden } = normaliseRow(bundleRec({ "Price (INR)": "69999" }), 0);
+    expect(row.included_in_plus).toBe(false);
+    expect(overridden).toBe(false);
+  });
+
+  it("rejects a bundle that carries a framework", () => {
+    expect(() => normaliseRow(bundleRec({ Framework: "CBAM" }), 0)).toThrow(/must leave Framework blank/);
+  });
+
+  it("rejects Bundle Courses on a course row", () => {
+    expect(() => normaliseRow(rec({ "Bundle Courses": "lca" }), 0)).toThrow(/only valid on Bundle rows/);
+  });
+
+  it("trims a stray trailing space off the title", () => {
+    expect(normaliseRow(bundleRec({ Title: "Emission Mastery " }), 0).row.title).toBe("Emission Mastery");
+  });
+});
+
+describe("parseIntakeSheet — bundle membership", () => {
+  const sheet = (...lines: string[]) =>
+    [
+      "Type,Course ID / Slug,Title,Framework,Level,Description,Outcome,Modules,Lessons,Duration,Price (INR),Included in Plus Essential,Hosted On,Course URL,Next Cohort Date,Instructor(s),Cover Image URL,Status,Notes,Bundle Courses",
+      ...lines,
+    ].join("\n");
+  const COURSE = "Self-Paced,lca,LCA,LCA,Intermediate,d,o,6,12,6 hours,5999,Yes,Learnyst,https://x.co/lca,,,,Published,,";
+  const bundle = (members: string, count = "2 courses") =>
+    `Bundle,b1,B,,Intermediate,d,o,${count},40,21 hours,12000,No,Learnyst,https://x.co/b,,,,Published,,"${members}"`;
+
+  it("throws when Bundle Courses names a slug that is not a course", () => {
+    expect(() => parseIntakeSheet(sheet(COURSE, bundle("lca, nope")))).toThrow(/not courses in this sheet: nope/);
+  });
+
+  it("throws when Bundle Courses repeats a slug", () => {
+    expect(() => parseIntakeSheet(sheet(COURSE, bundle("lca, lca")))).toThrow(/repeats lca/);
+  });
+
+  it("warns, not throws, when membership is missing — the card degrades to counts", () => {
+    const { warnings } = parseIntakeSheet(sheet(COURSE, bundle("")));
+    expect(warnings).toEqual([expect.stringMatching(/no "Bundle Courses" listed/)]);
+  });
+
+  it("warns when the listed members disagree with the advertised count", () => {
+    const { warnings } = parseIntakeSheet(sheet(COURSE, bundle("lca", "2 courses")));
+    expect(warnings).toEqual([expect.stringMatching(/advertises 2 courses but lists 1/)]);
+  });
+
+  it("is silent when the count matches", () => {
+    expect(parseIntakeSheet(sheet(COURSE, bundle("lca", "1 course"))).warnings).toEqual([]);
+  });
+});
+
+describe("parseIntakeSheet on the committed sheet", () => {
+  const { rows, overridden, warnings } = parseIntakeSheet(SHEET);
+  const courses = rows.filter((r) => r.kind === "course");
+  const bundles = rows.filter((r) => r.kind === "bundle");
+
+  it("reads twelve courses and three bundles", () => {
+    expect(courses).toHaveLength(12);
+    expect(bundles).toHaveLength(3);
+    expect(new Set(rows.map((r) => r.slug)).size).toBe(15);
+  });
+
+  it("overrides every course the sheet excluded from Plus Essential, and no bundle", () => {
     // The four live programmes plus the free in-app course.
     expect(overridden).toEqual([
       "esg-fundamentals",
@@ -156,7 +250,30 @@ describe("parseIntakeSheet on the committed sheet", () => {
       "ghg-lead-verifier",
       "carbon-market",
     ]);
-    expect(rows.every((r) => r.included_in_plus)).toBe(true);
+    expect(courses.every((r) => r.included_in_plus)).toBe(true);
+    expect(bundles.every((r) => !r.included_in_plus)).toBe(true);
+  });
+
+  it("carries the bundle prices and counts", () => {
+    expect(bundles.map((b) => [b.slug, b.course_count, b.price_inr])).toEqual([
+      ["leadership", 8, 69999],
+      ["esg-3-in-1", 3, 15000],
+      ["emission-2-in-1", 2, 12000],
+    ]);
+  });
+
+  it("resolves the membership that has been filled in", () => {
+    const byslug = new Map(bundles.map((b) => [b.slug, b.members]));
+    expect(byslug.get("esg-3-in-1")).toEqual([
+      "fundamentals-esg-brsr",
+      "esg-materiality",
+      "ghg-accounting-mastery",
+    ]);
+    expect(byslug.get("emission-2-in-1")).toEqual(["ghg-accounting-mastery", "lca"]);
+  });
+
+  it("warns that the leadership bundle still needs its course list", () => {
+    expect(warnings).toEqual([expect.stringMatching(/^leadership: no "Bundle Courses" listed/)]);
   });
 
   it("has exactly one in-app course, linked to an internal path", () => {
@@ -182,9 +299,13 @@ describe("parseIntakeSheet on the committed sheet", () => {
     expect(frameworks.has("Circular Economy")).toBe(true);
   });
 
-  it("sums to the standalone value the pricing page claims", () => {
-    const total = rows.reduce((sum, r) => sum + (r.price_inr ?? 0), 0);
-    expect(total).toBe(163994);
+  it("sums COURSES to the standalone value the pricing page claims", () => {
+    // Courses only. Summing bundles in as well gives ₹260,993 and double-counts
+    // every member course — which is why the plus override is course-scoped and
+    // the landing page passes catalog.courses, not the whole catalog, to
+    // PricingSnapshot.
+    expect(courses.reduce((sum, r) => sum + (r.price_inr ?? 0), 0)).toBe(163994);
+    expect(bundles.reduce((sum, r) => sum + (r.price_inr ?? 0), 0)).toBe(96999);
   });
 
   it("rejects a sheet with a duplicate slug", () => {

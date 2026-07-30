@@ -18,12 +18,13 @@ export type Course = {
 export type CatalogDelivery = "self_paced" | "live";
 export type CatalogHost = "in_app" | "learnyst";
 export type CatalogLevel = "beginner" | "foundation" | "intermediate" | "advanced";
+export type CatalogKind = "course" | "bundle";
 
 /**
- * The merchandising record for a course we sell — what the marketing grid, the
- * live-training cards and the bundle render. Most of these live on Learnyst and
- * have no player content here at all, so this is deliberately NOT `Course`:
- * there is no id, no track, no modules, and `courseUrl` may leave the app.
+ * The merchandising record for a course we sell — what the marketing grid and
+ * the Learnyst cards render. Most of these live on Learnyst and have no player
+ * content here at all, so this is deliberately NOT `Course`: there is no id, no
+ * track, no modules, and `courseUrl` may leave the app.
  *
  * `framework` is free text — the taxonomy is marketing's to rename.
  */
@@ -52,10 +53,30 @@ export type CatalogCourse = {
   position: number;
 };
 
-export type BundleCatalogEntry = {
-  name: string;
+/**
+ * A priced collection of courses, sold on Learnyst. Shares the `course_catalog`
+ * table with `CatalogCourse` behind a `kind` discriminator, but has no framework
+ * and no delivery mode of its own — both belong to the member courses.
+ *
+ * `courses` is what the sheet's "Bundle Courses" column resolves to. It can be
+ * empty while membership is still being filled in, so every consumer must handle
+ * that and fall back to `courseCount`.
+ */
+export type CatalogBundle = {
+  slug: string;
+  title: string;
+  level: CatalogLevel;
   description: string;
-  learnystUrl: string;
+  outcome: string;
+  /** How many courses the bundle advertises — may exceed `courses.length`. */
+  courseCount: number | null;
+  lessonCount: number | null;
+  durationLabel: string | null;
+  priceInr: number | null;
+  courseUrl: string;
+  coverImageUrl: string | null;
+  position: number;
+  /** Resolved members, in sheet order. Empty when not yet listed. */
   courses: CatalogCourse[];
 };
 

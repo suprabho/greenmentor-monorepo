@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { Hero } from "@/components/marketing/Hero";
 import { ProblemSolutionSection } from "@/components/marketing/ProblemSolutionSection";
 import { CoursePreview } from "@/components/marketing/CoursePreview";
+import { BundlePreview } from "@/components/marketing/BundlePreview";
 import { ValueProps } from "@/components/marketing/ValueProps";
 import { SocialProof } from "@/components/marketing/SocialProof";
 import { HiringCompanies } from "@/components/marketing/HiringCompanies";
@@ -42,6 +43,7 @@ export default function LandingPage() {
       <ProblemSolutionSection />
       <HiringCompanies />
       <CoursePreview />
+      <BundlePreview />
       <ValueProps />
       <SocialProof />
       <AboutSection />
