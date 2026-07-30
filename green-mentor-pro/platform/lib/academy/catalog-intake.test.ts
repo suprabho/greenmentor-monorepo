@@ -256,14 +256,25 @@ describe("parseIntakeSheet on the committed sheet", () => {
 
   it("carries the bundle prices and counts", () => {
     expect(bundles.map((b) => [b.slug, b.course_count, b.price_inr])).toEqual([
-      ["leadership", 8, 69999],
+      ["leadership", 7, 69999],
       ["esg-3-in-1", 3, 15000],
       ["emission-2-in-1", 2, 12000],
     ]);
   });
 
-  it("resolves the membership that has been filled in", () => {
+  it("resolves every bundle's membership", () => {
     const byslug = new Map(bundles.map((b) => [b.slug, b.members]));
+    // Learnyst display order, minus Greenmentor Career Services — that is the
+    // annual-plan perk in plans.ts, not a catalog course.
+    expect(byslug.get("leadership")).toEqual([
+      "esg-readiness",
+      "fundamentals-esg-brsr",
+      "ghg-accounting-mastery",
+      "esg-materiality",
+      "lca",
+      "circularity",
+      "cbam",
+    ]);
     expect(byslug.get("esg-3-in-1")).toEqual([
       "fundamentals-esg-brsr",
       "esg-materiality",
@@ -272,8 +283,17 @@ describe("parseIntakeSheet on the committed sheet", () => {
     expect(byslug.get("emission-2-in-1")).toEqual(["ghg-accounting-mastery", "lca"]);
   });
 
-  it("warns that the leadership bundle still needs its course list", () => {
-    expect(warnings).toEqual([expect.stringMatching(/^leadership: no "Bundle Courses" listed/)]);
+  it("has every advertised course count backed by a listed member", () => {
+    for (const b of bundles) expect(b.members).toHaveLength(b.course_count as number);
+    expect(warnings).toEqual([]);
+  });
+
+  it("adds up: each bundle's lesson total equals the sum of its members", () => {
+    const lessons = new Map(courses.map((c) => [c.slug, c.lesson_count ?? 0]));
+    for (const b of bundles) {
+      const summed = b.members.reduce((n, m) => n + (lessons.get(m) ?? 0), 0);
+      expect([b.slug, b.lesson_count]).toEqual([b.slug, summed]);
+    }
   });
 
   it("has exactly one in-app course, linked to an internal path", () => {
