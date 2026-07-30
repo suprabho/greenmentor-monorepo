@@ -29,6 +29,24 @@ export type CatalogCourse = {
   position: number;
 };
 
+export type CatalogBundle = {
+  slug: string;
+  title: string;
+  level: "beginner" | "foundation" | "intermediate" | "advanced";
+  description: string;
+  outcome: string;
+  /** How many courses the bundle advertises — may exceed `courses.length`. */
+  courseCount: number | null;
+  lessonCount: number | null;
+  durationLabel: string | null;
+  priceInr: number | null;
+  courseUrl: string;
+  coverImageUrl: string | null;
+  position: number;
+  /** Resolved members, in sheet order. Empty when not yet listed. */
+  courses: CatalogCourse[];
+};
+
 export const courses: CatalogCourse[] = [
   {
     "slug": "esg-fundamentals",
@@ -61,7 +79,7 @@ export const courses: CatalogCourse[] = [
     "description": "The vocabulary, the actors, the regulations, and a working knowledge of the BRSR framework Indian listed entities file under.",
     "outcome": "Master GRI, BRSR, SASB and CDP, the frameworks employers hire for.",
     "moduleCount": null,
-    "lessonCount": 30,
+    "lessonCount": 23,
     "durationLabel": "9.5 hours",
     "priceInr": 999,
     "includedInPlus": true,
@@ -84,7 +102,7 @@ export const courses: CatalogCourse[] = [
     "description": "Scope 1, 2 and 3 from first principles, ISO 14064-aligned, with the spreadsheets and audit trail your assurance partner will accept.",
     "outcome": "Calculate Scope 1, 2 and 3 emissions and lead your org's carbon disclosure.",
     "moduleCount": null,
-    "lessonCount": 22,
+    "lessonCount": 25,
     "durationLabel": "~20 hours",
     "priceInr": 6999,
     "includedInPlus": true,
@@ -107,7 +125,7 @@ export const courses: CatalogCourse[] = [
     "description": "Build an ESG program from scratch: governance, materiality, KPIs, and the rollout plan that actually survives Q1.",
     "outcome": "Build a board-ready ESG strategy from scratch.",
     "moduleCount": null,
-    "lessonCount": 24,
+    "lessonCount": 30,
     "durationLabel": "6.5 hours",
     "priceInr": 6999,
     "includedInPlus": true,
@@ -130,7 +148,7 @@ export const courses: CatalogCourse[] = [
     "description": "Learn to run a materiality assessment end to end: stakeholder engagement, issue prioritization, building a materiality matrix and double materiality. Leave able to identify what truly matters and turn it into strategy, risk and reporting.",
     "outcome": "How materiality fits within ESG framework",
     "moduleCount": 8,
-    "lessonCount": 13,
+    "lessonCount": 21,
     "durationLabel": "4 hours",
     "priceInr": 5999,
     "includedInPlus": true,
@@ -153,7 +171,7 @@ export const courses: CatalogCourse[] = [
     "description": "Learn to measure, analyze, and optimize the environmental impact of products, processes, and supply chains.",
     "outcome": "Mastery of LCA principles, methodology, and reporting",
     "moduleCount": 6,
-    "lessonCount": 12,
+    "lessonCount": 15,
     "durationLabel": "6 hours",
     "priceInr": 5999,
     "includedInPlus": true,
@@ -176,7 +194,7 @@ export const courses: CatalogCourse[] = [
     "description": "Master EU-CBAM compliance for aluminium and iron & steel: scope, embedded-emission calculation, reporting and verification. Leave able to prepare a defensible CBAM report and protect EU market access, with worked sector case studies.",
     "outcome": "What CBAM is, why it exists, and how it fits within carbon pricing and the prevention of carbon leakage",
     "moduleCount": 5,
-    "lessonCount": 13,
+    "lessonCount": 18,
     "durationLabel": "4.5 hours",
     "priceInr": 10000,
     "includedInPlus": true,
@@ -199,7 +217,7 @@ export const courses: CatalogCourse[] = [
     "description": "Master the circular economy across nine modules: core models, circular design, materials, waste recovery, business models, policy and AI. Leave able to apply tools like LCA and MCI to real products and propose business and policy ideas.",
     "outcome": "Apply circular-economy models and frameworks to real products and systems",
     "moduleCount": 9,
-    "lessonCount": 27,
+    "lessonCount": 37,
     "durationLabel": "6.5 hours",
     "priceInr": 6999,
     "includedInPlus": true,
@@ -303,5 +321,332 @@ export const courses: CatalogCourse[] = [
     ],
     "coverImageUrl": null,
     "position": 11
+  }
+];
+
+export const bundles: CatalogBundle[] = [
+  {
+    "slug": "leadership",
+    "title": "Sustainability Leadership Bundle",
+    "level": "intermediate",
+    "description": "Built for mid-career professionals moving into ESG leadership. Six execution-focused courses across reporting, materiality, GHG, circularity, CBAM and LCA, plus career services. Leave ready to lead ESG transformation and get hired.",
+    "outcome": "By the end of this bundle, you'll be able to execute ESG leadership and strategy transformation initiatives",
+    "courseCount": 7,
+    "lessonCount": 169,
+    "durationLabel": "101 hours",
+    "priceInr": 69999,
+    "courseUrl": "https://academy.greenmentor.co/learn/ESG-Pro-Bundle--All-in-One-ESG-Mastery-Program",
+    "coverImageUrl": null,
+    "position": 12,
+    "courses": [
+      {
+        "slug": "esg-readiness",
+        "delivery": "self_paced",
+        "hostedOn": "learnyst",
+        "title": "ESG Readiness",
+        "framework": "ESG Strategy",
+        "level": "intermediate",
+        "description": "Build an ESG program from scratch: governance, materiality, KPIs, and the rollout plan that actually survives Q1.",
+        "outcome": "Build a board-ready ESG strategy from scratch.",
+        "moduleCount": null,
+        "lessonCount": 30,
+        "durationLabel": "6.5 hours",
+        "priceInr": 6999,
+        "includedInPlus": true,
+        "courseUrl": "https://academy.greenmentor.co/learn/ESG-Readiness",
+        "nextCohortAt": null,
+        "nextCohortLabel": null,
+        "instructors": [
+          "Zubin Jacob"
+        ],
+        "coverImageUrl": null,
+        "position": 3
+      },
+      {
+        "slug": "fundamentals-esg-brsr",
+        "delivery": "self_paced",
+        "hostedOn": "learnyst",
+        "title": "Fundamentals of ESG & BRSR",
+        "framework": "ESG & BRSR",
+        "level": "foundation",
+        "description": "The vocabulary, the actors, the regulations, and a working knowledge of the BRSR framework Indian listed entities file under.",
+        "outcome": "Master GRI, BRSR, SASB and CDP, the frameworks employers hire for.",
+        "moduleCount": null,
+        "lessonCount": 23,
+        "durationLabel": "9.5 hours",
+        "priceInr": 999,
+        "includedInPlus": true,
+        "courseUrl": "https://academy.greenmentor.co/learn/Intro-to-ESG-and-BRSR",
+        "nextCohortAt": null,
+        "nextCohortLabel": null,
+        "instructors": [
+          "Amitava Mandal"
+        ],
+        "coverImageUrl": null,
+        "position": 1
+      },
+      {
+        "slug": "ghg-accounting-mastery",
+        "delivery": "self_paced",
+        "hostedOn": "learnyst",
+        "title": "GHG Accounting Mastery in 20 Hours",
+        "framework": "GHG Accounting",
+        "level": "intermediate",
+        "description": "Scope 1, 2 and 3 from first principles, ISO 14064-aligned, with the spreadsheets and audit trail your assurance partner will accept.",
+        "outcome": "Calculate Scope 1, 2 and 3 emissions and lead your org's carbon disclosure.",
+        "moduleCount": null,
+        "lessonCount": 25,
+        "durationLabel": "~20 hours",
+        "priceInr": 6999,
+        "includedInPlus": true,
+        "courseUrl": "https://academy.greenmentor.co/learn/GHG-Accounting-101",
+        "nextCohortAt": null,
+        "nextCohortLabel": null,
+        "instructors": [
+          "Hashir Khan"
+        ],
+        "coverImageUrl": null,
+        "position": 2
+      },
+      {
+        "slug": "esg-materiality",
+        "delivery": "self_paced",
+        "hostedOn": "learnyst",
+        "title": "Materiality Assessment Mastery",
+        "framework": "ESG Strategy",
+        "level": "intermediate",
+        "description": "Learn to run a materiality assessment end to end: stakeholder engagement, issue prioritization, building a materiality matrix and double materiality. Leave able to identify what truly matters and turn it into strategy, risk and reporting.",
+        "outcome": "How materiality fits within ESG framework",
+        "moduleCount": 8,
+        "lessonCount": 21,
+        "durationLabel": "4 hours",
+        "priceInr": 5999,
+        "includedInPlus": true,
+        "courseUrl": "https://academy.greenmentor.co/learn/Materiality-Assessment",
+        "nextCohortAt": null,
+        "nextCohortLabel": null,
+        "instructors": [
+          "Abhivyakti Vajpayi"
+        ],
+        "coverImageUrl": null,
+        "position": 4
+      },
+      {
+        "slug": "lca",
+        "delivery": "self_paced",
+        "hostedOn": "learnyst",
+        "title": "Life Cycle Assessment Mastery",
+        "framework": "LCA",
+        "level": "intermediate",
+        "description": "Learn to measure, analyze, and optimize the environmental impact of products, processes, and supply chains.",
+        "outcome": "Mastery of LCA principles, methodology, and reporting",
+        "moduleCount": 6,
+        "lessonCount": 15,
+        "durationLabel": "6 hours",
+        "priceInr": 5999,
+        "includedInPlus": true,
+        "courseUrl": "https://academy.greenmentor.co/learn/Life-Cycle-Assessment",
+        "nextCohortAt": null,
+        "nextCohortLabel": null,
+        "instructors": [
+          "Vishal Pandhare"
+        ],
+        "coverImageUrl": null,
+        "position": 5
+      },
+      {
+        "slug": "circularity",
+        "delivery": "self_paced",
+        "hostedOn": "learnyst",
+        "title": "Circularity Mastery Course",
+        "framework": "Circular Economy",
+        "level": "intermediate",
+        "description": "Master the circular economy across nine modules: core models, circular design, materials, waste recovery, business models, policy and AI. Leave able to apply tools like LCA and MCI to real products and propose business and policy ideas.",
+        "outcome": "Apply circular-economy models and frameworks to real products and systems",
+        "moduleCount": 9,
+        "lessonCount": 37,
+        "durationLabel": "6.5 hours",
+        "priceInr": 6999,
+        "includedInPlus": true,
+        "courseUrl": "https://academy.greenmentor.co/learn/Circularity-Mastery-course",
+        "nextCohortAt": null,
+        "nextCohortLabel": null,
+        "instructors": [
+          "Sumit Jugran"
+        ],
+        "coverImageUrl": null,
+        "position": 7
+      },
+      {
+        "slug": "cbam",
+        "delivery": "self_paced",
+        "hostedOn": "learnyst",
+        "title": "CBAM Mastery Course",
+        "framework": "CBAM",
+        "level": "intermediate",
+        "description": "Master EU-CBAM compliance for aluminium and iron & steel: scope, embedded-emission calculation, reporting and verification. Leave able to prepare a defensible CBAM report and protect EU market access, with worked sector case studies.",
+        "outcome": "What CBAM is, why it exists, and how it fits within carbon pricing and the prevention of carbon leakage",
+        "moduleCount": 5,
+        "lessonCount": 18,
+        "durationLabel": "4.5 hours",
+        "priceInr": 10000,
+        "includedInPlus": true,
+        "courseUrl": "https://academy.greenmentor.co/learn/CBAM-Mastery",
+        "nextCohortAt": null,
+        "nextCohortLabel": null,
+        "instructors": [
+          "Shubhi Goel"
+        ],
+        "coverImageUrl": null,
+        "position": 6
+      }
+    ]
+  },
+  {
+    "slug": "esg-3-in-1",
+    "title": "ESG Mastery Essentials",
+    "level": "intermediate",
+    "description": "Built for professionals ready to execute ESG strategy and reporting inside any company. Three execution-focused courses across ESG & BRSR fundamentals, materiality assessment and GHG accounting. Leave able to deliver ESG work with confidence.",
+    "outcome": "By the end of this bundle, you'll be able to execute ESG reporting and strategy for any company",
+    "courseCount": 3,
+    "lessonCount": 69,
+    "durationLabel": "28 hours",
+    "priceInr": 15000,
+    "courseUrl": "https://academy.greenmentor.co/learn/ESG-Mastery-Bundle",
+    "coverImageUrl": null,
+    "position": 13,
+    "courses": [
+      {
+        "slug": "fundamentals-esg-brsr",
+        "delivery": "self_paced",
+        "hostedOn": "learnyst",
+        "title": "Fundamentals of ESG & BRSR",
+        "framework": "ESG & BRSR",
+        "level": "foundation",
+        "description": "The vocabulary, the actors, the regulations, and a working knowledge of the BRSR framework Indian listed entities file under.",
+        "outcome": "Master GRI, BRSR, SASB and CDP, the frameworks employers hire for.",
+        "moduleCount": null,
+        "lessonCount": 23,
+        "durationLabel": "9.5 hours",
+        "priceInr": 999,
+        "includedInPlus": true,
+        "courseUrl": "https://academy.greenmentor.co/learn/Intro-to-ESG-and-BRSR",
+        "nextCohortAt": null,
+        "nextCohortLabel": null,
+        "instructors": [
+          "Amitava Mandal"
+        ],
+        "coverImageUrl": null,
+        "position": 1
+      },
+      {
+        "slug": "esg-materiality",
+        "delivery": "self_paced",
+        "hostedOn": "learnyst",
+        "title": "Materiality Assessment Mastery",
+        "framework": "ESG Strategy",
+        "level": "intermediate",
+        "description": "Learn to run a materiality assessment end to end: stakeholder engagement, issue prioritization, building a materiality matrix and double materiality. Leave able to identify what truly matters and turn it into strategy, risk and reporting.",
+        "outcome": "How materiality fits within ESG framework",
+        "moduleCount": 8,
+        "lessonCount": 21,
+        "durationLabel": "4 hours",
+        "priceInr": 5999,
+        "includedInPlus": true,
+        "courseUrl": "https://academy.greenmentor.co/learn/Materiality-Assessment",
+        "nextCohortAt": null,
+        "nextCohortLabel": null,
+        "instructors": [
+          "Abhivyakti Vajpayi"
+        ],
+        "coverImageUrl": null,
+        "position": 4
+      },
+      {
+        "slug": "ghg-accounting-mastery",
+        "delivery": "self_paced",
+        "hostedOn": "learnyst",
+        "title": "GHG Accounting Mastery in 20 Hours",
+        "framework": "GHG Accounting",
+        "level": "intermediate",
+        "description": "Scope 1, 2 and 3 from first principles, ISO 14064-aligned, with the spreadsheets and audit trail your assurance partner will accept.",
+        "outcome": "Calculate Scope 1, 2 and 3 emissions and lead your org's carbon disclosure.",
+        "moduleCount": null,
+        "lessonCount": 25,
+        "durationLabel": "~20 hours",
+        "priceInr": 6999,
+        "includedInPlus": true,
+        "courseUrl": "https://academy.greenmentor.co/learn/GHG-Accounting-101",
+        "nextCohortAt": null,
+        "nextCohortLabel": null,
+        "instructors": [
+          "Hashir Khan"
+        ],
+        "coverImageUrl": null,
+        "position": 2
+      }
+    ]
+  },
+  {
+    "slug": "emission-2-in-1",
+    "title": "Emissions Mastery Bundle",
+    "level": "intermediate",
+    "description": "Master a company's full emissions picture, operational and embedded. Two execution-focused courses in GHG accounting and lifecycle assessment, with hands-on training in LongSight, OpenLCA, GaBi and SimaPro. Become execution-ready on emissions.",
+    "outcome": "By the end of this bundle, you'll have mastery over everything related to a company's emissions, operational and embedded emissions",
+    "courseCount": 2,
+    "lessonCount": 40,
+    "durationLabel": "21 hours",
+    "priceInr": 12000,
+    "courseUrl": "https://academy.greenmentor.co/learn/Emission-Mastery-Essentials",
+    "coverImageUrl": null,
+    "position": 14,
+    "courses": [
+      {
+        "slug": "ghg-accounting-mastery",
+        "delivery": "self_paced",
+        "hostedOn": "learnyst",
+        "title": "GHG Accounting Mastery in 20 Hours",
+        "framework": "GHG Accounting",
+        "level": "intermediate",
+        "description": "Scope 1, 2 and 3 from first principles, ISO 14064-aligned, with the spreadsheets and audit trail your assurance partner will accept.",
+        "outcome": "Calculate Scope 1, 2 and 3 emissions and lead your org's carbon disclosure.",
+        "moduleCount": null,
+        "lessonCount": 25,
+        "durationLabel": "~20 hours",
+        "priceInr": 6999,
+        "includedInPlus": true,
+        "courseUrl": "https://academy.greenmentor.co/learn/GHG-Accounting-101",
+        "nextCohortAt": null,
+        "nextCohortLabel": null,
+        "instructors": [
+          "Hashir Khan"
+        ],
+        "coverImageUrl": null,
+        "position": 2
+      },
+      {
+        "slug": "lca",
+        "delivery": "self_paced",
+        "hostedOn": "learnyst",
+        "title": "Life Cycle Assessment Mastery",
+        "framework": "LCA",
+        "level": "intermediate",
+        "description": "Learn to measure, analyze, and optimize the environmental impact of products, processes, and supply chains.",
+        "outcome": "Mastery of LCA principles, methodology, and reporting",
+        "moduleCount": 6,
+        "lessonCount": 15,
+        "durationLabel": "6 hours",
+        "priceInr": 5999,
+        "includedInPlus": true,
+        "courseUrl": "https://academy.greenmentor.co/learn/Life-Cycle-Assessment",
+        "nextCohortAt": null,
+        "nextCohortLabel": null,
+        "instructors": [
+          "Vishal Pandhare"
+        ],
+        "coverImageUrl": null,
+        "position": 5
+      }
+    ]
   }
 ];

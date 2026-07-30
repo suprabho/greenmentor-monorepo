@@ -16,7 +16,7 @@ export const faqs: Faq[] = [
     id: "whats-included",
     question: "What exactly is and isn't included in the monthly plan?",
     answer:
-      "Your Plus Essential subscription includes the full course library, all 8 courses (including the live intensives like Master LCA and ESG Reporting Pro), each with its own certificate of completion, plus bi-weekly live Q&A sessions with practitioners, the 40,000+ member community, weekly industry insights, and the curated ESG jobs feed. Only live certifications like ISO 14064 and standalone workshops are available as paid add-ons on top of the plan. They're not part of the base subscription.",
+      "Your Plus Essential subscription includes the full course library — every course, including the live intensives like Master LCA, ESG Reporting Pro and the ISO 14064 Lead Verifier certification — each with its own certificate of completion, plus bi-weekly live Q&A sessions with practitioners, the 40,000+ member community, weekly industry insights, and the curated ESG jobs feed. Multi-course bundles are sold separately on Learnyst and are not part of the subscription.",
   },
   {
     id: "refunds",

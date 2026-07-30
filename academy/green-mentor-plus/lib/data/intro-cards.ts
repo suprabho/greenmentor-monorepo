@@ -33,7 +33,7 @@ export const introCards: IntroCard[] = [
     title: "Every course you need. One subscription.",
     body: "Plus Essential bundles the full course library, live expert sessions and career tools that map to how real ESG teams actually work.",
     bullets: [
-      "8 courses: BRSR, CBAM, GHG, LCA and more",
+      "Every ESG course: BRSR, CBAM, GHG, LCA and more",
       "Bi-weekly live Q&A with practitioners",
       "Weekly industry insights & case studies",
     ],

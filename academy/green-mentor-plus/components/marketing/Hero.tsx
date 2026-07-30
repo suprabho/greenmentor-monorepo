@@ -66,7 +66,7 @@ export function Hero() {
             </h1>
 
             <p className="mt-8 max-w-2xl text-left text-[20px] leading-relaxed text-white/85 md:text-[22px]">
-              8 courses. Bi-weekly live sessions with practitioners. Career
+              Every ESG course. Bi-weekly live sessions with practitioners. Career
               tools. A 40,000+ member community. All included in one
               subscription, cancel anytime.
             </p>
