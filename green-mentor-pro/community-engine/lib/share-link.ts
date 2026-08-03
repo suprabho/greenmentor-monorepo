@@ -6,7 +6,7 @@
 // pure string assembly. A row missing either column predates the migration —
 // fall back to the bare uuid, which the platform's resolver still accepts.
 
-const DEFAULT_PLATFORM_URL = "https://app.greenmentor.co";
+const DEFAULT_PLATFORM_URL = "https://pro.greenmentor.co";
 
 export interface ShareKeys {
   id: string;
