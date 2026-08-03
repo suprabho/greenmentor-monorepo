@@ -6,7 +6,8 @@ import { FeedPreview, type FeedPreviewArticle } from "@/components/home/feed-pre
 import { WebinarCard } from "@/components/webinars/webinar-card";
 import { buildAgenda } from "@/lib/home/agenda";
 import { fetchJobs } from "@/lib/jobs/repo";
-import { fetchUpcomingWebinars, fetchUserRsvpIds } from "@/lib/webinars/repo";
+import { fetchRsvpContactDefaults, fetchUpcomingWebinars, fetchUserRsvpIds } from "@/lib/webinars/repo";
+import { EMPTY_RSVP_CONTACT } from "@/lib/webinars/contact";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata = { title: "Home — Green Mentor Pro" };
@@ -30,7 +31,7 @@ export default async function HomePage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const [webinars, jobs, { data: articles }, profileRes, rsvpIds] = await Promise.all([
+  const [webinars, jobs, { data: articles }, profileRes, rsvpIds, contactDefaults] = await Promise.all([
     fetchUpcomingWebinars(),
     fetchJobs(),
     supabase
@@ -42,6 +43,9 @@ export default async function HomePage() {
       ? supabase.from("profiles").select("display_name").eq("id", user.id).maybeSingle()
       : Promise.resolve({ data: null }),
     user ? fetchUserRsvpIds(user.id) : Promise.resolve(new Set<string>()),
+    // Prefills the RSVP form on the cards below; signed-out visitors get
+    // "Sign in to RSVP" and never see it.
+    user ? fetchRsvpContactDefaults(user) : Promise.resolve(EMPTY_RSVP_CONTACT),
   ]);
 
   const agenda = buildAgenda(webinars, jobs);
@@ -90,7 +94,13 @@ export default async function HomePage() {
             ) : (
               <div className="grid gap-4 sm:grid-cols-2">
                 {nextWebinars.map((w) => (
-                  <WebinarCard key={w.id} webinar={w} attending={rsvpIds.has(w.id)} signedIn={Boolean(user)} />
+                  <WebinarCard
+                    key={w.id}
+                    webinar={w}
+                    attending={rsvpIds.has(w.id)}
+                    signedIn={Boolean(user)}
+                    contactDefaults={contactDefaults}
+                  />
                 ))}
               </div>
             )}

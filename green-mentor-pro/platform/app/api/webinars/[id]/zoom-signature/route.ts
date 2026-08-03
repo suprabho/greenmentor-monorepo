@@ -3,6 +3,7 @@ import { createHmac } from "node:crypto";
 import { jsonError } from "@/lib/api-error";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { recordWebinarJoin } from "@/lib/webinars/attendance";
 
 export const runtime = "nodejs";
 
@@ -65,6 +66,12 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     const signature =
       `${header}.${payload}.` +
       createHmac("sha256", sdkSecret).update(`${header}.${payload}`).digest("base64url");
+
+    // Minting a signature is the moment a learner actually joins — the only
+    // in-app attendance signal we have. Awaited so it can't be cut short when
+    // the response ends, but best-effort inside: it never throws, and a failure
+    // to record must not block the join.
+    await recordWebinarJoin(id, user, { countJoin: true });
 
     const fullName = user.user_metadata?.full_name as string | undefined;
     return NextResponse.json({
