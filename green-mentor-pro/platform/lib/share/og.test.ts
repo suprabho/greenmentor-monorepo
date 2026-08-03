@@ -19,8 +19,8 @@ function only(key: (typeof ENV_KEYS)[number] | null, value?: string) {
 
 describe("siteUrl", () => {
   it("prefers NEXT_PUBLIC_SITE_URL", () => {
-    only("NEXT_PUBLIC_SITE_URL", "https://app.greenmentor.co");
-    expect(siteUrl()).toBe("https://app.greenmentor.co");
+    only("NEXT_PUBLIC_SITE_URL", "https://pro.greenmentor.co");
+    expect(siteUrl()).toBe("https://pro.greenmentor.co");
   });
 
   it("adds https:// to the bare hostnames Vercel provides", () => {
@@ -30,14 +30,14 @@ describe("siteUrl", () => {
 
   it("prefers the stable production domain over the per-deploy one", () => {
     only(null);
-    process.env.VERCEL_PROJECT_PRODUCTION_URL = "app.greenmentor.co";
+    process.env.VERCEL_PROJECT_PRODUCTION_URL = "pro.greenmentor.co";
     process.env.VERCEL_URL = "gm-pro-abc123.vercel.app";
-    expect(siteUrl()).toBe("https://app.greenmentor.co");
+    expect(siteUrl()).toBe("https://pro.greenmentor.co");
   });
 
   it("strips trailing slashes so absoluteUrl can't double up", () => {
-    only("NEXT_PUBLIC_SITE_URL", "https://app.greenmentor.co///");
-    expect(absoluteUrl("/jobs/x-3f8a1c2e9d")).toBe("https://app.greenmentor.co/jobs/x-3f8a1c2e9d");
+    only("NEXT_PUBLIC_SITE_URL", "https://pro.greenmentor.co///");
+    expect(absoluteUrl("/jobs/x-3f8a1c2e9d")).toBe("https://pro.greenmentor.co/jobs/x-3f8a1c2e9d");
   });
 
   it("falls back to the dev server origin", () => {
