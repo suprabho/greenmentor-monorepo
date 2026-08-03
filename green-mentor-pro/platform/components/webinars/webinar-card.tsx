@@ -5,6 +5,7 @@ import { ShareButton } from "@/components/share/share-button";
 import { JoinButton } from "@/components/webinars/join-button";
 import { RsvpButton } from "@/components/webinars/rsvp-button";
 import { webinarHref } from "@/lib/share/href";
+import type { RsvpContactDefaults } from "@/lib/webinars/contact";
 import type { Webinar, WebinarInstructor } from "@/lib/webinars/repo";
 
 export function fmtDate(iso: string | null): string {
@@ -30,10 +31,13 @@ export function WebinarCard({
   webinar,
   attending,
   signedIn,
+  contactDefaults,
 }: {
   webinar: Webinar;
   attending: boolean;
   signedIn: boolean;
+  /** Prefills the RSVP form — see fetchRsvpContactDefaults. */
+  contactDefaults: RsvpContactDefaults;
 }) {
   const href = webinarHref(webinar);
 
@@ -78,7 +82,13 @@ export function WebinarCard({
             serverNow={new Date().toISOString()}
           />
         )}
-        <RsvpButton webinarId={webinar.id} initialAttending={attending} signedIn={signedIn} />
+        <RsvpButton
+          webinarId={webinar.id}
+          webinarTitle={webinar.hook ?? webinar.title}
+          initialAttending={attending}
+          signedIn={signedIn}
+          contactDefaults={contactDefaults}
+        />
         {webinar.registrationUrl && (
           <a
             href={webinar.registrationUrl}

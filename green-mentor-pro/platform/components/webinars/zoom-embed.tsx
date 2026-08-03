@@ -69,6 +69,9 @@ async function loadZoomEmbeddedSdk(): Promise<EmbeddedSdk> {
 
 type Phase = "idle" | "joining" | "joined" | "error";
 
+/** How often to tell the server the learner is still watching. */
+const HEARTBEAT_MS = 60_000;
+
 interface JoinCredentials {
   signature: string;
   sdkKey: string;
@@ -98,6 +101,19 @@ export function ZoomEmbed({ webinarId }: { webinarId: string }) {
       clientRef.current?.leave().catch(() => {});
     };
   }, []);
+
+  // While joined, tell the server we're still here so the admin hub can show how
+  // long this learner actually stayed (webinar_attendance.last_seen_at) rather
+  // than just that they clicked Join. Fire-and-forget — a dropped ping only
+  // costs a little precision, so failures are swallowed rather than surfaced.
+  useEffect(() => {
+    if (phase !== "joined") return;
+    const ping = () => {
+      void fetch(`/api/webinars/${webinarId}/heartbeat`, { method: "POST" }).catch(() => {});
+    };
+    const timer = setInterval(ping, HEARTBEAT_MS);
+    return () => clearInterval(timer);
+  }, [phase, webinarId]);
 
   const join = async () => {
     if (!rootRef.current) return;

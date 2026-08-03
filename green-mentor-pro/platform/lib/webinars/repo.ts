@@ -1,6 +1,9 @@
-import type { SupabaseClient } from "@supabase/supabase-js";
+import type { SupabaseClient, User } from "@supabase/supabase-js";
 import { getWebinarPhase, UPCOMING_LOOKBACK_MS } from "@/lib/webinars/status";
 import { parseShareParam, pickCanonical, shareSlug } from "@/lib/share/slug";
+import { DEFAULT_COUNTRY_ISO } from "@/lib/data/country-codes";
+import { fromE164 } from "@/lib/utils/validation";
+import type { RsvpContactDefaults } from "@/lib/webinars/contact";
 import { createClient } from "@/lib/supabase/server";
 
 // Webinars are authored in the community-engine admin hub (community_webinars,
@@ -135,6 +138,31 @@ export async function fetchUserRsvpIds(userId: string): Promise<Set<string>> {
   const { data, error } = await supabase.from("webinar_rsvps").select("webinar_id").eq("user_id", userId);
   if (error) throw new Error(error.message);
   return new Set((data ?? []).map((r) => r.webinar_id as string));
+}
+
+/**
+ * What the RSVP form starts with. Name, phone and country come from the profile
+ * — onboarding already collected them (migration 0025) — with the account as
+ * fallback, so a returning learner just confirms. `phone` is handed back as the
+ * *national* number, which is what PhoneInput binds to. Empty strings, never
+ * null: these feed controlled inputs.
+ */
+export async function fetchRsvpContactDefaults(user: User): Promise<RsvpContactDefaults> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("profiles")
+    .select("display_name, phone, phone_country")
+    .eq("id", user.id)
+    .maybeSingle();
+  const profile = data as { display_name: string | null; phone: string | null; phone_country: string | null } | null;
+  const iso = profile?.phone_country ?? DEFAULT_COUNTRY_ISO;
+  const metaName = user.user_metadata?.full_name as string | undefined;
+  return {
+    fullName: profile?.display_name ?? metaName ?? "",
+    email: user.email ?? "",
+    phone: fromE164(profile?.phone, iso),
+    phoneCountry: iso,
+  };
 }
 
 /** A single published/completed webinar, by raw uuid. */

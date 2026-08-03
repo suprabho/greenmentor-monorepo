@@ -15,3 +15,13 @@ export function createAdminClient() {
   }
   return createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
 }
+
+/**
+ * True when the service-role key is present. For callers that treat the
+ * service-role client as optional and would rather skip their work than throw —
+ * webinar attendance recording does this, since analytics must never break a
+ * learner's join. Mirrors the same helper in community-engine.
+ */
+export function isServiceRoleConfigured(): boolean {
+  return Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY);
+}
