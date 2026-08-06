@@ -1,71 +1,25 @@
 /**
  * ESG Feed ingestion worker (footshorts pattern, reimplemented for ESG).
  *
- *   node --env-file=.env.local --import tsx scripts/ingest-feed.ts
+ *   ANTHROPIC_API_KEY=… node --env-file=.env.local --import tsx scripts/ingest-feed.ts
  *
- * For each RSS source: fetch → parse items → for new URLs, summarize + entity-tag
- * via Claude Haiku → upsert articles + entities + links. Writes use the
- * service-role client, so SUPABASE_SERVICE_ROLE_KEY + ANTHROPIC_API_KEY must be set.
+ * For each RSS source: fetch → parse items → drop obvious noise → for new URLs,
+ * summarize + entity-tag via Claude Haiku → find a thumbnail → upsert articles
+ * + entities + links. Writes use the service-role client, so
+ * SUPABASE_SERVICE_ROLE_KEY + ANTHROPIC_API_KEY must be set.
  *
- * The plan's preferred summarizer is @vismay/ai-gateway (Gemini Flash); this uses
- * the Anthropic key already on disk. Swap the model in summarizeAndTag to switch.
+ * Parsing lives in lib/feed/rss.ts and thumbnail discovery in lib/feed/images.ts,
+ * both shared with scripts/backfill-article-images.ts and unit-tested.
  */
 import Anthropic from "@anthropic-ai/sdk";
 import { getClient } from "@gm/agents";
 import { createAdminClient } from "../lib/supabase/admin";
-import { RSS_SOURCES, KNOWN_ENTITIES, type RssSource } from "../lib/feed-sources";
+import { RSS_SOURCES, KNOWN_ENTITIES, looksEsgRelevant, type RssSource } from "../lib/feed-sources";
+import { FEED_USER_AGENT, ogImageFrom } from "../lib/feed/images";
+import { parseFeed, type FeedItem } from "../lib/feed/rss";
 
 const SUMMARY_MODEL = process.env.FEED_SUMMARY_MODEL ?? "claude-haiku-4-5";
 const PER_SOURCE = Number(process.env.FEED_PER_SOURCE ?? 6);
-
-type Item = { title: string; link: string; pubDate?: string; description?: string; image?: string };
-
-const stripTags = (s: string) => s.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
-function decode(s: string): string {
-  return s
-    .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1")
-    .replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"')
-    .replace(/&#39;|&apos;/g, "'").replace(/&amp;/g, "&")
-    .trim();
-}
-function tag(block: string, name: string): string | undefined {
-  const m = block.match(new RegExp(`<${name}[^>]*>([\\s\\S]*?)<\\/${name}>`, "i"));
-  return m ? decode(m[1]) : undefined;
-}
-
-/** Best-effort thumbnail from an RSS/Atom item: enclosure, media:*, or an inline <img>. */
-function imageFrom(block: string): string | undefined {
-  const enclosure =
-    block.match(/<enclosure[^>]*type="image[^"]*"[^>]*url="([^"]+)"/i) ??
-    block.match(/<enclosure[^>]*url="([^"]+)"[^>]*type="image[^"]*"/i);
-  const media = block.match(/<media:(?:content|thumbnail)[^>]*url="([^"]+)"/i);
-  const inline = block.match(/<img[^>]*src="([^"]+)"/i);
-  return (enclosure?.[1] ?? media?.[1] ?? inline?.[1])?.trim();
-}
-
-/** Minimal RSS + Atom item parser (good enough for syndication feeds). */
-function parseFeed(xml: string): Item[] {
-  const isAtom = /<entry[\s>]/i.test(xml) && !/<item[\s>]/i.test(xml);
-  const splitTag = isAtom ? "entry" : "item";
-  const blocks = xml.split(new RegExp(`<${splitTag}[\\s>]`, "i")).slice(1)
-    .map((b) => b.split(new RegExp(`</${splitTag}>`, "i"))[0]);
-
-  return blocks.map((b) => {
-    const title = tag(b, "title") ?? "";
-    let link = tag(b, "link") ?? "";
-    if (isAtom) {
-      const href = b.match(/<link[^>]*href="([^"]+)"/i);
-      if (href) link = href[1];
-    }
-    return {
-      title: stripTags(title),
-      link: link.trim(),
-      pubDate: tag(b, "pubDate") ?? tag(b, "updated") ?? tag(b, "published"),
-      description: stripTags(tag(b, "description") ?? tag(b, "summary") ?? tag(b, "content") ?? "").slice(0, 1200),
-      image: imageFrom(b),
-    };
-  }).filter((i) => i.title && i.link);
-}
 
 type CardResult = {
   relevant: boolean;
@@ -73,7 +27,7 @@ type CardResult = {
   entities: { slug: string; name: string; kind: "framework" | "topic" | "region" | "company" }[];
 };
 
-async function summarizeAndTag(item: Item): Promise<CardResult | null> {
+async function summarizeAndTag(item: FeedItem): Promise<CardResult | null> {
   const client = getClient();
   const vocab = KNOWN_ENTITIES.map((e) => `${e.slug} (${e.name}, ${e.kind})`).join("; ");
   const tool: Anthropic.Messages.Tool = {
@@ -120,7 +74,7 @@ async function summarizeAndTag(item: Item): Promise<CardResult | null> {
 async function ingestSource(supabase: ReturnType<typeof createAdminClient>, source: RssSource) {
   let xml: string;
   try {
-    const res = await fetch(source.feedUrl, { headers: { "user-agent": "GreenMentorPro/0.1 feed-worker" } });
+    const res = await fetch(source.feedUrl, { headers: { "user-agent": FEED_USER_AGENT } });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     xml = await res.text();
   } catch (e) {
@@ -128,7 +82,22 @@ async function ingestSource(supabase: ReturnType<typeof createAdminClient>, sour
     return { added: 0 };
   }
 
-  const items = parseFeed(xml).slice(0, PER_SOURCE);
+  const parsed = parseFeed(xml);
+  if (parsed.length === 0) {
+    // A feed that 200s with zero items is almost always dead (moved, rebranded,
+    // or serving an HTML error page). Say so loudly — this failed silently for
+    // months on GreenBiz. `pnpm feed:check` exists to catch it earlier.
+    console.warn(`[${source.id}] feed returned no items — check ${source.feedUrl}`);
+    return { added: 0 };
+  }
+
+  // Broad or off-beat feeds (regulators, general business desks) get a keyword
+  // gate before we spend a summarizer call on each item.
+  const candidates = source.strict
+    ? parsed.filter((i) => looksEsgRelevant(`${i.title} ${i.description ?? ""}`))
+    : parsed;
+
+  const items = candidates.slice(0, PER_SOURCE);
   const urls = items.map((i) => i.link);
   const { data: existing } = await supabase.from("articles").select("url").in("url", urls);
   const seen = new Set((existing ?? []).map((r) => r.url));
@@ -139,15 +108,21 @@ async function ingestSource(supabase: ReturnType<typeof createAdminClient>, sour
     const card = await summarizeAndTag(item);
     if (!card || !card.relevant) continue;
 
+    // Only now, once we know the article is going in, is it worth a second
+    // request for the publisher's og:image. Plenty of feeds (edie, SEBI, most
+    // wire copy) carry no picture in the item itself.
+    const image = item.image ?? (await ogImageFrom(item.link)) ?? null;
+
     const { data: article, error } = await supabase
       .from("articles")
       .insert({
         source: source.publisher,
+        region: source.region,
         title: item.title,
         url: item.link,
         summary: card.summary,
-        image_url: item.image ?? null,
-        published_at: item.pubDate ? new Date(item.pubDate).toISOString() : null,
+        image_url: image,
+        published_at: item.publishedAt,
       })
       .select("id")
       .single();
@@ -165,7 +140,7 @@ async function ingestSource(supabase: ReturnType<typeof createAdminClient>, sour
       if (ent) await supabase.from("article_entities").insert({ article_id: article.id, entity_id: ent.id });
     }
     added++;
-    console.log(`[${source.id}] + ${item.title.slice(0, 70)}`);
+    console.log(`[${source.id}] +${image ? "" : " (no image)"} ${item.title.slice(0, 70)}`);
   }
   return { added };
 }

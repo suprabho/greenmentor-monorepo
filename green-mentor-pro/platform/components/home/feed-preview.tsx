@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowRight, Newspaper } from "@phosphor-icons/react/dist/ssr";
 import { Card } from "@/components/ui";
+import { ArticleImage } from "@/components/feed/article-image";
 import { shareSlug } from "@/lib/share/slug";
 
 export type FeedPreviewArticle = {
@@ -10,6 +11,8 @@ export type FeedPreviewArticle = {
   title: string;
   image_url: string | null;
   published_at: string | null;
+  /** Only used for ordering — see rankFeed() in lib/feed/rank.ts. */
+  region: string | null;
 };
 
 function ago(iso: string | null): string | null {
@@ -47,18 +50,12 @@ export function FeedPreview({ articles }: { articles: FeedPreviewArticle[] }) {
                 href={`/feed/${shareSlug(article.slug, article.id)}`}
                 className="-mx-2 flex items-center gap-3 rounded-lg px-2 py-2.5 transition-colors hover:bg-gray-50"
               >
-                {article.image_url ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={article.image_url}
-                    alt=""
-                    className="size-14 shrink-0 rounded-lg object-cover"
-                  />
-                ) : (
-                  <span className="grid size-14 shrink-0 place-items-center rounded-lg bg-gradient-to-br from-teal-900 via-teal-800 to-green-700 text-green-100/80">
-                    <Newspaper size={20} />
-                  </span>
-                )}
+                <ArticleImage
+                  src={article.image_url}
+                  source={article.source}
+                  fallback="icon"
+                  className="size-14 shrink-0 rounded-lg"
+                />
                 <span className="min-w-0">
                   <span className="line-clamp-2 text-[13.5px] font-semibold leading-snug text-ink">
                     {article.title}

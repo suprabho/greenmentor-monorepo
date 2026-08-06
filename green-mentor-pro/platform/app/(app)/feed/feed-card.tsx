@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { clsx } from "clsx";
 import { Card, Chip } from "@/components/ui";
+import { ArticleImage } from "@/components/feed/article-image";
 import { articleHref } from "@/lib/share/href";
 import type { FeedArticle, FeedEntity } from "@/lib/feed/repo";
 import { ArticleActions, type ArticleStat, type CurrentUser, type ReactionKind } from "./feed-actions";
@@ -25,26 +26,6 @@ function ago(iso: string | null): string {
   if (mins < 60) return `${Math.max(1, mins)}m ago`;
   if (mins < 1440) return `${Math.round(mins / 60)}h ago`;
   return `${Math.round(mins / 1440)}d ago`;
-}
-
-/** Hero thumbnail with a branded gradient fallback for image-less articles. */
-function Thumbnail({ src, source, className }: { src: string | null; source: string; className: string }) {
-  if (src) {
-    return (
-      // eslint-disable-next-line @next/next/no-img-element -- arbitrary remote hosts; next/image needs allow-listed domains
-      <img src={src} alt="" draggable={false} className={clsx("w-full bg-gray-100 object-cover", className)} />
-    );
-  }
-  return (
-    <div
-      className={clsx(
-        "flex w-full items-center justify-center bg-gradient-to-br from-teal-900 via-teal-800 to-green-700",
-        className,
-      )}
-    >
-      <span className="px-6 text-center text-[15px] font-semibold tracking-wide text-green-100">{source}</span>
-    </div>
-  );
 }
 
 /**
@@ -80,7 +61,11 @@ export function FeedCard({
         rel="noopener noreferrer"
         className={clsx("block", fill && "h-[44%] shrink-0")}
       >
-        <Thumbnail src={article.image_url} source={article.source} className={fill ? "h-full" : "aspect-[16/9]"} />
+        <ArticleImage
+          src={article.image_url}
+          source={article.source}
+          className={fill ? "h-full w-full" : "aspect-[16/9] w-full"}
+        />
       </a>
 
       <div className={clsx("flex flex-col gap-2.5 p-5", fill && "min-h-0 flex-1")}>
