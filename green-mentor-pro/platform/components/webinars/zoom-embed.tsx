@@ -25,7 +25,7 @@ import { useEffect, useRef, useState } from "react";
 import { VideoCamera, CircleNotch } from "@phosphor-icons/react";
 
 // Keep in sync with the CDN bundles Zoom publishes (source.zoom.us).
-const ZOOM_SDK_VERSION = "3.13.2";
+const ZOOM_SDK_VERSION = "6.2.0";
 
 // Zoom's documented load order: vendor globals first, SDK bundle last.
 const ZOOM_SDK_SCRIPTS = [
@@ -74,7 +74,6 @@ const HEARTBEAT_MS = 60_000;
 
 interface JoinCredentials {
   signature: string;
-  sdkKey: string;
   meetingNumber: string;
   password: string;
   userName: string;
@@ -135,7 +134,7 @@ export function ZoomEmbed({ webinarId }: { webinarId: string }) {
         patchJsMedia: true,
       });
       await client.join({
-        sdkKey: creds.sdkKey,
+        // sdkKey was removed from join options in SDK v4 — the signature carries the app key
         signature: creds.signature,
         meetingNumber: creds.meetingNumber,
         password: creds.password,
