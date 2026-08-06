@@ -29,7 +29,7 @@ const subBrands = [
     name: "AI Hub",
     tag: "Report",
     blurb:
-      "An AI copilot that automates sustainability compliance workflows — GRI, BRSR, CDP, CBAM, SASB — powered by Longsight, the 1st CBAM-ready tool for European compliance.",
+      "An AI copilot that automates sustainability compliance workflows — GRI, BRSR, CDP, CBAM, SASB — powered by our ESG Software, the 1st CBAM-ready tool for European compliance.",
   },
   {
     name: "Jobs & Community",

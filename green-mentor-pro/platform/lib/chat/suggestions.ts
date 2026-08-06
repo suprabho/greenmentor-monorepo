@@ -44,7 +44,7 @@ function describe(ctx: SuggestionContext): string {
   const seg = ctx.segment ? SEGMENT_LABEL[ctx.segment] : null;
   if (seg) bits.push(`The user is ${seg}.`);
   const goals = (ctx.goals ?? []).map((g) => GOAL_LABEL[g]).filter(Boolean);
-  if (goals.length) bits.push(`Their stated goals: ${goals.join("; ")}.`);
+  if (goals.length) bits.push(`Their focus for the next three months: ${goals.join("; ")}.`);
   const titles = (ctx.recentTitles ?? [])
     .filter((t) => t && t.toLowerCase() !== "new chat")
     .slice(0, 5);

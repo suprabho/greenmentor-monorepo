@@ -26,7 +26,7 @@ const subBrands = [
       "Community-led, sustainability-focused learning platform. Self-paced plus expert-led plus live coaching plus AI copilot.",
   },
   {
-    name: "Longsight",
+    name: "ESG Software",
     tag: "Compliance Software",
     blurb:
       "AI-powered suite that automates sustainability compliance workflows: GRI, BRSR, CDP, CBAM, SASB. 1st CBAM Ready tool for European compliance.",
@@ -35,7 +35,7 @@ const subBrands = [
     name: "Greenmentor Community",
     tag: "ESG Community",
     blurb:
-      "India's biggest ESG community, the demand-generation engine that feeds Academy and Longsight.",
+      "India's biggest ESG community, the demand-generation engine that feeds Academy and ESG Software.",
   },
 ];
 

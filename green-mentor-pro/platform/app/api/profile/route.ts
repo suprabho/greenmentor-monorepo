@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { jsonError } from "@/lib/api-error";
+import { MAX_GOALS } from "@/lib/onboarding/goals";
 
 export const runtime = "nodejs";
 
@@ -21,7 +22,9 @@ const patchSchema = z
     phone: z.string().trim().max(32),
     phoneCountry: z.string().trim().length(2),
     segment: z.enum(["student", "mid-career", "business-leader"]).nullable(),
-    goals: z.array(z.string()).max(32),
+    // Capped at MAX_GOALS — see lib/onboarding-data.ts. Rows written before the
+    // cap can hold more; those are only rejected when the user next saves.
+    goals: z.array(z.string()).max(MAX_GOALS, `Pick at most ${MAX_GOALS} goals.`),
     planId: z.string().nullable(),
     billingCycle: z.enum(["monthly", "annual"]).nullable(),
     onboarded: z.boolean(),

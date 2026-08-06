@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowRight, SignIn, VideoCamera } from "@phosphor-icons/react/dist/ssr";
 import { Card } from "@/components/ui";
 import { AgendaCard } from "@/components/home/agenda-card";
+import { CommunityCard } from "@/components/home/community-card";
 import { FeedPreview, type FeedPreviewArticle } from "@/components/home/feed-preview";
 import { WebinarCard } from "@/components/webinars/webinar-card";
 import { buildAgenda } from "@/lib/home/agenda";
@@ -112,6 +113,7 @@ export default async function HomePage() {
         {/* Agenda rail — first on mobile, sticky on desktop */}
         <div className="order-1 lg:order-2 lg:sticky lg:top-8">
           <AgendaCard items={agenda} />
+          <CommunityCard />
         </div>
       </div>
     </div>

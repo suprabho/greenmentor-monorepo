@@ -12,12 +12,15 @@ import {
   MagnifyingGlass,
   SidebarSimple,
   SignIn,
+  WhatsappLogo,
 } from "@phosphor-icons/react";
 import { clsx } from "clsx";
 import { Avatar } from "@/components/ui";
 import { Logo } from "@/components/marketing/Logo";
 import { CommandPalette } from "@/components/search/command-palette";
 import { MOBILE_NAV, NAV_GROUPS } from "@/lib/app-nav";
+import { WHATSAPP_COMMUNITY_LABEL, WHATSAPP_COMMUNITY_URL } from "@/lib/data/community";
+import { track } from "@/lib/utils/analytics";
 
 const COLLAPSED_KEY = "gm-sidebar-collapsed";
 
@@ -211,6 +214,24 @@ export function Shell({
             </div>
           ))}
         </nav>
+
+        {/* Sits below the nav rather than inside NAV_GROUPS: those entries are
+            next/link, matched by isActive(), and flattened into the ⌘K palette's
+            "Go to" list — an off-site URL is wrong in all three. */}
+        <a
+          href={WHATSAPP_COMMUNITY_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          title={collapsed ? WHATSAPP_COMMUNITY_LABEL : undefined}
+          onClick={() => track("whatsapp_community_clicked")}
+          className={clsx(
+            "mx-3 mt-3 flex items-center gap-3 rounded-[6px] py-2.5 text-[13.5px] font-medium text-white/65 transition-colors hover:bg-white/5 hover:text-white",
+            collapsed ? "justify-center" : "px-3"
+          )}
+        >
+          <WhatsappLogo size={19} className="shrink-0 text-[#25D366]" weight="fill" />
+          {!collapsed && <span className="whitespace-nowrap">{WHATSAPP_COMMUNITY_LABEL}</span>}
+        </a>
 
         {sidebarStats.length > 0 && (
           <div
