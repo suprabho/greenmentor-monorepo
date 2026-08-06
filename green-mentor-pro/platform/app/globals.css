@@ -231,3 +231,85 @@
     mask-image: linear-gradient(to bottom, transparent, #000 14%, #000 86%, transparent);
   }
 }
+
+/* =================================================================
+   OpenUI generative-UI type scale — `.gm-genui` wraps each assistant
+   response in components/ai-hub/MessageList.tsx.
+
+   OpenUI's desktop scale (16px body, 24–32px headings) is built for a
+   full-width canvas and overflows a phone. This steps every tier down
+   one notch below 640px; desktop keeps OpenUI's defaults.
+
+   Two things about the mechanics, both load-bearing:
+
+   1. Deliberately OUTSIDE @layer. OpenUI's ThemeProvider injects
+      `body { --openui-*: … }` from an unlayered runtime <style> tag,
+      and unlayered declarations beat every @layer, so a rule inside
+      `@layer utilities` would silently lose. Unlayered, `.gm-genui`
+      (0,1,0) outranks `body` (0,0,1) whatever the injection order.
+   2. Components read the composite `font:` shorthands
+      (--openui-text-*), which are literal values rather than derived
+      from --openui-font-size-*, so both have to be restated. Each
+      shorthand below is rebuilt from OpenUI's own weight, line-height
+      and family tokens against the resized primitive — only the size
+      moves. Tier mapping mirrors upstream (body-default → md,
+      heading-md → 2xl, etc.).
+   ================================================================= */
+@media (max-width: 640px) {
+  .gm-genui {
+    /* Primitives — a few component rules read these directly. */
+    --openui-font-size-2xs: 10px;
+    --openui-font-size-xs: 11px;
+    --openui-font-size-sm: 12.5px;
+    --openui-font-size-md: 14px;
+    --openui-font-size-lg: 15px;
+    --openui-font-size-xl: 16px;
+    --openui-font-size-2xl: 18px;
+    --openui-font-size-3xl: 20px;
+    --openui-font-size-4xl: 22px;
+    --openui-font-size-5xl: 24px;
+
+    /* Body — paragraphs, list items, table cells, markdown, card text. */
+    --openui-text-body-xs: var(--openui-font-weight-regular) var(--openui-font-size-xs) / var(--openui-line-height-body) var(--openui-font-body);
+    --openui-text-body-xs-heavy: var(--openui-font-weight-medium) var(--openui-font-size-xs) / var(--openui-line-height-body) var(--openui-font-body);
+    --openui-text-body-sm: var(--openui-font-weight-regular) var(--openui-font-size-sm) / var(--openui-line-height-body) var(--openui-font-body);
+    --openui-text-body-sm-heavy: var(--openui-font-weight-medium) var(--openui-font-size-sm) / var(--openui-line-height-body) var(--openui-font-body);
+    --openui-text-body-default: var(--openui-font-weight-regular) var(--openui-font-size-md) / var(--openui-line-height-body) var(--openui-font-body);
+    --openui-text-body-default-heavy: var(--openui-font-weight-medium) var(--openui-font-size-md) / var(--openui-line-height-body) var(--openui-font-body);
+    --openui-text-body-lg: var(--openui-font-weight-regular) var(--openui-font-size-lg) / var(--openui-line-height-body) var(--openui-font-body);
+    --openui-text-body-lg-heavy: var(--openui-font-weight-medium) var(--openui-font-size-lg) / var(--openui-line-height-body) var(--openui-font-body);
+
+    /* Headings — CardHeader, section triggers, markdown h1–h6. */
+    --openui-text-heading-xs: var(--openui-font-weight-bold) var(--openui-font-size-md) / var(--openui-line-height-heading) var(--openui-font-heading);
+    --openui-text-heading-sm: var(--openui-font-weight-bold) var(--openui-font-size-lg) / var(--openui-line-height-heading) var(--openui-font-heading);
+    --openui-text-heading-md: var(--openui-font-weight-bold) var(--openui-font-size-2xl) / var(--openui-line-height-heading-large) var(--openui-font-heading);
+    --openui-text-heading-lg: var(--openui-font-weight-bold) var(--openui-font-size-3xl) / var(--openui-line-height-heading-large) var(--openui-font-heading);
+    --openui-text-heading-xl: var(--openui-font-weight-heavy) var(--openui-font-size-4xl) / var(--openui-line-height-heading-large) var(--openui-font-heading);
+
+    /* Labels — buttons, tags, form labels, table headers, chart axes. */
+    --openui-text-label-xs: var(--openui-font-weight-regular) var(--openui-font-size-xs) / var(--openui-line-height-label) var(--openui-font-label);
+    --openui-text-label-xs-heavy: var(--openui-font-weight-medium) var(--openui-font-size-xs) / var(--openui-line-height-label) var(--openui-font-label);
+    --openui-text-label-sm: var(--openui-font-weight-regular) var(--openui-font-size-sm) / var(--openui-line-height-label) var(--openui-font-label);
+    --openui-text-label-sm-heavy: var(--openui-font-weight-medium) var(--openui-font-size-sm) / var(--openui-line-height-label) var(--openui-font-label);
+    --openui-text-label-default: var(--openui-font-weight-regular) var(--openui-font-size-md) / var(--openui-line-height-label) var(--openui-font-label);
+    --openui-text-label-default-heavy: var(--openui-font-weight-medium) var(--openui-font-size-md) / var(--openui-line-height-label) var(--openui-font-label);
+    --openui-text-label-lg: var(--openui-font-weight-regular) var(--openui-font-size-lg) / var(--openui-line-height-label) var(--openui-font-label);
+    --openui-text-label-lg-heavy: var(--openui-font-weight-medium) var(--openui-font-size-lg) / var(--openui-line-height-label) var(--openui-font-label);
+
+    /* Numbers — stat values, chart tooltips. */
+    --openui-text-numbers-xs: var(--openui-font-weight-regular) var(--openui-font-size-xs) / var(--openui-line-height-body) var(--openui-font-numbers);
+    --openui-text-numbers-xs-heavy: var(--openui-font-weight-medium) var(--openui-font-size-xs) / var(--openui-line-height-body) var(--openui-font-numbers);
+    --openui-text-numbers-sm: var(--openui-font-weight-regular) var(--openui-font-size-sm) / var(--openui-line-height-body) var(--openui-font-numbers);
+    --openui-text-numbers-sm-heavy: var(--openui-font-weight-medium) var(--openui-font-size-sm) / var(--openui-line-height-body) var(--openui-font-numbers);
+    --openui-text-numbers-default: var(--openui-font-weight-regular) var(--openui-font-size-md) / var(--openui-line-height-body) var(--openui-font-numbers);
+    --openui-text-numbers-default-heavy: var(--openui-font-weight-medium) var(--openui-font-size-md) / var(--openui-line-height-body) var(--openui-font-numbers);
+    --openui-text-numbers-lg: var(--openui-font-weight-regular) var(--openui-font-size-lg) / var(--openui-line-height-body) var(--openui-font-numbers);
+    --openui-text-numbers-lg-heavy: var(--openui-font-weight-medium) var(--openui-font-size-lg) / var(--openui-line-height-body) var(--openui-font-numbers);
+
+    /* Code — inline code and CodeBlock. */
+    --openui-text-code-sm: var(--openui-font-weight-regular) var(--openui-font-size-xs) / var(--openui-line-height-code) var(--openui-font-code);
+    --openui-text-code-sm-heavy: var(--openui-font-weight-heavy) var(--openui-font-size-xs) / var(--openui-line-height-code) var(--openui-font-code);
+    --openui-text-code-default: var(--openui-font-weight-regular) var(--openui-font-size-sm) / var(--openui-line-height-code) var(--openui-font-code);
+    --openui-text-code-default-heavy: var(--openui-font-weight-heavy) var(--openui-font-size-sm) / var(--openui-line-height-code) var(--openui-font-code);
+  }
+}
