@@ -89,14 +89,14 @@ export function RecentsRail({ conversations }: { conversations: Conversation[] }
                     setRenamingId(c.id);
                     setRenameValue(c.title ?? "");
                   }}
-                  className="hidden shrink-0 text-gray-400 hover:text-gray-700 group-hover:block"
+                  className="hidden shrink-0 text-gray-400 hover:text-gray-700 group-hover:block max-lg:block"
                   aria-label="Rename"
                 >
                   <PencilSimple size={14} />
                 </button>
                 <button
                   onClick={() => remove(c.id)}
-                  className="hidden shrink-0 text-gray-400 hover:text-danger group-hover:block"
+                  className="hidden shrink-0 text-gray-400 hover:text-danger group-hover:block max-lg:block"
                   aria-label="Delete"
                 >
                   <Trash size={14} />

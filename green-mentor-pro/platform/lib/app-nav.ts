@@ -68,13 +68,12 @@ export const NAV_GROUPS: NavGroup[] = [
   },
 ];
 
-// Bottom tabs are a deliberate subset: Webinars are reachable from Home's
-// "happening soon" section, and ESG Software is desktop data-entry work.
+// Bottom tabs: the four daily-return surfaces. Home is behind the header logo
+// and the hamburger drawer; Academy and ESG Software live in the drawer.
 export const MOBILE_NAV: NavChild[] = [
-  { label: "Home", href: "/home", icon: House },
-  { label: "News", href: "/feed", icon: Newspaper },
-  { label: "Academy", href: "/academy", icon: GraduationCap },
   { label: "AI", href: "/ai-hub", icon: Sparkle },
+  { label: "Webinars", href: "/webinars", icon: VideoCamera },
+  { label: "News", href: "/feed", icon: Newspaper },
   { label: "Jobs", href: "/jobs", icon: Briefcase },
 ];
 

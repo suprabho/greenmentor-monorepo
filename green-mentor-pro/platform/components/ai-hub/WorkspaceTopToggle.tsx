@@ -1,9 +1,13 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ChatCircle, Files, Sparkle } from "@phosphor-icons/react";
+import { ChatCircle, ClockCounterClockwise, Files, Sparkle, X } from "@phosphor-icons/react";
 import { clsx } from "clsx";
+import { MobileDrawer } from "@/components/mobile-drawer";
+import { RecentsRail } from "@/components/ai-hub/RecentsRail";
+import type { Conversation } from "@/lib/chat/types";
 
 const TABS = [
   { label: "Chat", href: "/ai-hub/chat", icon: ChatCircle },
@@ -15,9 +19,20 @@ const TABS = [
  * toolbar (rendered by ai-hub/layout.tsx), so it stays mounted as you move
  * between the surfaces. Cowork is hidden for launch — its routes still resolve,
  * it just has no tab.
+ *
+ * Below lg the chat Recents rail is hidden (chat/layout.tsx), so the toolbar
+ * also carries the only way into past conversations: a history button opening
+ * the conversation list in a drawer.
  */
-export function WorkspaceTopToggle() {
+export function WorkspaceTopToggle({ conversations }: { conversations: Conversation[] }) {
   const pathname = usePathname();
+  const [historyOpen, setHistoryOpen] = useState(false);
+
+  // Tapping a conversation navigates; the route change is the close signal.
+  useEffect(() => {
+    setHistoryOpen(false);
+  }, [pathname]);
+
   return (
     <>
       <span className="mr-1 hidden items-center gap-1.5 text-[13px] font-semibold text-ink sm:flex">
@@ -44,6 +59,33 @@ export function WorkspaceTopToggle() {
           );
         })}
       </div>
+      <button
+        type="button"
+        onClick={() => setHistoryOpen(true)}
+        aria-label="Chat history"
+        aria-expanded={historyOpen}
+        className="ml-auto grid size-8 place-items-center rounded-lg text-gray-500 transition-colors hover:bg-gray-100 hover:text-ink lg:hidden"
+      >
+        <ClockCounterClockwise size={18} />
+      </button>
+      {historyOpen && (
+        <MobileDrawer label="Chat history" onClose={() => setHistoryOpen(false)} panelClassName="bg-white">
+          <div className="flex shrink-0 items-center justify-between border-b border-gray-100 py-2 pl-4 pr-2">
+            <span className="text-[13px] font-semibold text-ink">Chat history</span>
+            <button
+              type="button"
+              onClick={() => setHistoryOpen(false)}
+              aria-label="Close"
+              className="grid size-8 place-items-center rounded-lg text-gray-500 transition-colors hover:bg-gray-100"
+            >
+              <X size={16} />
+            </button>
+          </div>
+          <div className="min-h-0 flex-1">
+            <RecentsRail conversations={conversations} />
+          </div>
+        </MobileDrawer>
+      )}
     </>
   );
 }
