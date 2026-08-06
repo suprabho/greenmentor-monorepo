@@ -38,7 +38,7 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       { label: "AI", href: "/ai-hub", icon: Sparkle, children: [] },
       {
-        label: "Longsite Lite",
+        label: "ESG Software",
         href: "/energy",
         icon: SquaresFour,
         children: [
@@ -69,7 +69,7 @@ export const NAV_GROUPS: NavGroup[] = [
 ];
 
 // Bottom tabs are a deliberate subset: Webinars are reachable from Home's
-// "happening soon" section, and Longsite Lite is desktop data-entry work.
+// "happening soon" section, and ESG Software is desktop data-entry work.
 export const MOBILE_NAV: NavChild[] = [
   { label: "Home", href: "/home", icon: House },
   { label: "News", href: "/feed", icon: Newspaper },

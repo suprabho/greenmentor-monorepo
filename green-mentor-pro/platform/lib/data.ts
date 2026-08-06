@@ -115,7 +115,7 @@ export const feedItems: FeedItem[] = [
     source: "GreenMentor",
     tag: "Product",
     time: "2d ago",
-    title: "New in Longsite Lite: demo workspace now includes 12 months of Scope 3 data",
+    title: "New in ESG Software: demo workspace now includes 12 months of Scope 3 data",
     summary:
       "Practice Category 1–9 calculations on a realistic mid-size manufacturer dataset before touching your own numbers.",
     likes: 142,
@@ -169,7 +169,7 @@ export const webinars = [
 
 export const esgTasks = [
   { id: "t1", date: "Jun 12", title: "Module 4 gate quiz — ESG Fundamentals", type: "Academy", due: "Due in 2 days" },
-  { id: "t2", date: "Jun 15", title: "Final assessment: emissions baseline in Longsite demo", type: "Assessment", due: "Due in 5 days" },
+  { id: "t2", date: "Jun 15", title: "Final assessment: emissions baseline in ESG Software demo", type: "Assessment", due: "Due in 5 days" },
   { id: "t3", date: "Jun 18", title: "Review extracted utility-bill data (Agent run #142)", type: "AI Hub", due: "Waiting on you" },
   { id: "t4", date: "Jun 20", title: "Weekly challenge: complete 5 lessons", type: "Challenge", due: "+500 credits" },
 ];
@@ -285,8 +285,8 @@ export const courses: Course[] = [
     modules: 6,
     rating: 4.5,
     learners: 1120,
-    tags: ["tools", "longsite", "data"],
-    blurb: "Hands-on with Longsite Lite: data entry, dashboards, and your first automated report.",
+    tags: ["tools", "esg-software", "data"],
+    blurb: "Hands-on with ESG Software: data entry, dashboards, and your first automated report.",
     image: "/images/course-tools.jpg",
   },
 ];
@@ -438,7 +438,7 @@ export const cvReport = {
   strengths: [
     "Quantified design-systems impact translates well to data storytelling",
     "GreenMentor certifications (ESG Fundamentals, in-progress BRSR) verified via profile",
-    "Tooling fluency: Longsite Lite portfolio artifacts attached",
+    "Tooling fluency: ESG Software portfolio artifacts attached",
   ],
   gaps: [
     { gap: "No assurance-readiness exposure", fix: "BRSR Practitioner · Module 8", course: "BRSR Practitioner" },
@@ -448,7 +448,7 @@ export const cvReport = {
   rewrites: [
     {
       before: "Worked on sustainability projects for clients.",
-      after: "Built emissions baselines (Scope 1–2, 14 sites) in Longsite for 3 client engagements; flagged 12% overstatement from stale grid factors.",
+      after: "Built emissions baselines (Scope 1–2, 14 sites) in the ESG Software for 3 client engagements; flagged 12% overstatement from stale grid factors.",
     },
     {
       before: "Familiar with ESG reporting.",
@@ -479,7 +479,7 @@ export const buddyChat = [
   { from: "user" as const, text: "Which of those KPIs could I practice calculating somewhere?" },
   {
     from: "ai" as const,
-    text: "Your Longsite Lite demo workspace has 12 months of energy, water and waste data — perfect for GHG intensity and water-consumption KPIs. Want me to hand this to the Data Analyst agent to set up the calculations, or would you rather do it manually as practice? (Manual earns quiz XP.)",
+    text: "Your ESG Software demo workspace has 12 months of energy, water and waste data — perfect for GHG intensity and water-consumption KPIs. Want me to hand this to the Data Analyst agent to set up the calculations, or would you rather do it manually as practice? (Manual earns quiz XP.)",
   },
 ];
 

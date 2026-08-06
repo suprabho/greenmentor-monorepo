@@ -51,7 +51,7 @@ export const faqs: Faq[] = [
     id: "community",
     question: "What is the community side?",
     answer:
-      "We run India's biggest ESG community. The community is where weekly office hours, peer review on disclosures, and the job board live. It's the demand-generation engine that powers GM Academy and Longsight.",
+      "We run India's biggest ESG community. The community is where weekly office hours, peer review on disclosures, and the job board live. It's the demand-generation engine that powers GM Academy and ESG Software.",
   },
   {
     id: "experience-required",

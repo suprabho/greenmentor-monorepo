@@ -1,4 +1,4 @@
-import { FlowArrow, Cards, Stack, Article, VideoCamera, Users, Briefcase, ChartBarHorizontal, TreeStructure, Target, ListChecks, Compass } from "@phosphor-icons/react/dist/ssr";
+import { FlowArrow, Cards, Stack, Article, Newspaper, VideoCamera, Users, Briefcase, ChartBarHorizontal, TreeStructure, Target, ListChecks, Compass } from "@phosphor-icons/react/dist/ssr";
 import type { Icon } from "@phosphor-icons/react";
 
 export type SectionStatus = "available" | "soon";
@@ -39,6 +39,13 @@ export const ADMIN_SECTIONS: AdminSection[] = [
     name: "Epics",
     desc: "Group related stories into campaigns and themed series the community team runs together.",
     status: "soon",
+  },
+  {
+    href: "/news",
+    icon: Newspaper,
+    name: "News",
+    desc: "The ESG news feed the platform shows. Ingested nightly from RSS — set a picture by hand for the regulators and wire copy that publish none.",
+    status: "available",
   },
   {
     href: "/stories",

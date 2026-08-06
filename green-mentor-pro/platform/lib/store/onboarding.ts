@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { DEFAULT_COUNTRY_ISO } from "@/lib/data/country-codes";
+import { MAX_GOALS } from "@/lib/onboarding/goals";
 
 // Ported from green-mentor-plus's onboarding store — keeps identity capture
 // (name + phone) and the funnel state (audience → goals), and drops the
@@ -58,10 +59,15 @@ export const useOnboarding = create<OnboardingState>()(
 
       setSegment: (segment) => set({ segment }),
 
+      // Deselect always works; an add past MAX_GOALS is a no-op so the store
+      // can never hold a selection the API would reject. The picker disables
+      // those chips anyway — this is the belt to that pair of braces.
       toggleGoal: (id) =>
-        set((s) => ({
-          goals: s.goals.includes(id) ? s.goals.filter((g) => g !== id) : [...s.goals, id],
-        })),
+        set((s) => {
+          if (s.goals.includes(id)) return { goals: s.goals.filter((g) => g !== id) };
+          if (s.goals.length >= MAX_GOALS) return {};
+          return { goals: [...s.goals, id] };
+        }),
 
       setNextHref: (nextHref) => set({ nextHref }),
 
@@ -73,7 +79,10 @@ export const useOnboarding = create<OnboardingState>()(
           phone: s.phone || input.phone || "",
           phoneCountry: s.phone ? s.phoneCountry : (input.phoneCountry ?? s.phoneCountry),
           segment: s.segment ?? input.segment ?? null,
-          goals: s.goals.length > 0 ? s.goals : (input.goals ?? []),
+          // Trim on the way in: a profile saved before the cap existed can hold
+          // more than MAX_GOALS, and seeding those would leave the wizard over
+          // the limit with no way to continue.
+          goals: s.goals.length > 0 ? s.goals : (input.goals ?? []).slice(0, MAX_GOALS),
         })),
 
       reset: () => set({ ...initial }),

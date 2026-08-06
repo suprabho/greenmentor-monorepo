@@ -9,6 +9,7 @@ import { ChoiceCard } from "@/components/onboarding/ChoiceCard";
 import { MultiSelectChips } from "@/components/onboarding/MultiSelectChips";
 import { EditableSection } from "@/components/profile/EditableSection";
 import { audiences, goals as goalOptions } from "@/lib/onboarding-data";
+import { MAX_GOALS } from "@/lib/onboarding/goals";
 import { saveProfile } from "@/lib/onboarding/save";
 import { DEFAULT_COUNTRY_ISO } from "@/lib/data/country-codes";
 import { isValidName, isValidPhone, phoneLengthHint, toE164, fromE164 } from "@/lib/utils/validation";
@@ -150,10 +151,12 @@ export function ProfileForm({ initial }: { initial: ProfileFormValues }) {
 
       <EditableSection
         title="Your goals"
-        saveDisabled={chosenGoals.length === 0}
+        saveDisabled={chosenGoals.length === 0 || chosenGoals.length > MAX_GOALS}
         onCancel={() => setChosenGoals(saved.goals)}
         onSave={async () => {
-          if (chosenGoals.length === 0) return false;
+          // The upper bound bites only for profiles saved before the cap
+          // existed — the picker can't get you there from a valid selection.
+          if (chosenGoals.length === 0 || chosenGoals.length > MAX_GOALS) return false;
           return commit({ goals: chosenGoals }, { goals: chosenGoals });
         }}
         summary={
@@ -175,15 +178,19 @@ export function ProfileForm({ initial }: { initial: ProfileFormValues }) {
             options={goalOptions}
             selected={chosenGoals}
             onToggle={(id) =>
-              setChosenGoals((s) =>
-                s.includes(id) ? s.filter((g) => g !== id) : [...s, id],
-              )
+              setChosenGoals((s) => {
+                if (s.includes(id)) return s.filter((g) => g !== id);
+                return s.length >= MAX_GOALS ? s : [...s, id];
+              })
             }
+            max={MAX_GOALS}
           />
           <p className="mt-3 text-[12.5px] text-gray-500">
             {chosenGoals.length === 0
               ? "Pick at least one goal."
-              : `${chosenGoals.length} selected.`}
+              : chosenGoals.length > MAX_GOALS
+                ? `Up to ${MAX_GOALS} goals for the next three months — deselect ${chosenGoals.length - MAX_GOALS} to save.`
+                : `${chosenGoals.length} of ${MAX_GOALS} chosen — what you could realistically move in the next three months.`}
           </p>
         </div>
       </EditableSection>

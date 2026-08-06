@@ -591,7 +591,7 @@ export const bundles: CatalogBundle[] = [
     "slug": "emission-2-in-1",
     "title": "Emissions Mastery Bundle",
     "level": "intermediate",
-    "description": "Master a company's full emissions picture, operational and embedded. Two execution-focused courses in GHG accounting and lifecycle assessment, with hands-on training in LongSight, OpenLCA, GaBi and SimaPro. Become execution-ready on emissions.",
+    "description": "Master a company's full emissions picture, operational and embedded. Two execution-focused courses in GHG accounting and lifecycle assessment, with hands-on training in GreenMentor's ESG Software, OpenLCA, GaBi and SimaPro. Become execution-ready on emissions.",
     "outcome": "By the end of this bundle, you'll have mastery over everything related to a company's emissions, operational and embedded emissions",
     "courseCount": 2,
     "lessonCount": 40,

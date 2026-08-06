@@ -26,7 +26,8 @@ export type AnalyticsEvent =
   | "checkout_failed"
   | "checkout_dismissed"
   | "hiring_companies_expanded"
-  | "whatsapp_clicked";
+  | "whatsapp_clicked"
+  | "whatsapp_community_clicked";
 
 export function track(
   event: AnalyticsEvent,

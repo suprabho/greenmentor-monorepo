@@ -162,7 +162,7 @@ export function reportHTML(m: ReportModel): string {
       <p>GreenMentor is an end-to-end sustainability ecosystem for mid-market and SME companies in India.</p>
       <ul>
         <li><b>Advisory</b> — Scoping, materiality, target-setting, data validation</li>
-        <li><b>Software (LongSight)</b> — Modular ESG data platform. BRSR Core, BRSR, GRI, SASB, supplier questionnaires. White-label option for consulting firms.</li>
+        <li><b>ESG Software</b> — Modular ESG data platform. BRSR Core, BRSR, GRI, SASB, supplier questionnaires. White-label option for consulting firms.</li>
         <li><b>Training (Green Academy)</b> — Live &amp; recorded: GHG accounting, BRSR fundamentals, CBAM for exporters, ESG for boards</li>
         <li><b>Community</b> — 2,000+ ESG professionals network, 50+ specialists on demand</li>
       </ul>

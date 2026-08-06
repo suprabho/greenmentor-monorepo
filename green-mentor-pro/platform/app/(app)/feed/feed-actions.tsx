@@ -4,13 +4,16 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { usePathname, useRouter } from "next/navigation";
 import { clsx } from "clsx";
-import { ThumbsUp, ThumbsDown, ChatCircle, Check, ShareNetwork, X, PaperPlaneRight, CircleNotch } from "@phosphor-icons/react";
+import { ThumbsUp, ChatCircle, Check, ShareNetwork, X, PaperPlaneRight, CircleNotch } from "@phosphor-icons/react";
 import { Avatar } from "@/components/ui";
 import { useShare } from "@/components/share/share-button";
 import { createClient } from "@/lib/supabase/client";
 
-export type ReactionKind = "like" | "dislike";
-export type ArticleStat = { like_count: number; dislike_count: number; comment_count: number };
+// The reactions table still allows 'dislike' (0003_feed.sql) — only the button
+// is gone, so the change stays reversible and old rows keep their history.
+// Nothing writes that value any more, and readers normalise it away.
+export type ReactionKind = "like";
+export type ArticleStat = { like_count: number; comment_count: number };
 export type CurrentUser = { id: string; name: string; avatar: string | null };
 
 type FeedComment = {
@@ -87,7 +90,6 @@ export function ArticleActions({
   const { share, copied } = useShare(sharePath, title);
 
   const baseLikes = stats?.like_count ?? 0;
-  const baseDislikes = stats?.dislike_count ?? 0;
   const baseComments = stats?.comment_count ?? 0;
 
   // `reaction` is the optimistic local state; the displayed count is the base
@@ -99,7 +101,6 @@ export function ArticleActions({
   const busyRef = useRef(false);
 
   const likes = baseLikes - (initialReaction === "like" ? 1 : 0) + (reaction === "like" ? 1 : 0);
-  const dislikes = baseDislikes - (initialReaction === "dislike" ? 1 : 0) + (reaction === "dislike" ? 1 : 0);
   const comments = baseComments + commentDelta;
 
   const toggle = async (kind: ReactionKind) => {
@@ -130,10 +131,6 @@ export function ArticleActions({
         <ActionButton onClick={() => toggle("like")} active={reaction === "like"} activeClass="text-teal-700">
           <ThumbsUp size={17} weight={reaction === "like" ? "fill" : "regular"} />
           {likes}
-        </ActionButton>
-        <ActionButton onClick={() => toggle("dislike")} active={reaction === "dislike"} activeClass="text-red-600">
-          <ThumbsDown size={17} weight={reaction === "dislike" ? "fill" : "regular"} />
-          {dislikes}
         </ActionButton>
         <ActionButton onClick={() => setOpen(true)}>
           <ChatCircle size={17} />

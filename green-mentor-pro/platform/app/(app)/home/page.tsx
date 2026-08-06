@@ -2,8 +2,10 @@ import Link from "next/link";
 import { ArrowRight, SignIn, VideoCamera } from "@phosphor-icons/react/dist/ssr";
 import { Card } from "@/components/ui";
 import { AgendaCard } from "@/components/home/agenda-card";
+import { CommunityCard } from "@/components/home/community-card";
 import { FeedPreview, type FeedPreviewArticle } from "@/components/home/feed-preview";
 import { WebinarCard } from "@/components/webinars/webinar-card";
+import { rankFeed } from "@/lib/feed/rank";
 import { buildAgenda } from "@/lib/home/agenda";
 import { fetchJobs } from "@/lib/jobs/repo";
 import { fetchRsvpContactDefaults, fetchUpcomingWebinars, fetchUserRsvpIds } from "@/lib/webinars/repo";
@@ -34,11 +36,12 @@ export default async function HomePage() {
   const [webinars, jobs, { data: articles }, profileRes, rsvpIds, contactDefaults] = await Promise.all([
     fetchUpcomingWebinars(),
     fetchJobs(),
+    // Over-fetch and rank so the rail leads with Indian coverage, same as /feed.
     supabase
       .from("articles")
-      .select("id, slug, source, title, image_url, published_at")
+      .select("id, slug, source, title, image_url, published_at, region")
       .order("published_at", { ascending: false, nullsFirst: false })
-      .limit(5),
+      .limit(20),
     user
       ? supabase.from("profiles").select("display_name").eq("id", user.id).maybeSingle()
       : Promise.resolve({ data: null }),
@@ -106,12 +109,13 @@ export default async function HomePage() {
             )}
           </section>
 
-          <FeedPreview articles={(articles ?? []) as FeedPreviewArticle[]} />
+          <FeedPreview articles={rankFeed((articles ?? []) as FeedPreviewArticle[]).slice(0, 5)} />
         </div>
 
         {/* Agenda rail — first on mobile, sticky on desktop */}
         <div className="order-1 lg:order-2 lg:sticky lg:top-8">
           <AgendaCard items={agenda} />
+          <CommunityCard />
         </div>
       </div>
     </div>
