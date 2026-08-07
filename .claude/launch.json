@@ -6,6 +6,12 @@
       "runtimeExecutable": "bash",
       "runtimeArgs": ["-c", "cd green-mentor-pro/esg-agents && npm run dev"],
       "port": 3300
+    },
+    {
+      "name": "platform",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": ["-c", "cd green-mentor-pro/platform && npm run dev"],
+      "port": 3000
     }
   ]
 }
