@@ -10,6 +10,7 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowSquareOut, Plus } from "@phosphor-icons/react/dist/ssr";
+import { AdminEditPanel, AdminTable } from "@/components/admin";
 import { Card, Chip } from "@/components/ui";
 import { PhotoField, fieldInputCls, fieldLabelCls } from "@/components/photo-field";
 import { deriveInitials, type InstructorRow } from "@/lib/db/instructors";
@@ -97,6 +98,7 @@ export function InstructorsPanel({
   const [status, setStatus] = useState<Status>({ type: "idle" });
   const [editingId, setEditingId] = useState<string | null>(null);
   const [edit, setEdit] = useState<FormState | null>(null);
+  const editingInstructor = editingId ? instructors.find((instructor) => instructor.id === editingId) ?? null : null;
 
   const q = query.trim().toLowerCase();
   const shown = useMemo(
@@ -226,7 +228,7 @@ export function InstructorsPanel({
       ) : null}
 
       <Card>
-        {adding ? (
+        {false && adding ? (
           <form
             className="grid gap-3 border-b border-gray-100 p-5 sm:grid-cols-2 lg:grid-cols-3"
             onSubmit={(e) => {
@@ -348,6 +350,19 @@ export function InstructorsPanel({
               : `No instructors match "${query.trim()}".`}
           </p>
         ) : (
+          <>
+          <InstructorsTable
+            rows={shown}
+            busyId={busyId}
+            empty={instructors.length === 0 ? "No instructors yet — add the first one above." : 'No instructors match "' + query.trim() + '".'}
+            onEdit={(instructor) => {
+              setEditingId(instructor.id);
+              setEdit(toForm(instructor));
+              setStatus({ type: "idle" });
+            }}
+            onDelete={(instructor) => void remove(instructor.id, instructor.name)}
+          />
+          {false && (
           <ul className="divide-y divide-gray-100">
             {shown.map((i) => (
               <li key={i.id} className="p-5">
@@ -475,8 +490,152 @@ export function InstructorsPanel({
               </li>
             ))}
           </ul>
+          )}
+          </>
         )}
       </Card>
+
+      <AdminEditPanel open={adding} onClose={closeForm} title="New instructor" size="wide" dirty={JSON.stringify(form) !== JSON.stringify(EMPTY_FORM)}>
+        <form
+          className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3"
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (form.name.trim()) void create();
+          }}
+        >
+          <label className={labelCls}>
+            Name
+            <input autoFocus value={form.name} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} className={inputCls} />
+          </label>
+          <label className={labelCls + " lg:col-span-2"}>
+            Role
+            <input value={form.role} onChange={(event) => setForm((current) => ({ ...current, role: event.target.value }))} className={inputCls} />
+          </label>
+          <label className={labelCls}>
+            Company
+            <input value={form.company} onChange={(event) => setForm((current) => ({ ...current, company: event.target.value }))} className={inputCls} />
+          </label>
+          <label className={labelCls}>
+            Location
+            <input value={form.location} onChange={(event) => setForm((current) => ({ ...current, location: event.target.value }))} className={inputCls} />
+          </label>
+          <label className={labelCls}>
+            Education
+            <input value={form.education} onChange={(event) => setForm((current) => ({ ...current, education: event.target.value }))} className={inputCls} />
+          </label>
+          <PhotoField folder="instructors" placeholder="Upload, or paste https://… or /mentors/name.jpeg" value={form.photo} onChange={(value) => setForm((current) => ({ ...current, photo: value }))} />
+          <label className={labelCls}>
+            LinkedIn URL
+            <input value={form.linkedinUrl} onChange={(event) => setForm((current) => ({ ...current, linkedinUrl: event.target.value }))} className={inputCls} />
+          </label>
+          <label className={labelCls + " lg:col-span-3"}>
+            Tags
+            <input value={form.tags} onChange={(event) => setForm((current) => ({ ...current, tags: event.target.value }))} placeholder="Comma-separated" className={inputCls} />
+          </label>
+          <div className="flex items-center gap-3 lg:col-span-3">
+            <button type="submit" disabled={saving || !form.name.trim()} className="rounded-pill bg-teal-900 px-4 py-1.5 text-[12px] font-medium text-white hover:bg-teal-800 disabled:opacity-40">{saving ? "Adding…" : "Add instructor"}</button>
+            <button type="button" onClick={closeForm} className="text-[12px] font-medium text-gray-500 hover:text-ink">Cancel</button>
+          </div>
+        </form>
+      </AdminEditPanel>
+
+      <AdminEditPanel open={editingId !== null && edit !== null} onClose={() => { setEditingId(null); setEdit(null); }} title="Edit instructor" size="wide" dirty={Boolean(edit && editingInstructor && JSON.stringify(edit) !== JSON.stringify(toForm(editingInstructor)))}>
+        {editingId && edit ? (
+          <form className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3" onSubmit={(event) => { event.preventDefault(); void saveEdit(editingId); }}>
+            {([
+              ["name", "Name"],
+              ["role", "Role"],
+              ["company", "Company"],
+              ["location", "Location"],
+              ["education", "Education"],
+              ["photo", "Photo URL"],
+              ["linkedinUrl", "LinkedIn URL"],
+              ["tags", "Tags (comma-separated)"],
+            ] as [keyof FormState, string][]).map(([key, label]) =>
+              key === "photo" ? (
+                <PhotoField key={key} folder="instructors" placeholder="Upload, or paste https://… or /mentors/name.jpeg" value={edit.photo} onChange={(value) => setEdit((current) => current && { ...current, photo: value })} />
+              ) : (
+                <label key={key} className={labelCls + (key === "tags" ? " lg:col-span-3" : "")}>
+                  {label}
+                  <input value={edit[key]} onChange={(event) => setEdit((current) => current && { ...current, [key]: event.target.value })} className={inputCls} />
+                </label>
+              ),
+            )}
+            <div className="flex items-center gap-3 lg:col-span-3">
+              <button type="submit" disabled={busyId === editingId} className="rounded-pill bg-teal-900 px-4 py-1.5 text-[12px] font-medium text-white hover:bg-teal-800 disabled:opacity-40">{busyId === editingId ? "Saving…" : "Save"}</button>
+              <button type="button" onClick={() => { setEditingId(null); setEdit(null); }} className="text-[12px] font-medium text-gray-500 hover:text-ink">Cancel</button>
+            </div>
+          </form>
+        ) : null}
+      </AdminEditPanel>
     </div>
+  );
+}
+
+function InstructorsTable({
+  rows,
+  busyId,
+  empty,
+  onEdit,
+  onDelete,
+}: {
+  rows: InstructorRow[];
+  busyId: string | null;
+  empty: string;
+  onEdit: (instructor: InstructorRow) => void;
+  onDelete: (instructor: InstructorRow) => void;
+}) {
+  return (
+    <AdminTable
+      rows={rows}
+      rowKey={(instructor) => instructor.id}
+      caption="Instructors"
+      empty={empty}
+      columns={[
+        {
+          key: "instructor",
+          label: "Instructor",
+          render: (instructor) => (
+            <div className="flex min-w-0 items-center gap-3">
+              <Avatar name={instructor.name} photo={instructor.photo} initials={instructor.initials} />
+              <div className="min-w-0">
+                <div className="truncate font-semibold text-ink">{instructor.name}</div>
+                {instructor.linkedin_url ? <a href={instructor.linkedin_url} target="_blank" rel="noreferrer" className="text-[11.5px] text-green-700 hover:underline">LinkedIn ↗</a> : null}
+              </div>
+            </div>
+          ),
+        },
+        {
+          key: "role",
+          label: "Role / company",
+          responsive: "secondary",
+          render: (instructor) => <span className="text-gray-600">{[instructor.role, instructor.company].filter(Boolean).join(" · ") || "—"}</span>,
+        },
+        {
+          key: "location",
+          label: "Location",
+          responsive: "secondary",
+          render: (instructor) => instructor.location || "—",
+        },
+        {
+          key: "tags",
+          label: "Tags",
+          responsive: "secondary",
+          render: (instructor) => <div className="flex max-w-64 flex-wrap gap-1">{instructor.tags.slice(0, 3).map((tag) => <Chip key={tag} tone="teal">{tag}</Chip>)}</div>,
+        },
+        {
+          key: "actions",
+          label: "Actions",
+          sticky: true,
+          className: "w-28 text-right",
+          render: (instructor) => (
+            <div className="flex justify-end gap-3">
+              <button type="button" onClick={() => onEdit(instructor)} disabled={busyId === instructor.id} className="text-[12px] font-medium text-gray-600 hover:text-ink disabled:opacity-40">Edit</button>
+              <button type="button" onClick={() => onDelete(instructor)} disabled={busyId === instructor.id} className="text-[12px] font-medium text-danger hover:underline disabled:opacity-40">Delete</button>
+            </div>
+          ),
+        },
+      ]}
+    />
   );
 }

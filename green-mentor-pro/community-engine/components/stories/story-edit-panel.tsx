@@ -11,7 +11,7 @@
  * multi-column layout.
  */
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { clsx } from "clsx";
@@ -19,6 +19,7 @@ import { Card } from "@/components/ui";
 import { ComposePanel } from "@/components/stories/compose-panel";
 import { StoryBody } from "@/components/stories/story-body";
 import { MarkdownEditor } from "@/components/stories/markdown-editor";
+import { useAdminPanel } from "@/components/admin";
 import type { StoryContentType, StoryRow, StoryStatus } from "@/lib/db/stories";
 import type { StorySourceRow } from "@/lib/db/story-sources";
 
@@ -39,11 +40,16 @@ const TABS: { id: EditTab; label: string }[] = [
 export function StoryEditPanel({
   story,
   initialSources,
+  onSaved,
+  onDeleted,
 }: {
   story: StoryRow;
   initialSources: StorySourceRow[];
+  onSaved?: (patch: Partial<StoryRow>) => void;
+  onDeleted?: () => void;
 }) {
   const router = useRouter();
+  const { isPanel, setDirty, close } = useAdminPanel();
   const [tab, setTab] = useState<EditTab>("settings");
   const [title, setTitle] = useState(story.title);
   const [contentType, setContentType] = useState<StoryContentType>(story.content_type);
@@ -51,11 +57,45 @@ export function StoryEditPanel({
   const [targetDate, setTargetDate] = useState(story.target_publish_date ?? "");
   const [notes, setNotes] = useState(story.notes ?? "");
   const [bodyMarkdown, setBodyMarkdown] = useState(story.body_markdown ?? "");
+  const [sources, setSources] = useState(initialSources);
   const [previewing, setPreviewing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [status, setStatus] = useState<Status>({ type: "idle" });
+
+  useEffect(() => {
+    if (!isPanel || initialSources.length > 0) return;
+    void fetch("/api/stories/" + story.id + "/compose/sources")
+      .then((res) => (res.ok ? res.json() : []))
+      .then((rows) => setSources(Array.isArray(rows) ? rows : []))
+      .catch(() => undefined);
+  }, [initialSources.length, isPanel, story.id]);
+
+  useEffect(() => {
+    setDirty(
+      title !== story.title ||
+        contentType !== story.content_type ||
+        storyStatus !== story.status ||
+        targetDate !== (story.target_publish_date ?? "") ||
+        notes !== (story.notes ?? "") ||
+        bodyMarkdown !== (story.body_markdown ?? ""),
+    );
+  }, [
+    bodyMarkdown,
+    contentType,
+    notes,
+    setDirty,
+    story.body_markdown,
+    story.content_type,
+    story.notes,
+    story.status,
+    story.target_publish_date,
+    story.title,
+    storyStatus,
+    targetDate,
+    title,
+  ]);
 
   const save = async () => {
     setSaving(true);
@@ -75,7 +115,16 @@ export function StoryEditPanel({
       });
       const body = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(body.error ?? `HTTP ${res.status}`);
-      router.push("/stories");
+      onSaved?.({
+        title: title.trim(),
+        content_type: contentType,
+        status: storyStatus,
+        target_publish_date: targetDate || null,
+        notes: notes.trim() || null,
+        body_markdown: bodyMarkdown || null,
+      });
+      if (isPanel) close();
+      else router.push("/stories");
       router.refresh();
     } catch (err) {
       setStatus({ type: "err", msg: err instanceof Error ? err.message : "Could not save story" });
@@ -125,7 +174,9 @@ export function StoryEditPanel({
     try {
       const res = await fetch(`/api/stories/${story.id}`, { method: "DELETE" });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      router.push("/stories");
+      onDeleted?.();
+      if (isPanel) close();
+      else router.push("/stories");
       router.refresh();
     } catch (err) {
       setStatus({ type: "err", msg: err instanceof Error ? err.message : "Could not delete story" });
@@ -173,7 +224,7 @@ export function StoryEditPanel({
         <div className="xl:relative xl:left-1/2 xl:w-[min(84rem,calc(100vw-3rem))] xl:-translate-x-1/2">
           <ComposePanel
             story={story}
-            initialSources={initialSources}
+            initialSources={sources}
             onDraftGenerated={(md) => {
               setBodyMarkdown(md);
               setTab("body");
@@ -294,9 +345,15 @@ export function StoryEditPanel({
                 {deleting ? "Deleting…" : "Delete"}
               </button>
               <div className="flex items-center gap-3">
-                <Link href="/stories" className="text-[12px] font-medium text-gray-500 hover:text-ink">
-                  Cancel
-                </Link>
+                {isPanel ? (
+                  <button type="button" onClick={close} className="text-[12px] font-medium text-gray-500 hover:text-ink">
+                    Cancel
+                  </button>
+                ) : (
+                  <Link href="/stories" className="text-[12px] font-medium text-gray-500 hover:text-ink">
+                    Cancel
+                  </Link>
+                )}
                 <button
                   type="submit"
                   disabled={saving || deleting || !title.trim()}

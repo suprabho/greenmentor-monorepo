@@ -10,6 +10,7 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowSquareOut, Briefcase, Plus } from "@phosphor-icons/react/dist/ssr";
+import { AdminEditPanel, AdminTable } from "@/components/admin";
 import { Card, Chip, Stat } from "@/components/ui";
 import { PublicLink } from "@/components/public-link";
 import { publicJobUrl } from "@/lib/share-link";
@@ -314,6 +315,7 @@ export function JobsPanel({ initialJobs, configured }: { initialJobs: JobRow[]; 
   const [toast, setToast] = useState<Toast>({ type: "idle" });
   const [editingId, setEditingId] = useState<string | null>(null);
   const [edit, setEdit] = useState<FormState | null>(null);
+  const editingJob = editingId ? jobs.find((job) => job.id === editingId) ?? null : null;
 
   const counts = useMemo(() => {
     const c = { total: jobs.length, published: 0, draft: 0, archived: 0 } as Record<string, number>;
@@ -438,7 +440,7 @@ export function JobsPanel({ initialJobs, configured }: { initialJobs: JobRow[]; 
       </Card>
 
       <Card>
-        {adding ? (
+        {false && adding ? (
           <form
             className="grid gap-3 border-b border-gray-100 p-5 sm:grid-cols-2 lg:grid-cols-3"
             onSubmit={(e) => {
@@ -509,6 +511,19 @@ export function JobsPanel({ initialJobs, configured }: { initialJobs: JobRow[]; 
               : `No jobs match this filter${query.trim() ? ` / "${query.trim()}"` : ""}.`}
           </p>
         ) : (
+          <>
+          <JobsTable
+            rows={shown}
+            busyId={busyId}
+            empty={jobs.length === 0 ? "No jobs yet — add the first one above." : 'No jobs match this filter' + (query.trim() ? ' / "' + query.trim() + '"' : "") + "."}
+            onEdit={(job) => {
+              setEditingId(job.id);
+              setEdit(toForm(job));
+              setToast({ type: "idle" });
+            }}
+            onDelete={(job) => void remove(job.id, job.title)}
+          />
+          {false && (
           <ul className="divide-y divide-gray-100">
             {shown.map((j) => (
               <li key={j.id} className="p-5">
@@ -610,8 +625,117 @@ export function JobsPanel({ initialJobs, configured }: { initialJobs: JobRow[]; 
               </li>
             ))}
           </ul>
+          )}
+          </>
         )}
       </Card>
+
+      <AdminEditPanel open={adding} onClose={closeForm} title="New job" size="wide" dirty={JSON.stringify(form) !== JSON.stringify(EMPTY_FORM)}>
+        <form
+          className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3"
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (form.title.trim()) void create();
+          }}
+        >
+          <JobForm value={form} onChange={(patch) => setForm((current) => ({ ...current, ...patch }))} />
+          <div className="flex items-center gap-3 lg:col-span-3">
+            <button type="submit" disabled={saving || !form.title.trim()} className="rounded-pill bg-teal-900 px-4 py-1.5 text-[12px] font-medium text-white hover:bg-teal-800 disabled:opacity-40">
+              {saving ? "Adding…" : "Add job"}
+            </button>
+            <button type="button" onClick={closeForm} className="text-[12px] font-medium text-gray-500 hover:text-ink">Cancel</button>
+          </div>
+        </form>
+      </AdminEditPanel>
+
+      <AdminEditPanel open={editingId !== null && edit !== null} onClose={() => { setEditingId(null); setEdit(null); }} title="Edit job" size="wide" dirty={Boolean(edit && editingJob && JSON.stringify(edit) !== JSON.stringify(toForm(editingJob)))}>
+        {editingId && edit ? (
+          <form
+            className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3"
+            onSubmit={(event) => {
+              event.preventDefault();
+              void saveEdit(editingId);
+            }}
+          >
+            <JobForm value={edit} onChange={(patch) => setEdit((current) => current && { ...current, ...patch })} />
+            <div className="flex items-center gap-3 lg:col-span-3">
+              <button type="submit" disabled={busyId === editingId} className="rounded-pill bg-teal-900 px-4 py-1.5 text-[12px] font-medium text-white hover:bg-teal-800 disabled:opacity-40">
+                {busyId === editingId ? "Saving…" : "Save"}
+              </button>
+              <button type="button" onClick={() => { setEditingId(null); setEdit(null); }} className="text-[12px] font-medium text-gray-500 hover:text-ink">Cancel</button>
+            </div>
+          </form>
+        ) : null}
+      </AdminEditPanel>
     </div>
+  );
+}
+
+function JobsTable({
+  rows,
+  busyId,
+  empty,
+  onEdit,
+  onDelete,
+}: {
+  rows: JobRow[];
+  busyId: string | null;
+  empty: string;
+  onEdit: (job: JobRow) => void;
+  onDelete: (job: JobRow) => void;
+}) {
+  return (
+    <AdminTable
+      rows={rows}
+      rowKey={(job) => job.id}
+      caption="Jobs"
+      empty={empty}
+      columns={[
+        {
+          key: "job",
+          label: "Role",
+          render: (job) => (
+            <div className="flex min-w-0 items-center gap-3">
+              <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-teal-900 text-[11px] font-bold text-green-500">
+                {(job.company ?? job.title).slice(0, 2).toUpperCase()}
+              </span>
+              <div className="min-w-0">
+                <div className="truncate font-semibold text-ink">{job.title}</div>
+                {job.apply_url ? <a href={job.apply_url} target="_blank" rel="noreferrer" className="text-[11.5px] text-green-700 hover:underline">Apply link ↗</a> : null}
+              </div>
+            </div>
+          ),
+        },
+        {
+          key: "company",
+          label: "Company / location",
+          responsive: "secondary",
+          render: (job) => <span className="text-gray-600">{[job.company, job.location].filter(Boolean).join(" · ") || "—"}</span>,
+        },
+        {
+          key: "tags",
+          label: "Tags",
+          responsive: "secondary",
+          render: (job) => <div className="flex max-w-64 flex-wrap gap-1">{job.tags.slice(0, 3).map((tag) => <Chip key={tag} tone="teal">{tag}</Chip>)}</div>,
+        },
+        {
+          key: "status",
+          label: "Status",
+          render: (job) => <Chip tone={statusTone[job.status]}>{job.status}</Chip>,
+        },
+        {
+          key: "actions",
+          label: "Actions",
+          sticky: true,
+          className: "w-32 text-right",
+          render: (job) => (
+            <div className="flex justify-end gap-3">
+              <button type="button" onClick={() => onEdit(job)} disabled={busyId === job.id} className="text-[12px] font-medium text-gray-600 hover:text-ink disabled:opacity-40">Edit</button>
+              <button type="button" onClick={() => onDelete(job)} disabled={busyId === job.id} className="text-[12px] font-medium text-danger hover:underline disabled:opacity-40">Delete</button>
+            </div>
+          ),
+        },
+      ]}
+    />
   );
 }
