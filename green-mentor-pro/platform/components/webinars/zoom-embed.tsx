@@ -25,7 +25,7 @@ import { useEffect, useRef, useState } from "react";
 import { VideoCamera, CircleNotch } from "@phosphor-icons/react";
 
 // Keep in sync with the CDN bundles Zoom publishes (source.zoom.us).
-const ZOOM_SDK_VERSION = "3.13.2";
+const ZOOM_SDK_VERSION = "6.2.0";
 
 // Zoom's documented load order: vendor globals first, SDK bundle last.
 const ZOOM_SDK_SCRIPTS = [
@@ -72,9 +72,45 @@ type Phase = "idle" | "joining" | "joined" | "error";
 /** How often to tell the server the learner is still watching. */
 const HEARTBEAT_MS = 60_000;
 
+/**
+ * Fit the meeting "suspension window" to the stage so it behaves like Zoom's
+ * own web client instead of a floating popup. The SDK honours the requested
+ * width but treats height as a floor — it grows the window to
+ * width × baseHeight/baseWidth for the current view (speaker's base is
+ * 568×400; while receiving a screen share the base height becomes 615), so
+ * requesting the container's raw size overflows any stage wider than the base
+ * aspect. Instead: take the full height, cap the width to what that height
+ * allows, and centre the leftover via popper.anchorPosition — video
+ * letterboxes inside the window, like Zoom's own client. disableDraggable
+ * renders the window position:absolute at that anchor rather than as a
+ * react-draggable float.
+ */
+const STAGE_BASE_WIDTH = 568;
+
+function stageVideoOptions(container: { width: number; height: number }, receivingShare: boolean) {
+  const stageWidth = Math.floor(container.width);
+  const height = Math.max(135, Math.floor(container.height));
+  const maxWidth = Math.floor((height * STAGE_BASE_WIDTH) / (receivingShare ? 615 : 400));
+  const width = Math.max(240, Math.min(stageWidth, maxWidth));
+  return {
+    // "speaker" as a string literal — the CDN bundle has no runtime enum. It
+    // must be present in every payload (init and updates): an update without
+    // it can snap the user's chosen view back to gallery.
+    defaultViewType: "speaker",
+    isResizable: false,
+    popper: {
+      disableDraggable: true,
+      anchorPosition: { top: 0, left: Math.max(0, Math.floor((stageWidth - width) / 2)) },
+    },
+    viewSizes: {
+      default: { width, height },
+      ribbon: { width: 300, height },
+    },
+  };
+}
+
 interface JoinCredentials {
   signature: string;
-  sdkKey: string;
   meetingNumber: string;
   password: string;
   userName: string;
@@ -82,11 +118,15 @@ interface JoinCredentials {
 }
 
 // The Component View client, kept loosely typed — the CDN bundle has no types
-// and we only touch init/join/leave here.
+// and this is the small slice of its surface we touch. updateVideoOptions and
+// on/off exist in both 3.13.2 and the 6.x line.
 type EmbeddedClient = {
   init: (opts: Record<string, unknown>) => Promise<void>;
   join: (opts: Record<string, unknown>) => Promise<void>;
   leave: () => Promise<void>;
+  updateVideoOptions: (opts: Record<string, unknown>) => void;
+  on: (event: string, callback: (payload: unknown) => void) => void;
+  off: (event: string, callback: (payload: unknown) => void) => void;
 };
 
 export function ZoomEmbed({ webinarId }: { webinarId: string }) {
@@ -115,8 +155,54 @@ export function ZoomEmbed({ webinarId }: { webinarId: string }) {
     return () => clearInterval(timer);
   }, [phase, webinarId]);
 
+  // Keep the meeting window glued to the stage while joined: re-fit when the
+  // container resizes and when a screen share starts/stops (share receive
+  // swaps in a taller base, so the width cap tightens). updateVideoOptions
+  // diffs internally, so repeats with unchanged sizes are no-ops, and the SDK
+  // re-applies viewSizes itself on speaker/gallery/ribbon switches.
+  useEffect(() => {
+    if (phase !== "joined") return;
+    const el = rootRef.current;
+    const client = clientRef.current;
+    if (!el || !client) return;
+
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let receivingShare = false;
+    let lastApplied = "";
+
+    const apply = () => {
+      const rect = el.getBoundingClientRect();
+      if (rect.width < 48 || rect.height < 48) return; // hidden/collapsed — keep the last fit
+      const options = stageVideoOptions(rect, receivingShare);
+      const key = JSON.stringify([options.viewSizes, options.popper.anchorPosition]);
+      if (key === lastApplied) return;
+      lastApplied = key;
+      client.updateVideoOptions(options);
+    };
+    const schedule = () => {
+      clearTimeout(timer);
+      timer = setTimeout(apply, 200);
+    };
+    const onShareChange = (payload: unknown) => {
+      receivingShare = (payload as { state?: string } | undefined)?.state === "Active";
+      lastApplied = ""; // same box, different height law — force a resend
+      schedule();
+    };
+
+    apply(); // layout can shift between the pre-init measure and join resolving
+    const observer = new ResizeObserver(schedule);
+    observer.observe(el);
+    client.on("active-share-change", onShareChange);
+    return () => {
+      clearTimeout(timer);
+      observer.disconnect();
+      client.off("active-share-change", onShareChange);
+    };
+  }, [phase]);
+
   const join = async () => {
-    if (!rootRef.current) return;
+    const root = rootRef.current;
+    if (!root) return;
     setPhase("joining");
     setError(null);
     try {
@@ -129,13 +215,23 @@ export function ZoomEmbed({ webinarId }: { webinarId: string }) {
       const client = ZoomMtgEmbedded.createClient() as EmbeddedClient;
       clientRef.current = client;
 
+      // The join overlay is absolutely positioned, so the root div already has
+      // its final stage size here; the guard covers a hidden/collapsed layout
+      // (the SDK needs positive pixel sizes).
+      const rect = root.getBoundingClientRect();
+      const stage =
+        rect.width >= 48 && rect.height >= 48
+          ? { width: rect.width, height: rect.height }
+          : { width: 960, height: 540 };
+
       await client.init({
-        zoomAppRoot: rootRef.current,
+        zoomAppRoot: root,
         language: "en-US",
         patchJsMedia: true,
+        customize: { video: stageVideoOptions(stage, false) },
       });
       await client.join({
-        sdkKey: creds.sdkKey,
+        // sdkKey was removed from join options in SDK v4 — the signature carries the app key
         signature: creds.signature,
         meetingNumber: creds.meetingNumber,
         password: creds.password,
@@ -150,9 +246,11 @@ export function ZoomEmbed({ webinarId }: { webinarId: string }) {
   };
 
   return (
-    <div className="relative h-full min-h-[420px] overflow-hidden rounded-2xl border border-gray-200 bg-gray-900">
-      {/* Zoom renders its client into this element once joined. */}
-      <div ref={rootRef} className="h-full min-h-[420px] w-full" />
+    <div className="zoom-stage relative h-full min-h-[420px] overflow-hidden rounded-2xl border border-gray-200 bg-gray-900 lg:min-h-0">
+      {/* Zoom renders its client into this element once joined. Positioned so
+          the pinned meeting window anchors to it exactly (see globals.css
+          ".zoom-stage" and stageVideoOptions above). */}
+      <div ref={rootRef} className="absolute inset-0" />
 
       {phase !== "joined" && (
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 p-8 text-center">

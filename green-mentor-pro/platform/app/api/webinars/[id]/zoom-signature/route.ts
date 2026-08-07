@@ -13,7 +13,7 @@ export const runtime = "nodejs";
 // the RLS-bound session client, read the meeting details with the service-role
 // client, and hand back only a scoped, expiring credential. The SDK secret is
 // server-only and never leaves this route — the browser gets the computed
-// signature, the public SDK key, and the join fields.
+// signature and the join fields.
 //
 // Access is "any signed-in user" (no RSVP gate), by product decision.
 
@@ -55,8 +55,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     const exp = iat + SIGNATURE_TTL_SECONDS;
     const header = base64url({ alg: "HS256", typ: "JWT" });
     const payload = base64url({
-      appKey: sdkKey,
-      sdkKey,
+      appKey: sdkKey, // SDK ≥5 wants appKey only; the legacy sdkKey claim is deprecated
       mn: meetingNumber,
       role: 0, // 0 = attendee (join-only); the host runs the meeting from Zoom
       iat,
@@ -76,7 +75,6 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     const fullName = user.user_metadata?.full_name as string | undefined;
     return NextResponse.json({
       signature,
-      sdkKey,
       meetingNumber,
       password: webinar.zoom_passcode ?? "",
       userName: fullName || user.email || "GreenMentor learner",
