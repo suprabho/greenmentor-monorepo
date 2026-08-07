@@ -13,6 +13,7 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowSquareOut, Check, ImageBroken, Spinner } from "@phosphor-icons/react/dist/ssr";
+import { AdminEditPanel, AdminTable } from "@/components/admin";
 import { Card, Chip } from "@/components/ui";
 import { PhotoField, fieldInputCls } from "@/components/photo-field";
 import type { NewsRow } from "@/lib/db/news";
@@ -57,6 +58,7 @@ export function NewsPanel({
   const [query, setQuery] = useState("");
   const [missingOnly, setMissingOnly] = useState(true);
   const [drafts, setDrafts] = useState<Record<string, string>>({});
+  const [editing, setEditing] = useState<NewsRow | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [status, setStatus] = useState<Status>({ type: "idle" });
 
@@ -96,6 +98,7 @@ export function NewsPanel({
       }
       setArticles((prev) => prev.map((x) => (x.id === a.id ? { ...x, image_url: next } : x)));
       setDrafts(({ [a.id]: _dropped, ...rest }) => rest);
+      setEditing(null);
       setStatus({ type: "ok", msg: next ? `Image set for "${a.title.slice(0, 48)}…"` : "Image cleared." });
       router.refresh();
     } catch (e) {
@@ -150,6 +153,56 @@ export function NewsPanel({
             : "No articles match that search."}
         </Card>
       ) : (
+        <>
+        <AdminTable
+          rows={shown}
+          rowKey={(article) => article.id}
+          caption="News articles"
+          empty={missingOnly && !q ? "Every recent article has an image. Nothing to fix." : "No articles match that search."}
+          columns={[
+            {
+              key: "article",
+              label: "Article",
+              render: (article) => (
+                <div className="min-w-0">
+                  <div className="line-clamp-2 font-semibold text-ink">{article.title}</div>
+                  <div className="mt-0.5 text-[11.5px] text-gray-500">{article.source}</div>
+                </div>
+              ),
+            },
+            {
+              key: "published",
+              label: "Published",
+              responsive: "secondary",
+              className: "whitespace-nowrap text-gray-600",
+              render: (article) => when(article.published_at),
+            },
+            {
+              key: "image",
+              label: "Image",
+              render: (article) => article.image_url ? <img src={article.image_url} alt="" className="h-10 w-16 rounded-lg object-cover" /> : <span className="text-gray-400">Missing</span>,
+            },
+            {
+              key: "region",
+              label: "Region",
+              responsive: "secondary",
+              render: (article) => <Chip tone={article.region === "india" ? "green" : "neutral"}>{article.region}</Chip>,
+            },
+            {
+              key: "actions",
+              label: "Actions",
+              sticky: true,
+              className: "w-36 text-right",
+              render: (article) => (
+                <div className="flex justify-end gap-3">
+                  <a href={article.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[12px] font-medium text-gray-500 hover:text-ink">Open <ArrowSquareOut size={11} /></a>
+                  <button type="button" onClick={() => setEditing(article)} className="text-[12px] font-medium text-gray-600 hover:text-ink">Edit image</button>
+                </div>
+              ),
+            },
+          ]}
+        />
+        {false && (
         <ul className="space-y-3">
           {shown.map((a) => {
             const draft = draftFor(a);
@@ -199,7 +252,35 @@ export function NewsPanel({
             );
           })}
         </ul>
+        )}
+        </>
       )}
+
+      <AdminEditPanel open={editing !== null} onClose={() => setEditing(null)} title="Edit article image" dirty={Boolean(editing && ((draftFor(editing).trim() || null) !== (editing.image_url ?? null)))}>
+        {editing ? (
+          <div className="flex flex-col gap-4">
+            <div>
+              <div className="text-[15px] font-semibold text-ink">{editing.title}</div>
+              <div className="mt-1 text-[12px] text-gray-500">{editing.source} · {when(editing.published_at)}</div>
+            </div>
+            <PhotoField
+              folder="news"
+              label="Image URL"
+              placeholder="Upload, or paste https://…"
+              value={draftFor(editing)}
+              onChange={(value) => setDrafts((current) => ({ ...current, [editing.id]: value }))}
+            />
+            <button
+              type="button"
+              disabled={((draftFor(editing).trim() || null) === (editing.image_url ?? null)) || busyId === editing.id}
+              onClick={() => void save(editing)}
+              className="flex w-fit items-center gap-1.5 rounded-lg bg-teal-900 px-3.5 py-2 text-[12.5px] font-semibold text-white hover:bg-teal-800 disabled:opacity-40"
+            >
+              {busyId === editing.id ? <Spinner size={13} className="animate-spin" /> : <Check size={13} />} Save image
+            </button>
+          </div>
+        ) : null}
+      </AdminEditPanel>
     </div>
   );
 }

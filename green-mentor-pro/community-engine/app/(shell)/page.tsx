@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ImageSquare, FolderOpen, ArrowRight } from "@phosphor-icons/react/dist/ssr";
 import type { Icon } from "@phosphor-icons/react";
+import { AdminTable } from "@/components/admin";
 import { Card, Chip, PageHeader } from "@/components/ui";
 import { requireAdmin } from "@/lib/auth/admin";
 import { ADMIN_SECTIONS, type AdminSection } from "@/lib/admin/sections";
@@ -118,33 +119,81 @@ export default async function AdminHome() {
         <h2 className="mb-3 text-[13px] font-semibold uppercase tracking-[0.08em] text-gray-500">
           Sections
         </h2>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {ADMIN_SECTIONS.map((s) => (
-            <SectionCard key={s.href} section={s} stat={stats[s.href]} />
-          ))}
-        </div>
+        <AdminTable
+          rows={ADMIN_SECTIONS}
+          rowKey={(section) => section.href}
+          caption="Admin sections"
+          empty="No admin sections configured."
+          columns={[
+            {
+              key: "section",
+              label: "Section",
+              render: (section) => (
+                <div className="flex items-center gap-3">
+                  <span className={section.status === "soon" ? "grid size-9 place-items-center rounded-lg bg-gray-100 text-gray-400" : "grid size-9 place-items-center rounded-lg bg-green-50 text-green-700"}>
+                    <section.icon size={19} />
+                  </span>
+                  <span className="font-semibold text-ink">{section.name}</span>
+                </div>
+              ),
+            },
+            {
+              key: "description",
+              label: "Description",
+              responsive: "secondary",
+              render: (section) => <span className="text-gray-600">{section.desc}</span>,
+            },
+            {
+              key: "status",
+              label: "Status",
+              render: (section) => section.status === "soon" ? <Chip tone="neutral">Coming soon</Chip> : stats[section.href] ?? "Available",
+            },
+            {
+              key: "actions",
+              label: "Actions",
+              sticky: true,
+              className: "w-24 text-right",
+              render: (section) => section.status === "soon" ? <span className="text-[12px] text-gray-400">—</span> : <Link href={section.href} className="text-[12px] font-semibold text-green-700 hover:underline">Open <ArrowRight size={12} className="inline" /></Link>,
+            },
+          ]}
+        />
       </section>
 
       <section>
         <h2 className="mb-3 text-[13px] font-semibold uppercase tracking-[0.08em] text-gray-500">
           Makers
         </h2>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {makers.map((t) => (
-            <Link key={t.href} href={t.href}>
-              <Card className="group h-full p-5 transition-shadow hover:shadow-lift">
-                <span className="grid size-11 place-items-center rounded-xl bg-green-50 text-green-700">
-                  <t.icon size={22} />
-                </span>
-                <h3 className="mt-4 text-[15px] font-semibold text-ink">{t.name}</h3>
-                <p className="mt-1 text-[13px] leading-relaxed text-gray-600">{t.desc}</p>
-                <span className="mt-4 inline-flex items-center gap-1 text-[12.5px] font-semibold text-green-700">
-                  Open <ArrowRight size={13} className="transition-transform group-hover:translate-x-0.5" />
-                </span>
-              </Card>
-            </Link>
-          ))}
-        </div>
+        <AdminTable
+          rows={makers}
+          rowKey={(maker) => maker.href}
+          caption="Maker tools"
+          empty="No maker tools configured."
+          columns={[
+            {
+              key: "maker",
+              label: "Tool",
+              render: (maker) => (
+                <div className="flex items-center gap-3">
+                  <span className="grid size-9 place-items-center rounded-lg bg-green-50 text-green-700"><maker.icon size={19} /></span>
+                  <span className="font-semibold text-ink">{maker.name}</span>
+                </div>
+              ),
+            },
+            {
+              key: "description",
+              label: "Description",
+              responsive: "secondary",
+              render: (maker) => <span className="text-gray-600">{maker.desc}</span>,
+            },
+            {
+              key: "actions",
+              label: "Actions",
+              sticky: true,
+              className: "w-24 text-right",
+              render: (maker) => <Link href={maker.href} className="text-[12px] font-semibold text-green-700 hover:underline">Open <ArrowRight size={12} className="inline" /></Link>,
+            },
+          ]}
+        />
       </section>
     </div>
   );

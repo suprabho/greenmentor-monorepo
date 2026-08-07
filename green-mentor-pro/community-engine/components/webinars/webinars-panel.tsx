@@ -13,6 +13,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowSquareOut, Plus, Sparkle, X } from "@phosphor-icons/react/dist/ssr";
+import { AdminEditPanel, AdminTable } from "@/components/admin";
 import { Card, Chip, Stat } from "@/components/ui";
 import { WebinarPollsEditor } from "@/components/webinars/webinar-polls-editor";
 import { WebinarPeople } from "@/components/webinars/webinar-people";
@@ -162,6 +163,168 @@ function InstructorPicker({
   );
 }
 
+function WebinarsTable({
+  rows,
+  busyId,
+  empty,
+  instructorNames,
+  rsvpCounts,
+  attendanceCounts,
+  onEdit,
+  onDelete,
+  onStatus,
+}: {
+  rows: WebinarRow[];
+  busyId: string | null;
+  empty: string;
+  instructorNames: (ids: string[]) => string;
+  rsvpCounts: Record<string, number>;
+  attendanceCounts: Record<string, number>;
+  onEdit: (webinar: WebinarRow) => void;
+  onDelete: (webinar: WebinarRow) => void;
+  onStatus: (webinar: WebinarRow, status: WebinarStatus) => void;
+}) {
+  return (
+    <AdminTable
+      rows={rows}
+      rowKey={(webinar) => webinar.id}
+      caption="Webinars"
+      empty={empty}
+      columns={[
+        {
+          key: "webinar",
+          label: "Webinar",
+          render: (webinar) => (
+            <div className="min-w-0">
+              <div className="truncate font-semibold text-ink">{webinar.title}</div>
+              <div className="mt-0.5 truncate text-[11.5px] text-gray-500">{webinar.hook || "No hook yet"}</div>
+              {webinar.status === "published" || webinar.status === "completed" ? <PublicLink url={publicWebinarUrl(webinar)} /> : null}
+            </div>
+          ),
+        },
+        {
+          key: "schedule",
+          label: "Schedule",
+          responsive: "secondary",
+          className: "whitespace-nowrap text-gray-600",
+          render: (webinar) => fmtDateTime(webinar.scheduled_at),
+        },
+        {
+          key: "instructors",
+          label: "Instructors",
+          responsive: "secondary",
+          render: (webinar) => instructorNames(webinar.instructor_ids) || "—",
+        },
+        {
+          key: "funnel",
+          label: "Funnel",
+          responsive: "secondary",
+          render: (webinar) => (
+            <div className="whitespace-nowrap text-[12px] text-gray-600">
+              <div>Reg {webinar.registrations ?? "—"} · Att {webinar.attendees ?? "—"}</div>
+              <div>Att% {pct(webinar.attendees, webinar.registrations)} · Rev {fmtInr(webinar.revenue_inr)}</div>
+            </div>
+          ),
+        },
+        {
+          key: "status",
+          label: "Status",
+          render: (webinar) => (
+            <div className="flex items-center gap-2">
+              <Chip tone={STATUS_TONE[webinar.status]}>{webinar.status}</Chip>
+              <select value={webinar.status} onChange={(event) => onStatus(webinar, event.target.value as WebinarStatus)} disabled={busyId === webinar.id} className="rounded-lg border border-gray-200 bg-white px-2 py-1 text-[12px] text-gray-700 disabled:opacity-50" aria-label={"Change status for " + webinar.title}>
+                {STATUS_OPTIONS.map((option) => <option key={option.key} value={option.key}>{option.label}</option>)}
+              </select>
+            </div>
+          ),
+        },
+        {
+          key: "actions",
+          label: "Actions",
+          sticky: true,
+          className: "w-28 text-right",
+          render: (webinar) => (
+            <div className="flex justify-end gap-3">
+              <button type="button" onClick={() => onEdit(webinar)} disabled={busyId === webinar.id} className="text-[12px] font-medium text-gray-600 hover:text-ink disabled:opacity-40">Edit</button>
+              <button type="button" onClick={() => onDelete(webinar)} disabled={busyId === webinar.id} className="text-[12px] font-medium text-danger hover:underline disabled:opacity-40">Delete</button>
+            </div>
+          ),
+        },
+      ]}
+    />
+  );
+}
+
+function WebinarEditorForm({
+  webinar,
+  edit,
+  setEdit,
+  instructors,
+  updating,
+  onSave,
+  onClose,
+}: {
+  webinar: WebinarRow | null;
+  edit: EditState;
+  setEdit: React.Dispatch<React.SetStateAction<EditState | null>>;
+  instructors: InstructorRow[];
+  updating: string | null;
+  onSave: () => void;
+  onClose: () => void;
+}) {
+  if (!webinar) return null;
+  return (
+    <form className="flex flex-col gap-5" onSubmit={(event) => { event.preventDefault(); onSave(); }}>
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <label className={labelCls + " sm:col-span-2 lg:col-span-3"}>Title<input value={edit.title} onChange={(event) => setEdit((current) => current && { ...current, title: event.target.value })} className={inputCls} /></label>
+        <label className={labelCls + " sm:col-span-2"}>Hook<input value={edit.hook} onChange={(event) => setEdit((current) => current && { ...current, hook: event.target.value })} className={inputCls} /></label>
+        <label className={labelCls + " sm:col-span-2"}>Instructors<InstructorPicker value={edit.instructorIds} onChange={(ids) => setEdit((current) => current && { ...current, instructorIds: ids })} roster={instructors} /></label>
+        <label className={labelCls}>When<input type="datetime-local" value={edit.scheduledAt} onChange={(event) => setEdit((current) => current && { ...current, scheduledAt: event.target.value })} className={inputCls} /></label>
+        <label className={labelCls}>Duration (min)<input inputMode="numeric" value={edit.durationMinutes} onChange={(event) => setEdit((current) => current && { ...current, durationMinutes: event.target.value })} className={inputCls} /></label>
+        <label className={labelCls}>Registration URL<input value={edit.registrationUrl} onChange={(event) => setEdit((current) => current && { ...current, registrationUrl: event.target.value })} className={inputCls} /></label>
+        <label className={labelCls}>Creatives URL<input value={edit.creativesUrl} onChange={(event) => setEdit((current) => current && { ...current, creativesUrl: event.target.value })} className={inputCls} /></label>
+        <label className={labelCls}>Zoom meeting number<input inputMode="numeric" value={edit.zoomMeetingNumber} onChange={(event) => setEdit((current) => current && { ...current, zoomMeetingNumber: event.target.value })} className={inputCls} /></label>
+        <label className={labelCls}>Zoom passcode<input value={edit.zoomPasscode} onChange={(event) => setEdit((current) => current && { ...current, zoomPasscode: event.target.value })} className={inputCls} /></label>
+        <label className={labelCls + " sm:col-span-2 lg:col-span-3"}>Notes<textarea value={edit.notes} onChange={(event) => setEdit((current) => current && { ...current, notes: event.target.value })} rows={3} className={inputCls} /></label>
+      </div>
+
+      <section className="border-t border-gray-100 pt-4">
+        <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-gray-500">Header image</div>
+        <div className="flex flex-wrap items-center gap-3">
+          {webinar.cover_image_url ? <img src={webinar.cover_image_url} alt="" className="h-14 w-24 rounded-lg border border-gray-200 object-cover" /> : null}
+          <Link href={"/header-studio?webinar=" + webinar.id} className="inline-flex items-center gap-1.5 rounded-pill bg-green-600 px-3.5 py-1.5 text-[12px] font-medium text-white hover:bg-green-700">
+            <Sparkle size={13} weight="bold" /> {webinar.cover_image_url ? "Redesign header" : "Design header in Aura Studio"}
+          </Link>
+        </div>
+      </section>
+
+      <section className="border-t border-gray-100 pt-4">
+        <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-gray-500">Post-webinar metrics</div>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {METRIC_INPUTS.map((metric) => (
+            <label key={metric.key} className={labelCls}>
+              {metric.label}
+              <input inputMode="numeric" value={edit.metrics[metric.key]} onChange={(event) => setEdit((current) => current && { ...current, metrics: { ...current.metrics, [metric.key]: event.target.value } })} className={inputCls} />
+            </label>
+          ))}
+        </div>
+      </section>
+
+      <WebinarPeople webinarId={webinar.id} webinarTitle={webinar.title} />
+      <WebinarZoomPolls webinarId={webinar.id} webinarTitle={webinar.title} />
+      <details>
+        <summary className="cursor-pointer select-none text-[11px] font-semibold uppercase tracking-[0.14em] text-gray-500 hover:text-ink">In-app polls (legacy)</summary>
+        <WebinarPollsEditor webinarId={webinar.id} />
+      </details>
+
+      <div className="flex items-center gap-3 border-t border-gray-100 pt-4">
+        <button type="submit" disabled={updating === webinar.id} className="rounded-pill bg-teal-900 px-4 py-1.5 text-[12px] font-medium text-white hover:bg-teal-800 disabled:opacity-40">{updating === webinar.id ? "Saving…" : "Save"}</button>
+        <button type="button" onClick={onClose} className="text-[12px] font-medium text-gray-500 hover:text-ink">Cancel</button>
+      </div>
+    </form>
+  );
+}
+
 interface EditState {
   title: string;
   hook: string;
@@ -238,6 +401,7 @@ export function WebinarsPanel({
   const [status, setStatus] = useState<Status>({ type: "idle" });
   const [editingId, setEditingId] = useState<string | null>(null);
   const [edit, setEdit] = useState<EditState | null>(null);
+  const editingWebinar = editingId ? webinars.find((webinar) => webinar.id === editingId) ?? null : null;
 
   const counts = useMemo(() => {
     const c: Record<string, number> = { all: webinars.length };
@@ -434,7 +598,7 @@ export function WebinarsPanel({
       </div>
 
       <Card>
-        {adding ? (
+        {false && adding ? (
           <form
             className="flex flex-wrap items-end gap-3 border-b border-gray-100 p-5"
             onSubmit={(e) => {
@@ -551,6 +715,19 @@ export function WebinarsPanel({
                 : `No ${tab === "all" ? "" : `${tab} `}webinars.`}
           </p>
         ) : (
+          <>
+          <WebinarsTable
+            rows={shown}
+            busyId={updating}
+            empty={webinars.length === 0 ? "No webinars yet — add the first one above." : q ? 'No webinars match "' + query.trim() + '".' : "No webinars."}
+            instructorNames={instructorNames}
+            rsvpCounts={rsvpCounts}
+            attendanceCounts={attendanceCounts}
+            onEdit={openEditor}
+            onDelete={(webinar) => void remove(webinar.id, webinar.title)}
+            onStatus={(webinar, next) => void updateStatus(webinar.id, next)}
+          />
+          {false && (
           <ul className="divide-y divide-gray-100">
             {shown.map((w) => (
               <li key={w.id} className="p-5">
@@ -814,8 +991,58 @@ export function WebinarsPanel({
               </li>
             ))}
           </ul>
+          )}
+          </>
         )}
       </Card>
+
+      <AdminEditPanel open={adding} onClose={closeForm} title="New webinar" size="wide" dirty={Boolean(form.title || form.hook || form.instructorIds.length || form.scheduledAt || form.registrationUrl)}>
+        <form className="flex flex-col gap-4" onSubmit={(event) => { event.preventDefault(); if (form.title.trim()) void create(); }}>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <label className={labelCls + " sm:col-span-2"}>
+              Title
+              <input autoFocus value={form.title} onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))} className={inputCls} />
+            </label>
+            <label className={labelCls + " sm:col-span-2"}>
+              Hook
+              <input value={form.hook} onChange={(event) => setForm((current) => ({ ...current, hook: event.target.value }))} className={inputCls} />
+            </label>
+            <label className={labelCls + " sm:col-span-2"}>
+              Instructors
+              <InstructorPicker value={form.instructorIds} onChange={(ids) => setForm((current) => ({ ...current, instructorIds: ids }))} roster={instructors} />
+            </label>
+            <label className={labelCls}>
+              When
+              <input type="datetime-local" value={form.scheduledAt} onChange={(event) => setForm((current) => ({ ...current, scheduledAt: event.target.value }))} className={inputCls} />
+            </label>
+            <label className={labelCls}>
+              Registration URL
+              <input value={form.registrationUrl} onChange={(event) => setForm((current) => ({ ...current, registrationUrl: event.target.value }))} className={inputCls} />
+            </label>
+          </div>
+          <div className="flex items-center gap-3 border-t border-gray-100 pt-4">
+            <button type="submit" disabled={saving || !form.title.trim()} className="rounded-pill bg-teal-900 px-4 py-1.5 text-[12px] font-medium text-white hover:bg-teal-800 disabled:opacity-40">{saving ? "Adding…" : "Add webinar"}</button>
+            <button type="button" onClick={closeForm} className="text-[12px] font-medium text-gray-500 hover:text-ink">Cancel</button>
+          </div>
+        </form>
+      </AdminEditPanel>
+
+      <AdminEditPanel open={editingId !== null && edit !== null} onClose={() => { setEditingId(null); setEdit(null); }} title="Edit webinar" size="wide" dirty={Boolean(edit && editingWebinar && JSON.stringify(edit) !== JSON.stringify(toEditState(editingWebinar)))}>
+        {editingId && edit ? (
+          <WebinarEditorForm
+            webinar={editingWebinar}
+            edit={edit}
+            setEdit={setEdit}
+            instructors={instructors}
+            updating={updating}
+            onSave={() => {
+              const webinar = webinars.find((item) => item.id === editingId);
+              if (webinar) void saveEdit(webinar);
+            }}
+            onClose={() => { setEditingId(null); setEdit(null); }}
+          />
+        ) : null}
+      </AdminEditPanel>
     </div>
   );
 }
