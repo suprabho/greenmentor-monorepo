@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { clsx } from "clsx";
-import { Check, ShareNetwork } from "@phosphor-icons/react";
+import { Check, LinkSimple, ShareNetwork } from "@phosphor-icons/react";
 
 // Share affordance for the deeplinked surfaces (webinar / job / feed post).
 //
@@ -11,23 +11,33 @@ import { Check, ShareNetwork } from "@phosphor-icons/react";
 // threading siteUrl() through the server components that render the cards.
 // (lib/share/url.ts is the server-side counterpart, used for metadata.)
 //
-// Native share sheet where available, clipboard everywhere else — the pattern
-// the feed cards already used, lifted here so all four call sites behave the
-// same. Deliberately no toast: this app has no toast primitive, and the inline
-// "Copied" flash is the established feedback.
+// Native share sheet on phones only; on desktop and tablets the button is a
+// copy-link affordance instead — desktop browsers expose navigator.share too,
+// and their OS share sheets are worse than just putting the URL on the
+// clipboard. Deliberately no toast: this app has no toast primitive, and the
+// inline "Copied" flash is the established feedback.
 
 const COPIED_MS = 1500;
 
+// Phones only: Android tablets omit "Mobile" from their UA, and iPadOS ≥13
+// presents a macOS desktop UA — so both land in the copy branch by design.
+const isPhoneUA = () =>
+  typeof navigator !== "undefined" && /iPhone|iPod|Android.*Mobile/i.test(navigator.userAgent);
+
 export function useShare(path: string, title: string) {
   const [copied, setCopied] = useState(false);
+  // False during SSR and the first client paint so hydration matches; phones
+  // flip to the share presentation right after mount.
+  const [native, setNative] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  useEffect(() => setNative(isPhoneUA()), []);
   useEffect(() => () => void (timer.current && clearTimeout(timer.current)), []);
 
   const share = useCallback(async () => {
     const url = `${window.location.origin}${path}`;
 
-    if (typeof navigator !== "undefined" && navigator.share) {
+    if (isPhoneUA() && navigator.share) {
       try {
         await navigator.share({ title, url });
       } catch {
@@ -46,7 +56,7 @@ export function useShare(path: string, title: string) {
     }
   }, [path, title]);
 
-  return { share, copied };
+  return { share, copied, native };
 }
 
 export function ShareButton({
@@ -63,8 +73,8 @@ export function ShareButton({
   variant?: "icon" | "full";
   className?: string;
 }) {
-  const { share, copied } = useShare(path, title);
-  const label = copied ? "Copied" : "Share";
+  const { share, copied, native } = useShare(path, title);
+  const label = copied ? "Copied" : native ? "Share" : "Copy link";
 
   return (
     <button
@@ -79,7 +89,13 @@ export function ShareButton({
         className
       )}
     >
-      {copied ? <Check size={14} weight="bold" className="text-green-700" /> : <ShareNetwork size={14} />}
+      {copied ? (
+        <Check size={14} weight="bold" className="text-green-700" />
+      ) : native ? (
+        <ShareNetwork size={14} />
+      ) : (
+        <LinkSimple size={14} />
+      )}
       {variant === "full" && label}
     </button>
   );
