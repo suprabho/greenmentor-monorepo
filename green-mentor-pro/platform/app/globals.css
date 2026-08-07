@@ -231,3 +231,31 @@
     mask-image: linear-gradient(to bottom, transparent, #000 14%, #000 86%, transparent);
   }
 }
+
+/* =================================================================
+   Zoom Meeting SDK stage (components/webinars/zoom-embed.tsx).
+   The Component View renders a floating "suspension window"; the init
+   options pin and size it (popper.disableDraggable + anchorPosition,
+   viewSizes) — these rules cover what the config can't reach. Kept
+   OUTSIDE @layer on purpose: Zoom injects unlayered runtime styles,
+   and layered author rules always lose to unlayered ones. Scoped
+   under .zoom-stage so nothing leaks into the rest of the app.
+   Selectors verified against the 3.13.2 and 6.2.0 CDN bundles; the
+   hashed zmwebsdk-makeStyles-* classes are deliberately avoided
+   (unstable across versions).
+   ================================================================= */
+
+/* The meeting window — and the joining/waiting "transition" dialogs,
+   which ignore disableDraggable (devforum.zoom.us #77860) — are
+   react-draggable roots moved via an inline transform. Freeze them. */
+.zoom-stage .react-draggable {
+  transform: none !important;
+}
+
+/* Hide the "Minimized" tab in the header's view switcher so the
+   window can never collapse to a floating pill; the speaker/gallery/
+   ribbon tabs remain. */
+.zoom-stage button[aria-label="thumbnail-minimized"],
+.zoom-stage #suspension-view-tab-thumbnail-minimized {
+  display: none !important;
+}
