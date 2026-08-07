@@ -16,6 +16,7 @@ import { ArrowSquareOut, Plus, Sparkle, X } from "@phosphor-icons/react/dist/ssr
 import { Card, Chip, Stat } from "@/components/ui";
 import { WebinarPollsEditor } from "@/components/webinars/webinar-polls-editor";
 import { WebinarPeople } from "@/components/webinars/webinar-people";
+import { WebinarZoomPolls } from "@/components/webinars/webinar-zoom-polls";
 import { PublicLink } from "@/components/public-link";
 import { publicWebinarUrl } from "@/lib/share-link";
 import type { WebinarRow, WebinarStatus } from "@/lib/db/webinars";
@@ -778,7 +779,16 @@ export function WebinarsPanel({
 
                     <WebinarPeople webinarId={w.id} webinarTitle={w.title} />
 
-                    <WebinarPollsEditor webinarId={w.id} />
+                    <WebinarZoomPolls webinarId={w.id} webinarTitle={w.title} />
+
+                    {/* Live polls run on Zoom now; the in-app system stays dormant
+                        behind this disclosure rather than being torn out. */}
+                    <details className="mt-4">
+                      <summary className="cursor-pointer select-none text-[11px] font-semibold uppercase tracking-[0.14em] text-gray-500 transition-colors hover:text-ink">
+                        In-app polls (legacy)
+                      </summary>
+                      <WebinarPollsEditor webinarId={w.id} />
+                    </details>
 
                     <div className="mt-4 flex items-center gap-3">
                       <button
