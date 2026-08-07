@@ -143,11 +143,12 @@ export function MessageList({
                     </div>
                   );
                 }
+                // No bubble wrapper here: OpenUI's `root = Card(...)` is itself a
+                // bordered, padded, full-width container, so a bubble around it
+                // reads as a box inside a box. `gm-genui` only carries the mobile
+                // type-scale overrides (app/globals.css).
                 return (
-                  <div
-                    key={i}
-                    className="max-w-[85%] rounded-2xl rounded-bl-sm border border-gray-200 bg-white px-3.5 py-2.5 text-[14px] leading-relaxed text-ink"
-                  >
+                  <div key={i} className="gm-genui w-full">
                     <ThemeProvider mode="light" lightTheme={gmTheme}>
                       <Renderer
                         response={part.text}
