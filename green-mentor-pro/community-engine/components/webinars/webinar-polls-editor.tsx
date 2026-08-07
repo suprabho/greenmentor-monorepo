@@ -14,8 +14,9 @@ import { Plus, X } from "@phosphor-icons/react/dist/ssr";
 import type { WebinarPollStatus, WebinarPollWithOptions } from "@/lib/db/webinar-polls";
 
 const inputCls =
-  "rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-[13px] text-ink placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500";
-const labelCls = "flex flex-col gap-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-gray-500";
+  "w-full min-w-0 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-[13px] text-ink placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500";
+const labelCls =
+  "flex min-w-0 flex-col gap-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-gray-500";
 
 const POLL_STATUSES: { key: WebinarPollStatus; label: string }[] = [
   { key: "draft", label: "Draft" },

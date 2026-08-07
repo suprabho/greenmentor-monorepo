@@ -43,9 +43,13 @@ const STATUS_TONE: Record<WebinarStatus, "neutral" | "green" | "teal" | "warn" |
 
 type Status = { type: "idle" | "ok" | "err" | "info"; msg?: string };
 
+// `w-full min-w-0` matters: without it inputs keep their intrinsic width (a
+// `datetime-local` is very wide) and, since grid/flex items default to
+// `min-width:auto`, the tracks refuse to shrink and the form overflows its card.
 const inputCls =
-  "rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-[13px] text-ink placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500";
-const labelCls = "flex flex-col gap-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-gray-500";
+  "w-full min-w-0 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-[13px] text-ink placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500";
+const labelCls =
+  "flex min-w-0 flex-col gap-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-gray-500";
 
 const METRIC_INPUTS: { key: MetricKey; label: string }[] = [
   { key: "registrations", label: "Registrations" },
@@ -520,12 +524,12 @@ export function WebinarsPanel({
               </button>
             ))}
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex min-w-0 flex-1 items-center gap-2 sm:flex-none">
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search title, hook, instructor…"
-              className={`${inputCls} w-56`}
+              className={`${inputCls} sm:w-56`}
             />
             {!adding && (
               <button
@@ -590,7 +594,7 @@ export function WebinarsPanel({
                       </div>
                     ) : null}
                   </div>
-                  <div className="flex shrink-0 items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     {w.creatives_url ? (
                       <a
                         href={w.creatives_url}

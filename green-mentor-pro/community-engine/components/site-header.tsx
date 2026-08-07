@@ -75,7 +75,9 @@ export function SiteHeader({ email, isAdmin = false }: { email: string; isAdmin?
           <span className="grid size-8 place-items-center rounded-[9px] bg-teal-900 text-green-500">
             <Leaf size={17} weight="fill" />
           </span>
-          <span className="text-[14px] font-semibold tracking-tight text-ink">Community</span>
+          <span className="hidden text-[14px] font-semibold tracking-tight text-ink sm:block">
+            Community
+          </span>
         </Link>
         <nav className="flex items-center gap-1 text-[13px] font-medium">
           {isAdmin && (
@@ -104,7 +106,7 @@ export function SiteHeader({ email, isAdmin = false }: { email: string; isAdmin?
             {toolsOpen && (
               <div
                 role="menu"
-                className="absolute left-0 top-full mt-2 w-60 rounded-[14px] border border-gray-200 bg-white p-1.5 shadow-lift"
+                className="absolute left-1/2 top-full mt-2 w-60 max-w-[calc(100vw-2rem)] -translate-x-1/2 rounded-[14px] border border-gray-200 bg-white p-1.5 shadow-lift sm:left-0 sm:translate-x-0"
               >
                 {tools.map((t) =>
                   t.soon ? (
@@ -147,9 +149,12 @@ export function SiteHeader({ email, isAdmin = false }: { email: string; isAdmin?
           <form action="/auth/signout" method="post">
             <button
               type="submit"
-              className="flex items-center gap-1.5 rounded-pill border border-gray-200 px-3 py-1.5 text-[12.5px] font-semibold text-gray-700 transition-colors hover:bg-gray-100"
+              aria-label="Sign out"
+              title="Sign out"
+              className="flex items-center gap-1.5 rounded-pill border border-gray-200 px-2 py-1.5 text-[12.5px] font-semibold text-gray-700 transition-colors hover:bg-gray-100 sm:px-3"
             >
-              <SignOut size={14} /> Sign out
+              <SignOut size={14} />
+              <span className="hidden sm:inline">Sign out</span>
             </button>
           </form>
         </div>
