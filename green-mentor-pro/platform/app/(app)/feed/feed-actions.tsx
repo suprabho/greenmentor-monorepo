@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { usePathname, useRouter } from "next/navigation";
 import { clsx } from "clsx";
-import { ThumbsUp, ChatCircle, Check, ShareNetwork, X, PaperPlaneRight, CircleNotch } from "@phosphor-icons/react";
+import { ThumbsUp, ChatCircle, Check, LinkSimple, ShareNetwork, X, PaperPlaneRight, CircleNotch } from "@phosphor-icons/react";
 import { Avatar } from "@/components/ui";
 import { useShare } from "@/components/share/share-button";
 import { createClient } from "@/lib/supabase/client";
@@ -87,7 +87,7 @@ export function ArticleActions({
   const router = useRouter();
   const getSupabase = useSupabase();
   const login = useLoginHref();
-  const { share, copied } = useShare(sharePath, title);
+  const { share, copied, native } = useShare(sharePath, title);
 
   const baseLikes = stats?.like_count ?? 0;
   const baseComments = stats?.comment_count ?? 0;
@@ -138,8 +138,14 @@ export function ArticleActions({
         </ActionButton>
 
         <ActionButton onClick={() => void share()} className="ml-auto">
-          {copied ? <Check size={17} weight="bold" className="text-green-700" /> : <ShareNetwork size={17} />}
-          {copied ? "Copied" : "Share"}
+          {copied ? (
+            <Check size={17} weight="bold" className="text-green-700" />
+          ) : native ? (
+            <ShareNetwork size={17} />
+          ) : (
+            <LinkSimple size={17} />
+          )}
+          {copied ? "Copied" : native ? "Share" : "Copy link"}
         </ActionButton>
       </div>
 
