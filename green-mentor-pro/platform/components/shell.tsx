@@ -9,15 +9,20 @@ import {
   Fire,
   Leaf,
   Lightning,
+  List,
   MagnifyingGlass,
   SidebarSimple,
   SignIn,
+  WhatsappLogo,
 } from "@phosphor-icons/react";
 import { clsx } from "clsx";
 import { Avatar } from "@/components/ui";
 import { Logo } from "@/components/marketing/Logo";
+import { MobileNavDrawer } from "@/components/mobile-nav-drawer";
 import { CommandPalette } from "@/components/search/command-palette";
 import { MOBILE_NAV, NAV_GROUPS } from "@/lib/app-nav";
+import { WHATSAPP_COMMUNITY_LABEL, WHATSAPP_COMMUNITY_URL } from "@/lib/data/community";
+import { track } from "@/lib/utils/analytics";
 
 const COLLAPSED_KEY = "gm-sidebar-collapsed";
 
@@ -49,6 +54,7 @@ export function Shell({
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [navOpen, setNavOpen] = useState(false);
 
   // Stats/identity come from the server layout; absent means signed out (or the
   // fetch failed), in which case we show a sign-in prompt rather than fake numbers.
@@ -85,6 +91,11 @@ export function Shell({
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [searchOpen]);
+
+  // Drawer links close on tap; this catches programmatic navigation too.
+  useEffect(() => {
+    setNavOpen(false);
+  }, [pathname]);
 
   const toggleSidebar = () =>
     setCollapsed((prev) => {
@@ -212,6 +223,24 @@ export function Shell({
           ))}
         </nav>
 
+        {/* Sits below the nav rather than inside NAV_GROUPS: those entries are
+            next/link, matched by isActive(), and flattened into the ⌘K palette's
+            "Go to" list — an off-site URL is wrong in all three. */}
+        <a
+          href={WHATSAPP_COMMUNITY_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          title={collapsed ? WHATSAPP_COMMUNITY_LABEL : undefined}
+          onClick={() => track("whatsapp_community_clicked")}
+          className={clsx(
+            "mx-3 mt-3 flex items-center gap-3 rounded-[6px] py-2.5 text-[13.5px] font-medium text-white/65 transition-colors hover:bg-white/5 hover:text-white",
+            collapsed ? "justify-center" : "px-3"
+          )}
+        >
+          <WhatsappLogo size={19} className="shrink-0 text-[#25D366]" weight="fill" />
+          {!collapsed && <span className="whitespace-nowrap">{WHATSAPP_COMMUNITY_LABEL}</span>}
+        </a>
+
         {sidebarStats.length > 0 && (
           <div
             className={clsx(
@@ -282,8 +311,18 @@ export function Shell({
 
       {/* Main column */}
       <div className="min-w-0 flex-1">
-        {/* Top bar (mobile/tablet only — search and stats live in the sidebar on desktop) */}
+        {/* Top bar (mobile/tablet only — hamburger, logo, search, profile; the
+            full nav and stats live in the drawer, mirroring the desktop sidebar) */}
         <header className="sticky top-0 z-20 flex h-14 items-center gap-3 border-b border-gray-200 bg-white/90 px-4 backdrop-blur lg:hidden">
+          <button
+            type="button"
+            onClick={() => setNavOpen(true)}
+            aria-label="Open navigation"
+            aria-expanded={navOpen}
+            className="-ml-1 grid size-8 shrink-0 place-items-center rounded-lg text-gray-600 transition-colors hover:bg-gray-100 hover:text-ink"
+          >
+            <List size={20} />
+          </button>
           <Link href="/home" aria-label="Green Mentor Pro home" className="mr-1 flex items-center gap-2">
             <span className="grid size-7 place-items-center rounded-lg bg-teal-900 text-green-500">
               <Leaf size={15} weight="fill" />
@@ -314,27 +353,30 @@ export function Shell({
             >
               <MagnifyingGlass size={17} />
             </button>
-            {stats ? (
-              <>
-                <span className="flex items-center gap-1.5 rounded-pill bg-green-50 px-2.5 py-1 text-[12px] font-semibold text-green-700">
-                  <Lightning size={13} weight="fill" /> {stats.xp.toLocaleString()} XP
+            {viewer ? (
+              <Link
+                href="/profile"
+                aria-label="Green Learning Profile"
+                className="flex shrink-0 items-center gap-2 rounded-pill p-1 transition-colors hover:bg-gray-100 md:pr-3"
+              >
+                <Avatar
+                  src={viewer.avatarUrl ?? undefined}
+                  name={viewer.name}
+                  size={28}
+                  className="shrink-0 ring-2 ring-green-500/60"
+                />
+                <span className="hidden max-w-32 truncate text-[12.5px] font-semibold text-ink md:block">
+                  {viewer.name}
                 </span>
-                <span className="flex items-center gap-1.5 rounded-pill bg-[#FFF4E0] px-2.5 py-1 text-[12px] font-semibold text-[#B25E00]">
-                  <Fire size={13} weight="fill" /> {stats.streakDays}-day
-                </span>
-                <span className="hidden sm:flex items-center gap-1.5 rounded-pill bg-gray-100 px-2.5 py-1 text-[12px] font-semibold text-gray-800">
-                  <Coins size={13} weight="fill" /> {stats.coins.toLocaleString()} cr
-                </span>
-              </>
+              </Link>
             ) : (
-              !viewer && (
-                <Link
-                  href="/login"
-                  className="flex items-center gap-1.5 rounded-pill bg-green-50 px-2.5 py-1 text-[12px] font-semibold text-green-700"
-                >
-                  <SignIn size={13} weight="bold" /> Sign in
-                </Link>
-              )
+              <Link
+                href="/login"
+                aria-label="Sign in"
+                className="grid size-8 shrink-0 place-items-center rounded-full bg-green-50 text-green-700 transition-colors hover:bg-green-100"
+              >
+                <SignIn size={16} weight="bold" />
+              </Link>
             )}
           </div>
         </header>
@@ -370,6 +412,7 @@ export function Shell({
       </div>
 
       <CommandPalette open={searchOpen} onOpenChange={setSearchOpen} />
+      {navOpen && <MobileNavDrawer stats={stats} viewer={viewer} onClose={() => setNavOpen(false)} />}
     </div>
   );
 }

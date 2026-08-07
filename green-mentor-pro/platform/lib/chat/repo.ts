@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { createAdminClient } from "@gm/orchestrator";
 import type { Conversation, StoredChatMessage } from "./types";
 
@@ -24,7 +25,9 @@ export async function createConversation(
   return { id: data.id as string };
 }
 
-export async function listConversations(orgId: string, userId: string): Promise<Conversation[]> {
+// Per-request memoized (React cache): the ai-hub layout and the chat layout both
+// list conversations in the same render pass; this collapses them to one query.
+export const listConversations = cache(async (orgId: string, userId: string): Promise<Conversation[]> => {
   const admin = createAdminClient();
   const { data, error } = await admin
     .from("chat_conversations")
@@ -39,7 +42,7 @@ export async function listConversations(orgId: string, userId: string): Promise<
     .order("updated_at", { ascending: false });
   if (error) throw new Error(`listConversations: ${error.message}`);
   return (data ?? []) as Conversation[];
-}
+});
 
 /** Guards every read/write/stream — 404 when the conversation isn't the user's. */
 export async function assertOwner(orgId: string, userId: string, conversationId: string): Promise<boolean> {

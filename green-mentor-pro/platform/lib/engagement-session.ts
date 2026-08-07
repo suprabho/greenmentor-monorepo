@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { ensureOrgForUser } from "@/lib/tenancy";
 
@@ -10,8 +11,10 @@ export interface EngagementContext {
 /**
  * Resolve the signed-in user's engagement context (org + user id) for engagement
  * API routes. Returns null when unauthenticated — the caller returns 401.
+ * Per-request memoized (React cache): the ai-hub and chat layouts both resolve
+ * it in one render pass, and each uncached call is an auth round-trip.
  */
-export async function getEngagementContext(): Promise<EngagementContext | null> {
+export const getEngagementContext = cache(async (): Promise<EngagementContext | null> => {
   const supabase = await createClient();
   const {
     data: { user },
@@ -19,4 +22,4 @@ export async function getEngagementContext(): Promise<EngagementContext | null> 
   if (!user) return null;
   const orgId = await ensureOrgForUser(user.id, user.email);
   return { orgId, userId: user.id, email: user.email ?? null };
-}
+});

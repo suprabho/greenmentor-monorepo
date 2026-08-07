@@ -4,6 +4,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { useOnboarding } from "@/lib/store/onboarding";
 import { goals as goalOptions } from "@/lib/onboarding-data";
+import { MAX_GOALS } from "@/lib/onboarding/goals";
 import { MultiSelectChips } from "@/components/onboarding/MultiSelectChips";
 import { BottomNav } from "@/components/onboarding/BottomNav";
 import { StepError } from "@/components/onboarding/StepError";
@@ -49,15 +50,21 @@ export default function GoalsStep() {
           What would success look like in 3 months?
         </h1>
         <p className="mt-4 text-[17px] leading-relaxed text-white/80">
-          Pick anything that resonates — at least one. You can change this later from your profile.
+          Pick up to {MAX_GOALS} — the ones you could realistically move in the next three months. You can
+          change this later from your profile.
         </p>
 
         <div className="mt-10">
-          <MultiSelectChips options={goalOptions} selected={selected} onToggle={toggleGoal} />
+          <MultiSelectChips
+            options={goalOptions}
+            selected={selected}
+            onToggle={toggleGoal}
+            max={MAX_GOALS}
+          />
           <p className="mt-4 text-[14px] text-white/60">
             {selected.length === 0
               ? "Pick at least one goal to continue."
-              : `${selected.length} selected.`}
+              : `${selected.length} of ${MAX_GOALS} chosen.`}
           </p>
         </div>
       </div>

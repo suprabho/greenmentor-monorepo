@@ -15,6 +15,8 @@ import { useRouter } from "next/navigation";
 import { ArrowSquareOut, Plus, Sparkle, X } from "@phosphor-icons/react/dist/ssr";
 import { Card, Chip, Stat } from "@/components/ui";
 import { WebinarPollsEditor } from "@/components/webinars/webinar-polls-editor";
+import { WebinarPeople } from "@/components/webinars/webinar-people";
+import { WebinarZoomPolls } from "@/components/webinars/webinar-zoom-polls";
 import { PublicLink } from "@/components/public-link";
 import { publicWebinarUrl } from "@/lib/share-link";
 import type { WebinarRow, WebinarStatus } from "@/lib/db/webinars";
@@ -195,17 +197,20 @@ function toEditState(w: WebinarRow): EditState {
 export function WebinarsPanel({
   initialWebinars,
   initialRsvpCounts,
+  initialAttendanceCounts,
   instructors,
   configured,
 }: {
   initialWebinars: WebinarRow[];
   initialRsvpCounts: Record<string, number>;
+  initialAttendanceCounts: Record<string, number>;
   instructors: InstructorRow[];
   configured: boolean;
 }) {
   const router = useRouter();
   const [webinars, setWebinars] = useState<WebinarRow[]>(initialWebinars);
   const [rsvpCounts] = useState<Record<string, number>>(initialRsvpCounts);
+  const [attendanceCounts] = useState<Record<string, number>>(initialAttendanceCounts);
   const instructorsById = useMemo(
     () => Object.fromEntries(instructors.map((i) => [i.id, i])),
     [instructors]
@@ -557,6 +562,11 @@ export function WebinarsPanel({
                       {(rsvpCounts[w.id] ?? 0) > 0 ? (
                         <Chip tone="teal">{rsvpCounts[w.id]} RSVP{rsvpCounts[w.id] === 1 ? "" : "s"}</Chip>
                       ) : null}
+                      {/* Recorded attendees — distinct from the typed-in `attendees`
+                          metric, which stays the team's own tally. */}
+                      {(attendanceCounts[w.id] ?? 0) > 0 ? (
+                        <Chip tone="green">{attendanceCounts[w.id]} attended</Chip>
+                      ) : null}
                     </div>
                     <div className="mt-0.5 text-[12px] text-gray-500">
                       {fmtDateTime(w.scheduled_at)}
@@ -767,7 +777,18 @@ export function WebinarsPanel({
                       </div>
                     </div>
 
-                    <WebinarPollsEditor webinarId={w.id} />
+                    <WebinarPeople webinarId={w.id} webinarTitle={w.title} />
+
+                    <WebinarZoomPolls webinarId={w.id} webinarTitle={w.title} />
+
+                    {/* Live polls run on Zoom now; the in-app system stays dormant
+                        behind this disclosure rather than being torn out. */}
+                    <details className="mt-4">
+                      <summary className="cursor-pointer select-none text-[11px] font-semibold uppercase tracking-[0.14em] text-gray-500 transition-colors hover:text-ink">
+                        In-app polls (legacy)
+                      </summary>
+                      <WebinarPollsEditor webinarId={w.id} />
+                    </details>
 
                     <div className="mt-4 flex items-center gap-3">
                       <button

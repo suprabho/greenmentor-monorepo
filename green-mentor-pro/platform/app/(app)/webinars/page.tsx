@@ -1,6 +1,12 @@
 import { Card, PageHeader } from "@/components/ui";
 import { WebinarCard, fmtDate } from "@/components/webinars/webinar-card";
-import { fetchPastWebinars, fetchUpcomingWebinars, fetchUserRsvpIds } from "@/lib/webinars/repo";
+import {
+  fetchPastWebinars,
+  fetchRsvpContactDefaults,
+  fetchUpcomingWebinars,
+  fetchUserRsvpIds,
+} from "@/lib/webinars/repo";
+import { EMPTY_RSVP_CONTACT } from "@/lib/webinars/contact";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata = { title: "Webinars & Events — Green Mentor Pro" };
@@ -13,7 +19,11 @@ export default async function WebinarsPage() {
   } = await supabase.auth.getUser();
 
   const [upcoming, past] = await Promise.all([fetchUpcomingWebinars(), fetchPastWebinars()]);
-  const rsvpIds = user ? await fetchUserRsvpIds(user.id) : new Set<string>();
+  // Prefills the RSVP form so a learner who already gave these at onboarding
+  // just confirms. Signed-out visitors see "Sign in to RSVP" and never the form.
+  const [rsvpIds, contactDefaults] = user
+    ? await Promise.all([fetchUserRsvpIds(user.id), fetchRsvpContactDefaults(user)])
+    : [new Set<string>(), EMPTY_RSVP_CONTACT];
 
   return (
     <div>
@@ -31,7 +41,13 @@ export default async function WebinarsPage() {
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {upcoming.map((w) => (
-              <WebinarCard key={w.id} webinar={w} attending={rsvpIds.has(w.id)} signedIn={Boolean(user)} />
+              <WebinarCard
+                key={w.id}
+                webinar={w}
+                attending={rsvpIds.has(w.id)}
+                signedIn={Boolean(user)}
+                contactDefaults={contactDefaults}
+              />
             ))}
           </div>
         )}

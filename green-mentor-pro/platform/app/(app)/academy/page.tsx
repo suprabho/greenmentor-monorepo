@@ -28,6 +28,9 @@ export default async function AcademyPage() {
   // The merchandising catalog is a separate table from the player content above:
   // most of it lives on Learnyst and has no modules/lessons here.
   const catalog = await fetchCatalog();
+  // "Certifications" is the shelf name for delivery === 'live' — the instructor-led
+  // programmes that end in a credential (ISO 14064 Lead Verifier, Master LCA, …).
+  // There is no `certification` value in the schema; don't go looking for one.
   const liveCourses = catalog.courses.filter((c) => c.delivery === "live");
   const learnystSelfPaced = catalog.courses.filter((c) => c.delivery === "self_paced" && c.hostedOn === "learnyst");
   const bundles = catalog.bundles;
@@ -66,9 +69,13 @@ export default async function AcademyPage() {
         sub="Bite-sized ESG courses — short videos, a quick check after every module, and real credentials."
       />
 
+      {/* One shelf, two sources. Where a course is hosted is our plumbing, not
+          something a learner should have to sort out — so in-app player courses
+          and Learnyst self-paced tracks share a grid. Ours lead: those are the
+          ones with progress to resume. */}
       <section>
-        <SectionHeading>Self-paced courses</SectionHeading>
-        {courses.length === 0 ? (
+        <SectionHeading>Self Paced</SectionHeading>
+        {courses.length === 0 && learnystSelfPaced.length === 0 ? (
           <Card className="p-6 text-[13.5px] text-gray-600">No published courses yet — check back soon.</Card>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -86,31 +93,12 @@ export default async function AcademyPage() {
                 />
               );
             })}
-          </div>
-        )}
-      </section>
-
-      {liveCourses.length > 0 && (
-        <section className="mt-10">
-          <SectionHeading>Live training</SectionHeading>
-          <div className="grid gap-4 sm:grid-cols-2">
-            {liveCourses.map((course) => (
-              <LearnystCourseCard key={course.slug} course={course} />
-            ))}
-          </div>
-        </section>
-      )}
-
-      {learnystSelfPaced.length > 0 && (
-        <section className="mt-10">
-          <SectionHeading>Also on Learnyst</SectionHeading>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {learnystSelfPaced.map((course) => (
               <LearnystCourseCard key={course.slug} course={course} />
             ))}
           </div>
-        </section>
-      )}
+        )}
+      </section>
 
       {bundles.length > 0 && (
         <section className="mt-10">
@@ -118,6 +106,17 @@ export default async function AcademyPage() {
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {bundles.map((bundle) => (
               <BundleCard key={bundle.slug} bundle={bundle} />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {liveCourses.length > 0 && (
+        <section className="mt-10">
+          <SectionHeading>Certifications</SectionHeading>
+          <div className="grid gap-4 sm:grid-cols-2">
+            {liveCourses.map((course) => (
+              <LearnystCourseCard key={course.slug} course={course} />
             ))}
           </div>
         </section>

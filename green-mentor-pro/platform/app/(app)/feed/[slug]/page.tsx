@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, ArrowSquareOut } from "@phosphor-icons/react/dist/ssr";
 import { Card, Chip } from "@/components/ui";
+import { ArticleImage } from "@/components/feed/article-image";
 import { articleHref } from "@/lib/share/href";
 import { fetchArticleSocial, resolveArticle, type FeedEntity } from "@/lib/feed/repo";
 import { shareMetadata } from "@/lib/share/og";
@@ -96,16 +97,7 @@ export default async function FeedPostPage({ params }: { params: Promise<{ slug:
       </Link>
 
       <Card className="overflow-hidden">
-        {article.image_url ? (
-          // eslint-disable-next-line @next/next/no-img-element -- arbitrary publisher hosts; next/image needs allow-listed domains
-          <img src={article.image_url} alt="" className="aspect-[16/9] w-full bg-gray-100 object-cover" />
-        ) : (
-          <div className="flex aspect-[16/9] w-full items-center justify-center bg-gradient-to-br from-teal-900 via-teal-800 to-green-700">
-            <span className="px-6 text-center text-[17px] font-semibold tracking-wide text-green-100">
-              {article.source}
-            </span>
-          </div>
-        )}
+        <ArticleImage src={article.image_url} source={article.source} className="aspect-[16/9] w-full" />
 
         <div className="p-6">
           <div className="flex items-center gap-2 text-[12px] text-gray-500">

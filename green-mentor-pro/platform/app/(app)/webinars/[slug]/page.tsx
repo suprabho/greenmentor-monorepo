@@ -9,7 +9,8 @@ import { RsvpButton } from "@/components/webinars/rsvp-button";
 import { fmtDate, fmtTime } from "@/components/webinars/webinar-card";
 import { shareMetadata } from "@/lib/share/og";
 import { webinarHref } from "@/lib/share/href";
-import { fetchUserRsvpIds, resolveWebinar, type Webinar } from "@/lib/webinars/repo";
+import { fetchRsvpContactDefaults, fetchUserRsvpIds, resolveWebinar, type Webinar } from "@/lib/webinars/repo";
+import { EMPTY_RSVP_CONTACT } from "@/lib/webinars/contact";
 import { getWebinarPhase } from "@/lib/webinars/status";
 import { createClient } from "@/lib/supabase/server";
 
@@ -56,7 +57,9 @@ export default async function WebinarDetailPage({ params }: { params: Promise<{ 
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  const rsvpIds = user ? await fetchUserRsvpIds(user.id) : new Set<string>();
+  const [rsvpIds, contactDefaults] = user
+    ? await Promise.all([fetchUserRsvpIds(user.id), fetchRsvpContactDefaults(user)])
+    : [new Set<string>(), EMPTY_RSVP_CONTACT];
 
   const phase = getWebinarPhase(webinar);
   const speakers = webinar.instructors;
@@ -149,8 +152,10 @@ export default async function WebinarDetailPage({ params }: { params: Promise<{ 
             {phase !== "ended" && (
               <RsvpButton
                 webinarId={webinar.id}
+                webinarTitle={webinar.hook ?? webinar.title}
                 initialAttending={rsvpIds.has(webinar.id)}
                 signedIn={Boolean(user)}
+                contactDefaults={contactDefaults}
               />
             )}
             {webinar.registrationUrl && (

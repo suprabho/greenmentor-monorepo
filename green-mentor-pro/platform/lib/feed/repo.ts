@@ -25,11 +25,15 @@ export type FeedArticle = {
   summary: string | null;
   image_url: string | null;
   published_at: string | null;
+  /** "india" | "global", straight off the source config. Feeds rankFeed(). */
+  region: string | null;
   article_entities: { entities: FeedEntity | null }[] | null;
 };
 
+// `region` arrives with migration 0030 — apply it before deploying, or
+// PostgREST 400s the whole select and the feed renders empty.
 export const ARTICLE_COLUMNS =
-  "id, slug, id_prefix, source, title, url, summary, image_url, published_at, article_entities(entities(slug, name, kind))";
+  "id, slug, id_prefix, source, title, url, summary, image_url, published_at, region, article_entities(entities(slug, name, kind))";
 
 /** A row exactly as ARTICLE_COLUMNS returns it, before mapArticle(). */
 export type ArticleRowRaw = Omit<FeedArticle, "shareSlug"> & { slug: string | null; id_prefix: string | null };
@@ -44,6 +48,7 @@ export function mapArticle(row: ArticleRowRaw): FeedArticle {
     summary: row.summary,
     image_url: row.image_url,
     published_at: row.published_at,
+    region: row.region,
     article_entities: row.article_entities,
   };
 }
@@ -70,24 +75,28 @@ export async function resolveArticle(param: string): Promise<FeedArticle | null>
 }
 
 export type ArticleSocial = {
-  stats: { like_count: number; dislike_count: number; comment_count: number };
-  reaction: "like" | "dislike" | null;
+  stats: { like_count: number; comment_count: number };
+  reaction: "like" | null;
 };
 
 /**
- * Like/dislike/comment counts for one article, plus the viewer's own reaction.
+ * Like and comment counts for one article, plus the viewer's own reaction.
  *
  * article_social_stats (migration 0004_feed_social.sql) is a definer view, so
  * the counts are readable signed-out; the reaction lookup is skipped without a
  * user. Both degrade to zeroes rather than throwing if 0004 hasn't been
  * applied, matching how the list page handles it.
+ *
+ * The view and the reactions table still carry `dislike` — the button was
+ * dropped from the UI, not the schema — so a row persisted before that change
+ * reads back as no reaction rather than an unclearable state.
  */
 export async function fetchArticleSocial(articleId: string, userId: string | null): Promise<ArticleSocial> {
   const supabase = await createClient();
   const [{ data: stats }, { data: reaction }] = await Promise.all([
     supabase
       .from("article_social_stats")
-      .select("like_count, dislike_count, comment_count")
+      .select("like_count, comment_count")
       .eq("article_id", articleId)
       .maybeSingle(),
     userId
@@ -98,9 +107,8 @@ export async function fetchArticleSocial(articleId: string, userId: string | nul
   return {
     stats: {
       like_count: stats?.like_count ?? 0,
-      dislike_count: stats?.dislike_count ?? 0,
       comment_count: stats?.comment_count ?? 0,
     },
-    reaction: (reaction?.kind as ArticleSocial["reaction"]) ?? null,
+    reaction: reaction?.kind === "like" ? "like" : null,
   };
 }

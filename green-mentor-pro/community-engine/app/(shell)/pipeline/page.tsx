@@ -1,4 +1,5 @@
-import { FlowArrow, ArrowSquareOut } from "@phosphor-icons/react/dist/ssr";
+import Link from "next/link";
+import { FlowArrow, ArrowSquareOut, ImageBroken } from "@phosphor-icons/react/dist/ssr";
 import { Card, Chip, PageHeader, Stat } from "@/components/ui";
 import { WorkersPanel } from "@/components/pipeline/workers-panel";
 import { EntitiesPanel } from "@/components/pipeline/entities-panel";
@@ -16,6 +17,7 @@ type ArticleRow = {
   title: string;
   url: string;
   summary: string | null;
+  image_url: string | null;
   published_at: string | null;
   created_at: string;
   article_entities: { entities: EntityRef | null }[] | null;
@@ -134,7 +136,7 @@ export default async function PipelinePage() {
     fetchPipelineStats(),
     supabase
       .from("articles")
-      .select("id, source, title, url, summary, published_at, created_at, article_entities(entities(slug, name, kind))")
+      .select("id, source, title, url, summary, image_url, published_at, created_at, article_entities(entities(slug, name, kind))")
       .order("created_at", { ascending: false })
       .limit(RECENT_LIMIT),
   ]);
@@ -222,35 +224,52 @@ export default async function PipelinePage() {
       ) : (
         <Card className="divide-y divide-gray-100">
           {articles.map((art) => (
-            <article key={art.id} className="space-y-2 p-5">
-              <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] text-gray-500">
-                <span className="font-semibold text-gray-700">{art.source}</span>
-                <span>·</span>
-                <span>published {fmtDate(art.published_at)}</span>
-                <span>·</span>
-                <span>ingested {ago(art.created_at)}</span>
-              </div>
-              <a
-                href={art.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="group inline-flex items-start gap-1.5"
-              >
-                <h3 className="text-[15px] font-semibold leading-snug text-ink group-hover:text-teal-700">
-                  {art.title}
-                </h3>
-                <ArrowSquareOut size={14} className="mt-1 shrink-0 text-gray-400 group-hover:text-teal-700" />
-              </a>
-              {art.summary && <p className="text-[13px] leading-relaxed text-gray-700">{art.summary}</p>}
-              {entitiesOf(art).length > 0 && (
-                <div className="flex flex-wrap gap-1.5 pt-0.5">
-                  {entitiesOf(art).map((e) => (
-                    <Chip key={e.slug} tone={KIND_TONE[e.kind] ?? "neutral"}>
-                      {e.name}
-                    </Chip>
-                  ))}
-                </div>
+            <article key={art.id} className="flex gap-4 p-5">
+              {/* Matches the "With image" stat above — an image-less row here is
+                  one to go and fix in the News panel. */}
+              {art.image_url ? (
+                // eslint-disable-next-line @next/next/no-img-element -- arbitrary publisher hosts
+                <img src={art.image_url} alt="" className="hidden h-16 w-28 shrink-0 rounded-lg bg-gray-100 object-cover sm:block" />
+              ) : (
+                <Link
+                  href="/news"
+                  title="No image — set one in the News panel"
+                  className="hidden h-16 w-28 shrink-0 place-items-center rounded-lg bg-gradient-to-br from-teal-900 via-teal-800 to-green-700 text-green-100/70 sm:grid"
+                >
+                  <ImageBroken size={18} />
+                </Link>
               )}
+
+              <div className="min-w-0 flex-1 space-y-2">
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] text-gray-500">
+                  <span className="font-semibold text-gray-700">{art.source}</span>
+                  <span>·</span>
+                  <span>published {fmtDate(art.published_at)}</span>
+                  <span>·</span>
+                  <span>ingested {ago(art.created_at)}</span>
+                </div>
+                <a
+                  href={art.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group inline-flex items-start gap-1.5"
+                >
+                  <h3 className="text-[15px] font-semibold leading-snug text-ink group-hover:text-teal-700">
+                    {art.title}
+                  </h3>
+                  <ArrowSquareOut size={14} className="mt-1 shrink-0 text-gray-400 group-hover:text-teal-700" />
+                </a>
+                {art.summary && <p className="text-[13px] leading-relaxed text-gray-700">{art.summary}</p>}
+                {entitiesOf(art).length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 pt-0.5">
+                    {entitiesOf(art).map((e) => (
+                      <Chip key={e.slug} tone={KIND_TONE[e.kind] ?? "neutral"}>
+                        {e.name}
+                      </Chip>
+                    ))}
+                  </div>
+                )}
+              </div>
             </article>
           ))}
         </Card>

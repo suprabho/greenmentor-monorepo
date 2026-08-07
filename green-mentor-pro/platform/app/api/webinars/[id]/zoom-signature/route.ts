@@ -3,6 +3,7 @@ import { createHmac } from "node:crypto";
 import { jsonError } from "@/lib/api-error";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { recordWebinarJoin } from "@/lib/webinars/attendance";
 
 export const runtime = "nodejs";
 
@@ -12,7 +13,7 @@ export const runtime = "nodejs";
 // the RLS-bound session client, read the meeting details with the service-role
 // client, and hand back only a scoped, expiring credential. The SDK secret is
 // server-only and never leaves this route — the browser gets the computed
-// signature, the public SDK key, and the join fields.
+// signature and the join fields.
 //
 // Access is "any signed-in user" (no RSVP gate), by product decision.
 
@@ -54,8 +55,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     const exp = iat + SIGNATURE_TTL_SECONDS;
     const header = base64url({ alg: "HS256", typ: "JWT" });
     const payload = base64url({
-      appKey: sdkKey,
-      sdkKey,
+      appKey: sdkKey, // SDK ≥5 wants appKey only; the legacy sdkKey claim is deprecated
       mn: meetingNumber,
       role: 0, // 0 = attendee (join-only); the host runs the meeting from Zoom
       iat,
@@ -66,10 +66,15 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
       `${header}.${payload}.` +
       createHmac("sha256", sdkSecret).update(`${header}.${payload}`).digest("base64url");
 
+    // Minting a signature is the moment a learner actually joins — the only
+    // in-app attendance signal we have. Awaited so it can't be cut short when
+    // the response ends, but best-effort inside: it never throws, and a failure
+    // to record must not block the join.
+    await recordWebinarJoin(id, user, { countJoin: true });
+
     const fullName = user.user_metadata?.full_name as string | undefined;
     return NextResponse.json({
       signature,
-      sdkKey,
       meetingNumber,
       password: webinar.zoom_passcode ?? "",
       userName: fullName || user.email || "GreenMentor learner",

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { Card } from "@/components/ui";
 import { ARTICLE_COLUMNS, mapArticle, type ArticleRowRaw, type FeedEntity } from "@/lib/feed/repo";
+import { rankFeed } from "@/lib/feed/rank";
 import { FeedCard } from "./feed-card";
 import type { ArticleStat, CurrentUser, ReactionKind } from "./feed-actions";
 
@@ -11,6 +12,12 @@ export const metadata = { title: "News — Green Mentor Pro" };
 // Everything else (companies, long-tail entities) is filterable via the
 // tags on each article card, just not surfaced here.
 const FEATURED_SLUGS = ["csrd", "issb", "brsr", "ghg-protocol", "scope-3", "materiality"] as const;
+
+// How many cards the reader gets, and how deep we fetch to fill them.
+// rankFeed() re-sorts by region-boosted recency, which can pull an Indian
+// article up from outside the plain top-50 — so over-fetch, then trim.
+const PAGE_SIZE = 50;
+const FETCH_SIZE = 80;
 
 export default async function FeedPage({
   searchParams,
@@ -33,10 +40,10 @@ export default async function FeedPage({
       .from("articles")
       .select(ARTICLE_COLUMNS)
       .order("published_at", { ascending: false, nullsFirst: false })
-      .limit(50),
+      .limit(FETCH_SIZE),
   ]);
 
-  const rows = ((articles ?? []) as unknown as ArticleRowRaw[]).map(mapArticle);
+  const rows = rankFeed(((articles ?? []) as unknown as ArticleRowRaw[]).map(mapArticle)).slice(0, PAGE_SIZE);
   const ids = rows.map((a) => a.id);
 
   // Social layer. The two views come from 0004_feed_social.sql; if that
@@ -44,10 +51,12 @@ export default async function FeedPage({
   // back to zeroed counts, so the feed still renders.
   const [{ data: stats }, { data: myReactions }, { data: profile }] = await Promise.all([
     ids.length
-      ? supabase.from("article_social_stats").select("article_id, like_count, dislike_count, comment_count").in("article_id", ids)
+      ? supabase.from("article_social_stats").select("article_id, like_count, comment_count").in("article_id", ids)
       : Promise.resolve({ data: [] as (ArticleStat & { article_id: string })[] }),
+    // Only likes: the dislike button is gone, so a row left over from before
+    // that change should read as no reaction rather than an unclearable state.
     user && ids.length
-      ? supabase.from("reactions").select("article_id, kind").eq("user_id", user.id).in("article_id", ids)
+      ? supabase.from("reactions").select("article_id, kind").eq("user_id", user.id).eq("kind", "like").in("article_id", ids)
       : Promise.resolve({ data: [] as { article_id: string; kind: ReactionKind }[] }),
     user ? supabase.from("profiles").select("display_name, avatar_url").eq("id", user.id).maybeSingle() : Promise.resolve({ data: null }),
   ]);

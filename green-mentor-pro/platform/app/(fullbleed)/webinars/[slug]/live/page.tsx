@@ -3,16 +3,9 @@ import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "@phosphor-icons/react/dist/ssr";
 import { ZoomEmbed } from "@/components/webinars/zoom-embed";
-import { WebinarPolls } from "@/components/webinars/webinar-polls";
 import { shareMetadata } from "@/lib/share/og";
 import { webinarHref } from "@/lib/share/href";
-import {
-  fetchPollResults,
-  fetchUserPollResponses,
-  fetchWebinarPolls,
-  resolveWebinar,
-  type Webinar,
-} from "@/lib/webinars/repo";
+import { resolveWebinar, type Webinar } from "@/lib/webinars/repo";
 import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -74,13 +67,6 @@ export default async function WebinarLivePage({ params }: { params: Promise<{ sl
   } = await supabase.auth.getUser();
   if (!user) return <SignInGate webinar={webinar} />;
 
-  const polls = await fetchWebinarPolls(webinar.id);
-  const pollIds = polls.map((p) => p.id);
-  const [responses, results] = await Promise.all([
-    fetchUserPollResponses(pollIds),
-    fetchPollResults(pollIds),
-  ]);
-
   return (
     <div className="flex h-dvh flex-col bg-ink">
       {/* Slim top bar: back button + session context */}
@@ -97,15 +83,10 @@ export default async function WebinarLivePage({ params }: { params: Promise<{ sl
         </div>
       </div>
 
-      {/* Stage: Zoom fills the main cell, polls live in a scrollable rail */}
-      <div className="grid min-h-0 flex-1 lg:grid-cols-[minmax(0,1fr)_340px]">
-        <div className="min-h-0 overflow-hidden p-3 lg:p-4">
-          {/* Raw uuid — /api/webinars/[id]/zoom-signature is keyed by id, not slug. */}
-          <ZoomEmbed webinarId={webinar.id} />
-        </div>
-        <aside className="min-h-0 overflow-y-auto border-t border-white/10 bg-gray-50 p-4 lg:border-l lg:border-t-0">
-          <WebinarPolls polls={polls} initialResponses={responses} initialResults={results} userId={user.id} />
-        </aside>
+      {/* Stage: Zoom fills everything below the top bar (polls happen in-meeting via Zoom) */}
+      <div className="min-h-0 flex-1 overflow-hidden p-3 lg:p-4">
+        {/* Raw uuid — /api/webinars/[id]/zoom-signature is keyed by id, not slug. */}
+        <ZoomEmbed webinarId={webinar.id} />
       </div>
     </div>
   );

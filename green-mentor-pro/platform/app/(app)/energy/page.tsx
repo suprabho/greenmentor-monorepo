@@ -5,7 +5,7 @@ import { loadEnergyContext } from "@/lib/energy/page-data";
 import { listFuelEntries, listElectricityEntries, listFugitiveEntries } from "@/lib/energy/repo";
 import type { EntryStatus } from "@/lib/energy/types";
 
-export const metadata = { title: "Longsite Lite — Green Mentor Pro" };
+export const metadata = { title: "ESG Software — Green Mentor Pro" };
 export const dynamic = "force-dynamic";
 
 const counted = (s: EntryStatus) => s !== "Rejected"; // draft/submitted/accepted count toward the inventory
@@ -29,7 +29,7 @@ export default async function EnergyPage() {
   return (
     <div>
       <PageHeader
-        title="Longsite Lite"
+        title="ESG Software"
         sub="Scope 1 (fuel combustion) and Scope 2 (electricity) emissions. Enter activity data; the platform looks up the emission factor and computes tCO₂e."
         action={
           <Link

@@ -2,11 +2,14 @@ import Link from "next/link";
 import { ArrowRight, SignIn, VideoCamera } from "@phosphor-icons/react/dist/ssr";
 import { Card } from "@/components/ui";
 import { AgendaCard } from "@/components/home/agenda-card";
+import { CommunityCard } from "@/components/home/community-card";
 import { FeedPreview, type FeedPreviewArticle } from "@/components/home/feed-preview";
 import { WebinarCard } from "@/components/webinars/webinar-card";
+import { rankFeed } from "@/lib/feed/rank";
 import { buildAgenda } from "@/lib/home/agenda";
 import { fetchJobs } from "@/lib/jobs/repo";
-import { fetchUpcomingWebinars, fetchUserRsvpIds } from "@/lib/webinars/repo";
+import { fetchRsvpContactDefaults, fetchUpcomingWebinars, fetchUserRsvpIds } from "@/lib/webinars/repo";
+import { EMPTY_RSVP_CONTACT } from "@/lib/webinars/contact";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata = { title: "Home — Green Mentor Pro" };
@@ -30,18 +33,22 @@ export default async function HomePage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const [webinars, jobs, { data: articles }, profileRes, rsvpIds] = await Promise.all([
+  const [webinars, jobs, { data: articles }, profileRes, rsvpIds, contactDefaults] = await Promise.all([
     fetchUpcomingWebinars(),
     fetchJobs(),
+    // Over-fetch and rank so the rail leads with Indian coverage, same as /feed.
     supabase
       .from("articles")
-      .select("id, slug, source, title, image_url, published_at")
+      .select("id, slug, source, title, image_url, published_at, region")
       .order("published_at", { ascending: false, nullsFirst: false })
-      .limit(5),
+      .limit(20),
     user
       ? supabase.from("profiles").select("display_name").eq("id", user.id).maybeSingle()
       : Promise.resolve({ data: null }),
     user ? fetchUserRsvpIds(user.id) : Promise.resolve(new Set<string>()),
+    // Prefills the RSVP form on the cards below; signed-out visitors get
+    // "Sign in to RSVP" and never see it.
+    user ? fetchRsvpContactDefaults(user) : Promise.resolve(EMPTY_RSVP_CONTACT),
   ]);
 
   const agenda = buildAgenda(webinars, jobs);
@@ -90,18 +97,25 @@ export default async function HomePage() {
             ) : (
               <div className="grid gap-4 sm:grid-cols-2">
                 {nextWebinars.map((w) => (
-                  <WebinarCard key={w.id} webinar={w} attending={rsvpIds.has(w.id)} signedIn={Boolean(user)} />
+                  <WebinarCard
+                    key={w.id}
+                    webinar={w}
+                    attending={rsvpIds.has(w.id)}
+                    signedIn={Boolean(user)}
+                    contactDefaults={contactDefaults}
+                  />
                 ))}
               </div>
             )}
           </section>
 
-          <FeedPreview articles={(articles ?? []) as FeedPreviewArticle[]} />
+          <FeedPreview articles={rankFeed((articles ?? []) as FeedPreviewArticle[]).slice(0, 5)} />
         </div>
 
         {/* Agenda rail — first on mobile, sticky on desktop */}
         <div className="order-1 lg:order-2 lg:sticky lg:top-8">
           <AgendaCard items={agenda} />
+          <CommunityCard />
         </div>
       </div>
     </div>
