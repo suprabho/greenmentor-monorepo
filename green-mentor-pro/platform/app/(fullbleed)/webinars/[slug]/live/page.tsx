@@ -1,7 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft } from "@phosphor-icons/react/dist/ssr";
-import { ZoomEmbed } from "@/components/webinars/zoom-embed";
+import { ArrowLeft, VideoCamera } from "@phosphor-icons/react/dist/ssr";
+import { ZoomJoinCard } from "@/components/webinars/zoom-join-card";
 import { WebinarPolls } from "@/components/webinars/webinar-polls";
 import { webinarHref } from "@/lib/share/href";
 import {
@@ -10,6 +10,7 @@ import {
   fetchWebinarPolls,
   resolveWebinar,
 } from "@/lib/webinars/repo";
+import { fetchZoomJoin } from "@/lib/webinars/zoom-join";
 import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -28,7 +29,12 @@ function fmtWhen(iso: string | null): string {
 
 // The live room requires a signed-in user (any signed-in learner — no RSVP
 // gate). Gated here in-page rather than via middleware PROTECTED_PATHS, which
-// is prefix-based and would wrongly gate the public /webinars listing.
+// is prefix-based and would wrongly gate the public /webinars listing. The
+// gate is also what makes it safe to render the meeting id + passcode here
+// (fetchZoomJoin reads them with the service-role client).
+//
+// The session itself runs in Zoom — the stage is a hand-off card (Zoom app /
+// browser web client), not the embedded SDK player it used to be.
 //
 // `slug` is a share slug ("scope-3-3f8a1c2e9d"), but resolveWebinar also takes
 // a bare uuid so the /webinars/<uuid>/live links that predate slugs still work.
@@ -44,7 +50,7 @@ export default async function WebinarLivePage({ params }: { params: Promise<{ sl
   if (!webinar) notFound();
   if (slug !== webinar.shareSlug) redirect(`${webinarHref(webinar)}/live`);
 
-  const polls = await fetchWebinarPolls(webinar.id);
+  const [polls, zoom] = await Promise.all([fetchWebinarPolls(webinar.id), fetchZoomJoin(webinar.id)]);
   const pollIds = polls.map((p) => p.id);
   const [responses, results] = await Promise.all([
     fetchUserPollResponses(pollIds),
@@ -71,11 +77,21 @@ export default async function WebinarLivePage({ params }: { params: Promise<{ sl
         </div>
       </div>
 
-      {/* Stage: Zoom fills the main cell, polls live in a scrollable rail */}
+      {/* Stage: the Zoom hand-off fills the main cell, polls live in a scrollable rail */}
       <div className="grid min-h-0 flex-1 lg:grid-cols-[minmax(0,1fr)_340px]">
         <div className="min-h-0 overflow-hidden p-3 lg:p-4">
-          {/* Raw uuid — /api/webinars/[id]/zoom-signature is keyed by id, not slug. */}
-          <ZoomEmbed webinarId={webinar.id} />
+          {zoom ? (
+            /* Raw uuid — the /api/webinars/[id]/join ping is keyed by id, not slug. */
+            <ZoomJoinCard webinarId={webinar.id} zoom={zoom} />
+          ) : (
+            <div className="flex h-full min-h-[420px] flex-col items-center justify-center gap-3 rounded-2xl border border-gray-200 bg-gray-900 p-8 text-center lg:min-h-0">
+              <VideoCamera size={30} className="text-white/80" weight="fill" />
+              <p className="max-w-sm text-[13.5px] text-white/80">
+                The host hasn&apos;t attached the Zoom meeting yet — check back closer to the
+                session.
+              </p>
+            </div>
+          )}
         </div>
         <aside className="min-h-0 overflow-y-auto border-t border-white/10 bg-gray-50 p-4 lg:border-l lg:border-t-0">
           <WebinarPolls polls={polls} initialResponses={responses} initialResults={results} userId={user.id} />
