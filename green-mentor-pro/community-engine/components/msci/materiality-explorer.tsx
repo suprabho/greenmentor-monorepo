@@ -12,6 +12,7 @@
  * (MSCI applies them to only a subset of companies in the industry).
  */
 import { useMemo, useState } from "react";
+import { Chip } from "@/components/ui";
 import type { MsciPillar } from "@/lib/msci/materiality-map";
 import { PILLAR_META, PILLAR_ORDER, fmtWeight } from "./pillars";
 
@@ -23,6 +24,20 @@ export type ExplorerIndustry = {
   sectorCode: string;
   weights: number[];
   relevance: number[];
+  /** NIC-2008 anchor from lib/msci/nic-crosswalk — sub-industries only, null for sectors. */
+  nic: {
+    section: string;
+    sectionTitle: string;
+    division: string;
+    divisionTitle: string;
+    confidence: "high" | "medium" | "low";
+  } | null;
+};
+
+const CONFIDENCE_TONE: Record<"high" | "medium" | "low", "green" | "warn" | "neutral"> = {
+  high: "green",
+  medium: "warn",
+  low: "neutral",
 };
 
 /** Fixed bar scale (%). Above the global max single-issue weight (~36) so bars never clip. */
@@ -148,10 +163,31 @@ export function MaterialityExplorer({
               <span className="font-semibold text-ink">{selected.name}</span>{" "}
               <span className="text-gray-400">
                 · GICS {selected.gicsCode} · {selected.level === "sector" ? "sector" : "sub-industry"}
-              </span>
+              </span>{" "}
+              {selected.nic && (
+                <Chip tone={CONFIDENCE_TONE[selected.nic.confidence]}>
+                  NIC {selected.nic.section} · {selected.nic.division}
+                </Chip>
+              )}
             </div>
             <div className="text-[12px] text-gray-500">{rows.length} material Key Issues</div>
           </div>
+
+          {selected.nic && (
+            <p className="-mt-2 mb-3 text-[12px] text-gray-600">
+              Sector{" "}
+              <span className="font-medium text-gray-800">
+                {selected.nic.section} — {selected.nic.sectionTitle}
+              </span>
+              {" · "}Industry{" "}
+              <span className="font-medium text-gray-800">
+                {selected.nic.division} — {selected.nic.divisionTitle}
+              </span>
+              {selected.nic.confidence !== "high" && (
+                <span className="text-gray-400"> ({selected.nic.confidence} confidence)</span>
+              )}
+            </p>
+          )}
 
           {PILLAR_ORDER.map((p) => {
             const pillarRows = rows.filter((r) => r.issue.pillar === p);

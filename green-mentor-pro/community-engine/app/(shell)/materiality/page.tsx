@@ -12,6 +12,8 @@ import {
   WEIGHTED_ISSUE_ORDER,
   MSCI_KEY_ISSUE_BY_ID,
 } from "@/lib/msci/materiality-map";
+import { CROSSWALK_BY_GICS } from "@/lib/msci/nic-crosswalk";
+import { NIC_SECTIONS } from "@/lib/nic/classification";
 
 export const metadata = { title: "MSCI ESG Materiality Map — GreenMentor Community" };
 
@@ -21,14 +23,35 @@ const issuesByCol: ExplorerIssue[] = WEIGHTED_ISSUE_ORDER.map((id) => {
   return { id: k.id, name: k.name, description: k.description, pillar: k.pillar };
 });
 
-const industries: ExplorerIndustry[] = MSCI_INDUSTRIES.map((ind) => ({
-  gicsCode: ind.gicsCode,
-  name: ind.name,
-  level: ind.level,
-  sectorCode: ind.sectorCode,
-  weights: [...ind.weights],
-  relevance: [...ind.relevance],
-}));
+// NIC division code → titles, to expand the crosswalk's codes server-side.
+const NIC_DIVISION_TITLES = new Map(
+  NIC_SECTIONS.flatMap((s) =>
+    s.divisions.map((d) => [d.code, { sectionTitle: s.title, divisionTitle: d.title }] as const),
+  ),
+);
+
+const industries: ExplorerIndustry[] = MSCI_INDUSTRIES.map((ind) => {
+  const xw = CROSSWALK_BY_GICS.get(ind.gicsCode);
+  const titles = xw ? NIC_DIVISION_TITLES.get(xw.division) : undefined;
+  return {
+    gicsCode: ind.gicsCode,
+    name: ind.name,
+    level: ind.level,
+    sectorCode: ind.sectorCode,
+    weights: [...ind.weights],
+    relevance: [...ind.relevance],
+    nic:
+      xw && titles
+        ? {
+            section: xw.section,
+            sectionTitle: titles.sectionTitle,
+            division: xw.division,
+            divisionTitle: titles.divisionTitle,
+            confidence: xw.confidence,
+          }
+        : null,
+  };
+});
 
 export default async function MaterialityPage() {
   await requireAdmin();
