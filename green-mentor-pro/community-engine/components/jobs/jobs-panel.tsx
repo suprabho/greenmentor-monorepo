@@ -13,6 +13,7 @@ import { ArrowSquareOut, Briefcase, Plus } from "@phosphor-icons/react/dist/ssr"
 import { AdminEditPanel, AdminTable } from "@/components/admin";
 import { Card, Chip, Stat } from "@/components/ui";
 import { PublicLink } from "@/components/public-link";
+import { ShareButton } from "@/components/share-button";
 import { publicJobUrl } from "@/lib/share-link";
 import type { JobRow, JobSeniority, JobStatus } from "@/lib/db/jobs";
 
@@ -727,9 +728,10 @@ function JobsTable({
           key: "actions",
           label: "Actions",
           sticky: true,
-          className: "w-32 text-right",
+          className: "w-44 text-right",
           render: (job) => (
             <div className="flex justify-end gap-3">
+              {job.status === "published" ? <ShareButton url={publicJobUrl(job)} title={job.title} /> : null}
               <button type="button" onClick={() => onEdit(job)} disabled={busyId === job.id} className="text-[12px] font-medium text-gray-600 hover:text-ink disabled:opacity-40">Edit</button>
               <button type="button" onClick={() => onDelete(job)} disabled={busyId === job.id} className="text-[12px] font-medium text-danger hover:underline disabled:opacity-40">Delete</button>
             </div>

@@ -29,3 +29,8 @@ export function publicWebinarUrl(row: ShareKeys): string {
 export function publicJobUrl(row: ShareKeys): string {
   return `${platformOrigin()}/jobs/${segment(row)}`;
 }
+
+/** The platform's feed permalink for a news article — not the publisher's URL. */
+export function publicNewsUrl(row: ShareKeys): string {
+  return `${platformOrigin()}/feed/${segment(row)}`;
+}
