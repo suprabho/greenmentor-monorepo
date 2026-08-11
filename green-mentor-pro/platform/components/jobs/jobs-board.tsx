@@ -95,22 +95,24 @@ export function JobsBoard({ jobs }: { jobs: Job[] }) {
       </div>
 
       {/* Seniority pills */}
-      <div className="mb-5 flex flex-wrap gap-2">
-        {SENIORITY_FILTERS.map((f) => (
-          <button
-            key={f.value}
-            type="button"
-            onClick={() => setSeniority(f.value)}
-            className={
-              seniority === f.value
-                ? "rounded-pill bg-teal-900 px-3.5 py-1.5 text-[12.5px] font-semibold text-white"
-                : "rounded-pill border border-gray-200 bg-white px-3.5 py-1.5 text-[12.5px] font-medium text-gray-700 hover:bg-gray-50"
-            }
-          >
-            {f.label}
-          </button>
-        ))}
-        <span className="ml-auto self-center text-[12px] font-medium text-gray-500">
+      <div className="mb-5 flex items-center gap-2">
+        <div className="no-scrollbar flex flex-1 gap-2 overflow-x-auto">
+          {SENIORITY_FILTERS.map((f) => (
+            <button
+              key={f.value}
+              type="button"
+              onClick={() => setSeniority(f.value)}
+              className={
+                seniority === f.value
+                  ? "shrink-0 rounded-pill bg-teal-900 px-3.5 py-1.5 text-[12.5px] font-semibold text-white"
+                  : "shrink-0 rounded-pill border border-gray-200 bg-white px-3.5 py-1.5 text-[12.5px] font-medium text-gray-700 hover:bg-gray-50"
+              }
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
+        <span className="shrink-0 self-center text-[12px] font-medium text-gray-500">
           {shown.length} role{shown.length === 1 ? "" : "s"}
         </span>
       </div>
