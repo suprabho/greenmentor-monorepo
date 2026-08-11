@@ -251,6 +251,9 @@ export interface ShareCardJob {
   title: string;
   company: string | null;
   location: string | null;
+  /** Filter facet (India, UAE, …) — the picker's geography dropdown; cards
+   *  render the free-text `location` instead. */
+  country: string | null;
   employment_type: string;
   experience: string | null;
   /** entry | mid | senior | lead (matches community_jobs.seniority). */

@@ -7,13 +7,14 @@ import type { ShareCardJob } from "./types";
  *  this pipeline threads (studio data route, export, publish) would read zero
  *  rows from it. Consequence: only PUBLISHED jobs are pickable/renderable. */
 const JOB_SELECT =
-  "id, title, company, location, employment_type, experience, seniority, details, tags, salary, application_deadline, posted_on";
+  "id, title, company, location, country, employment_type, experience, seniority, details, tags, salary, application_deadline, posted_on";
 
 type JobPublicRow = {
   id: string;
   title: string;
   company: string | null;
   location: string | null;
+  country: string | null;
   employment_type: string;
   experience: string | null;
   seniority: string | null;
