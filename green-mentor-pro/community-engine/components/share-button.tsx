@@ -9,10 +9,10 @@ import { Check, ShareNetwork } from "@phosphor-icons/react";
  * deeplink to the editor so it can go straight into a newsletter or WhatsApp.
  *
  * Native share sheet on phones; everywhere else the button copies the URL,
- * with the inline "Copied" flash as feedback. Same conventions as the
- * platform's components/share/share-button.tsx, except it takes the absolute
- * URL from lib/share-link.ts — the target lives on the platform origin, not
- * this app's.
+ * flashing a green check as feedback. Icon-only so it fits the dense action
+ * rows. Same conventions as the platform's components/share/share-button.tsx,
+ * except it takes the absolute URL from lib/share-link.ts — the target lives
+ * on the platform origin, not this app's.
  */
 
 const COPIED_MS = 1500;
@@ -21,6 +21,11 @@ const COPIED_MS = 1500;
 // presents a macOS desktop UA — so both land in the copy branch by design.
 const isPhoneUA = () =>
   typeof navigator !== "undefined" && /iPhone|iPod|Android.*Mobile/i.test(navigator.userAgent);
+
+/** Shared look for the icon-only actions in AdminTable rows — pair with a
+ *  `title` + `aria-label`, since there's no visible text to announce. */
+export const iconActionCls =
+  "grid size-7 shrink-0 place-items-center rounded-lg text-gray-500 transition-colors hover:bg-gray-100 hover:text-ink disabled:opacity-40";
 
 export function ShareButton({
   url,
@@ -58,19 +63,17 @@ export function ShareButton({
     }
   }, [url, title]);
 
+  // aria-label carries the state for screen readers — icon-only, so there's
+  // no visible text to announce.
   return (
     <button
       type="button"
       onClick={() => void share()}
-      title={url}
-      className={clsx(
-        "inline-flex items-center gap-1 text-[12px] font-medium transition-colors",
-        copied ? "text-green-700" : "text-gray-600 hover:text-ink",
-        className,
-      )}
+      title={copied ? "Copied" : `Share — ${url}`}
+      aria-label={copied ? "Copied" : "Share"}
+      className={clsx(iconActionCls, copied && "text-green-700 hover:text-green-700", className)}
     >
-      {copied ? <Check size={12} weight="bold" /> : <ShareNetwork size={12} />}
-      {copied ? "Copied" : "Share"}
+      {copied ? <Check size={15} weight="bold" /> : <ShareNetwork size={15} />}
     </button>
   );
 }
