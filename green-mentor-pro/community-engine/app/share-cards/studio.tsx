@@ -45,6 +45,7 @@ import {
   type GmAspectRatio,
   type ShareCardSnapshotV1,
 } from "@/lib/share-cards/types";
+import { PublishControls } from "./publish-controls";
 import { SaveControls } from "./save-bar";
 
 // Register the gmcard:* modules + their picker editors into the registries on
@@ -278,6 +279,7 @@ export function ShareCardStudio({ initialId }: { initialId: string | null }) {
                 {exportError}
               </span>
             )}
+            <PublishControls cardId={loadedId} />
             <DownloadMenu
               disabled={!hasLayers}
               downloading={downloading !== null}

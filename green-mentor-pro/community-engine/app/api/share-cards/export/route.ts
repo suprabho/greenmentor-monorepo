@@ -1,14 +1,8 @@
 import { isAdmin } from "@/lib/auth/admin";
 import { createClient } from "@/lib/supabase/server";
-import { screenshotUrl, type ImageFormat } from "@/lib/export/screenshot";
-import { fetchShareCardArticles } from "@/lib/share-cards/articles";
-import { delHandoff, putHandoff } from "@/lib/share-cards/handoff";
-import {
-  CARD_RENDER_SCALE,
-  collectArticleIds,
-  normalizeSnapshot,
-  stageSizeFor,
-} from "@/lib/share-cards/types";
+import { type ImageFormat } from "@/lib/export/screenshot";
+import { renderErrorHint, renderShareCard } from "@/lib/share-cards/renderCard";
+import { normalizeSnapshot } from "@/lib/share-cards/types";
 
 // Playwright needs the Node runtime (not Edge) and time to drive a browser.
 export const runtime = "nodejs";
@@ -20,10 +14,9 @@ export const runtime = "nodejs";
 export const maxDuration = 300;
 
 /**
- * Render a share card to PNG/WebP: resolve the snapshot's article picks
- * server-side, park { snapshot, data } in the export handoff, point a headless
- * browser at /share-cards/render?id=…, and screenshot #card-stage at
- * deviceScaleFactor 1/CARD_RENDER_SCALE — exactly the configured output pixels.
+ * Render a share card to PNG/WebP and stream the bytes back as a download.
+ * The render pipeline itself (handoff → headless browser → screenshot) lives
+ * in lib/share-cards/renderCard.ts, shared with the publish route.
  */
 export async function POST(req: Request) {
   const supabase = await createClient();
@@ -49,34 +42,9 @@ export async function POST(req: Request) {
     return new Response("Add at least one layer before exporting", { status: 400 });
   }
 
-  let handoffId: string | null = null;
   try {
-    const ids = collectArticleIds(snapshot);
-    const articles = ids.length > 0 ? await fetchShareCardArticles(supabase, { ids }) : [];
-    handoffId = await putHandoff(supabase, { snapshot, data: { articles } });
-
     const origin = new URL(req.url).origin;
-    const size = stageSizeFor(snapshot.ratio);
-    // Vercel Deployment Protection intercepts the headless browser's visit to
-    // our own deployment URL (it has no session). When the project has
-    // "Protection Bypass for Automation" enabled, Vercel injects this secret —
-    // pass it as query params; the set-bypass-cookie flag covers the page's
-    // JS/CSS subresource requests too.
-    const bypass = process.env.VERCEL_AUTOMATION_BYPASS_SECRET;
-    const bypassParams = bypass
-      ? `&x-vercel-protection-bypass=${encodeURIComponent(bypass)}&x-vercel-set-bypass-cookie=true`
-      : "";
-    const buf = await screenshotUrl(
-      `${origin}/share-cards/render?id=${encodeURIComponent(handoffId)}${bypassParams}`,
-      {
-        selector: "#card-stage",
-        viewport: { width: size.w, height: size.h },
-        deviceScaleFactor: 1 / CARD_RENDER_SCALE,
-        // The aura needs time to warm into a vivid frame; flat/image cards don't.
-        settleMs: snapshot.frame.background.type === "aura" ? 2600 : 1200,
-        format,
-      }
-    );
+    const buf = await renderShareCard(supabase, snapshot, { origin, format });
 
     const contentType = format === "webp" ? "image/webp" : "image/png";
     return new Response(new Uint8Array(buf), {
@@ -89,19 +57,6 @@ export async function POST(req: Request) {
     });
   } catch (e) {
     const msg = (e as Error).message ?? "render failed";
-    // Actionable hints for the two most common setup gaps.
-    let hint = "";
-    if (/community_share_card_exports/i.test(msg)) {
-      hint =
-        " — the export handoff table is missing: apply supabase/migrations/0003_share_card_export_handoff.sql in the Supabase SQL editor.";
-    } else if (/never showed|waitForSelector/i.test(msg) && process.env.VERCEL_ENV) {
-      hint =
-        " — likely Vercel Deployment Protection blocking the headless browser: enable 'Protection Bypass for Automation' in the Vercel project settings (adds VERCEL_AUTOMATION_BYPASS_SECRET) and redeploy.";
-    } else if (/Executable doesn't exist|launch/i.test(msg)) {
-      hint = " — run `npx playwright install chromium` in green-mentor-pro/community-engine.";
-    }
-    return new Response(`Export failed: ${msg}${hint}`, { status: 500 });
-  } finally {
-    if (handoffId) await delHandoff(supabase, handoffId).catch(() => {});
+    return new Response(`Export failed: ${msg}${renderErrorHint(msg)}`, { status: 500 });
   }
 }

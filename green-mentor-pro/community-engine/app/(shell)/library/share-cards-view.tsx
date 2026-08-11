@@ -50,7 +50,7 @@ function CardActions({ row, onChanged }: { row: SavedShareCardRow; onChanged: ()
   );
 }
 
-function CardsTable({ rows, mine, onChanged }: { rows: SavedShareCardRow[]; mine: boolean; onChanged: () => void }) {
+function CardsTable({ rows, mine, published, onChanged }: { rows: SavedShareCardRow[]; mine: boolean; published: Set<string>; onChanged: () => void }) {
   return (
     <AdminTable
       rows={rows}
@@ -67,7 +67,12 @@ function CardsTable({ rows, mine, onChanged }: { rows: SavedShareCardRow[]; mine
           key: "visibility",
           label: "Visibility",
           responsive: "secondary",
-          render: (row) => <Chip tone={row.visibility === "shared" ? "green" : "neutral"}>{row.visibility === "shared" ? "Shared" : "Personal"}</Chip>,
+          render: (row) => (
+            <div className="flex flex-wrap gap-1.5">
+              <Chip tone={row.visibility === "shared" ? "green" : "neutral"}>{row.visibility === "shared" ? "Shared" : "Personal"}</Chip>
+              {published.has(row.id) && <Chip tone="teal">Published</Chip>}
+            </div>
+          ),
         },
         {
           key: "updated",
@@ -87,7 +92,9 @@ function CardsTable({ rows, mine, onChanged }: { rows: SavedShareCardRow[]; mine
   );
 }
 
-export function ShareCardsLibraryView({ mine, shared }: { mine: SavedShareCardRow[]; shared: SavedShareCardRow[] }) {
+export function ShareCardsLibraryView({ mine, shared, published = [] }: { mine: SavedShareCardRow[]; shared: SavedShareCardRow[]; published?: string[] }) {
+  // An array prop (Sets don't cross the server→client boundary), a Set here.
+  const publishedIds = new Set(published);
   return (
     <div className="space-y-8">
       <section>
@@ -95,12 +102,12 @@ export function ShareCardsLibraryView({ mine, shared }: { mine: SavedShareCardRo
         {mine.length === 0 ? (
           <Card className="p-6 text-[13px] text-gray-500">No saved share cards yet. Open the <Link href="/share-cards" className="font-semibold text-green-700">Share cards studio</Link> and hit <span className="font-semibold">Save</span>.</Card>
         ) : (
-          <CardsTable rows={mine} mine onChanged={() => window.location.reload()} />
+          <CardsTable rows={mine} mine published={publishedIds} onChanged={() => window.location.reload()} />
         )}
       </section>
       <section>
         <h2 className="mb-3 text-[13px] font-semibold uppercase tracking-[0.08em] text-gray-500">Team library</h2>
-        <CardsTable rows={shared} mine={false} onChanged={() => undefined} />
+        <CardsTable rows={shared} mine={false} published={publishedIds} onChanged={() => undefined} />
       </section>
     </div>
   );
