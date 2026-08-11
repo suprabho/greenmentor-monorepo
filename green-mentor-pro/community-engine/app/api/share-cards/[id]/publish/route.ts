@@ -2,8 +2,8 @@
  * POST → publish this saved share card to the learner platform: render the
  * card's SAVED config to PNG (the same pipeline as the download export),
  * upload it to the public `share-cards` bucket, and upsert the card's row in
- * community_share_card_publications — which the platform's Content Library
- * (/feed/library) reads through the share_cards_public view.
+ * community_share_card_publications — which the platform's News feed (/feed)
+ * reads through the share_cards_public view and interleaves with articles.
  * Body: { caption?: string }. Re-publishing replaces the image + metadata.
  *
  * DELETE → unpublish: remove the publication row and the card's rendered

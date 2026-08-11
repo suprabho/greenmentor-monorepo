@@ -10,7 +10,7 @@ import {
 } from "@phosphor-icons/react";
 import { createClient } from "@/lib/supabase/client";
 import { getPublicationForCard, type ShareCardPublicationRow } from "@/lib/db/shareCards";
-import { publicLibraryUrl } from "@/lib/share-link";
+import { publicFeedUrl } from "@/lib/share-link";
 
 const controlBtn =
   "flex items-center gap-1.5 whitespace-nowrap rounded-md px-3 py-1.5 text-xs disabled:cursor-not-allowed disabled:opacity-40";
@@ -18,7 +18,7 @@ const menuItem =
   "flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-xs text-neutral-200 hover:bg-white/5";
 
 /**
- * Publish the loaded card to the learner platform's Content Library — renders
+ * Publish the loaded card into the learner platform's News feed — renders
  * as an inline dark-toolbar control next to the Download menu.
  *
  * Publishing renders the SAVED config (the publish API reads the card row, not
@@ -116,7 +116,7 @@ export function PublishControls({ cardId }: { cardId: string | null }) {
           disabled={!cardId || busy !== null}
           title={
             cardId
-              ? "Publish the saved version of this card to the platform's Content Library"
+              ? "Publish the saved version of this card into the platform's News feed"
               : "Save the card first — publishing renders the saved version"
           }
           className={`${controlBtn} border border-green-500/40 font-semibold text-green-500 hover:bg-green-500/10`}
@@ -161,7 +161,7 @@ export function PublishControls({ cardId }: { cardId: string | null }) {
           </button>
           <a
             role="menuitem"
-            href={publicLibraryUrl()}
+            href={publicFeedUrl()}
             target="_blank"
             rel="noreferrer"
             onClick={() => setOpen(false)}

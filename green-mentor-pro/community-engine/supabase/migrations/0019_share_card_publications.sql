@@ -1,5 +1,6 @@
--- community_share_card_publications — share cards published to the learner
--- platform's Content Library (/feed/library on pro.greenmentor.co).
+-- community_share_card_publications — share cards published into the learner
+-- platform's News feed (/feed on pro.greenmentor.co), interleaved with
+-- articles.
 --
 -- Publishing snapshots the rendered output, not the live config: the
 -- admin-gated publish route (app/api/share-cards/[id]/publish) renders the

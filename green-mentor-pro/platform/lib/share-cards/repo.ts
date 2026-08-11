@@ -43,7 +43,7 @@ function mapShareCard(row: ShareCardRowRaw): ShareCard {
   };
 }
 
-/** CSS aspect-ratio ("4 / 5") for a card's ratio string, so the gallery can
+/** CSS aspect-ratio ("4 / 5") for a card's ratio string, so the feed can
  *  reserve the right box before the image loads. Unknown shapes read square. */
 export function cardAspect(ratio: string): string {
   const m = /^(\d+):(\d+)$/.exec(ratio.trim());

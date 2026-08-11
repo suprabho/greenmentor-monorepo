@@ -30,9 +30,9 @@ export function publicJobUrl(row: ShareKeys): string {
   return `${platformOrigin()}/jobs/${segment(row)}`;
 }
 
-/** The platform's Content Library — where published share cards land. A page
- *  link, not a per-item deeplink: the library is a gallery with no detail
- *  routes, so cards carry no share keys. */
-export function publicLibraryUrl(): string {
-  return `${platformOrigin()}/feed/library`;
+/** The platform's News feed — where published share cards land, interleaved
+ *  with articles. A page link, not a per-item deeplink: feed share cards have
+ *  no detail routes, so they carry no share keys. */
+export function publicFeedUrl(): string {
+  return `${platformOrigin()}/feed`;
 }
