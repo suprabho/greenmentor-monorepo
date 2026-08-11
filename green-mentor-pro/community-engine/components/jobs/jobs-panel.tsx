@@ -15,6 +15,14 @@ import { Card, Chip, Stat } from "@/components/ui";
 import { PublicLink } from "@/components/public-link";
 import { ShareButton, iconActionCls } from "@/components/share-button";
 import { publicJobUrl } from "@/lib/share-link";
+import {
+  EMPTY_JOB_FILTERS,
+  JobsFilterPanel,
+  JobsFilterToggle,
+  activeFilterCount,
+  jobMatchesFilters,
+  type JobFilters,
+} from "@/components/jobs/jobs-filters";
 import type { JobRow, JobSeniority, JobStatus } from "@/lib/db/jobs";
 
 type Toast = { type: "idle" | "ok" | "err" | "info"; msg?: string };
@@ -309,6 +317,8 @@ export function JobsPanel({ initialJobs, configured }: { initialJobs: JobRow[]; 
   const [jobs, setJobs] = useState<JobRow[]>(initialJobs);
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | JobStatus>("all");
+  const [filters, setFilters] = useState<JobFilters>(EMPTY_JOB_FILTERS);
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [adding, setAdding] = useState(false);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
@@ -325,7 +335,8 @@ export function JobsPanel({ initialJobs, configured }: { initialJobs: JobRow[]; 
   }, [jobs]);
 
   const q = query.trim().toLowerCase();
-  const shown = useMemo(
+  /** Status tab + search only — the pool the filter panel derives its facets from. */
+  const base = useMemo(
     () =>
       jobs.filter((j) => {
         if (statusFilter !== "all" && j.status !== statusFilter) return false;
@@ -339,6 +350,12 @@ export function JobsPanel({ initialJobs, configured }: { initialJobs: JobRow[]; 
         );
       }),
     [jobs, statusFilter, q]
+  );
+
+  const activeFilters = activeFilterCount(filters);
+  const shown = useMemo(
+    () => (activeFilters === 0 ? base : base.filter((j) => jobMatchesFilters(j, filters))),
+    [base, filters, activeFilters]
   );
 
   const closeForm = () => {
@@ -484,6 +501,11 @@ export function JobsPanel({ initialJobs, configured }: { initialJobs: JobRow[]; 
             ))}
           </div>
           <div className="flex items-center gap-2">
+            <JobsFilterToggle
+              open={filtersOpen}
+              onToggle={() => setFiltersOpen((v) => !v)}
+              activeCount={activeFilters}
+            />
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
@@ -505,11 +527,28 @@ export function JobsPanel({ initialJobs, configured }: { initialJobs: JobRow[]; 
           </div>
         </div>
 
+        <JobsFilterPanel
+          open={filtersOpen}
+          base={base}
+          filters={filters}
+          onChange={setFilters}
+          matchCount={shown.length}
+        />
+
         {shown.length === 0 ? (
           <p className="p-5 text-[13px] text-gray-500">
             {jobs.length === 0
               ? "No jobs yet — add the first one above."
               : `No jobs match this filter${query.trim() ? ` / "${query.trim()}"` : ""}.`}
+            {activeFilters > 0 ? (
+              <button
+                type="button"
+                onClick={() => setFilters(EMPTY_JOB_FILTERS)}
+                className="ml-2 font-medium text-teal-800 hover:underline"
+              >
+                Clear filters
+              </button>
+            ) : null}
           </p>
         ) : (
           <>
