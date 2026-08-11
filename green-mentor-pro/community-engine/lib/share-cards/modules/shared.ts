@@ -41,3 +41,16 @@ export function cardDate(iso: string | null): string {
     year: "numeric",
   });
 }
+
+const MONTHS_SHORT = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+/** cardDate for date-ONLY columns ("YYYY-MM-DD", e.g. jobs' posted_on /
+ *  application_deadline). `new Date("YYYY-MM-DD")` parses as UTC midnight, so
+ *  cardDate would show the previous day west of UTC — split manually instead
+ *  (same fix as the platform board's fmtDate). */
+export function cardDateOnly(iso: string | null): string {
+  if (!iso) return "";
+  const [y, m, d] = iso.split("-").map(Number);
+  if (!y || !m || !d || m > 12) return iso;
+  return `${String(d).padStart(2, "0")} ${MONTHS_SHORT[m - 1]} ${y}`;
+}

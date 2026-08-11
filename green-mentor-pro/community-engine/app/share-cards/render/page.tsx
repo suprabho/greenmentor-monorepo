@@ -47,7 +47,12 @@ export default async function ShareCardRenderPage({
   if (!payload) return <PlaceholderStage />;
 
   const snapshot = normalizeSnapshot(payload.snapshot);
-  const data = payload.data ?? { articles: [] };
+  // Per-field fallbacks: a handoff row written by an older deploy may lack
+  // `data` entirely or just the newer `jobs` field.
+  const data = {
+    articles: payload.data?.articles ?? [],
+    jobs: payload.data?.jobs ?? [],
+  };
 
   return (
     <CardStage frame={snapshot.frame} ratio={snapshot.ratio} data={data}>

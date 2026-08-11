@@ -1,5 +1,6 @@
 import { getVizModule, registerVizModule, type VizModule } from "@vismay/viz-engine";
 import articleModule from "./article";
+import jobModule from "./job";
 import headlineModule from "./headline";
 import imageModule from "./image";
 import chipsModule from "./chips";
@@ -19,6 +20,7 @@ function register<T>(m: VizModule<T>): void {
 
 export function registerGmCardModules(): void {
   register(articleModule);
+  register(jobModule);
   register(headlineModule);
   register(imageModule);
   register(chipsModule);

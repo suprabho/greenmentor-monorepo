@@ -2,8 +2,8 @@
 
 import { useMemo, useRef, useState } from "react";
 import { registerPickerEditor, type PickerEditorProps } from "@vismay/viz-admin";
-import type { ShareCardArticle, ShareCardData } from "./types";
-import { cardDate, proxiedImage } from "./modules/shared";
+import type { ShareCardArticle, ShareCardData, ShareCardJob } from "./types";
+import { cardDate, cardDateOnly, proxiedImage } from "./modules/shared";
 
 /**
  * Domain pickers for the `gmcard:*` adminForm fields, registered into
@@ -21,8 +21,16 @@ function articlesFrom(ctx: unknown): ShareCardArticle[] {
   return d?.articles ?? [];
 }
 
+function jobsFrom(ctx: unknown): ShareCardJob[] {
+  const d = (ctx as GmPickerCtx | undefined)?.data;
+  return d?.jobs ?? [];
+}
+
 const inputCls =
   "w-full rounded-md border border-white/10 bg-neutral-900 px-2.5 py-1.5 text-xs text-neutral-100 outline-none placeholder:text-neutral-600 focus:border-white/30";
+
+const selectCls =
+  "min-w-0 flex-1 rounded-md border border-white/10 bg-neutral-900 px-2 py-1.5 text-xs text-neutral-100 outline-none focus:border-white/30";
 
 // ── gm:article — searchable news-pipe article list ───────────────────────────
 
@@ -91,6 +99,127 @@ function ArticlePicker({ value, onChange, ctx }: PickerEditorProps) {
                   className={`block text-[11.5px] leading-snug ${active ? "text-sky-200" : "text-neutral-200"}`}
                 >
                   {a.title}
+                </span>
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ── gm:job — searchable published-jobs list ──────────────────────────────────
+
+/** Posted-date windows for the job picker's recency filter. */
+const POSTED_WITHIN = [
+  { days: 7, label: "Past week" },
+  { days: 30, label: "Past month" },
+  { days: 90, label: "Past 3 months" },
+];
+
+function JobPicker({ value, onChange, ctx }: PickerEditorProps) {
+  const jobs = jobsFrom(ctx);
+  const [query, setQuery] = useState("");
+  const [country, setCountry] = useState("");
+  const [postedDays, setPostedDays] = useState("");
+  const selected = typeof value === "string" ? value : "";
+
+  // Geography facet from the loaded jobs (country, like the platform board's
+  // filter) — `location` is free text and stays a search field, not a facet.
+  const countries = useMemo(
+    () =>
+      [...new Set(jobs.map((j) => j.country).filter((c): c is string => !!c))].sort((a, b) =>
+        a.localeCompare(b)
+      ),
+    [jobs]
+  );
+
+  const shown = useMemo(() => {
+    // Token AND-match, same as ArticlePicker; facets narrow before search.
+    const tokens = query.trim().toLowerCase().split(/\s+/).filter(Boolean);
+    const cutoff = postedDays ? Date.now() - Number(postedDays) * 86_400_000 : null;
+    return jobs.filter((j) => {
+      if (country && j.country !== country) return false;
+      if (cutoff !== null) {
+        if (!j.posted_on || new Date(j.posted_on).getTime() < cutoff) return false;
+      }
+      if (tokens.length === 0) return true;
+      const hay = `${j.title} ${j.company ?? ""} ${j.location ?? ""} ${j.tags.join(" ")}`.toLowerCase();
+      return tokens.every((t) => hay.includes(t));
+    });
+  }, [jobs, query, country, postedDays]);
+
+  if (jobs.length === 0) {
+    // jobs_public only exposes published rows — drafts are invisible here.
+    return <p className="text-[11px] text-neutral-500">No published jobs yet.</p>;
+  }
+
+  return (
+    <div className="flex flex-col gap-1.5">
+      <input
+        type="text"
+        value={query}
+        placeholder="Search title / company / tag…"
+        onChange={(e) => setQuery(e.target.value)}
+        className={inputCls}
+      />
+      <div className="flex gap-1.5">
+        <select value={country} onChange={(e) => setCountry(e.target.value)} className={selectCls}>
+          <option value="">All countries</option>
+          {countries.map((c) => (
+            <option key={c} value={c}>
+              {c}
+            </option>
+          ))}
+        </select>
+        <select
+          value={postedDays}
+          onChange={(e) => setPostedDays(e.target.value)}
+          className={selectCls}
+        >
+          <option value="">Any date</option>
+          {POSTED_WITHIN.map((w) => (
+            <option key={w.days} value={w.days}>
+              {w.label}
+            </option>
+          ))}
+        </select>
+      </div>
+      <div className="max-h-56 overflow-y-auto rounded-md border border-white/10">
+        {shown.length === 0 && (
+          <p className="px-2.5 py-2 text-[11px] text-neutral-500">
+            No matches in the latest {jobs.length} jobs.
+          </p>
+        )}
+        {shown.map((j) => {
+          const active = j.id === selected;
+          const mark =
+            (j.company ?? j.title)
+              .replace(/[^A-Za-z0-9]/g, "")
+              .slice(0, 2)
+              .toUpperCase() || "GM";
+          return (
+            <button
+              key={j.id}
+              type="button"
+              onClick={() => onChange(j.id)}
+              className={`flex w-full items-start gap-2 border-b border-white/5 px-2.5 py-2 text-left last:border-b-0 ${
+                active ? "bg-sky-500/15" : "hover:bg-white/5"
+              }`}
+            >
+              <span className="mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded bg-white/10 text-[11px] font-bold text-neutral-300">
+                {mark}
+              </span>
+              <span className="min-w-0">
+                <span className="block truncate text-[10px] font-semibold uppercase tracking-wide text-neutral-500">
+                  {j.company ?? "Confidential"}
+                  {j.posted_on ? ` · ${cardDateOnly(j.posted_on)}` : ""}
+                </span>
+                <span
+                  className={`block text-[11.5px] leading-snug ${active ? "text-sky-200" : "text-neutral-200"}`}
+                >
+                  {j.title}
                 </span>
               </span>
             </button>
@@ -210,5 +339,6 @@ export function ImagePicker({ value, onChange, ctx }: PickerEditorProps) {
 /** Idempotent (the registry is a Map.set) — safe to call on every studio mount. */
 export function registerGmPickers(): void {
   registerPickerEditor("gm:article", ArticlePicker);
+  registerPickerEditor("gm:job", JobPicker);
   registerPickerEditor("gm:image", ImagePicker);
 }

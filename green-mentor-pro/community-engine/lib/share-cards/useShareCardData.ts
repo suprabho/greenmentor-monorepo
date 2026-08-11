@@ -1,13 +1,26 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { ShareCardArticle, ShareCardData } from "./types";
+import type { ShareCardArticle, ShareCardData, ShareCardJob } from "./types";
+
+/** Fetch one studio data endpoint's `{ ok, items }` envelope, throwing on failure. */
+async function load<T>(url: string): Promise<T[]> {
+  const res = await fetch(url);
+  const body = (await res.json().catch(() => ({}))) as {
+    ok?: boolean;
+    items?: T[];
+    error?: string;
+  };
+  if (!res.ok || !body.ok) throw new Error(body.error ?? `HTTP ${res.status}`);
+  return body.items ?? [];
+}
 
 /**
- * Fetches the news-pipe articles the studio's layers + pickers resolve against
- * (once, on mount) and exposes them as a ShareCardData store for the
- * ShareCardDataProvider. Mirrors footshorts' useFootshortsCardData, sized down
- * to the one data source v1 needs.
+ * Fetches the entity data the studio's layers + pickers resolve against (once,
+ * on mount) and exposes it as a ShareCardData store for the
+ * ShareCardDataProvider. Mirrors footshorts' useFootshortsCardData. Sources are
+ * fetched independently so a jobs failure doesn't blank the articles studio
+ * (and vice versa) — `error` surfaces the first failure.
  */
 export function useShareCardData(): {
   data: ShareCardData;
@@ -15,35 +28,35 @@ export function useShareCardData(): {
   error: string | null;
 } {
   const [articles, setArticles] = useState<ShareCardArticle[]>([]);
+  const [jobs, setJobs] = useState<ShareCardJob[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let alive = true;
     void (async () => {
-      try {
-        // 200 (the route's cap) so the picker can search beyond the newest page.
-        const res = await fetch("/api/share-cards/data/articles?limit=200");
-        const body = (await res.json().catch(() => ({}))) as {
-          ok?: boolean;
-          items?: ShareCardArticle[];
-          error?: string;
-        };
-        if (!res.ok || !body.ok) throw new Error(body.error ?? `HTTP ${res.status}`);
-        if (alive) {
-          setArticles(body.items ?? []);
-          setError(null);
-        }
-      } catch (e) {
-        if (alive) setError(e instanceof Error ? e.message : "Could not load articles");
-      } finally {
-        if (alive) setLoading(false);
-      }
+      // 200 (the routes' cap) so the pickers can search beyond the newest page.
+      const [a, j] = await Promise.allSettled([
+        load<ShareCardArticle>("/api/share-cards/data/articles?limit=200"),
+        load<ShareCardJob>("/api/share-cards/data/jobs?limit=200"),
+      ]);
+      if (!alive) return;
+      if (a.status === "fulfilled") setArticles(a.value);
+      if (j.status === "fulfilled") setJobs(j.value);
+      const failed = [a, j].find((r): r is PromiseRejectedResult => r.status === "rejected");
+      setError(
+        failed
+          ? failed.reason instanceof Error
+            ? failed.reason.message
+            : "Could not load studio data"
+          : null
+      );
+      setLoading(false);
     })();
     return () => {
       alive = false;
     };
   }, []);
 
-  return { data: { articles }, loading, error };
+  return { data: { articles, jobs }, loading, error };
 }
