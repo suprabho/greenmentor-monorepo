@@ -250,7 +250,12 @@ export function ShareCardStudio({ initialId }: { initialId: string | null }) {
   }
 
   return (
-    <div className={`gm-studio flex ${studioHeight} flex-col bg-neutral-950`}>
+    // `isolate` keeps the studio's z-indexed internals (save toast, download
+    // menu, and viz-admin's z-40 FreeTransformLayer overlay) inside one
+    // stacking context. Without it they escape to the root context and sit
+    // above the z-20 site header, so its Tools dropdown paints under the
+    // transform overlay and its menu items can't be clicked.
+    <div className={`gm-studio isolate flex ${studioHeight} flex-col bg-neutral-950`}>
       {(dataError || loadError) && (
         <div className="border-b border-red-500/30 bg-red-500/10 px-4 py-2 text-[12.5px] text-red-300">
           {dataError ?? loadError}
