@@ -12,6 +12,10 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 export type NewsRow = {
   id: string;
+  /** URL parts for the platform's /feed/:slug permalink. Filled by the
+   *  gm_set_share_keys() trigger (platform migration 0026); not editable here. */
+  slug: string | null;
+  id_prefix: string | null;
   source: string;
   title: string;
   url: string;
@@ -20,7 +24,7 @@ export type NewsRow = {
   region: string | null;
 };
 
-const NEWS_COLUMNS = "id, source, title, url, image_url, published_at, region";
+const NEWS_COLUMNS = "id, slug, id_prefix, source, title, url, image_url, published_at, region";
 
 export async function listNews(supabase: SupabaseClient, limit = 120): Promise<NewsRow[]> {
   const { data, error } = await supabase
