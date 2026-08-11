@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CaretDown, ImageSquare, Leaf, SignOut } from "@phosphor-icons/react/dist/ssr";
+import { CaretDown, Cards, ImageSquare, Leaf, SignOut } from "@phosphor-icons/react/dist/ssr";
 import type { Icon } from "@phosphor-icons/react";
 import { clsx } from "clsx";
 import { ADMIN_SECTIONS } from "@/lib/admin/sections";
@@ -23,6 +23,7 @@ interface ToolLink {
  */
 const TOOLS: ToolLink[] = [
   { href: "/header-studio", name: "Aura Header", icon: ImageSquare, adminOnly: false, soon: false },
+  { href: "/share-cards", name: "Share cards studio", icon: Cards, adminOnly: true, soon: false },
   ...ADMIN_SECTIONS.map((s) => ({
     href: s.href,
     name: s.name,

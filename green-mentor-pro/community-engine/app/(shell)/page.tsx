@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ImageSquare, FolderOpen, ArrowRight } from "@phosphor-icons/react/dist/ssr";
+import { ImageSquare, FolderOpen, Cards, ArrowRight } from "@phosphor-icons/react/dist/ssr";
 import type { Icon } from "@phosphor-icons/react";
 import { AdminTable } from "@/components/admin";
 import { Card, Chip, PageHeader } from "@/components/ui";
@@ -27,19 +27,14 @@ function ago(iso: string | null): string {
 async function sectionStats(): Promise<Record<string, string>> {
   try {
     const supabase = await createClient();
-    const [{ count }, { data: latest }, cardsRes] = await Promise.all([
+    const [{ count }, { data: latest }] = await Promise.all([
       supabase.from("articles").select("id", { count: "exact", head: true }),
       supabase.from("articles").select("created_at").order("created_at", { ascending: false }).limit(1),
-      supabase.from("community_share_cards").select("id", { count: "exact", head: true }),
     ]);
     const n = count ?? 0;
     const stats: Record<string, string> = {
       "/pipeline": `${n} article${n === 1 ? "" : "s"} · last ingest ${ago(latest?.[0]?.created_at ?? null)}`,
     };
-    // Table may not be migrated yet — skip the stat rather than lose the others.
-    if (cardsRes.count != null) {
-      stats["/share-cards"] = `${cardsRes.count} saved card${cardsRes.count === 1 ? "" : "s"}`;
-    }
     // community_stories/community_webinars have RLS enabled with no policies
     // (admin-only, service-role reads), so the anon/authenticated client
     // above can't see them — ask the admin client instead.
@@ -86,6 +81,12 @@ async function sectionStats(): Promise<Record<string, string>> {
 /** Existing maker tools — folded in so nothing is lost when admin takes over `/`. */
 const makers: { href: string; icon: Icon; name: string; desc: string }[] = [
   {
+    href: "/share-cards",
+    icon: Cards,
+    name: "Share cards studio",
+    desc: "Compose on-brand social share cards over the aura backgrounds and export pixel-perfect PNGs.",
+  },
+  {
     href: "/header-studio",
     icon: ImageSquare,
     name: "Aura Header Studio",
@@ -97,6 +98,14 @@ const makers: { href: string; icon: Icon; name: string; desc: string }[] = [
     name: "Saved headers",
     desc: "Open your personal library or headers the team has shared.",
   },
+];
+
+/** Group sections in display order; `undefined` collects ungrouped sections under "Sections". */
+const SECTION_GROUP_ORDER: (AdminSection["group"] | undefined)[] = [
+  undefined,
+  "Feed",
+  "Webinar",
+  "Materiality Analysis",
 ];
 
 export default async function AdminHome() {
@@ -115,49 +124,55 @@ export default async function AdminHome() {
         }
       />
 
-      <section>
-        <h2 className="mb-3 text-[13px] font-semibold uppercase tracking-[0.08em] text-gray-500">
-          Sections
-        </h2>
-        <AdminTable
-          rows={ADMIN_SECTIONS}
-          rowKey={(section) => section.href}
-          caption="Admin sections"
-          empty="No admin sections configured."
-          columns={[
-            {
-              key: "section",
-              label: "Section",
-              render: (section) => (
-                <div className="flex items-center gap-3">
-                  <span className={section.status === "soon" ? "grid size-9 place-items-center rounded-lg bg-gray-100 text-gray-400" : "grid size-9 place-items-center rounded-lg bg-green-50 text-green-700"}>
-                    <section.icon size={19} />
-                  </span>
-                  <span className="font-semibold text-ink">{section.name}</span>
-                </div>
-              ),
-            },
-            {
-              key: "description",
-              label: "Description",
-              responsive: "secondary",
-              render: (section) => <span className="text-gray-600">{section.desc}</span>,
-            },
-            {
-              key: "status",
-              label: "Status",
-              render: (section) => section.status === "soon" ? <Chip tone="neutral">Coming soon</Chip> : stats[section.href] ?? "Available",
-            },
-            {
-              key: "actions",
-              label: "Actions",
-              sticky: true,
-              className: "w-24 text-right",
-              render: (section) => section.status === "soon" ? <span className="text-[12px] text-gray-400">—</span> : <Link href={section.href} className="text-[12px] font-semibold text-green-700 hover:underline">Open <ArrowRight size={12} className="inline" /></Link>,
-            },
-          ]}
-        />
-      </section>
+      {SECTION_GROUP_ORDER.map((group) => {
+        const rows = ADMIN_SECTIONS.filter((section) => section.group === group);
+        if (rows.length === 0) return null;
+        return (
+          <section key={group ?? "ungrouped"}>
+            <h2 className="mb-3 text-[13px] font-semibold uppercase tracking-[0.08em] text-gray-500">
+              {group ?? "Sections"}
+            </h2>
+            <AdminTable
+              rows={rows}
+              rowKey={(section) => section.href}
+              caption={`${group ?? "Admin"} sections`}
+              empty="No admin sections configured."
+              columns={[
+                {
+                  key: "section",
+                  label: "Section",
+                  render: (section) => (
+                    <div className="flex items-center gap-3">
+                      <span className={section.status === "soon" ? "grid size-9 place-items-center rounded-lg bg-gray-100 text-gray-400" : "grid size-9 place-items-center rounded-lg bg-green-50 text-green-700"}>
+                        <section.icon size={19} />
+                      </span>
+                      <span className="font-semibold text-ink">{section.name}</span>
+                    </div>
+                  ),
+                },
+                {
+                  key: "description",
+                  label: "Description",
+                  responsive: "secondary",
+                  render: (section) => <span className="text-gray-600">{section.desc}</span>,
+                },
+                {
+                  key: "status",
+                  label: "Status",
+                  render: (section) => section.status === "soon" ? <Chip tone="neutral">Coming soon</Chip> : stats[section.href] ?? "Available",
+                },
+                {
+                  key: "actions",
+                  label: "Actions",
+                  sticky: true,
+                  className: "w-24 text-right",
+                  render: (section) => section.status === "soon" ? <span className="text-[12px] text-gray-400">—</span> : <Link href={section.href} className="text-[12px] font-semibold text-green-700 hover:underline">Open <ArrowRight size={12} className="inline" /></Link>,
+                },
+              ]}
+            />
+          </section>
+        );
+      })}
 
       <section>
         <h2 className="mb-3 text-[13px] font-semibold uppercase tracking-[0.08em] text-gray-500">
