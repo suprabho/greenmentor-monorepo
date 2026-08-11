@@ -27,6 +27,7 @@ export interface GmComposerCtx {
 /** The `gmcard:*` types offered in the add-layer menu, with short layer names. */
 export const GM_LAYER_TYPES: Array<{ type: string; name: string }> = [
   { type: "gmcard:article", name: "News article" },
+  { type: "gmcard:job", name: "Job opening" },
   { type: "gmcard:headline", name: "Headline" },
   { type: "gmcard:image", name: "Image" },
   { type: "gmcard:entity-chips", name: "Entity tags" },
@@ -44,6 +45,9 @@ function defaultTransform(type: string, ratio: GmAspectRatio): TransformLike {
   switch (type) {
     case "gmcard:article":
       return { ...DEFAULT_TRANSFORM, widthPct: 84, heightPct: 62 };
+    case "gmcard:job":
+      // Article width, a bit shorter — the job card has no photo variant.
+      return { ...DEFAULT_TRANSFORM, widthPct: 84, heightPct: 56 };
     case "gmcard:image":
       return { ...DEFAULT_TRANSFORM, widthPct: 48, heightPct: 48 * ar };
     case "gmcard:headline":
@@ -59,8 +63,8 @@ function defaultTransform(type: string, ratio: GmAspectRatio): TransformLike {
   }
 }
 
-/** Default picks for a freshly added layer. The article-driven layers inherit
- *  the newest article so they resolve to something immediately; the user
+/** Default picks for a freshly added layer. The entity-driven layers inherit
+ *  the newest article/job so they resolve to something immediately; the user
  *  re-picks in the config panel. */
 function defaultConfig(type: string, ctx: GmComposerCtx): Record<string, unknown> {
   const firstArticle = ctx.data.articles[0]?.id ?? "";
@@ -69,6 +73,8 @@ function defaultConfig(type: string, ctx: GmComposerCtx): Record<string, unknown
       return { type, articleId: firstArticle };
     case "gmcard:entity-chips":
       return { type, articleId: firstArticle };
+    case "gmcard:job":
+      return { type, jobId: ctx.data.jobs[0]?.id ?? "" };
     case "gmcard:image":
       return { type, src: ctx.data.articles.find((a) => a.image_url)?.image_url ?? "" };
     default:

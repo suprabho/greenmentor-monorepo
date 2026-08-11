@@ -2,8 +2,8 @@
 
 import { useMemo, useRef, useState } from "react";
 import { registerPickerEditor, type PickerEditorProps } from "@vismay/viz-admin";
-import type { ShareCardArticle, ShareCardData } from "./types";
-import { cardDate, proxiedImage } from "./modules/shared";
+import type { ShareCardArticle, ShareCardData, ShareCardJob } from "./types";
+import { cardDate, cardDateOnly, proxiedImage } from "./modules/shared";
 
 /**
  * Domain pickers for the `gmcard:*` adminForm fields, registered into
@@ -19,6 +19,11 @@ export interface GmPickerCtx {
 function articlesFrom(ctx: unknown): ShareCardArticle[] {
   const d = (ctx as GmPickerCtx | undefined)?.data;
   return d?.articles ?? [];
+}
+
+function jobsFrom(ctx: unknown): ShareCardJob[] {
+  const d = (ctx as GmPickerCtx | undefined)?.data;
+  return d?.jobs ?? [];
 }
 
 const inputCls =
@@ -91,6 +96,81 @@ function ArticlePicker({ value, onChange, ctx }: PickerEditorProps) {
                   className={`block text-[11.5px] leading-snug ${active ? "text-sky-200" : "text-neutral-200"}`}
                 >
                   {a.title}
+                </span>
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ── gm:job — searchable published-jobs list ──────────────────────────────────
+
+function JobPicker({ value, onChange, ctx }: PickerEditorProps) {
+  const jobs = jobsFrom(ctx);
+  const [query, setQuery] = useState("");
+  const selected = typeof value === "string" ? value : "";
+
+  const shown = useMemo(() => {
+    // Token AND-match, same as ArticlePicker.
+    const tokens = query.trim().toLowerCase().split(/\s+/).filter(Boolean);
+    if (tokens.length === 0) return jobs;
+    return jobs.filter((j) => {
+      const hay = `${j.title} ${j.company ?? ""} ${j.location ?? ""} ${j.tags.join(" ")}`.toLowerCase();
+      return tokens.every((t) => hay.includes(t));
+    });
+  }, [jobs, query]);
+
+  if (jobs.length === 0) {
+    // jobs_public only exposes published rows — drafts are invisible here.
+    return <p className="text-[11px] text-neutral-500">No published jobs yet.</p>;
+  }
+
+  return (
+    <div className="flex flex-col gap-1.5">
+      <input
+        type="text"
+        value={query}
+        placeholder="Search title / company / tag…"
+        onChange={(e) => setQuery(e.target.value)}
+        className={inputCls}
+      />
+      <div className="max-h-56 overflow-y-auto rounded-md border border-white/10">
+        {shown.length === 0 && (
+          <p className="px-2.5 py-2 text-[11px] text-neutral-500">
+            No matches in the latest {jobs.length} jobs.
+          </p>
+        )}
+        {shown.map((j) => {
+          const active = j.id === selected;
+          const mark =
+            (j.company ?? j.title)
+              .replace(/[^A-Za-z0-9]/g, "")
+              .slice(0, 2)
+              .toUpperCase() || "GM";
+          return (
+            <button
+              key={j.id}
+              type="button"
+              onClick={() => onChange(j.id)}
+              className={`flex w-full items-start gap-2 border-b border-white/5 px-2.5 py-2 text-left last:border-b-0 ${
+                active ? "bg-sky-500/15" : "hover:bg-white/5"
+              }`}
+            >
+              <span className="mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded bg-white/10 text-[11px] font-bold text-neutral-300">
+                {mark}
+              </span>
+              <span className="min-w-0">
+                <span className="block truncate text-[10px] font-semibold uppercase tracking-wide text-neutral-500">
+                  {j.company ?? "Confidential"}
+                  {j.posted_on ? ` · ${cardDateOnly(j.posted_on)}` : ""}
+                </span>
+                <span
+                  className={`block text-[11.5px] leading-snug ${active ? "text-sky-200" : "text-neutral-200"}`}
+                >
+                  {j.title}
                 </span>
               </span>
             </button>
@@ -210,5 +290,6 @@ export function ImagePicker({ value, onChange, ctx }: PickerEditorProps) {
 /** Idempotent (the registry is a Map.set) — safe to call on every studio mount. */
 export function registerGmPickers(): void {
   registerPickerEditor("gm:article", ArticlePicker);
+  registerPickerEditor("gm:job", JobPicker);
   registerPickerEditor("gm:image", ImagePicker);
 }

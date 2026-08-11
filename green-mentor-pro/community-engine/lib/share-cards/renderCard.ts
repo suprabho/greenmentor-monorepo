@@ -1,10 +1,12 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { screenshotUrl, type ImageFormat } from "@/lib/export/screenshot";
 import { fetchShareCardArticles } from "./articles";
+import { fetchShareCardJobs } from "./jobs";
 import { delHandoff, putHandoff } from "./handoff";
 import {
   CARD_RENDER_SCALE,
   collectArticleIds,
+  collectJobIds,
   stageSizeFor,
   type ShareCardSnapshotV1,
 } from "./types";
@@ -25,9 +27,13 @@ export async function renderShareCard(
 ): Promise<Buffer> {
   let handoffId: string | null = null;
   try {
-    const ids = collectArticleIds(snapshot);
-    const articles = ids.length > 0 ? await fetchShareCardArticles(supabase, { ids }) : [];
-    handoffId = await putHandoff(supabase, { snapshot, data: { articles } });
+    const articleIds = collectArticleIds(snapshot);
+    const jobIds = collectJobIds(snapshot);
+    const [articles, jobs] = await Promise.all([
+      articleIds.length > 0 ? fetchShareCardArticles(supabase, { ids: articleIds }) : [],
+      jobIds.length > 0 ? fetchShareCardJobs(supabase, { ids: jobIds }) : [],
+    ]);
+    handoffId = await putHandoff(supabase, { snapshot, data: { articles, jobs } });
 
     const size = stageSizeFor(snapshot.ratio);
     // Vercel Deployment Protection intercepts the headless browser's visit to

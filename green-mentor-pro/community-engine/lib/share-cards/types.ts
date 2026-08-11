@@ -243,8 +243,29 @@ export interface ShareCardArticle {
   entities: ShareCardEntity[];
 }
 
+/** A published job opening as the card modules consume it — the jobs_public
+ *  view's row shape, trimmed to what a card renders (mirrors ShareCardArticle).
+ *  Apply links/emails are deliberately absent: a rendered PNG can't be clicked. */
+export interface ShareCardJob {
+  id: string;
+  title: string;
+  company: string | null;
+  location: string | null;
+  employment_type: string;
+  experience: string | null;
+  /** entry | mid | senior | lead (matches community_jobs.seniority). */
+  seniority: string | null;
+  details: string | null;
+  tags: string[];
+  salary: string | null;
+  /** Date-only "YYYY-MM-DD" — format with cardDateOnly, not cardDate. */
+  application_deadline: string | null;
+  posted_on: string | null;
+}
+
 export interface ShareCardData {
   articles: ShareCardArticle[];
+  jobs: ShareCardJob[];
 }
 
 /** The export/render handoff payload — snapshot + server-resolved picks. Never
@@ -261,6 +282,17 @@ export function collectArticleIds(snapshot: ShareCardSnapshotV1): string[] {
   for (const l of snapshot.foreground) {
     const cfg = l.layer as Record<string, unknown>;
     if (typeof cfg.articleId === "string" && cfg.articleId) ids.add(cfg.articleId);
+  }
+  return [...ids];
+}
+
+/** Every jobId referenced by the snapshot's layers — resolved server-side by
+ *  the export route, like collectArticleIds. */
+export function collectJobIds(snapshot: ShareCardSnapshotV1): string[] {
+  const ids = new Set<string>();
+  for (const l of snapshot.foreground) {
+    const cfg = l.layer as Record<string, unknown>;
+    if (typeof cfg.jobId === "string" && cfg.jobId) ids.add(cfg.jobId);
   }
   return [...ids];
 }

@@ -211,8 +211,8 @@ export function ShareCardStudio({ initialId }: { initialId: string | null }) {
     [hasLayers, downloading, snapshot, ratio]
   );
 
-  // Name suggestion for the save bar: the picked article's title, else the
-  // first headline layer's text.
+  // Name suggestion for the save bar: the picked article's/job's title, else
+  // the first headline layer's text.
   const defaultTitle = useMemo(() => {
     for (const l of composer.layers) {
       const cfg = l.layer as Record<string, unknown>;
@@ -220,12 +220,16 @@ export function ShareCardStudio({ initialId }: { initialId: string | null }) {
         const a = data.articles.find((x) => x.id === cfg.articleId);
         if (a) return a.title;
       }
+      if (cfg.type === "gmcard:job" && typeof cfg.jobId === "string") {
+        const j = data.jobs.find((x) => x.id === cfg.jobId);
+        if (j) return j.company ? `${j.title} — ${j.company}` : j.title;
+      }
       if (cfg.type === "gmcard:headline" && typeof cfg.text === "string" && cfg.text.trim()) {
         return cfg.text.trim();
       }
     }
     return "Untitled card";
-  }, [composer.layers, data.articles]);
+  }, [composer.layers, data.articles, data.jobs]);
 
   const handleSaved = useCallback(
     (id: string) => {

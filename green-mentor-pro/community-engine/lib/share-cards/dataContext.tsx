@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, type ReactNode } from "react";
-import type { ShareCardArticle, ShareCardData } from "./types";
+import type { ShareCardArticle, ShareCardData, ShareCardJob } from "./types";
 
 /**
  * The live news-pipe data the `gmcard:*` layers resolve against. The host
@@ -37,4 +37,16 @@ export function useShareCardArticles(): ShareCardArticle[] {
 export function useShareCardArticle(id: string): ShareCardArticle | null {
   const articles = useShareCardData().articles;
   return articles.find((a) => a.id === id) ?? null;
+}
+
+// `?? []` on jobs: a handoff payload written by a pre-jobs deploy can reach the
+// provider during the ≤5-minute mixed-version window — treat it as empty.
+
+export function useShareCardJobs(): ShareCardJob[] {
+  return useShareCardData().jobs ?? [];
+}
+
+export function useShareCardJob(id: string): ShareCardJob | null {
+  const jobs = useShareCardData().jobs ?? [];
+  return jobs.find((j) => j.id === id) ?? null;
 }
