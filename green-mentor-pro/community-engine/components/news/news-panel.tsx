@@ -12,10 +12,12 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowSquareOut, Check, ImageBroken, Spinner } from "@phosphor-icons/react/dist/ssr";
+import { ArrowSquareOut, Check, ImageBroken, PencilSimple, Spinner } from "@phosphor-icons/react/dist/ssr";
 import { AdminEditPanel, AdminTable } from "@/components/admin";
 import { Card, Chip } from "@/components/ui";
 import { PhotoField, fieldInputCls } from "@/components/photo-field";
+import { ShareButton, iconActionCls } from "@/components/share-button";
+import { publicNewsUrl } from "@/lib/share-link";
 import type { NewsRow } from "@/lib/db/news";
 
 type Status = { type: "idle" | "ok" | "err" | "info"; msg?: string };
@@ -192,11 +194,16 @@ export function NewsPanel({
               key: "actions",
               label: "Actions",
               sticky: true,
-              className: "w-36 text-right",
+              className: "w-28 text-right",
               render: (article) => (
-                <div className="flex justify-end gap-3">
-                  <a href={article.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[12px] font-medium text-gray-500 hover:text-ink">Open <ArrowSquareOut size={11} /></a>
-                  <button type="button" onClick={() => setEditing(article)} className="text-[12px] font-medium text-gray-600 hover:text-ink">Edit image</button>
+                <div className="flex justify-end gap-1">
+                  <ShareButton url={publicNewsUrl(article)} title={article.title} />
+                  <a href={article.url} target="_blank" rel="noopener noreferrer" title="Open original" aria-label="Open original" className={iconActionCls}>
+                    <ArrowSquareOut size={15} />
+                  </a>
+                  <button type="button" onClick={() => setEditing(article)} title="Edit image" aria-label="Edit image" className={iconActionCls}>
+                    <PencilSimple size={15} />
+                  </button>
                 </div>
               ),
             },
