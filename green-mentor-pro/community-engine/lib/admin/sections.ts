@@ -29,6 +29,7 @@ export const ADMIN_SECTIONS: AdminSection[] = [
     name: "Epics",
     desc: "Group related stories into campaigns and themed series the community team runs together.",
     status: "soon",
+    group: "Feed",
   },
   {
     href: "/news",
