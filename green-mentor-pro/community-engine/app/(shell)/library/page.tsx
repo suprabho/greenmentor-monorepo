@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { PageHeader } from "@/components/ui";
 import { createClient } from "@/lib/supabase/server";
 import { listMine, listSharedByOthers } from "@/lib/db/headers";
-import { listMineCards, listSharedCardsByOthers } from "@/lib/db/shareCards";
+import { listMineCards, listPublishedCardIds, listSharedCardsByOthers } from "@/lib/db/shareCards";
 import { LibraryView } from "./library-view";
 import { ShareCardsLibraryView } from "./share-cards-view";
 
@@ -47,6 +47,14 @@ export default async function LibraryPage({
     listSharedCardsByOthers(supabase, user.id).catch(() => []),
   ]);
 
+  // Which cards are live on the platform library — same tolerance as above:
+  // a missing share_cards_public view (migration 0019 not applied yet) just
+  // reads as "nothing published".
+  const publishedIds = await listPublishedCardIds(supabase, [
+    ...mineCards.map((c) => c.id),
+    ...sharedCards.map((c) => c.id),
+  ]).catch(() => new Set<string>());
+
   return (
     <div>
       <PageHeader
@@ -60,7 +68,7 @@ export default async function LibraryPage({
       {tab === "headers" ? (
         <LibraryView mine={mine} shared={shared} userId={user.id} />
       ) : (
-        <ShareCardsLibraryView mine={mineCards} shared={sharedCards} />
+        <ShareCardsLibraryView mine={mineCards} shared={sharedCards} published={[...publishedIds]} />
       )}
     </div>
   );

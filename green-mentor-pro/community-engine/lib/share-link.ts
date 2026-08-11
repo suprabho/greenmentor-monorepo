@@ -34,3 +34,10 @@ export function publicJobUrl(row: ShareKeys): string {
 export function publicNewsUrl(row: ShareKeys): string {
   return `${platformOrigin()}/feed/${segment(row)}`;
 }
+
+/** The platform's News feed — where published share cards land, interleaved
+ *  with articles. A page link, not a per-item deeplink: feed share cards have
+ *  no detail routes, so they carry no share keys. */
+export function publicFeedUrl(): string {
+  return `${platformOrigin()}/feed`;
+}

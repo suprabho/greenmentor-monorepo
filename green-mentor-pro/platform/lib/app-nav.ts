@@ -1,5 +1,4 @@
 import {
-  Books,
   Briefcase,
   ChartBar,
   Flame,
@@ -9,7 +8,6 @@ import {
   Newspaper,
   Sparkle,
   SquaresFour,
-  Trophy,
   VideoCamera,
   Wind,
   type Icon,
@@ -53,15 +51,9 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     heading: "Grow",
     items: [
-      {
-        label: "News",
-        href: "/feed",
-        icon: Newspaper,
-        children: [
-          { label: "Leaderboards", href: "/feed/leaderboards", icon: Trophy },
-          { label: "Library", href: "/feed/library", icon: Books },
-        ],
-      },
+      // Community share cards publish straight into the News feed itself
+      // (mergeFeed in app/(app)/feed/page.tsx) — no Library subtab.
+      { label: "News", href: "/feed", icon: Newspaper, children: [] },
       { label: "Jobs", href: "/jobs", icon: Briefcase, children: [] },
       { label: "Webinars & Events", href: "/webinars", icon: VideoCamera, children: [] },
     ],

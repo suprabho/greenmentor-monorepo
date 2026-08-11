@@ -20,7 +20,8 @@ const KIND_TONE: Record<string, "green" | "teal" | "neutral" | "warn"> = {
 // How many tag chips to surface before collapsing the rest into "+N more".
 const MAX_CHIPS = 3;
 
-function ago(iso: string | null): string {
+/** Compact relative timestamp — shared with the share-card feed item. */
+export function ago(iso: string | null): string {
   if (!iso) return "";
   const mins = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
   if (mins < 60) return `${Math.max(1, mins)}m ago`;

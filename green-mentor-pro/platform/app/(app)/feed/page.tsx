@@ -2,8 +2,11 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { Card } from "@/components/ui";
 import { ARTICLE_COLUMNS, mapArticle, type ArticleRowRaw, type FeedEntity } from "@/lib/feed/repo";
+import { mergeFeed } from "@/lib/feed/merge";
 import { rankFeed } from "@/lib/feed/rank";
+import { fetchShareCards } from "@/lib/share-cards/repo";
 import { FeedCard } from "./feed-card";
+import { ShareCardFeedItem } from "./share-card-item";
 import type { ArticleStat, CurrentUser, ReactionKind } from "./feed-actions";
 
 export const metadata = { title: "News — Green Mentor Pro" };
@@ -33,6 +36,7 @@ export default async function FeedPage({
     },
     { data: entities },
     { data: articles },
+    shareCards,
   ] = await Promise.all([
     supabase.auth.getUser(),
     supabase.from("entities").select("slug, name, kind").order("kind"),
@@ -41,6 +45,10 @@ export default async function FeedPage({
       .select(ARTICLE_COLUMNS)
       .order("published_at", { ascending: false, nullsFirst: false })
       .limit(FETCH_SIZE),
+    // Community share cards, interleaved below. Tolerant of the
+    // share_cards_public view not being migrated yet (community-engine
+    // migration 0019) — reads as "nothing published".
+    fetchShareCards().catch(() => []),
   ]);
 
   const rows = rankFeed(((articles ?? []) as unknown as ArticleRowRaw[]).map(mapArticle)).slice(0, PAGE_SIZE);
@@ -74,6 +82,9 @@ export default async function FeedPage({
   const filtered = activeSlug
     ? rows.filter((a) => (a.article_entities ?? []).some((ae) => ae.entities?.slug === activeSlug))
     : rows;
+
+  // Share cards carry no entity tags, so they only ride the unfiltered view.
+  const items = mergeFeed(filtered, activeSlug ? [] : shareCards);
 
   const bySlug = new Map((entities ?? []).map((e) => [e.slug, e] as const));
   const featured = FEATURED_SLUGS.map((s) => bySlug.get(s)).filter((e): e is FeedEntity => !!e);
@@ -111,22 +122,29 @@ export default async function FeedPage({
         ))}
       </div>
 
-      {filtered.length === 0 ? (
+      {items.length === 0 ? (
         <Card className="p-6 text-center text-[13.5px] text-gray-600">
           No articles yet. Run the ingestion worker (<code className="rounded bg-gray-100 px-1.5 py-0.5 text-[12px]">scripts/ingest-feed.ts</code>)
           or apply the 0003_feed.sql seed.
         </Card>
       ) : (
         <div className="h-[calc(100dvh-13rem)] snap-y snap-mandatory overflow-y-auto overscroll-contain [scrollbar-width:none] lg:h-[calc(100dvh-9rem)] [&::-webkit-scrollbar]:hidden">
-          {filtered.map((a) => (
-            <div key={a.id} className="h-full snap-start snap-always pb-3">
-              <FeedCard
-                article={a}
-                fill
-                stats={statsBy.get(a.id)}
-                reaction={reactionBy.get(a.id) ?? null}
-                currentUser={currentUser}
-              />
+          {items.map((item) => (
+            <div
+              key={item.kind === "article" ? item.article.id : `card-${item.card.id}`}
+              className="h-full snap-start snap-always pb-3"
+            >
+              {item.kind === "article" ? (
+                <FeedCard
+                  article={item.article}
+                  fill
+                  stats={statsBy.get(item.article.id)}
+                  reaction={reactionBy.get(item.article.id) ?? null}
+                  currentUser={currentUser}
+                />
+              ) : (
+                <ShareCardFeedItem card={item.card} fill />
+              )}
             </div>
           ))}
         </div>
