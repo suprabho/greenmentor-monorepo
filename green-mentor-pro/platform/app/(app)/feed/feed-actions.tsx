@@ -16,6 +16,27 @@ export type ReactionKind = "like";
 export type ArticleStat = { like_count: number; comment_count: number };
 export type CurrentUser = { id: string; name: string; avatar: string | null };
 
+/** What the actions act on. Articles and community share cards have parallel
+ *  social tables (0003/0004 vs 0031) — same shape, different subject column. */
+export type ActionSubject = { kind: "article" | "card"; id: string };
+
+const SUBJECT_TABLES = {
+  article: {
+    reactions: "reactions",
+    comments: "comments",
+    commentsView: "feed_comments",
+    idColumn: "article_id",
+    migrationHint: "0004_feed_social.sql",
+  },
+  card: {
+    reactions: "card_reactions",
+    comments: "card_comments",
+    commentsView: "card_feed_comments",
+    idColumn: "card_id",
+    migrationHint: "0031_share_card_social.sql",
+  },
+} as const;
+
 type FeedComment = {
   id: string;
   body: string;
@@ -67,18 +88,18 @@ function ActionButton({
   );
 }
 
-export function ArticleActions({
-  articleId,
+export function FeedItemActions({
+  subject,
   title,
   sharePath,
   stats,
   initialReaction,
   currentUser,
 }: {
-  articleId: string;
+  subject: ActionSubject;
   title: string;
-  /** The Green Mentor permalink (/feed/:slug) — NOT the publisher's URL, which
-   *  is what this button used to share. */
+  /** The Green Mentor permalink (/feed/:slug, /feed/card/:id) — NOT the
+   *  publisher's URL, which is what this button used to share. */
   sharePath: string;
   stats?: ArticleStat;
   initialReaction: ReactionKind | null;
@@ -114,13 +135,14 @@ export function ArticleActions({
     const next = prev === kind ? null : kind;
     setReaction(next); // optimistic
     busyRef.current = true;
+    const t = SUBJECT_TABLES[subject.kind];
     const supabase = getSupabase();
     const { error } =
       next === null
-        ? await supabase.from("reactions").delete().eq("user_id", currentUser.id).eq("article_id", articleId)
+        ? await supabase.from(t.reactions).delete().eq("user_id", currentUser.id).eq(t.idColumn, subject.id)
         : await supabase
-            .from("reactions")
-            .upsert({ user_id: currentUser.id, article_id: articleId, kind: next }, { onConflict: "user_id,article_id" });
+            .from(t.reactions)
+            .upsert({ user_id: currentUser.id, [t.idColumn]: subject.id, kind: next }, { onConflict: `user_id,${t.idColumn}` });
     busyRef.current = false;
     if (error) setReaction(prev); // rollback
   };
@@ -151,7 +173,7 @@ export function ArticleActions({
 
       {open && (
         <CommentSheet
-          articleId={articleId}
+          subject={subject}
           title={title}
           currentUser={currentUser}
           onAdjustCount={(n) => setCommentDelta((d) => d + n)}
@@ -163,13 +185,13 @@ export function ArticleActions({
 }
 
 function CommentSheet({
-  articleId,
+  subject,
   title,
   currentUser,
   onAdjustCount,
   onClose,
 }: {
-  articleId: string;
+  subject: ActionSubject;
   title: string;
   currentUser: CurrentUser | null;
   onAdjustCount: (n: number) => void;
@@ -198,17 +220,18 @@ function CommentSheet({
     return () => cancelAnimationFrame(id);
   }, []);
 
-  // Load real comments for this article (public via the feed_comments view).
+  // Load real comments for this subject (public via its definer view).
   useEffect(() => {
     let cancelled = false;
+    const t = SUBJECT_TABLES[subject.kind];
     (async () => {
       const { data, error } = await getSupabase()
-        .from("feed_comments")
+        .from(t.commentsView)
         .select("id, body, created_at, author_name, author_avatar")
-        .eq("article_id", articleId)
+        .eq(t.idColumn, subject.id)
         .order("created_at", { ascending: true });
       if (cancelled) return;
-      if (error) console.warn("feed_comments unavailable (apply 0004_feed_social.sql):", error.message);
+      if (error) console.warn(`${t.commentsView} unavailable (apply ${t.migrationHint}):`, error.message);
       setComments((data as FeedComment[] | null) ?? []);
       setLoading(false);
     })();
@@ -216,7 +239,7 @@ function CommentSheet({
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [articleId]);
+  }, [subject.kind, subject.id]);
 
   // Modal dialog semantics: move focus into the sheet, trap Tab, Esc to close,
   // lock background scroll, and restore focus to the trigger on close.
@@ -285,9 +308,10 @@ function CommentSheet({
     onAdjustCount(1);
     setPosting(true);
 
+    const t = SUBJECT_TABLES[subject.kind];
     const { data, error } = await getSupabase()
-      .from("comments")
-      .insert({ user_id: currentUser.id, article_id: articleId, body })
+      .from(t.comments)
+      .insert({ user_id: currentUser.id, [t.idColumn]: subject.id, body })
       .select("id")
       .single();
 

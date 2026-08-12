@@ -53,11 +53,16 @@ export default async function FeedPage({
 
   const rows = rankFeed(((articles ?? []) as unknown as ArticleRowRaw[]).map(mapArticle)).slice(0, PAGE_SIZE);
   const ids = rows.map((a) => a.id);
+  // Share cards only ride the unfiltered view (see mergeFeed below), so skip
+  // their social queries when a filter is active. Keyed on the stable studio
+  // card id — the same key card_reactions/card_comments use.
+  const cardIds = activeSlug ? [] : shareCards.map((c) => c.cardId);
 
-  // Social layer. The two views come from 0004_feed_social.sql; if that
-  // migration hasn't been applied yet these queries just error out and we fall
-  // back to zeroed counts, so the feed still renders.
-  const [{ data: stats }, { data: myReactions }, { data: profile }] = await Promise.all([
+  // Social layer. The article views come from 0004_feed_social.sql, the card
+  // ones from 0031_share_card_social.sql; if a migration hasn't been applied
+  // yet its queries just error out and we fall back to zeroed counts, so the
+  // feed still renders.
+  const [{ data: stats }, { data: myReactions }, { data: profile }, { data: cardStats }, { data: myCardReactions }] = await Promise.all([
     ids.length
       ? supabase.from("article_social_stats").select("article_id, like_count, comment_count").in("article_id", ids)
       : Promise.resolve({ data: [] as (ArticleStat & { article_id: string })[] }),
@@ -67,10 +72,18 @@ export default async function FeedPage({
       ? supabase.from("reactions").select("article_id, kind").eq("user_id", user.id).eq("kind", "like").in("article_id", ids)
       : Promise.resolve({ data: [] as { article_id: string; kind: ReactionKind }[] }),
     user ? supabase.from("profiles").select("display_name, avatar_url").eq("id", user.id).maybeSingle() : Promise.resolve({ data: null }),
+    cardIds.length
+      ? supabase.from("card_social_stats").select("card_id, like_count, comment_count").in("card_id", cardIds)
+      : Promise.resolve({ data: [] as (ArticleStat & { card_id: string })[] }),
+    user && cardIds.length
+      ? supabase.from("card_reactions").select("card_id, kind").eq("user_id", user.id).eq("kind", "like").in("card_id", cardIds)
+      : Promise.resolve({ data: [] as { card_id: string; kind: ReactionKind }[] }),
   ]);
 
   const statsBy = new Map((stats ?? []).map((s) => [s.article_id, s as ArticleStat] as const));
   const reactionBy = new Map((myReactions ?? []).map((r) => [r.article_id, r.kind as ReactionKind] as const));
+  const cardStatsBy = new Map((cardStats ?? []).map((s) => [s.card_id, s as ArticleStat] as const));
+  const cardReactionBy = new Map((myCardReactions ?? []).map((r) => [r.card_id, r.kind as ReactionKind] as const));
   const currentUser: CurrentUser | null = user
     ? {
         id: user.id,
@@ -143,7 +156,13 @@ export default async function FeedPage({
                   currentUser={currentUser}
                 />
               ) : (
-                <ShareCardFeedItem card={item.card} fill />
+                <ShareCardFeedItem
+                  card={item.card}
+                  fill
+                  stats={cardStatsBy.get(item.card.cardId)}
+                  reaction={cardReactionBy.get(item.card.cardId) ?? null}
+                  currentUser={currentUser}
+                />
               )}
             </div>
           ))}

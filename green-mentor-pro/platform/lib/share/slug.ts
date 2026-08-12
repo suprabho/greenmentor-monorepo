@@ -37,6 +37,12 @@ export function slugify(input: string | null | undefined): string {
     .replace(/-+$/g, "");
 }
 
+/** Whether a route param is a full uuid — used by routes addressed by raw id
+ *  (e.g. /feed/card/:cardId) to 404 garbage before it reaches the database. */
+export function isUuid(value: string): boolean {
+  return UUID_RE.test(decodeURIComponent(value ?? "").trim());
+}
+
 /** The 10-hex-char prefix of a uuid, matching left(replace(id::text,'-',''), 10). */
 export function idPrefix(id: string): string {
   return id.replace(/-/g, "").slice(0, ID_PREFIX_LEN).toLowerCase();

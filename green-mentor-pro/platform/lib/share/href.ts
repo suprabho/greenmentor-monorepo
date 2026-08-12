@@ -20,3 +20,10 @@ export function jobHref(job: Shareable): string {
 export function articleHref(article: Shareable): string {
   return `/feed/${article.shareSlug}`;
 }
+
+/** Permalink for a published community share card. The full card uuid — cards
+ *  mint no slug/id_prefix, and the static /feed/card/* segment never collides
+ *  with /feed/[slug] (which matches exactly one path segment). */
+export function shareCardHref(card: { cardId: string }): string {
+  return `/feed/card/${card.cardId}`;
+}

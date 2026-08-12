@@ -4,7 +4,7 @@ import { Card, Chip } from "@/components/ui";
 import { ArticleImage } from "@/components/feed/article-image";
 import { articleHref } from "@/lib/share/href";
 import type { FeedArticle, FeedEntity } from "@/lib/feed/repo";
-import { ArticleActions, type ArticleStat, type CurrentUser, type ReactionKind } from "./feed-actions";
+import { FeedItemActions, type ArticleStat, type CurrentUser, type ReactionKind } from "./feed-actions";
 
 // The row types live in lib/feed/repo.ts alongside the query that produces
 // them; re-exported here so existing `from "./feed-card"` imports keep working.
@@ -109,8 +109,8 @@ export function FeedCard({
             </div>
           )}
 
-          <ArticleActions
-            articleId={article.id}
+          <FeedItemActions
+            subject={{ kind: "article", id: article.id }}
             title={article.title}
             sharePath={articleHref(article)}
             stats={stats}
