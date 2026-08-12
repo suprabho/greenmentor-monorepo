@@ -1,19 +1,35 @@
+import Link from "next/link";
 import { clsx } from "clsx";
 import { Card } from "@/components/ui";
 import { cardAspect, type ShareCard } from "@/lib/share-cards/repo";
+import { shareCardHref } from "@/lib/share/href";
 import { ago } from "./feed-card";
+import { FeedItemActions, type ArticleStat, type CurrentUser, type ReactionKind } from "./feed-actions";
 
 /**
  * A community share card as a feed item, interleaved with FeedCards in the
  * snap-scroll. The rendered PNG is the content, so it gets the card's body
  * (object-contain — the studio ships four aspect ratios and the feed pane is
- * one fixed box); a slim footer carries the byline + title. Clicking the
- * image opens it full-size to save or repost.
+ * one fixed box); a slim footer carries the byline + title + the same social
+ * action bar as articles (keyed on the stable studio card id, tables from
+ * migration 0031). Clicking the image opens it full-size to save or repost.
  *
  * `fill` matches FeedCard's contract: stretch to the container's height with
  * a pinned footer, for the swipable stack.
  */
-export function ShareCardFeedItem({ card, fill = false }: { card: ShareCard; fill?: boolean }) {
+export function ShareCardFeedItem({
+  card,
+  fill = false,
+  stats,
+  reaction = null,
+  currentUser = null,
+}: {
+  card: ShareCard;
+  fill?: boolean;
+  stats?: ArticleStat;
+  reaction?: ReactionKind | null;
+  currentUser?: CurrentUser | null;
+}) {
   return (
     <Card className={clsx("overflow-hidden", fill && "flex h-full flex-col")}>
       <a
@@ -38,7 +54,10 @@ export function ShareCardFeedItem({ card, fill = false }: { card: ShareCard; fil
           <span className="rounded-pill bg-teal-900 px-2 py-0.5 font-semibold text-green-100">
             GreenMentor
           </span>
-          <span>{ago(card.publishedAt)}</span>
+          {/* Timestamp-as-permalink, matching the article card's convention. */}
+          <Link href={shareCardHref(card)} className="hover:text-gray-700 hover:underline">
+            {ago(card.publishedAt)}
+          </Link>
         </div>
         <h2 className={clsx("text-[16px] font-semibold leading-snug text-ink", fill && "line-clamp-1")}>
           {card.title}
@@ -48,6 +67,15 @@ export function ShareCardFeedItem({ card, fill = false }: { card: ShareCard; fil
             {card.caption}
           </p>
         )}
+
+        <FeedItemActions
+          subject={{ kind: "card", id: card.cardId }}
+          title={card.title}
+          sharePath={shareCardHref(card)}
+          stats={stats}
+          initialReaction={reaction}
+          currentUser={currentUser}
+        />
       </div>
     </Card>
   );

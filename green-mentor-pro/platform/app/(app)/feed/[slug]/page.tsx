@@ -8,7 +8,7 @@ import { articleHref } from "@/lib/share/href";
 import { fetchArticleSocial, resolveArticle, type FeedEntity } from "@/lib/feed/repo";
 import { shareMetadata } from "@/lib/share/og";
 import { createClient } from "@/lib/supabase/server";
-import { ArticleActions, type CurrentUser } from "../feed-actions";
+import { FeedItemActions, type CurrentUser } from "../feed-actions";
 
 // Shareable permalink for a feed post. This is what the Share button now
 // spreads — previously it handed out the publisher's URL, so sharing a Green
@@ -131,8 +131,8 @@ export default async function FeedPostPage({ params }: { params: Promise<{ slug:
           )}
 
           <div className="mt-5">
-            <ArticleActions
-              articleId={article.id}
+            <FeedItemActions
+              subject={{ kind: "article", id: article.id }}
               title={article.title}
               sharePath={href}
               stats={social.stats}

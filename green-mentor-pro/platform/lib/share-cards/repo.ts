@@ -61,3 +61,50 @@ export async function fetchShareCards(): Promise<ShareCard[]> {
   if (error) throw new Error(error.message);
   return ((data ?? []) as ShareCardRowRaw[]).map(mapShareCard);
 }
+
+/** One published share card by its stable studio card id (the /feed/card/:id
+ *  permalink identifier), or null if the card isn't currently published. */
+export async function fetchShareCard(cardId: string): Promise<ShareCard | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("share_cards_public")
+    .select(SHARE_CARD_COLUMNS)
+    .eq("card_id", cardId)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  return data ? mapShareCard(data as ShareCardRowRaw) : null;
+}
+
+export type ShareCardSocial = {
+  stats: { like_count: number; comment_count: number };
+  reaction: "like" | null;
+};
+
+/**
+ * Like and comment counts for one share card, plus the viewer's own reaction —
+ * the card twin of fetchArticleSocial (lib/feed/repo.ts). card_social_stats
+ * (migration 0031_share_card_social.sql) is a definer view, so the counts are
+ * readable signed-out; cards with no activity have no stats row at all. Both
+ * lookups degrade to zeroes rather than throwing if 0031 hasn't been applied.
+ */
+export async function fetchCardSocial(cardId: string, userId: string | null): Promise<ShareCardSocial> {
+  const supabase = await createClient();
+  const [{ data: stats }, { data: reaction }] = await Promise.all([
+    supabase
+      .from("card_social_stats")
+      .select("like_count, comment_count")
+      .eq("card_id", cardId)
+      .maybeSingle(),
+    userId
+      ? supabase.from("card_reactions").select("kind").eq("user_id", userId).eq("card_id", cardId).maybeSingle()
+      : Promise.resolve({ data: null }),
+  ]);
+
+  return {
+    stats: {
+      like_count: stats?.like_count ?? 0,
+      comment_count: stats?.comment_count ?? 0,
+    },
+    reaction: reaction?.kind === "like" ? "like" : null,
+  };
+}
