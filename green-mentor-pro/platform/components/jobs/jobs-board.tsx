@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
   MapPin,
@@ -23,7 +23,31 @@ const SENIORITY_FILTERS: { value: "all" | JobSeniority; label: string }[] = [
   { value: "lead", label: "Lead" },
 ];
 
+type RangeRelation = "all" | "today" | "lastweek" | "lastmonth";
+
+const RANGE_FILTERS: { value: RangeRelation; label: string; days: number | null }[] = [
+  { value: "all", label: "Any time", days: null },
+  { value: "today", label: "Today", days: 0 },
+  { value: "lastweek", label: "Last week", days: 7 },
+  { value: "lastmonth", label: "Last month", days: 30 },
+];
+
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+/** yyyy-mm-dd `days` ago in the viewer's timezone — postedOn is a bare date. */
+function daysAgoIso(days: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() - days);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+function matchesRange(job: Job, range: RangeRelation): boolean {
+  if (range === "all") return true;
+  if (!job.postedOn) return false;
+  const days = RANGE_FILTERS.find((r) => r.value === range)?.days ?? null;
+  return days === null ? true : job.postedOn >= daysAgoIso(days);
+}
 
 /** Format an ISO date ("2026-06-20") without timezone drift. */
 function fmtDate(iso: string | null): string {
@@ -38,14 +62,34 @@ function monogram(job: Job): string {
 }
 
 export function JobsBoard({ jobs }: { jobs: Job[] }) {
-  const [country, setCountry] = useState<"all" | string>("all");
-  const [seniority, setSeniority] = useState<"all" | JobSeniority>("all");
-  const [query, setQuery] = useState("");
-
   const countries = useMemo(
     () => [...new Set(jobs.map((j) => j.country).filter((c): c is string => Boolean(c)))].sort(),
     [jobs]
   );
+
+  const [country, setCountry] = useState<"all" | string>("all");
+  const [seniority, setSeniority] = useState<"all" | JobSeniority>("all");
+  const [range, setRange] = useState<RangeRelation>("all");
+  const [query, setQuery] = useState("");
+
+  // Applies a link like /jobs?country=India&range=lastweek on arrival. Read on
+  // mount rather than via a lazy useState initializer (which would read
+  // window.location during the SSR-matching first client render too, ahead of
+  // this effect, and produce the same result — but a plain effect keeps the
+  // server- and client-rendered markup identical, avoiding a hydration
+  // mismatch) — see OnboardingHydrator for the same tradeoff.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const rawCountry = params.get("country");
+    const matchedCountry = countries.find((c) => c.toLowerCase() === rawCountry?.toLowerCase());
+    if (matchedCountry) setCountry(matchedCountry);
+    const rawSeniority = params.get("seniority");
+    if (SENIORITY_FILTERS.some((f) => f.value === rawSeniority)) setSeniority(rawSeniority as JobSeniority);
+    const rawRange = params.get("range");
+    if (RANGE_FILTERS.some((f) => f.value === rawRange)) setRange(rawRange as RangeRelation);
+    const rawQuery = params.get("q");
+    if (rawQuery) setQuery(rawQuery);
+  }, [countries]);
 
   const q = query.trim().toLowerCase();
   const shown = useMemo(
@@ -53,6 +97,7 @@ export function JobsBoard({ jobs }: { jobs: Job[] }) {
       jobs.filter((j) => {
         if (country !== "all" && j.country !== country) return false;
         if (seniority !== "all" && j.seniority !== seniority) return false;
+        if (!matchesRange(j, range)) return false;
         if (!q) return true;
         return (
           j.title.toLowerCase().includes(q) ||
@@ -61,8 +106,28 @@ export function JobsBoard({ jobs }: { jobs: Job[] }) {
           j.tags.some((t) => t.toLowerCase().includes(q))
         );
       }),
-    [jobs, country, seniority, q]
+    [jobs, country, seniority, range, q]
   );
+
+  // Keep the URL in sync so the current filtered view stays shareable. Plain
+  // history.replaceState (see share-cards/studio.tsx) rather than the Next
+  // router, which would re-run the page's server fetch on every keystroke.
+  // Skips its first run so it can't race the mount effect above and briefly
+  // clobber a deep link before that effect's state update lands.
+  const skipFirstSync = useRef(true);
+  useEffect(() => {
+    if (skipFirstSync.current) {
+      skipFirstSync.current = false;
+      return;
+    }
+    const params = new URLSearchParams();
+    if (country !== "all") params.set("country", country);
+    if (seniority !== "all") params.set("seniority", seniority);
+    if (range !== "all") params.set("range", range);
+    if (query.trim()) params.set("q", query.trim());
+    const qs = params.toString();
+    window.history.replaceState(null, "", qs ? `${window.location.pathname}?${qs}` : window.location.pathname);
+  }, [country, seniority, range, query]);
 
   return (
     <div>
@@ -94,8 +159,8 @@ export function JobsBoard({ jobs }: { jobs: Job[] }) {
         </select>
       </div>
 
-      {/* Seniority pills */}
-      <div className="mb-5 flex items-center gap-2">
+      {/* Seniority + posted-date pills */}
+      <div className="mb-5 flex flex-wrap items-center gap-2">
         <div className="no-scrollbar flex flex-1 gap-2 overflow-x-auto">
           {SENIORITY_FILTERS.map((f) => (
             <button
@@ -104,6 +169,21 @@ export function JobsBoard({ jobs }: { jobs: Job[] }) {
               onClick={() => setSeniority(f.value)}
               className={
                 seniority === f.value
+                  ? "shrink-0 rounded-pill bg-teal-900 px-3.5 py-1.5 text-[12.5px] font-semibold text-white"
+                  : "shrink-0 rounded-pill border border-gray-200 bg-white px-3.5 py-1.5 text-[12.5px] font-medium text-gray-700 hover:bg-gray-50"
+              }
+            >
+              {f.label}
+            </button>
+          ))}
+          <span className="mx-0.5 shrink-0 self-center text-gray-200">|</span>
+          {RANGE_FILTERS.map((f) => (
+            <button
+              key={f.value}
+              type="button"
+              onClick={() => setRange(f.value)}
+              className={
+                range === f.value
                   ? "shrink-0 rounded-pill bg-teal-900 px-3.5 py-1.5 text-[12.5px] font-semibold text-white"
                   : "shrink-0 rounded-pill border border-gray-200 bg-white px-3.5 py-1.5 text-[12.5px] font-medium text-gray-700 hover:bg-gray-50"
               }
