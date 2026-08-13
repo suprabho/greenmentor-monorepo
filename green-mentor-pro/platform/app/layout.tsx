@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, Manrope, ABeeZee } from "next/font/google";
 import { siteUrl } from "@/lib/share/url";
+import { AmplitudeInit } from "@/components/analytics/AmplitudeInit";
 import "@openuidev/react-ui/styles/index.css";
 import "./globals.css";
 
@@ -47,7 +48,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       lang="en"
       className={`${inter.variable} ${manrope.variable} ${abeezee.variable}`}
     >
-      <body>{children}</body>
+      <body>
+        <AmplitudeInit />
+        {children}
+      </body>
     </html>
   );
 }
