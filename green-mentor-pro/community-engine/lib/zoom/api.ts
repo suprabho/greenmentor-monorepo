@@ -11,8 +11,12 @@
  * (marketplace.zoom.us → Develop → Server-to-Server OAuth; activation is
  * immediate, no marketplace review) with a scope that covers past-meeting
  * polls — classic `meeting:read:admin`, or granular
- * `meeting:read:list_past_polls:admin`. These are separate from the
- * platform's ZOOM_SDK_KEY/SECRET, which only sign embed-join signatures.
+ * `meeting:read:list_poll_results` + `meeting:read:list_poll_results:admin`.
+ * Add/enable those scopes on the app under Scopes, then Continue/Save; a
+ * missing-scope response drops the cached token (see `cachedToken` below) so
+ * the next sync click mints a fresh one instead of waiting out its ~1hr TTL.
+ * These credentials are separate from the platform's ZOOM_SDK_KEY/SECRET,
+ * which only sign embed-join signatures.
  */
 
 const TOKEN_URL = "https://zoom.us/oauth/token";
@@ -116,6 +120,20 @@ export async function fetchPastMeetingPollAnswers(meetingNumber: string): Promis
   }
   const body = (await res.json().catch(() => ({}))) as PastMeetingPollsResponse & { message?: string };
   if (!res.ok) {
+    if (body.message?.includes("does not contain scopes")) {
+      // Drop the cached token so the *next* sync attempt mints a fresh one —
+      // if an admin has already added the scope in Zoom, this avoids waiting
+      // out the ~1hr TTL on a token minted before that change.
+      cachedToken = null;
+      throw new ZoomApiError(
+        502,
+        "The Zoom S2S app is missing the poll-results scope. In marketplace.zoom.us → Develop → " +
+          "Server-to-Server OAuth, open this app, go to Scopes, and add " +
+          "meeting:read:list_poll_results and meeting:read:list_poll_results:admin (or the classic " +
+          "meeting:read:admin), then Continue/Save. Scope changes apply immediately — retry the sync " +
+          "after saving."
+      );
+    }
     throw new ZoomApiError(502, `Zoom API error (HTTP ${res.status}): ${body.message ?? "unknown error"}`);
   }
 
