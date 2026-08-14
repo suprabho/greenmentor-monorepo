@@ -250,6 +250,13 @@ export function StoryEditPanel({
               setBodyMarkdown(md);
               setTab("body");
             }}
+            onStoryRefreshed={(row) => {
+              // Server-side generation rewrote the document pair — sync the
+              // editor panes and reload the preview iframe.
+              setBodyMarkdown(row.body_markdown ?? "");
+              setConfigJson(row.config_json ?? "");
+              setPreviewKey((k) => k + 1);
+            }}
           />
         </div>
       ) : (

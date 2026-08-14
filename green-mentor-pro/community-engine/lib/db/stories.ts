@@ -20,8 +20,20 @@ export type StoryStatus = "draft" | "review" | "published" | "archived";
  */
 export type StoryBodyFormat = "blocks" | "vismay";
 
-/** The sources -> angles -> outline -> draft AI-assist pipeline's working state. */
-export type ComposePhase = "sources" | "angles" | "outline" | "drafted";
+/**
+ * The AI-assist pipeline's working state. Two engines share the column:
+ *  - engine 1 (legacy, blocks rows): sources → angles → outline → drafted.
+ *  - engine 2 (vismay rows, @vismay/story-pipeline): sources → angles →
+ *    outline → content → visual → done, with per-section generation.
+ */
+export type ComposePhase =
+  | "sources"
+  | "angles"
+  | "outline"
+  | "drafted"
+  | "content"
+  | "visual"
+  | "done";
 
 export interface ComposeAngle {
   id: string;
@@ -34,17 +46,33 @@ export interface ComposeOutlineEntry {
   id: string;
   heading: string;
   intent: string;
-  kind: "prose" | "hero" | "chart" | "callout";
+  /** Legacy engine emits prose|hero|chart|callout; the pipeline engine emits
+   *  the vismay SectionKind vocabulary (cover|bodyText|bigStat|split|…). */
+  kind: string;
   order: number;
   accepted: boolean;
+  /** engine 2: pipeline outline extras, threaded to per-section generation. */
+  context?: string;
+  expectedContent?: string;
+  visual?: string;
+  layout?: string;
+  chartId?: string;
+  /** engine 2: the config section id once materialized (null before). */
+  sectionId?: string | null;
 }
 
 export interface ComposeState {
   phase: ComposePhase;
+  /** 2 = @vismay/story-pipeline compose (vismay rows). Absent/1 = legacy. */
+  engine?: 1 | 2;
   angles: ComposeAngle[];
   chosenAngleId: string | null;
   outline: ComposeOutlineEntry[];
   brief?: string;
+  /** engine 2: the angles stage's research brief, reused by the outline call. */
+  pipelineBrief?: { summary: string; keyFacts: string[]; entities: string[] };
+  /** engine 2: the raw StoryOutline (charts, image prompts) for later stages. */
+  storyOutline?: unknown;
 }
 
 export interface StoryRow {
