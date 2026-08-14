@@ -11,6 +11,7 @@
 import { useMemo, useState } from "react";
 import { clsx } from "clsx";
 import { MarkdownEditor } from "@/components/stories/markdown-editor";
+import { publicStoryUrl } from "@/lib/share-link";
 
 type Pane = "document" | "config" | "preview";
 
@@ -40,6 +41,56 @@ export function WebStoryEditor({
   previewKey: number;
 }) {
   const [pane, setPane] = useState<Pane>("document");
+  const [publishing, setPublishing] = useState(false);
+  const [publishMsg, setPublishMsg] = useState<{ kind: "ok" | "err"; text: string } | null>(null);
+  const [publicUrl, setPublicUrl] = useState<string | null>(null);
+
+  const publish = async () => {
+    setPublishing(true);
+    setPublishMsg(null);
+    try {
+      const res = await fetch(`/api/stories/${storyId}/publish`, { method: "POST" });
+      const body = (await res.json().catch(() => ({}))) as {
+        error?: string;
+        publication?: { slug: string | null; id_prefix: string | null };
+      };
+      if (!res.ok) throw new Error(body.error ?? `HTTP ${res.status}`);
+      const url = publicStoryUrl({
+        id: storyId,
+        slug: body.publication?.slug,
+        id_prefix: body.publication?.id_prefix,
+      });
+      setPublicUrl(url);
+      setPublishMsg({ kind: "ok", text: "Published — the snapshot is live" });
+    } catch (err) {
+      setPublishMsg({
+        kind: "err",
+        text: err instanceof Error ? err.message : "Could not publish",
+      });
+    } finally {
+      setPublishing(false);
+    }
+  };
+
+  const unpublish = async () => {
+    if (!confirm("Unpublish this story from the platform?")) return;
+    setPublishing(true);
+    setPublishMsg(null);
+    try {
+      const res = await fetch(`/api/stories/${storyId}/publish`, { method: "DELETE" });
+      const body = (await res.json().catch(() => ({}))) as { error?: string };
+      if (!res.ok) throw new Error(body.error ?? `HTTP ${res.status}`);
+      setPublicUrl(null);
+      setPublishMsg({ kind: "ok", text: "Unpublished" });
+    } catch (err) {
+      setPublishMsg({
+        kind: "err",
+        text: err instanceof Error ? err.message : "Could not unpublish",
+      });
+    } finally {
+      setPublishing(false);
+    }
+  };
 
   // Cheap client-side JSON sanity signal (the authoritative validation runs
   // server-side on save).
@@ -75,15 +126,52 @@ export function WebStoryEditor({
             );
           })}
         </div>
-        <a
-          href={`/stories/${storyId}/preview`}
-          target="_blank"
-          rel="noreferrer"
-          className="text-[11.5px] font-medium text-gray-500 hover:text-ink"
-        >
-          Open preview ↗
-        </a>
+        <div className="flex items-center gap-3">
+          <a
+            href={`/stories/${storyId}/preview`}
+            target="_blank"
+            rel="noreferrer"
+            className="text-[11.5px] font-medium text-gray-500 hover:text-ink"
+          >
+            Open preview ↗
+          </a>
+          <button
+            type="button"
+            onClick={() => void unpublish()}
+            disabled={publishing}
+            className="text-[11.5px] font-medium text-gray-400 hover:text-danger disabled:opacity-40"
+          >
+            Unpublish
+          </button>
+          <button
+            type="button"
+            onClick={() => void publish()}
+            disabled={publishing}
+            className="rounded-pill bg-green-600 px-3 py-1 text-[11.5px] font-semibold text-white transition-colors hover:bg-green-700 disabled:opacity-40"
+          >
+            {publishing ? "Working…" : "Publish to platform"}
+          </button>
+        </div>
       </div>
+
+      {publishMsg ? (
+        <div
+          className={clsx(
+            "rounded-lg px-3 py-2 text-[12px]",
+            publishMsg.kind === "ok" ? "bg-green-50 text-green-700" : "bg-red-50 text-danger"
+          )}
+        >
+          {publishMsg.text}
+          {publishMsg.kind === "ok" && publicUrl ? (
+            <>
+              {" · "}
+              <a href={publicUrl} target="_blank" rel="noreferrer" className="underline">
+                {publicUrl}
+              </a>
+            </>
+          ) : null}
+        </div>
+      ) : null}
 
       {configParseError && pane === "config" ? (
         <div className="rounded-lg bg-amber-50 px-3 py-2 text-[12px] text-amber-800">

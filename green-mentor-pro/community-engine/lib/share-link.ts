@@ -41,3 +41,8 @@ export function publicNewsUrl(row: ShareKeys): string {
 export function publicFeedUrl(): string {
   return `${platformOrigin()}/feed`;
 }
+
+/** Published scrollytelling story on the platform (stories_public row keys). */
+export function publicStoryUrl(row: ShareKeys): string {
+  return `${platformOrigin()}/stories/${segment(row)}`;
+}

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getEngagementContext } from "@/lib/engagement-session";
 import { buildEnergyChart } from "@/lib/energy/charts";
 import { jsonError } from "@/lib/api-error";
+import { resolveStory } from "@/lib/stories/repo";
 
 // Chart-data endpoint that @vismay/viz-engine's GenericChart fetches from
 // (/api/chart-data/<slug>/<id>). Returns { steps: [{ title, option }] } where
@@ -26,6 +27,21 @@ export async function GET(_req: Request, { params }: { params: Promise<{ slug: s
     } catch (e) {
       return jsonError(e);
     }
+  }
+
+  // Published-story branch: the /stories/[slug] reader passes its share slug
+  // as StoryShell's `slug`, so chart fetches land here. Serve the chart from
+  // the publication's frozen snapshot (anon-readable via stories_public —
+  // stories are public surfaces). A bare ECharts option wraps into one step.
+  const story = await resolveStory(slug);
+  if (story) {
+    const data = story.charts[id];
+    if (data === undefined) return NextResponse.json({ error: "not found" }, { status: 404 });
+    const steps =
+      data && typeof data === "object" && Array.isArray((data as { steps?: unknown[] }).steps)
+        ? (data as { steps: unknown[] }).steps
+        : [{ option: data }];
+    return NextResponse.json({ steps });
   }
 
   return NextResponse.json({
