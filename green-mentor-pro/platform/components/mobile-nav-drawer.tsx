@@ -10,7 +10,7 @@ import { MobileDrawer } from "@/components/mobile-drawer";
 import type { ShellStats, ShellViewer } from "@/components/shell";
 import { NAV_GROUPS } from "@/lib/app-nav";
 import { WHATSAPP_COMMUNITY_LABEL, WHATSAPP_COMMUNITY_URL } from "@/lib/data/community";
-import { track } from "@/lib/utils/analytics";
+import { track, trackNavClick } from "@/lib/utils/analytics";
 
 /**
  * The hamburger drawer: the desktop sidebar's content (nav groups, WhatsApp,
@@ -74,7 +74,10 @@ export function MobileNavDrawer({
               <div key={item.href}>
                 <Link
                   href={item.href}
-                  onClick={onClose}
+                  onClick={() => {
+                    trackNavClick({ label: item.label, href: item.href, location: "mobile_drawer" });
+                    onClose();
+                  }}
                   className={clsx(
                     "flex items-center gap-3 rounded-[6px] px-3 py-2.5 text-[13.5px] font-medium transition-colors",
                     isActive(item.href) && !item.children.some((c) => pathname.startsWith(c.href))
@@ -95,7 +98,10 @@ export function MobileNavDrawer({
                       <Link
                         key={c.href}
                         href={c.href}
-                        onClick={onClose}
+                        onClick={() => {
+                          trackNavClick({ label: c.label, href: c.href, location: "mobile_drawer" });
+                          onClose();
+                        }}
                         className={clsx(
                           "flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-[12.5px] transition-colors",
                           pathname.startsWith(c.href)

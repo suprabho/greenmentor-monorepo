@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import * as amplitude from "@amplitude/unified";
 import { GoogleLogo, Spinner } from "@phosphor-icons/react";
 import { createClient } from "@/lib/supabase/client";
 
@@ -52,6 +53,9 @@ export function LoginForm({ next, initialError }: { next: string; initialError?:
         setLoading(false);
         return;
       }
+      amplitude.track("Signed Up", { method: "email" });
+      // The hard navigation below would drop the still-queued event; flush first.
+      await amplitude.flush().promise;
       // New accounts go straight to onboarding. The gate in (app)/layout.tsx
       // would send them there anyway — this just skips the extra bounce.
       window.location.href = "/onboarding";
