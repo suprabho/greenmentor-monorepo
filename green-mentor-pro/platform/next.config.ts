@@ -13,8 +13,18 @@ if (existsSync(sharedEnv)) process.loadEnvFile(sharedEnv);
 const nextConfig: NextConfig = {
   // viz-engine + ai-gateway ship raw TS (main: src/index.ts) — Next must
   // transpile them. This is the seam that lets us consume vismay directly
-  // from the submodule via workspace:* without a build step.
-  transpilePackages: ["@vismay/viz-engine", "@vismay/ai-gateway", "@gm/agents", "@gm/orchestrator"],
+  // from the submodule via workspace:* without a build step. story-reader +
+  // content-source (pure subpaths only) power the /stories scrollytelling
+  // reader; @gm/story-vertical carries the GreenMentor story modules.
+  transpilePackages: [
+    "@vismay/viz-engine",
+    "@vismay/ai-gateway",
+    "@vismay/story-reader",
+    "@vismay/content-source",
+    "@gm/agents",
+    "@gm/orchestrator",
+    "@gm/story-vertical",
+  ],
 };
 
 export default nextConfig;

@@ -5,6 +5,7 @@
    Without these @source lines the composer panels render unstyled. */
 @source "../../vendor/vismay/packages/viz-admin/src";
 @source "../../vendor/vismay/packages/viz-engine/src";
+@source "../../vendor/vismay/packages/story-reader/src";
 
 /* Greenmentor design tokens — pitch-deck design system bundle.
    Same token set as green-mentor-plus. */

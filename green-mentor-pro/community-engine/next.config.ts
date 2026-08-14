@@ -13,10 +13,30 @@ const nextConfig: NextConfig = {
 
   // Keep the headless-browser packages out of the webpack bundle so their native
   // binaries are require()d at runtime instead of being (incorrectly) bundled.
-  serverExternalPackages: ["@sparticuz/chromium", "playwright-core", "playwright"],
+  // pdf-parse/pdfjs/canvas/liteparse are story-pipeline's ingest deps (all
+  // lazily imported inside its src/ingest/*); externalizing keeps their native
+  // binaries out of every lambda except the one route that extracts uploads.
+  serverExternalPackages: [
+    "@sparticuz/chromium",
+    "playwright-core",
+    "playwright",
+    "pdf-parse",
+    "pdfjs-dist",
+    "@napi-rs/canvas",
+    "@llamaindex/liteparse",
+    "jsdom",
+  ],
 
   // The vendored vismay packages ship raw TypeScript (main: src/index.ts).
-  transpilePackages: ["@vismay/viz-engine", "@vismay/viz-admin"],
+  transpilePackages: [
+    "@vismay/viz-engine",
+    "@vismay/viz-admin",
+    "@vismay/story-reader",
+    "@vismay/content-source",
+    "@vismay/story-pipeline",
+    "@vismay/ai-gateway",
+    "@gm/story-vertical",
+  ],
 
   // @sparticuz/chromium loads its brotli-packed Chromium (bin/*.br) from a path it
   // computes at runtime (import.meta.url of build/paths.js → ../bin), so Next's file

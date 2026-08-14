@@ -8,10 +8,23 @@ packages:
   - 'green-mentor-pro/community-engine'
   - 'green-mentor-pro/prototype'
   - 'academy/green-mentor-plus'
-  # vismay submodule — only the two self-contained packages we consume.
+  # vismay submodule — only the self-contained packages we consume.
   # (Do NOT glob packages/* — the rest of vismay's packages have internal
   #  workspace:* deps we don't want to pull in. viz-engine + ai-gateway have none.)
   - 'green-mentor-pro/vendor/vismay/packages/viz-engine'
   - 'green-mentor-pro/vendor/vismay/packages/ai-gateway'
   # viz-admin's only workspace peer is viz-engine (already above) — safe to add.
   - 'green-mentor-pro/vendor/vismay/packages/viz-admin'
+  # Story engine for GreenMentor scrollytelling stories (compose in
+  # community-engine, read on platform):
+  # - story-reader: StoryShell scrollytelling reader; workspace dep = viz-engine only.
+  # - content-source: consume ONLY its pure subpaths (resolveUnits, content,
+  #   storyConfig, storySection, frontmatter). NEVER import contentSource /
+  #   storySources / composeState / supabase and never set CONTENT_SOURCE=db —
+  #   its db mode hardcodes tables (stories, chart_data, story_sources) that
+  #   collide with GreenMentor's own schema.
+  # - story-pipeline: AI compose stages (text-in/text-out); workspace deps
+  #   ai-gateway + content-source + viz-engine, all listed here.
+  - 'green-mentor-pro/vendor/vismay/packages/story-reader'
+  - 'green-mentor-pro/vendor/vismay/packages/content-source'
+  - 'green-mentor-pro/vendor/vismay/packages/story-pipeline'
