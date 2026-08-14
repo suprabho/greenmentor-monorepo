@@ -1,5 +1,7 @@
 import { notFound } from "next/navigation";
 import { requireAdmin } from "@/lib/auth/admin";
+import { createAdminClient, isServiceRoleConfigured } from "@/lib/supabase/admin";
+import { getStory } from "@/lib/db/stories";
 import { parseStoryContent } from "@vismay/content-source/content";
 import { parseStoryConfigText } from "@vismay/content-source/storyConfig";
 import { resolveUnits } from "@vismay/content-source/resolveUnits";
@@ -18,10 +20,24 @@ export const dynamic = "force-dynamic";
  * by the story editor (and openable directly). Deliberately outside the
  * (shell) group — StoryShell owns the whole viewport.
  *
- * M1: serves the hand-ported fixture issue (id = "fixture-issue-38") as the
- * fidelity benchmark. M2 extends this to community_stories drafts
- * (body_format = 'vismay').
+ * `fixture-issue-38` serves the hand-ported fixture issue (the M1 fidelity
+ * benchmark); any other id loads a community_stories draft with
+ * body_format = 'vismay'.
  */
+async function loadDocument(
+  id: string
+): Promise<{ slug: string; markdown: string; configJson: string } | null> {
+  if (id === ISSUE38_SLUG) {
+    return { slug: ISSUE38_SLUG, markdown: issue38Markdown, configJson: issue38ConfigJson };
+  }
+  if (!isServiceRoleConfigured()) return null;
+  const story = await getStory(createAdminClient(), id);
+  if (!story || story.body_format !== "vismay" || !story.body_markdown || !story.config_json) {
+    return null;
+  }
+  return { slug: story.id, markdown: story.body_markdown, configJson: story.config_json };
+}
+
 export default async function StoryPreviewPage({
   params,
 }: {
@@ -30,12 +46,13 @@ export default async function StoryPreviewPage({
   await requireAdmin();
   const { id } = await params;
 
-  if (id !== ISSUE38_SLUG) notFound();
+  const doc = await loadDocument(id);
+  if (!doc) notFound();
 
-  const story = parseStoryContent(issue38Markdown);
-  const config = parseStoryConfigText(ISSUE38_SLUG, issue38ConfigJson, "json");
+  const story = parseStoryContent(doc.markdown);
+  const config = parseStoryConfigText(doc.slug, doc.configJson, "json");
   const { units, mobileUnits, hasMobileOverrides } = resolveUnits(
-    ISSUE38_SLUG,
+    doc.slug,
     story.sections,
     config
   );
@@ -46,7 +63,7 @@ export default async function StoryPreviewPage({
       <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
       <link rel="stylesheet" href={gmFontImportUrl()} />
       <GmStoryReader
-        slug={ISSUE38_SLUG}
+        slug={doc.slug}
         units={units}
         mobileUnits={hasMobileOverrides ? mobileUnits : undefined}
         defaults={config.defaults}

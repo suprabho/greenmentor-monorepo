@@ -18,6 +18,7 @@ import { isAdmin } from "@/lib/auth/admin";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient, isServiceRoleConfigured } from "@/lib/supabase/admin";
 import { insertStory, listStories, type StoryContentType } from "@/lib/db/stories";
+import { GM_STORY_TEMPLATES } from "@gm/story-vertical/templates";
 import type { User } from "@supabase/supabase-js";
 
 export const runtime = "nodejs";
@@ -53,6 +54,9 @@ export async function POST(req: Request) {
     content_type?: string;
     target_publish_date?: string | null;
     notes?: string | null;
+    /** GM scrollytelling template id — creates a body_format:'vismay' draft
+     *  seeded from @gm/story-vertical/templates. */
+    template?: string | null;
   };
 
   const title = body.title?.trim();
@@ -65,16 +69,34 @@ export async function POST(req: Request) {
     );
   }
 
+  const template = body.template
+    ? GM_STORY_TEMPLATES.find((t) => t.id === body.template)
+    : undefined;
+  if (body.template && !template) {
+    return NextResponse.json(
+      { error: `unknown template: ${body.template}` },
+      { status: 400 }
+    );
+  }
+
   if (!isServiceRoleConfigured()) {
     return NextResponse.json({ ok: true, mode: "unconfigured" });
   }
 
+  const seeded = template ? template.build({ title }) : null;
   const story = await insertStory(createAdminClient(), {
     title,
     content_type: contentType,
     owner_id: gate.user.id,
     target_publish_date: body.target_publish_date ?? null,
     notes: body.notes?.trim() || null,
+    ...(seeded
+      ? {
+          body_format: "vismay" as const,
+          body_markdown: seeded.bodyMarkdown,
+          config_json: seeded.configJson,
+        }
+      : {}),
   });
   return NextResponse.json({ ok: true, mode: "created", story });
 }

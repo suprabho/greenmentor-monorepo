@@ -8,6 +8,7 @@
     ".": "./src/index.ts",
     "./theme": "./src/theme.ts",
     "./lint": "./src/lib/lintGmStory.ts",
+    "./templates": "./src/templates/index.ts",
     "./fixtures/issue38": "./src/fixtures/issue38.ts"
   },
   "scripts": {

@@ -9,7 +9,14 @@ import { NextResponse } from "next/server";
 import { isAdmin } from "@/lib/auth/admin";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient, isServiceRoleConfigured } from "@/lib/supabase/admin";
-import { deleteStory, updateStory, type StoryContentType, type StoryStatus } from "@/lib/db/stories";
+import {
+  deleteStory,
+  getStory,
+  updateStory,
+  type StoryContentType,
+  type StoryStatus,
+} from "@/lib/db/stories";
+import { validateGmStoryDocument } from "@/lib/stories/validateDocument";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -39,6 +46,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     target_publish_date?: string | null;
     notes?: string | null;
     body_markdown?: string | null;
+    config_json?: string | null;
   };
 
   if (body.content_type && !CONTENT_TYPES.includes(body.content_type as StoryContentType)) {
@@ -53,15 +61,36 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 
   if (!isServiceRoleConfigured()) return NextResponse.json({ ok: true, mode: "unconfigured" });
 
-  await updateStory(createAdminClient(), id, {
+  const admin = createAdminClient();
+
+  // Vismay-format documents are validated before they land: raw edits must
+  // not orphan config sections from markdown anchors or break the schema —
+  // the preview/publish path would 500 later otherwise. Hard errors reject
+  // the save; house-style lint issues come back as warnings.
+  let lintWarnings: string[] | undefined;
+  if (body.body_markdown !== undefined || body.config_json !== undefined) {
+    const existing = await getStory(admin, id);
+    if (existing?.body_format === "vismay") {
+      const markdown = body.body_markdown ?? existing.body_markdown ?? "";
+      const configJson = body.config_json ?? existing.config_json ?? "";
+      const result = validateGmStoryDocument(id, markdown, configJson);
+      if (!result.ok) {
+        return NextResponse.json({ error: result.error }, { status: 400 });
+      }
+      lintWarnings = result.warnings;
+    }
+  }
+
+  await updateStory(admin, id, {
     ...(body.title !== undefined ? { title: body.title.trim() } : {}),
     ...(body.content_type !== undefined ? { content_type: body.content_type as StoryContentType } : {}),
     ...(body.status !== undefined ? { status: body.status as StoryStatus } : {}),
     ...(body.target_publish_date !== undefined ? { target_publish_date: body.target_publish_date } : {}),
     ...(body.notes !== undefined ? { notes: body.notes } : {}),
     ...(body.body_markdown !== undefined ? { body_markdown: body.body_markdown } : {}),
+    ...(body.config_json !== undefined ? { config_json: body.config_json } : {}),
   });
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ ok: true, ...(lintWarnings?.length ? { warnings: lintWarnings } : {}) });
 }
 
 export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {

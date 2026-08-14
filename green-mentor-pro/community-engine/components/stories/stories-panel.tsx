@@ -44,6 +44,19 @@ function fmtDate(iso: string | null): string {
   });
 }
 
+/**
+ * Story format choices: the classic flat-markdown body ("blocks") or one of
+ * the @gm/story-vertical scrollytelling templates (creates a
+ * body_format:'vismay' draft seeded with that template's spine).
+ */
+const FORMAT_OPTIONS: { value: string; label: string }[] = [
+  { value: "", label: "Classic (markdown body)" },
+  { value: "analytical-briefing", label: "Web story — Analytical Briefing" },
+  { value: "case-study", label: "Web story — Case Study" },
+  { value: "photo-essay", label: "Web story — Photo Essay" },
+  { value: "social-teaser", label: "Web story — Social Teaser" },
+];
+
 function NewStoryForm({
   title,
   setTitle,
@@ -51,6 +64,8 @@ function NewStoryForm({
   setContentType,
   targetDate,
   setTargetDate,
+  template,
+  setTemplate,
   saving,
   onSubmit,
   onClose,
@@ -61,12 +76,17 @@ function NewStoryForm({
   setContentType: (value: StoryContentType) => void;
   targetDate: string;
   setTargetDate: (value: string) => void;
+  template: string;
+  setTemplate: (value: string) => void;
   saving: boolean;
   onSubmit: () => void;
   onClose: () => void;
 }) {
   const { setDirty } = useAdminPanel();
-  useEffect(() => setDirty(Boolean(title || targetDate || contentType !== "post")), [contentType, setDirty, targetDate, title]);
+  useEffect(
+    () => setDirty(Boolean(title || targetDate || template || contentType !== "post")),
+    [contentType, setDirty, targetDate, template, title],
+  );
 
   return (
     <form
@@ -87,6 +107,16 @@ function NewStoryForm({
           <option value="newsletter">Newsletter</option>
           <option value="post">Post</option>
           <option value="social">Social</option>
+        </select>
+      </label>
+      <label className="flex flex-col gap-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-gray-500">
+        Format
+        <select value={template} onChange={(event) => setTemplate(event.target.value)} className={inputCls}>
+          {FORMAT_OPTIONS.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
         </select>
       </label>
       <label className="flex flex-col gap-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-gray-500">
@@ -116,6 +146,7 @@ export function StoriesPanel({ initialStories, configured }: { initialStories: S
   const [title, setTitle] = useState("");
   const [contentType, setContentType] = useState<StoryContentType>("post");
   const [targetDate, setTargetDate] = useState("");
+  const [template, setTemplate] = useState("");
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState<Status>({ type: "idle" });
 
@@ -140,6 +171,7 @@ export function StoriesPanel({ initialStories, configured }: { initialStories: S
     setTitle("");
     setTargetDate("");
     setContentType("post");
+    setTemplate("");
   };
 
   const create = async () => {
@@ -149,7 +181,12 @@ export function StoriesPanel({ initialStories, configured }: { initialStories: S
       const res = await fetch("/api/stories", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: title.trim(), content_type: contentType, target_publish_date: targetDate || null }),
+        body: JSON.stringify({
+          title: title.trim(),
+          content_type: contentType,
+          target_publish_date: targetDate || null,
+          template: template || null,
+        }),
       });
       const body = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(body.error ?? "Could not create story");
@@ -294,6 +331,8 @@ export function StoriesPanel({ initialStories, configured }: { initialStories: S
           setContentType={setContentType}
           targetDate={targetDate}
           setTargetDate={setTargetDate}
+          template={template}
+          setTemplate={setTemplate}
           saving={saving}
           onSubmit={() => void create()}
           onClose={closeCreate}
