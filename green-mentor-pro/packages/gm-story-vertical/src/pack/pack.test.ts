@@ -24,6 +24,7 @@ import {
 import { issue38Config, issue38Markdown } from '../fixtures/issue38'
 import { lintGmStory, isGmForegroundType } from '../lib/lintGmStory'
 import { applyGmBandRhythm } from '../lib/applyGmBandRhythm'
+import { completeGmCoverBody } from '../lib/completeGmCover'
 
 /** Every gm module the VISUAL pass may emit (gm:surface is background-only —
  *  the band system stamps it programmatically, so it is NOT a pack layer). */
@@ -170,6 +171,21 @@ test('lint flags off-vertical foreground layers but not charts', () => {
   assert.equal(rules[0].sectionIndex, 0)
 })
 
+test('lint flags sections whose foreground is empty', () => {
+  const config = {
+    sections: [
+      {
+        id: 'blank',
+        background: [{ type: 'gm:surface', tone: 'light' }],
+        foreground: { layout: 'free', regions: { default: [] } },
+      },
+    ],
+  }
+  const rules = lintGmStory(config as never).filter((i) => i.rule === 'empty-foreground')
+  assert.equal(rules.length, 1)
+  assert.equal(rules[0].sectionIndex, 0)
+})
+
 test('band rhythm wraps flat foregrounds and stamps surfaces on bare configs', () => {
   const bare = {
     sections: [
@@ -188,6 +204,60 @@ test('band rhythm wraps flat foregrounds and stamps surfaces on bare configs', (
   const tones = out.sections.map((s) => s.background?.[0]?.tone)
   assert.equal(tones[0], 'dark', 'hero opens dark')
   assert.notEqual(tones[1], 'dark', 'content band after the hero must not repeat dark')
+})
+
+test('band rhythm handles all three pipeline foreground shapes', () => {
+  // normalizeSectionBody emits: bare single layer, flat array, or
+  // layout-with-named-regions. Tones and canonicalization must see them all.
+  const out = applyGmBandRhythm({
+    sections: [
+      { id: 'bare', foreground: { type: 'gm:standfirst', text: 'S' } },
+      { id: 'named', foreground: { layout: 'centered', regions: { content: [{ type: 'gm:pullquote', text: 'Q' }] } } },
+      { id: 'flat', foreground: [{ type: 'gm:takeaways', items: [] }] },
+    ],
+  } as never) as never as FixtureConfig
+  // Bare object wraps into canonical regions form; named-layout form passes through.
+  assert.deepEqual(out.sections[0].foreground, {
+    layout: 'free',
+    regions: { default: [{ type: 'gm:standfirst', text: 'S' }] },
+  })
+  assert.equal(out.sections[1].foreground?.layout, 'centered')
+  // Fixed tones land for every shape: standfirst off, pullquote green, takeaways dark.
+  assert.deepEqual(
+    out.sections.map((s) => s.background?.[0]?.tone),
+    ['off', 'green', 'dark']
+  )
+})
+
+test('completeGmCoverBody maps the core cover surface into a gm:hero band', () => {
+  const body = completeGmCoverBody(
+    {
+      kind: 'cover',
+      eyebrow: 'ESG Careers · 2026 · What employers screen for',
+      dek: 'A one-line standfirst.',
+      layout: 'hero-full-bleed',
+      heading: 'The ESG Career, Reframed',
+      panel: { background: 'transparent' },
+      foreground: { layout: 'free', regions: { default: [] } },
+    },
+    { heading: 'The ESG Career, Reframed' }
+  )
+  const layers = (body.foreground as { regions: { default: Array<Record<string, unknown>> } }).regions.default
+  assert.equal(layers.length, 1)
+  assert.equal(layers[0].type, 'gm:hero')
+  assert.equal(layers[0].title, 'The ESG Career, Reframed')
+  assert.equal(layers[0].subtitle, 'A one-line standfirst.')
+  assert.deepEqual(layers[0].tags, ['ESG Careers', '2026', 'What employers screen for'])
+  for (const dropped of ['layout', 'panel', 'heading', 'eyebrow', 'dek']) {
+    assert.ok(!(dropped in body), `core cover field '${dropped}' should be dropped`)
+  }
+  assert.ok(
+    packSchemaByType.get('gm:hero')!.safeParse(layers[0]).success,
+    'synthesized hero must satisfy the gm:hero schema'
+  )
+  // A cover that already carries layers passes through untouched.
+  const untouched = { foreground: { type: 'gm:hero', title: 'T' } }
+  assert.equal(completeGmCoverBody(untouched, { heading: 'X' }), untouched)
 })
 
 test('band rhythm re-tones auto surfaces once layers land, pins hand-set tones', () => {

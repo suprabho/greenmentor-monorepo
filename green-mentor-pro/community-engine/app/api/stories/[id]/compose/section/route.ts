@@ -21,7 +21,11 @@ import {
   type StoryOutline,
 } from "@vismay/story-pipeline";
 import { GREENMENTOR_PACK } from "@gm/story-vertical/pack";
-import { applyGmBandRhythm, isGmForegroundType } from "@gm/story-vertical";
+import {
+  applyGmBandRhythm,
+  completeGmCoverBody,
+  isGmForegroundType,
+} from "@gm/story-vertical";
 import { requireAdminApiUser } from "@/lib/auth/apiGate";
 import { createAdminClient, isServiceRoleConfigured } from "@/lib/supabase/admin";
 import { casUpdateStoryFiles, getStory, type StoryRow } from "@/lib/db/stories";
@@ -159,28 +163,62 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
             ? { refine: { feedback: refine.feedback, previous: undefined } }
             : {}),
         });
-        // The pipeline's schema legally admits vismay's core layer types
-        // (text, bigStat, quote, …) next to the gm modules, but those render
-        // outside the GreenMentor design language. One corrective retry; a
-        // persistent leak still lands and surfaces as a gm-layers-only lint
-        // warning on save.
-        const offBrand = visualBodyLayerTypes(
-          visual.body as Record<string, unknown>
-        ).filter((t) => !isGmForegroundType(t));
-        if (offBrand.length > 0) {
-          visual = await generateSectionVisual(ctx, content, {
-            pack: GREENMENTOR_PACK,
-            refine: {
-              feedback:
-                `Your previous body used core layer type(s) ${offBrand.join(", ")}, ` +
+        // Two failure classes get ONE corrective retry each; a persistent
+        // miss still lands and surfaces as a lint warning on save.
+        //
+        // 1. Core-layer leakage: the pipeline's schema legally admits
+        //    vismay's core layer types (text, bigStat, quote, …) next to the
+        //    gm modules, but those render outside the GreenMentor design
+        //    language.
+        // 2. Empty visual: the model sometimes emits only section-level
+        //    fields (kind/layout) with no foreground layers at all — the
+        //    band then renders blank.
+        const isCover = entry.kind === "hero" || entry.kind === "cover";
+        const layerTypes = visualBodyLayerTypes(visual.body as Record<string, unknown>);
+        const offBrand = layerTypes.filter((t) => !isGmForegroundType(t));
+        const plannedChart =
+          "stub" in ctx && ctx.stub && typeof ctx.stub.chartId === "string"
+            ? ctx.stub.chartId
+            : undefined;
+        if (offBrand.length > 0 || (layerTypes.length === 0 && !isCover)) {
+          const feedback =
+            offBrand.length > 0
+              ? `Your previous body used core layer type(s) ${offBrand.join(", ")}, ` +
                 "which render outside the GreenMentor design language. Rebuild the " +
                 "body using ONLY gm:* vertical modules (plus 'chart' when the outline " +
-                "plans one) — choose the gm module that fits this content.",
-              previous: undefined,
-            },
+                "plans one) — choose the gm module that fits this content."
+              : "Your previous body had NO foreground layers, so the slide renders " +
+                "blank. Emit exactly one gm:* vertical module in the foreground " +
+                "that carries this section's content" +
+                (plannedChart
+                  ? `, or a chart layer referencing the planned chart id "${plannedChart}"`
+                  : "") +
+                ".";
+          visual = await generateSectionVisual(ctx, content, {
+            pack: GREENMENTOR_PACK,
+            refine: { feedback, previous: undefined },
           });
         }
-        cfg = replaceConfigBody(cfg, entry.sectionId, visual.body);
+        // GM covers complete deterministically: map the authored eyebrow/dek
+        // cover surface into a gm:hero band (the core prompt forbids the
+        // model from authoring cover foreground layers).
+        let body = visual.body as Record<string, unknown>;
+        if (isCover) {
+          body = completeGmCoverBody(body, { heading: entry.heading });
+        } else if (visualBodyLayerTypes(body).length === 0 && plannedChart) {
+          // Still empty after the corrective retry, but the outline planned a
+          // chart whose data is generated independently — reference it
+          // deterministically rather than shipping a blank band.
+          const { layout: _layout, ...rest } = body;
+          body = {
+            ...rest,
+            foreground: {
+              layout: "free",
+              regions: { default: [{ type: "chart", id: plannedChart }] },
+            },
+          };
+        }
+        cfg = replaceConfigBody(cfg, entry.sectionId, body);
         // Re-stamp the band + regions form (idempotent for untouched sections).
         cfg = JSON.stringify(applyGmBandRhythm(JSON.parse(cfg)), null, 2);
       }

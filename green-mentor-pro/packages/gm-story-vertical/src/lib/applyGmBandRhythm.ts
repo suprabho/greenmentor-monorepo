@@ -43,21 +43,32 @@ const FIXED_TONES: Record<string, SurfaceTone> = {
   'gm:footer': 'dark',
 }
 
+/**
+ * The pipeline's normalizeSectionBody emits foreground in THREE shapes: a
+ * bare single layer object, a flat layer array, or `{layout?, regions:
+ * {<name>: Layer[] | {layers: Layer[]}}}` with the layout's own region names.
+ * Everything here must read all of them.
+ */
+function foregroundLayerList(fg: unknown): Array<{ type?: unknown }> {
+  if (!fg || typeof fg !== 'object') return []
+  if (Array.isArray(fg)) return fg as Array<{ type?: unknown }>
+  if ('regions' in (fg as object)) {
+    const regions = (fg as { regions: Record<string, unknown> }).regions ?? {}
+    return Object.values(regions).flatMap((r) => {
+      if (Array.isArray(r)) return r as Array<{ type?: unknown }>
+      if (r && typeof r === 'object' && 'layers' in (r as object)) {
+        const layers = (r as { layers: unknown }).layers
+        return Array.isArray(layers) ? (layers as Array<{ type?: unknown }>) : []
+      }
+      return [r as { type?: unknown }]
+    })
+  }
+  return [fg as { type?: unknown }]
+}
+
 function leadLayerType(section: AnySection): string | null {
-  const fg = section.foreground
-  if (Array.isArray(fg)) {
-    const first = fg[0] as { type?: unknown } | undefined
-    return typeof first?.type === 'string' ? first.type : null
-  }
-  if (fg && typeof fg === 'object' && 'regions' in (fg as object)) {
-    const regions = (fg as { regions: Record<string, unknown> }).regions
-    const dflt = regions?.default
-    if (Array.isArray(dflt)) {
-      const first = dflt[0] as { type?: unknown } | undefined
-      return typeof first?.type === 'string' ? first.type : null
-    }
-  }
-  return null
+  const first = foregroundLayerList(section.foreground)[0]
+  return typeof first?.type === 'string' ? first.type : null
 }
 
 function backgroundLayers(section: AnySection): SurfaceLayer[] {
@@ -72,9 +83,19 @@ export function applyGmBandRhythm<T extends { sections?: unknown }>(config: T): 
   const next = sections.map((section) => {
     const out: AnySection = { ...section }
 
-    // 1. Canonical regions-form foreground.
+    // 1. Canonical regions-form foreground. Flat arrays AND bare single-layer
+    // objects (normalizeForeground's single-layer shortcut) both wrap —
+    // outside regions form the engine's built-in text card renders over the
+    // slide. Layout-with-named-regions forms are legal and pass through.
     if (Array.isArray(out.foreground)) {
       out.foreground = { layout: 'free', regions: { default: out.foreground } }
+    } else if (
+      out.foreground &&
+      typeof out.foreground === 'object' &&
+      !('regions' in (out.foreground as object)) &&
+      typeof (out.foreground as { type?: unknown }).type === 'string'
+    ) {
+      out.foreground = { layout: 'free', regions: { default: [out.foreground] } }
     }
 
     // 2. Band tone.

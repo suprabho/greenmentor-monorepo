@@ -22,6 +22,7 @@ export { GREENMENTOR_THEME, gmFontImportUrl } from './theme'
 export { surfaceInk, SURFACE_COLOR, type SurfaceTone } from './lib/tokens'
 export { lintGmStory, isGmForegroundType, type GmLintIssue } from './lib/lintGmStory'
 export { applyGmBandRhythm } from './lib/applyGmBandRhythm'
+export { completeGmCoverBody } from './lib/completeGmCover'
 
 function registerSafely(module: AnyVizModule): void {
   if (!getVizModule(module.type)) registerVizModule(module)

@@ -30,6 +30,11 @@ export function gmSection(
   }
 }
 
+/** YAML-quote a scalar. JSON string escaping is valid YAML double-quoting,
+ *  so titles/subtitles with colons, quotes or dashes can't corrupt the
+ *  frontmatter block (an unquoted `a: b` value is a YAML parse error). */
+const yamlScalar = (s: string): string => JSON.stringify(s)
+
 export function frontmatter(input: {
   title: string
   subtitle: string
@@ -38,10 +43,10 @@ export function frontmatter(input: {
 }): string {
   return [
     '---',
-    `title: ${input.title}`,
-    `subtitle: ${input.subtitle}`,
-    `byline: ${input.byline ?? 'GreenMentor'}`,
-    `date: ${input.date ?? ''}`,
+    `title: ${yamlScalar(input.title)}`,
+    `subtitle: ${yamlScalar(input.subtitle)}`,
+    `byline: ${yamlScalar(input.byline ?? 'GreenMentor')}`,
+    `date: ${yamlScalar(input.date ?? '')}`,
     'format: deck',
     'vertical: greenmentor',
     'status: draft',

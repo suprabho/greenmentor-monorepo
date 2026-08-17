@@ -67,6 +67,14 @@ export function lintGmStory(config: StoryConfig): GmLintIssue[] {
 
   const countByType = new Map<string, number>()
   sections.forEach((section, i) => {
+    if (foregroundLayers(section).length === 0) {
+      issues.push({
+        level: 'warning',
+        rule: 'empty-foreground',
+        message: 'Section has no foreground layers — the band renders blank.',
+        sectionIndex: i,
+      })
+    }
     for (const layer of foregroundLayers(section)) {
       if (typeof layer.type === 'string') {
         countByType.set(layer.type, (countByType.get(layer.type) ?? 0) + 1)
