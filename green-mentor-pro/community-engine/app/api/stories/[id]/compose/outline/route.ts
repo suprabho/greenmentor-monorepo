@@ -16,7 +16,7 @@ import {
 import { GREENMENTOR_PACK } from "@gm/story-vertical/pack";
 import { requireAdminApiUser } from "@/lib/auth/apiGate";
 import { createAdminClient, isServiceRoleConfigured } from "@/lib/supabase/admin";
-import { getStory, updateStory, type ComposeOutlineEntry } from "@/lib/db/stories";
+import { getStory, updateStory, LEGACY_SECTION_KINDS, type ComposeOutlineEntry } from "@/lib/db/stories";
 import { listStorySources } from "@/lib/db/story-sources";
 import { buildSourcesContext } from "@/lib/stories/compose";
 import { storySourceRowsToDocs } from "@/lib/stories/pipeline-store";
@@ -40,7 +40,7 @@ const inputSchema: Anthropic.Messages.Tool["input_schema"] = {
           intent: { type: "string", description: "One sentence: what this section should accomplish." },
           kind: {
             type: "string",
-            enum: ["prose", "hero", "chart", "callout"],
+            enum: [...LEGACY_SECTION_KINDS],
             description:
               "The section's archetype: 'hero' ONLY for the opening section (a title banner, no body prose) — use at most one, first; 'chart' only if the sources contain numeric data suited to a simple bar/line chart — at most one; 'callout' for a short 'key takeaways' summary section; otherwise 'prose'.",
           },

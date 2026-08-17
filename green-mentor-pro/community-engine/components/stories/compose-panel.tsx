@@ -13,7 +13,7 @@ import { clsx } from "clsx";
 import { Plus, CaretUp, CaretDown } from "@phosphor-icons/react/dist/ssr";
 import { Card, Chip } from "@/components/ui";
 import { GenerateSection } from "@/components/stories/generate-section";
-import type { ComposeState, StoryRow } from "@/lib/db/stories";
+import { LEGACY_SECTION_KINDS, VISMAY_SECTION_KINDS, type ComposeState, type StoryRow } from "@/lib/db/stories";
 import type { StorySourceRow } from "@/lib/db/story-sources";
 
 type Status = { type: "idle" | "ok" | "err" | "info"; msg?: string };
@@ -560,6 +560,12 @@ function OutlineSection({
   // Selection is tracked by id so it follows a section through reorders; falls
   // back to the first section when nothing is selected yet or the id is stale.
   const selected = sorted.find((e) => e.id === selectedId) ?? sorted[0] ?? null;
+  // Engine 2 (vismay) outlines use a much larger kind vocabulary than engine 1
+  // (legacy) — the section-type control must offer whichever one produced
+  // this outline, or edits silently overwrite a valid kind with a bogus one.
+  const isVismay = compose.engine === 2;
+  const sectionKinds = isVismay ? VISMAY_SECTION_KINDS : LEGACY_SECTION_KINDS;
+  const isChartLike = (kind: string) => (isVismay ? kind === "data" || kind === "stat" || kind === "bigStat" : kind === "chart");
 
   const generate = async () => {
     setBusy(true);
@@ -681,7 +687,7 @@ function OutlineSection({
                     >
                       {e.heading || "Untitled section"}
                     </span>
-                    <Chip tone={e.kind === "chart" ? "teal" : "neutral"}>{e.kind}</Chip>
+                    <Chip tone={isChartLike(e.kind) ? "teal" : "neutral"}>{e.kind}</Chip>
                     <div className="flex shrink-0 flex-col text-gray-400">
                       <button
                         type="button"
@@ -732,36 +738,50 @@ function OutlineSection({
                 <label className="text-[11px] font-semibold uppercase tracking-[0.12em] text-gray-500">
                   Section type
                 </label>
-                <div className="inline-flex w-fit rounded-lg border border-gray-200 p-0.5">
-                  {(["prose", "hero", "chart", "callout"] as const).map((k) => (
-                    <button
-                      key={k}
-                      type="button"
-                      onClick={() => update(selected.id, { kind: k })}
-                      className={clsx(
-                        "rounded-[7px] px-3 py-1 text-[12px] font-medium capitalize transition-colors",
-                        selected.kind === k ? "bg-teal-900 text-white" : "text-gray-500 hover:text-ink"
-                      )}
-                    >
-                      {k}
-                    </button>
-                  ))}
-                </div>
+                {isVismay ? (
+                  <select
+                    value={selected.kind}
+                    onChange={(ev) => update(selected.id, { kind: ev.target.value })}
+                    className={`${inputCls} w-fit capitalize`}
+                  >
+                    {sectionKinds.map((k) => (
+                      <option key={k} value={k}>
+                        {k}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <div className="inline-flex w-fit rounded-lg border border-gray-200 p-0.5">
+                    {sectionKinds.map((k) => (
+                      <button
+                        key={k}
+                        type="button"
+                        onClick={() => update(selected.id, { kind: k })}
+                        className={clsx(
+                          "rounded-[7px] px-3 py-1 text-[12px] font-medium capitalize transition-colors",
+                          selected.kind === k ? "bg-teal-900 text-white" : "text-gray-500 hover:text-ink"
+                        )}
+                      >
+                        {k}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <div className="flex flex-col gap-1.5">
                 <label className="text-[11px] font-semibold uppercase tracking-[0.12em] text-gray-500">
-                  {selected.kind === "chart" ? "Chart prompt" : "Content"}
+                  {isChartLike(selected.kind) ? "Chart prompt" : "Content"}
                 </label>
                 <p className="text-[11.5px] text-gray-500">
-                  {selected.kind === "chart"
+                  {isChartLike(selected.kind)
                     ? "Describe the data or comparison this chart should visualise."
                     : "What this section should cover."}
                 </p>
                 <textarea
                   value={selected.intent}
                   onChange={(ev) => update(selected.id, { intent: ev.target.value })}
-                  rows={selected.kind === "chart" ? 5 : 4}
+                  rows={isChartLike(selected.kind) ? 5 : 4}
                   className={`${inputCls} resize-y text-gray-700`}
                 />
               </div>
