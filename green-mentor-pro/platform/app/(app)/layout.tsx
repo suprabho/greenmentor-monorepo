@@ -39,6 +39,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
     stats = s;
     viewer = {
+      id: user.id,
       name: profile?.display_name ?? (user.user_metadata?.full_name as string) ?? user.email ?? "You",
       avatarUrl: profile?.avatar_url ?? (user.user_metadata?.avatar_url as string) ?? null,
     };
