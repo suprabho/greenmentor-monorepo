@@ -153,6 +153,7 @@ export default async function WebinarDetailPage({ params }: { params: Promise<{ 
               <RsvpButton
                 webinarId={webinar.id}
                 webinarTitle={webinar.hook ?? webinar.title}
+                shareSlug={webinar.shareSlug}
                 initialAttending={rsvpIds.has(webinar.id)}
                 signedIn={Boolean(user)}
                 contactDefaults={contactDefaults}

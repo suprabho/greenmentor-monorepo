@@ -13,14 +13,18 @@ import { SURFACE_COLOR, type SurfaceTone } from './tokens'
  *      audience pale, footer dark; content bands alternate light/tint,
  *      never two darks adjacent).
  *
- * Tone provenance: surfaces this pass stamps carry `auto: true`, which marks
- * the tone as band-system-owned — later passes recompute it freely (the
- * compose flow stamps sections BEFORE their visual layers exist, so fixed
- * tones can only land once the lead layer is known). A surface WITHOUT the
- * flag is treated as hand-tuned and passes through untouched, so editor
- * tone choices survive regeneration of any section. (`auto` is not part of
- * surfaceSchema; zod strips it at render parse, and it round-trips harmlessly
- * in the config JSON.)
+ * Tone ownership:
+ *   - Surfaces this pass stamps carry `auto: true` (band-system-owned):
+ *     later passes recompute them freely — the compose flow stamps sections
+ *     BEFORE their visual layers exist, so tones can only settle once the
+ *     lead layer is known. (`auto` is not part of surfaceSchema; zod strips
+ *     it at render parse and it round-trips harmlessly in the config JSON.)
+ *   - Fixed-tone modules (hero, pullquote, takeaways, …) always get their
+ *     exact tone on re-run, even on surfaces WITHOUT the flag — legacy
+ *     drafts stamped before `auto` existed froze the materialize-time
+ *     placeholder tone (an unreadable near-white pullquote, PR #151).
+ *   - Content bands with no fixed tone keep a non-auto stamped value, so
+ *     hand-tuned tones survive regeneration of OTHER sections.
  *
  * Idempotent: re-running over its own output changes nothing.
  */
@@ -99,15 +103,28 @@ export function applyGmBandRhythm<T extends { sections?: unknown }>(config: T): 
     }
 
     // 2. Band tone.
+    const lead = leadLayerType(out)
+    const fixedTone = lead ? FIXED_TONES[lead] : undefined
     const surface = backgroundLayers(out).find((l) => l.type === 'gm:surface')
+
     if (surface && surface.auto !== true) {
-      // Hand-tuned tone — pass through untouched.
-      prevTone = surface.tone ?? 'light'
+      const stampedTone = surface.tone ?? 'light'
+      // Fixed-tone modules always need their exact tone, even when a
+      // gm:surface was stamped before the module type was known (legacy
+      // drafts predate the `auto` flag). Content bands with no fixed tone
+      // keep their stamped value — that's the hand-tuning contract.
+      if (fixedTone !== undefined && stampedTone !== fixedTone) {
+        out.background = backgroundLayers(out).map((l) =>
+          l === surface ? { ...l, tone: fixedTone } : l
+        )
+        prevTone = fixedTone
+        return out
+      }
+      prevTone = stampedTone
       return out
     }
 
-    const lead = leadLayerType(out)
-    let tone: SurfaceTone | undefined = lead ? FIXED_TONES[lead] : undefined
+    let tone: SurfaceTone | undefined = fixedTone
     if (tone === undefined) {
       // Content band: alternate light/tint against whatever came before.
       tone = prevTone === 'light' ? 'tint' : 'light'

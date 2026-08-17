@@ -288,8 +288,11 @@ test('band rhythm re-tones auto surfaces once layers land, pins hand-set tones',
     'auto surfaces re-tone to the fixed tones once the lead layer is known'
   )
 
-  // Hand-tuning: dropping the auto flag pins the tone across regeneration.
+  // Hand-tuning: dropping the auto flag pins a CONTENT band's tone across
+  // regeneration. Fixed-tone modules are exempt — they always reclaim their
+  // exact tone (PR #151), so the pin test uses a prose band.
   const pinned = structuredClone(retoned)
+  pinned.sections[1].foreground!.regions.default = [{ type: 'gm:prose', title: 'P' }]
   pinned.sections[1].background![0] = { type: 'gm:surface', tone: 'pale' }
   const rerun = applyGmBandRhythm(pinned as never) as never as FixtureConfig
   assert.equal(rerun.sections[1].background?.[0]?.tone, 'pale', 'hand-set tone survives re-stamp')

@@ -1,5 +1,6 @@
 import { Leaf } from "@phosphor-icons/react/dist/ssr";
 import { Card } from "@/components/ui";
+import { safeNextHref } from "@/lib/auth/next-href";
 import { LoginForm } from "./login-form";
 
 export const metadata = { title: "Sign in — Green Mentor Pro" };
@@ -21,7 +22,12 @@ export default async function LoginPage({
           Sign in to run AI Hub agents, save your work, and join the ESG feed.
         </p>
         <div className="mt-6">
-          <LoginForm next={next ?? "/home"} initialError={error} />
+          {/* Sanitize here rather than in the form: it hands `next` straight to
+              window.location, so an unchecked "?next=https://evil.com" would
+              walk someone off-site the moment they signed in. Middleware only
+              covers the already-signed-in bounce. safeNextHref falls back to
+              /home, which is what this passed before. */}
+          <LoginForm next={safeNextHref(next)} initialError={error} />
         </div>
       </Card>
     </div>
