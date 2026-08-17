@@ -82,6 +82,14 @@ export function lintGmStory(config: StoryConfig): GmLintIssue[] {
     })
   }
 
+  if ((countByType.get('gm:footer') ?? 0) === 0) {
+    issues.push({
+      level: 'warning',
+      rule: 'closing-present',
+      message: 'No gm:footer — every corpus issue ends on a closing section.',
+    })
+  }
+
   let prevTone: SurfaceTone | null = null
   sections.forEach((section, i) => {
     const tone = surfaceTone(section)

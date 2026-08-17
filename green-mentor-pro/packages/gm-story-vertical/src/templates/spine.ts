@@ -52,3 +52,22 @@ export function frontmatter(input: {
 export const GM_STORY_DEFAULTS = {
   scroll: { mode: 'snap' },
 } as const
+
+export const GM_FOOTER_COLUMNS = [
+  { label: 'Publication', body: 'What this briefing is and who it serves.' },
+  { label: 'Next Issue', body: 'One-line tease of the next issue.' },
+  { label: 'Referenced', body: 'Standards / sources referenced in this issue.' },
+]
+
+/**
+ * The dark gm:footer band every corpus issue closes on. Shared by the
+ * starter templates and by the compose pipeline's materialize step, which
+ * falls back to this when an outline (LLM-generated or otherwise) omits it —
+ * every issue must end on a closing section, not just the ones the
+ * generation step remembered to ask for.
+ */
+export function closingSection(footer?: Record<string, unknown>): GmSection {
+  return gmSection('closing', 'Closing', 'dark', [
+    { type: 'gm:footer', logo: 'GreenMentor', columns: GM_FOOTER_COLUMNS, ...footer },
+  ])
+}
