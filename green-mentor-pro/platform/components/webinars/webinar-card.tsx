@@ -85,6 +85,7 @@ export function WebinarCard({
         <RsvpButton
           webinarId={webinar.id}
           webinarTitle={webinar.hook ?? webinar.title}
+          shareSlug={webinar.shareSlug}
           initialAttending={attending}
           signedIn={signedIn}
           contactDefaults={contactDefaults}

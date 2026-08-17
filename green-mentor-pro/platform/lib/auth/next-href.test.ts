@@ -29,6 +29,14 @@ describe("safeNextHref", () => {
     expect(safeNextHref(null, "/")).toBe("/");
     expect(safeNextHref("https://evil.com", "")).toBe("");
   });
+
+  // The RSVP resume rides through sign-in as `?rsvp=1` on the webinar's own
+  // href, so a `next` carrying its own query string has to survive intact.
+  it("keeps a query string the destination carries", () => {
+    expect(safeNextHref("/webinars/scope-3-3f8a1c2e9d?rsvp=1")).toBe(
+      "/webinars/scope-3-3f8a1c2e9d?rsvp=1",
+    );
+  });
 });
 
 describe("splitHref", () => {
@@ -40,6 +48,13 @@ describe("splitHref", () => {
     expect(splitHref("/jobs/analyst-8b21f0ac4e")).toEqual({
       pathname: "/jobs/analyst-8b21f0ac4e",
       search: "",
+    });
+  });
+
+  it("splits a resume intent back into the parts NextURL wants", () => {
+    expect(splitHref("/webinars/scope-3-3f8a1c2e9d?rsvp=1")).toEqual({
+      pathname: "/webinars/scope-3-3f8a1c2e9d",
+      search: "?rsvp=1",
     });
   });
 

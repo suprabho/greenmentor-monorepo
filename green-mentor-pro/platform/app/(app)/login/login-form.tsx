@@ -59,7 +59,14 @@ export function LoginForm({ next, initialError }: { next: string; initialError?:
       await amplitude.flush().promise;
       // New accounts go straight to onboarding. The gate in (app)/layout.tsx
       // would send them there anyway — this just skips the extra bounce.
-      window.location.href = "/onboarding";
+      //
+      // `next` has to ride along: hardcoding /onboarding here dropped it, so
+      // everyone who signed up from a shared webinar/job/post link finished the
+      // wizard on /home. Same forwarding the OAuth path does in
+      // app/auth/callback/route.ts — onboarding latches the param and lands on
+      // it when the last step saves.
+      window.location.href =
+        next && next !== "/home" ? `/onboarding?next=${encodeURIComponent(next)}` : "/onboarding";
       return;
     }
 
