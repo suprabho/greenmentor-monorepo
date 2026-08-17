@@ -42,13 +42,33 @@ export interface ComposeAngle {
   rationale: string;
 }
 
+/** Engine 1 (legacy, blocks rows) section archetypes — see outline/route.ts's propose_outline schema. */
+export const LEGACY_SECTION_KINDS = ["prose", "hero", "chart", "callout"] as const;
+export type LegacySectionKind = (typeof LEGACY_SECTION_KINDS)[number];
+
+/** Engine 2 (vismay rows) section archetypes — mirrors SectionKind in @vismay/viz-engine's storyConfig.types. */
+export const VISMAY_SECTION_KINDS = [
+  "cover",
+  "hero",
+  "text",
+  "bodyText",
+  "bigStat",
+  "stat",
+  "split",
+  "data",
+  "gallery",
+  "quote",
+  "divider",
+  "closing",
+] as const;
+export type VismaySectionKind = (typeof VISMAY_SECTION_KINDS)[number];
+
 export interface ComposeOutlineEntry {
   id: string;
   heading: string;
   intent: string;
-  /** Legacy engine emits prose|hero|chart|callout; the pipeline engine emits
-   *  the vismay SectionKind vocabulary (cover|bodyText|bigStat|split|…). */
-  kind: string;
+  /** Legacy engine emits a LegacySectionKind; the pipeline engine emits a VismaySectionKind. */
+  kind: LegacySectionKind | VismaySectionKind | (string & {});
   order: number;
   accepted: boolean;
   /** engine 2: pipeline outline extras, threaded to per-section generation. */
