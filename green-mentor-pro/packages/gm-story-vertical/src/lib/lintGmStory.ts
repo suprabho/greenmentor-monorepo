@@ -46,15 +46,46 @@ function surfaceTone(section: StorySectionConfig): SurfaceTone | null {
   return (surface.tone as SurfaceTone | undefined) ?? 'light'
 }
 
+/**
+ * Core (non-gm) layer types that are legitimate in a GreenMentor story.
+ * `chart` is the only one: chart data flows through the compose chart
+ * pipeline and renders via viz-engine's GenericChart. Every other core type
+ * (text, bigStat, quote, …) renders in vismay's default styling — legal to
+ * the engine, but off-brand — so the lint flags it and the compose VISUAL
+ * pass uses the same predicate for its corrective retry.
+ */
+const ALLOWED_CORE_TYPES = new Set(['chart'])
+
+/** True when a foreground layer type belongs in a GM story. */
+export function isGmForegroundType(type: string): boolean {
+  return type.startsWith('gm:') || ALLOWED_CORE_TYPES.has(type)
+}
+
 export function lintGmStory(config: StoryConfig): GmLintIssue[] {
   const issues: GmLintIssue[] = []
   const sections = config.sections ?? []
 
   const countByType = new Map<string, number>()
-  sections.forEach((section) => {
+  sections.forEach((section, i) => {
+    if (foregroundLayers(section).length === 0) {
+      issues.push({
+        level: 'warning',
+        rule: 'empty-foreground',
+        message: 'Section has no foreground layers — the band renders blank.',
+        sectionIndex: i,
+      })
+    }
     for (const layer of foregroundLayers(section)) {
       if (typeof layer.type === 'string') {
         countByType.set(layer.type, (countByType.get(layer.type) ?? 0) + 1)
+        if (!isGmForegroundType(layer.type)) {
+          issues.push({
+            level: 'warning',
+            rule: 'gm-layers-only',
+            message: `Foreground layer '${layer.type}' is not a gm:* module — it renders in vismay's default styling, outside the GreenMentor design language.`,
+            sectionIndex: i,
+          })
+        }
       }
     }
   })

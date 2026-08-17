@@ -42,6 +42,14 @@ function sectionSpan(lines: string[], heading: string): [number, number] | null 
   return [start, end];
 }
 
+/** Whether the markdown still contains a `## heading` anchor. Used to fail
+ *  loudly before generation when an editor renamed the heading in the
+ *  document pane — `replaceMarkdownProse` would otherwise silently no-op and
+ *  the section would render empty prose. */
+export function hasMarkdownSection(markdown: string, heading: string): boolean {
+  return sectionSpan(markdown.split("\n"), heading) !== null;
+}
+
 /** Replace the prose under a `## heading` (CONTENT pass writes the markdown). */
 export function replaceMarkdownProse(
   markdown: string,
@@ -68,6 +76,31 @@ export function readMarkdownProse(markdown: string, heading: string): string[] {
     .split(/\n\s*\n/)
     .map((s) => s.trim())
     .filter(Boolean);
+}
+
+/** Flatten the foreground layer types out of a generated section visual body
+ *  (regions form or flat array). Drives the gm-layers-only corrective retry. */
+export function visualBodyLayerTypes(body: Record<string, unknown>): string[] {
+  const fg = body.foreground;
+  let layers: unknown[] = [];
+  if (Array.isArray(fg)) {
+    layers = fg;
+  } else if (fg && typeof fg === "object" && "regions" in (fg as object)) {
+    const regions = (fg as { regions: Record<string, unknown> }).regions ?? {};
+    layers = Object.values(regions).flatMap((r) => {
+      if (Array.isArray(r)) return r;
+      if (r && typeof r === "object" && "layers" in (r as object)) {
+        const inner = (r as { layers: unknown }).layers;
+        return Array.isArray(inner) ? inner : [];
+      }
+      return [r];
+    });
+  } else if (fg) {
+    layers = [fg];
+  }
+  return layers
+    .map((l) => (l as { type?: unknown } | null)?.type)
+    .filter((t): t is string => typeof t === "string");
 }
 
 interface JsonConfig {

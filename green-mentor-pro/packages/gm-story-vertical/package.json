@@ -10,11 +10,12 @@
     "./lint": "./src/lib/lintGmStory.ts",
     "./templates": "./src/templates/index.ts",
     "./pack": "./src/pack/index.ts",
-    "./fixtures/issue38": "./src/fixtures/issue38.ts"
+    "./fixtures/issue38": "./src/fixtures/issue38.ts",
+    "./fixtures/allModules": "./src/fixtures/allModules.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "test": "node --experimental-strip-types --test src/**/*.test.ts"
+    "test": "tsx --test 'src/**/*.test.ts'"
   },
   "peerDependencies": {
     "react": "^19.0.0"
@@ -27,6 +28,7 @@
     "@types/node": "^22",
     "@types/react": "^19",
     "@vismay/story-pipeline": "workspace:*",
+    "tsx": "^4.19.2",
     "typescript": "^5"
   }
 }

@@ -1,18 +1,11 @@
-import { z } from 'zod'
 import type { VizModule } from '@vismay/viz-engine'
 import { parseWithSchema } from '@vismay/viz-engine'
+import { audienceStripSchema, type AudienceStripConfig } from './schema'
 
-/**
- * `gm:audienceStrip` — the pale-green "Resonates with" chips band. Every
- * corpus issue has exactly 4 chips, so the schema enforces it.
- */
-export const audienceStripSchema = z.object({
-  type: z.literal('gm:audienceStrip'),
-  label: z.string().default('Resonates with'),
-  chips: z.array(z.string().min(1)).length(4).describe('Exactly 4 audience chips.'),
-})
-
-export type AudienceStripConfig = z.infer<typeof audienceStripSchema>
+// The zod schema is the module's generation AND render contract; it lives in
+// ./schema (zod-only imports) so the pack and tests can load it without
+// pulling the viz-engine runtime. See ../../pack/index.ts.
+export { audienceStripSchema, type AudienceStripConfig } from './schema'
 
 const audienceStripModule: VizModule<AudienceStripConfig> = {
   type: 'gm:audienceStrip',

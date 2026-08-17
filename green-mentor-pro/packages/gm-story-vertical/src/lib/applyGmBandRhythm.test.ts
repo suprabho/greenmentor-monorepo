@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { applyGmBandRhythm } from './applyGmBandRhythm.ts'
+import { applyGmBandRhythm } from './applyGmBandRhythm'
 
 test('re-stamps a fixed-tone module to its correct tone even when a gm:surface was stamped earlier against an empty placeholder', () => {
   // Materialize pass: section appended with an empty foreground, band

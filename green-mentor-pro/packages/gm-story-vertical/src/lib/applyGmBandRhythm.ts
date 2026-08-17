@@ -13,12 +13,30 @@ import { SURFACE_COLOR, type SurfaceTone } from './tokens'
  *      audience pale, footer dark; content bands alternate light/tint,
  *      never two darks adjacent).
  *
- * Idempotent: sections that already carry a gm:surface or regions-form
- * foreground pass through untouched, so hand-tuned tones survive
- * regeneration of OTHER sections.
+ * Tone ownership:
+ *   - Surfaces this pass stamps carry `auto: true` (band-system-owned):
+ *     later passes recompute them freely — the compose flow stamps sections
+ *     BEFORE their visual layers exist, so tones can only settle once the
+ *     lead layer is known. (`auto` is not part of surfaceSchema; zod strips
+ *     it at render parse and it round-trips harmlessly in the config JSON.)
+ *   - Fixed-tone modules (hero, pullquote, takeaways, …) always get their
+ *     exact tone on re-run, even on surfaces WITHOUT the flag — legacy
+ *     drafts stamped before `auto` existed froze the materialize-time
+ *     placeholder tone (an unreadable near-white pullquote, PR #151).
+ *   - Content bands with no fixed tone keep a non-auto stamped value, so
+ *     hand-tuned tones survive regeneration of OTHER sections.
+ *
+ * Idempotent: re-running over its own output changes nothing.
  */
 
 type AnySection = Record<string, unknown>
+
+interface SurfaceLayer {
+  type?: string
+  tone?: SurfaceTone
+  auto?: boolean
+  [key: string]: unknown
+}
 
 const FIXED_TONES: Record<string, SurfaceTone> = {
   'gm:hero': 'dark',
@@ -29,71 +47,102 @@ const FIXED_TONES: Record<string, SurfaceTone> = {
   'gm:footer': 'dark',
 }
 
-function leadLayerType(section: AnySection): string | null {
-  const fg = section.foreground
-  if (Array.isArray(fg)) {
-    const first = fg[0] as { type?: unknown } | undefined
-    return typeof first?.type === 'string' ? first.type : null
+/**
+ * The pipeline's normalizeSectionBody emits foreground in THREE shapes: a
+ * bare single layer object, a flat layer array, or `{layout?, regions:
+ * {<name>: Layer[] | {layers: Layer[]}}}` with the layout's own region names.
+ * Everything here must read all of them.
+ */
+function foregroundLayerList(fg: unknown): Array<{ type?: unknown }> {
+  if (!fg || typeof fg !== 'object') return []
+  if (Array.isArray(fg)) return fg as Array<{ type?: unknown }>
+  if ('regions' in (fg as object)) {
+    const regions = (fg as { regions: Record<string, unknown> }).regions ?? {}
+    return Object.values(regions).flatMap((r) => {
+      if (Array.isArray(r)) return r as Array<{ type?: unknown }>
+      if (r && typeof r === 'object' && 'layers' in (r as object)) {
+        const layers = (r as { layers: unknown }).layers
+        return Array.isArray(layers) ? (layers as Array<{ type?: unknown }>) : []
+      }
+      return [r as { type?: unknown }]
+    })
   }
-  if (fg && typeof fg === 'object' && 'regions' in (fg as object)) {
-    const regions = (fg as { regions: Record<string, unknown> }).regions
-    const dflt = regions?.default
-    if (Array.isArray(dflt)) {
-      const first = dflt[0] as { type?: unknown } | undefined
-      return typeof first?.type === 'string' ? first.type : null
-    }
-  }
-  return null
+  return [fg as { type?: unknown }]
 }
 
-function hasGmSurface(section: AnySection): boolean {
+function leadLayerType(section: AnySection): string | null {
+  const first = foregroundLayerList(section.foreground)[0]
+  return typeof first?.type === 'string' ? first.type : null
+}
+
+function backgroundLayers(section: AnySection): SurfaceLayer[] {
   const bg = section.background
-  const layers = Array.isArray(bg) ? bg : bg ? [bg] : []
-  return layers.some((l) => (l as { type?: unknown })?.type === 'gm:surface')
+  return (Array.isArray(bg) ? bg : bg ? [bg] : []) as SurfaceLayer[]
 }
 
 export function applyGmBandRhythm<T extends { sections?: unknown }>(config: T): T {
   const sections = Array.isArray(config.sections) ? (config.sections as AnySection[]) : []
-  let prevTone: SurfaceTone = 'dark' // stories open on the dark hero band
+  let prevTone: SurfaceTone | null = null
 
   const next = sections.map((section) => {
     const out: AnySection = { ...section }
 
-    // 1. Canonical regions-form foreground.
+    // 1. Canonical regions-form foreground. Flat arrays AND bare single-layer
+    // objects (normalizeForeground's single-layer shortcut) both wrap —
+    // outside regions form the engine's built-in text card renders over the
+    // slide. Layout-with-named-regions forms are legal and pass through.
     if (Array.isArray(out.foreground)) {
       out.foreground = { layout: 'free', regions: { default: out.foreground } }
+    } else if (
+      out.foreground &&
+      typeof out.foreground === 'object' &&
+      !('regions' in (out.foreground as object)) &&
+      typeof (out.foreground as { type?: unknown }).type === 'string'
+    ) {
+      out.foreground = { layout: 'free', regions: { default: [out.foreground] } }
     }
 
     // 2. Band tone.
     const lead = leadLayerType(out)
     const fixedTone = lead ? FIXED_TONES[lead] : undefined
-    if (hasGmSurface(out)) {
-      const bg = (Array.isArray(out.background) ? out.background : [out.background]) as {
-        type?: string
-        tone?: SurfaceTone
-      }[]
-      const stampedTone = bg.find((l) => l?.type === 'gm:surface')?.tone ?? 'light'
-      // Fixed-tone modules (hero, pullquote, ...) always need their exact
-      // tone, even if a gm:surface was already stamped before the module
-      // type was known (materialize stamps an empty placeholder; the
-      // visual pass fills in the real layer afterwards). Content bands
-      // with no fixed tone keep their stamped value so hand-tuned tones
-      // survive regeneration of OTHER sections.
+    const surface = backgroundLayers(out).find((l) => l.type === 'gm:surface')
+
+    if (surface && surface.auto !== true) {
+      const stampedTone = surface.tone ?? 'light'
+      // Fixed-tone modules always need their exact tone, even when a
+      // gm:surface was stamped before the module type was known (legacy
+      // drafts predate the `auto` flag). Content bands with no fixed tone
+      // keep their stamped value — that's the hand-tuning contract.
       if (fixedTone !== undefined && stampedTone !== fixedTone) {
-        out.background = bg.map((l) => (l?.type === 'gm:surface' ? { ...l, tone: fixedTone } : l))
+        out.background = backgroundLayers(out).map((l) =>
+          l === surface ? { ...l, tone: fixedTone } : l
+        )
         prevTone = fixedTone
         return out
       }
       prevTone = stampedTone
       return out
     }
+
     let tone: SurfaceTone | undefined = fixedTone
     if (tone === undefined) {
       // Content band: alternate light/tint against whatever came before.
       tone = prevTone === 'light' ? 'tint' : 'light'
     }
     if (tone === 'dark' && prevTone === 'dark') tone = 'green'
-    out.background = [{ type: 'gm:surface', tone }, ...(Array.isArray(out.background) ? (out.background as unknown[]) : [])]
+
+    if (surface) {
+      // Auto-stamped earlier (e.g. at materialize, before the visual pass
+      // landed) — recompute in place, keeping the provenance flag.
+      out.background = backgroundLayers(out).map((l) =>
+        l === surface ? { ...l, tone } : l
+      )
+    } else {
+      out.background = [
+        { type: 'gm:surface', tone, auto: true },
+        ...(Array.isArray(out.background) ? (out.background as unknown[]) : []),
+      ]
+    }
     prevTone = tone
     return out
   })
