@@ -42,6 +42,7 @@
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.85",
     "@ai-sdk/react": "^3.0.210",
+    "@amplitude/unified": "^1.1.29",
     "@anthropic-ai/sdk": "^0.104.1",
     "@gm/agents": "workspace:*",
     "@gm/orchestrator": "workspace:*",

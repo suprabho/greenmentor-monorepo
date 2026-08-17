@@ -10,7 +10,7 @@ import { Container } from "@/components/marketing/Container";
 import { Logo, SubBrand } from "@/components/marketing/Logo";
 import { useCtaHref } from "@/components/marketing/MarketingAuthProvider";
 import { primaryNav } from "@/lib/data/nav";
-import { track } from "@/lib/utils/analytics";
+import { track, trackNavClick } from "@/lib/utils/analytics";
 
 export function Nav() {
   const [open, setOpen] = useState(false);
@@ -59,6 +59,7 @@ export function Nav() {
               <Link
                 key={link.href}
                 href={link.href}
+                onClick={() => trackNavClick({ label: link.label, href: link.href, location: "marketing_nav" })}
                 className={cn(
                   "text-[15px] font-medium transition-colors",
                   scrolled
@@ -108,6 +109,7 @@ export function Nav() {
                 <Link
                   key={link.href}
                   href={link.href}
+                  onClick={() => trackNavClick({ label: link.label, href: link.href, location: "marketing_nav_mobile" })}
                   className={cn(
                     "rounded-lg px-3 py-3 text-[16px] font-medium",
                     pathname === link.href

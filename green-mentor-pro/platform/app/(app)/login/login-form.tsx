@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import * as amplitude from "@amplitude/unified";
 import { GoogleLogo, Spinner } from "@phosphor-icons/react";
 import { createClient } from "@/lib/supabase/client";
 
@@ -46,24 +47,29 @@ export function LoginForm({ next, initialError }: { next: string; initialError?:
         setLoading(false);
         return;
       }
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) {
         setError(error.message);
         setLoading(false);
         return;
       }
+      if (data.user) amplitude.setUserId(data.user.id);
+      amplitude.track("Signed Up", { method: "email" });
+      // The hard navigation below would drop the still-queued event; flush first.
+      await amplitude.flush().promise;
       // New accounts go straight to onboarding. The gate in (app)/layout.tsx
       // would send them there anyway — this just skips the extra bounce.
       window.location.href = "/onboarding";
       return;
     }
 
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) {
       setError(error.message);
       setLoading(false);
       return;
     }
+    if (data.user) amplitude.setUserId(data.user.id);
     window.location.href = next;
   }
 

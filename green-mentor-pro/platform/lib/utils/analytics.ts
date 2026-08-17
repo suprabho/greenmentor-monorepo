@@ -7,6 +7,8 @@
  * Segment when the platform wires up an analytics destination.
  */
 
+import * as amplitude from "@amplitude/unified";
+
 export type AnalyticsEvent =
   | "landing_viewed"
   | "audience_card_clicked"
@@ -36,4 +38,17 @@ export function track(
     // eslint-disable-next-line no-console
     console.log(`[analytics] ${event}`, properties ?? {});
   }
+}
+
+/**
+ * Amplitude event for every navigation surface (desktop sidebar, mobile bottom
+ * nav, mobile drawer, marketing header). One event, distinguished by `location`.
+ */
+export function trackNavClick(properties: {
+  label: string;
+  href: string;
+  location: "sidebar" | "mobile_bottom_nav" | "mobile_drawer" | "marketing_nav" | "marketing_nav_mobile";
+}): void {
+  if (typeof window === "undefined") return;
+  amplitude.track("Clicked Navigation Link", properties);
 }

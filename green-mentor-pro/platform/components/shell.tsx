@@ -16,13 +16,14 @@ import {
   WhatsappLogo,
 } from "@phosphor-icons/react";
 import { clsx } from "clsx";
+import * as amplitude from "@amplitude/unified";
 import { Avatar } from "@/components/ui";
 import { Logo } from "@/components/marketing/Logo";
 import { MobileNavDrawer } from "@/components/mobile-nav-drawer";
 import { CommandPalette } from "@/components/search/command-palette";
 import { MOBILE_NAV, NAV_GROUPS } from "@/lib/app-nav";
 import { WHATSAPP_COMMUNITY_LABEL, WHATSAPP_COMMUNITY_URL } from "@/lib/data/community";
-import { track } from "@/lib/utils/analytics";
+import { track, trackNavClick } from "@/lib/utils/analytics";
 
 const COLLAPSED_KEY = "gm-sidebar-collapsed";
 
@@ -40,7 +41,7 @@ function backHrefFor(pathname: string): string | null {
 }
 
 export type ShellStats = { xp: number; coins: number; streakDays: number };
-export type ShellViewer = { name: string; avatarUrl: string | null };
+export type ShellViewer = { id: string; name: string; avatarUrl: string | null };
 
 export function Shell({
   children,
@@ -69,6 +70,13 @@ export function Shell({
   useEffect(() => {
     if (window.localStorage.getItem(COLLAPSED_KEY) === "1") setCollapsed(true);
   }, []);
+
+  // Covers every authenticated page load, not just the login moment — this is
+  // what identifies Google OAuth sign-ins too, since that flow's success lands
+  // here (via the server-set `viewer`) rather than through login-form.tsx.
+  useEffect(() => {
+    if (viewer) amplitude.setUserId(viewer.id);
+  }, [viewer]);
 
   // ⌘K / Ctrl-K opens search from anywhere. Ignored while the user is typing
   // in a field — otherwise it would hijack the shortcut inside the AI Hub
@@ -183,6 +191,7 @@ export function Shell({
                   <Link
                     href={item.href}
                     title={collapsed ? item.label : undefined}
+                    onClick={() => trackNavClick({ label: item.label, href: item.href, location: "sidebar" })}
                     className={clsx(
                       "flex items-center gap-3 rounded-[6px] py-2.5 text-[13.5px] font-medium transition-colors",
                       collapsed ? "justify-center" : "px-3",
@@ -204,6 +213,7 @@ export function Shell({
                         <Link
                           key={c.href}
                           href={c.href}
+                          onClick={() => trackNavClick({ label: c.label, href: c.href, location: "sidebar" })}
                           className={clsx(
                             "flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-[12.5px] transition-colors",
                             pathname.startsWith(c.href)
@@ -399,6 +409,7 @@ export function Shell({
             <Link
               key={item.href}
               href={item.href}
+              onClick={() => trackNavClick({ label: item.label, href: item.href, location: "mobile_bottom_nav" })}
               className={clsx(
                 "flex flex-1 flex-col items-center gap-0.5 py-2 text-[10px] font-medium",
                 isActive(item.href) ? "text-green-700" : "text-gray-500"
