@@ -16,6 +16,7 @@ import {
   WhatsappLogo,
 } from "@phosphor-icons/react";
 import { clsx } from "clsx";
+import * as amplitude from "@amplitude/unified";
 import { Avatar } from "@/components/ui";
 import { Logo } from "@/components/marketing/Logo";
 import { MobileNavDrawer } from "@/components/mobile-nav-drawer";
@@ -40,7 +41,7 @@ function backHrefFor(pathname: string): string | null {
 }
 
 export type ShellStats = { xp: number; coins: number; streakDays: number };
-export type ShellViewer = { name: string; avatarUrl: string | null };
+export type ShellViewer = { id: string; name: string; avatarUrl: string | null };
 
 export function Shell({
   children,
@@ -69,6 +70,13 @@ export function Shell({
   useEffect(() => {
     if (window.localStorage.getItem(COLLAPSED_KEY) === "1") setCollapsed(true);
   }, []);
+
+  // Covers every authenticated page load, not just the login moment — this is
+  // what identifies Google OAuth sign-ins too, since that flow's success lands
+  // here (via the server-set `viewer`) rather than through login-form.tsx.
+  useEffect(() => {
+    if (viewer) amplitude.setUserId(viewer.id);
+  }, [viewer]);
 
   // ⌘K / Ctrl-K opens search from anywhere. Ignored while the user is typing
   // in a field — otherwise it would hijack the shortcut inside the AI Hub
