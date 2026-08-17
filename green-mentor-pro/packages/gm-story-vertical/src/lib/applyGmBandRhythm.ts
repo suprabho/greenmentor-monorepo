@@ -65,16 +65,29 @@ export function applyGmBandRhythm<T extends { sections?: unknown }>(config: T): 
     }
 
     // 2. Band tone.
+    const lead = leadLayerType(out)
+    const fixedTone = lead ? FIXED_TONES[lead] : undefined
     if (hasGmSurface(out)) {
       const bg = (Array.isArray(out.background) ? out.background : [out.background]) as {
         type?: string
         tone?: SurfaceTone
       }[]
-      prevTone = bg.find((l) => l?.type === 'gm:surface')?.tone ?? 'light'
+      const stampedTone = bg.find((l) => l?.type === 'gm:surface')?.tone ?? 'light'
+      // Fixed-tone modules (hero, pullquote, ...) always need their exact
+      // tone, even if a gm:surface was already stamped before the module
+      // type was known (materialize stamps an empty placeholder; the
+      // visual pass fills in the real layer afterwards). Content bands
+      // with no fixed tone keep their stamped value so hand-tuned tones
+      // survive regeneration of OTHER sections.
+      if (fixedTone !== undefined && stampedTone !== fixedTone) {
+        out.background = bg.map((l) => (l?.type === 'gm:surface' ? { ...l, tone: fixedTone } : l))
+        prevTone = fixedTone
+        return out
+      }
+      prevTone = stampedTone
       return out
     }
-    const lead = leadLayerType(out)
-    let tone: SurfaceTone | undefined = lead ? FIXED_TONES[lead] : undefined
+    let tone: SurfaceTone | undefined = fixedTone
     if (tone === undefined) {
       // Content band: alternate light/tint against whatever came before.
       tone = prevTone === 'light' ? 'tint' : 'light'
