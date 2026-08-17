@@ -1,20 +1,11 @@
-import { z } from 'zod'
 import type { VizModule } from '@vismay/viz-engine'
 import { parseWithSchema } from '@vismay/viz-engine'
+import { sectionHeaderSchema, type SectionHeaderConfig } from './schema'
 
-/**
- * `gm:sectionHeader` — a standalone act-divider slide: eyebrow rule + big
- * Syne title, optionally backed by a ghost numeral (act number).
- */
-export const sectionHeaderSchema = z.object({
-  type: z.literal('gm:sectionHeader'),
-  eyebrow: z.string().optional(),
-  title: z.string().min(1).describe('Supports *emphasis* spans.'),
-  ghostNumeral: z.string().optional().describe("Oversized ghosted figure behind, e.g. '02'."),
-  onDark: z.boolean().default(false),
-})
-
-export type SectionHeaderConfig = z.infer<typeof sectionHeaderSchema>
+// The zod schema is the module's generation AND render contract; it lives in
+// ./schema (zod-only imports) so the pack and tests can load it without
+// pulling the viz-engine runtime. See ../../pack/index.ts.
+export { sectionHeaderSchema, type SectionHeaderConfig } from './schema'
 
 const sectionHeaderModule: VizModule<SectionHeaderConfig> = {
   type: 'gm:sectionHeader',

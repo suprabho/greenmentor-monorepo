@@ -13,12 +13,26 @@ import { SURFACE_COLOR, type SurfaceTone } from './tokens'
  *      audience pale, footer dark; content bands alternate light/tint,
  *      never two darks adjacent).
  *
- * Idempotent: sections that already carry a gm:surface or regions-form
- * foreground pass through untouched, so hand-tuned tones survive
- * regeneration of OTHER sections.
+ * Tone provenance: surfaces this pass stamps carry `auto: true`, which marks
+ * the tone as band-system-owned — later passes recompute it freely (the
+ * compose flow stamps sections BEFORE their visual layers exist, so fixed
+ * tones can only land once the lead layer is known). A surface WITHOUT the
+ * flag is treated as hand-tuned and passes through untouched, so editor
+ * tone choices survive regeneration of any section. (`auto` is not part of
+ * surfaceSchema; zod strips it at render parse, and it round-trips harmlessly
+ * in the config JSON.)
+ *
+ * Idempotent: re-running over its own output changes nothing.
  */
 
 type AnySection = Record<string, unknown>
+
+interface SurfaceLayer {
+  type?: string
+  tone?: SurfaceTone
+  auto?: boolean
+  [key: string]: unknown
+}
 
 const FIXED_TONES: Record<string, SurfaceTone> = {
   'gm:hero': 'dark',
@@ -46,15 +60,14 @@ function leadLayerType(section: AnySection): string | null {
   return null
 }
 
-function hasGmSurface(section: AnySection): boolean {
+function backgroundLayers(section: AnySection): SurfaceLayer[] {
   const bg = section.background
-  const layers = Array.isArray(bg) ? bg : bg ? [bg] : []
-  return layers.some((l) => (l as { type?: unknown })?.type === 'gm:surface')
+  return (Array.isArray(bg) ? bg : bg ? [bg] : []) as SurfaceLayer[]
 }
 
 export function applyGmBandRhythm<T extends { sections?: unknown }>(config: T): T {
   const sections = Array.isArray(config.sections) ? (config.sections as AnySection[]) : []
-  let prevTone: SurfaceTone = 'dark' // stories open on the dark hero band
+  let prevTone: SurfaceTone | null = null
 
   const next = sections.map((section) => {
     const out: AnySection = { ...section }
@@ -65,14 +78,13 @@ export function applyGmBandRhythm<T extends { sections?: unknown }>(config: T): 
     }
 
     // 2. Band tone.
-    if (hasGmSurface(out)) {
-      const bg = (Array.isArray(out.background) ? out.background : [out.background]) as {
-        type?: string
-        tone?: SurfaceTone
-      }[]
-      prevTone = bg.find((l) => l?.type === 'gm:surface')?.tone ?? 'light'
+    const surface = backgroundLayers(out).find((l) => l.type === 'gm:surface')
+    if (surface && surface.auto !== true) {
+      // Hand-tuned tone — pass through untouched.
+      prevTone = surface.tone ?? 'light'
       return out
     }
+
     const lead = leadLayerType(out)
     let tone: SurfaceTone | undefined = lead ? FIXED_TONES[lead] : undefined
     if (tone === undefined) {
@@ -80,7 +92,19 @@ export function applyGmBandRhythm<T extends { sections?: unknown }>(config: T): 
       tone = prevTone === 'light' ? 'tint' : 'light'
     }
     if (tone === 'dark' && prevTone === 'dark') tone = 'green'
-    out.background = [{ type: 'gm:surface', tone }, ...(Array.isArray(out.background) ? (out.background as unknown[]) : [])]
+
+    if (surface) {
+      // Auto-stamped earlier (e.g. at materialize, before the visual pass
+      // landed) — recompute in place, keeping the provenance flag.
+      out.background = backgroundLayers(out).map((l) =>
+        l === surface ? { ...l, tone } : l
+      )
+    } else {
+      out.background = [
+        { type: 'gm:surface', tone, auto: true },
+        ...(Array.isArray(out.background) ? (out.background as unknown[]) : []),
+      ]
+    }
     prevTone = tone
     return out
   })

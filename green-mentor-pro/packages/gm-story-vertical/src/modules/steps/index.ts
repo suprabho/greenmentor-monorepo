@@ -1,30 +1,11 @@
-import { z } from 'zod'
 import type { VizModule } from '@vismay/viz-engine'
 import { parseWithSchema } from '@vismay/viz-engine'
+import { stepsSchema, type StepsConfig } from './schema'
 
-/**
- * `gm:steps` — numbered sequence inside one hairline container. Consolidates
- * the corpus's four competing vocabularies (steps-list/step-row, step-item,
- * phase-list/phase-card, roadmap/rm-step) into one module.
- */
-export const stepsSchema = z.object({
-  type: z.literal('gm:steps'),
-  eyebrow: z.string().optional(),
-  title: z.string().optional().describe('Supports *emphasis* spans.'),
-  variant: z.enum(['list', 'chain']).default('list').describe('list = stacked rows; chain = horizontal nodes with arrows.'),
-  steps: z
-    .array(
-      z.object({
-        title: z.string().optional(),
-        body: z.string().min(1),
-      })
-    )
-    .min(2)
-    .max(8),
-  onDark: z.boolean().default(false),
-})
-
-export type StepsConfig = z.infer<typeof stepsSchema>
+// The zod schema is the module's generation AND render contract; it lives in
+// ./schema (zod-only imports) so the pack and tests can load it without
+// pulling the viz-engine runtime. See ../../pack/index.ts.
+export { stepsSchema, type StepsConfig } from './schema'
 
 const stepsModule: VizModule<StepsConfig> = {
   type: 'gm:steps',

@@ -1,25 +1,11 @@
-import { z } from 'zod'
 import type { VizModule } from '@vismay/viz-engine'
 import { parseWithSchema } from '@vismay/viz-engine'
+import { proseSchema, type ProseConfig } from './schema'
 
-/**
- * `gm:prose` — the workhorse section: eyebrow + Syne title + body paragraphs
- * in the newsletter measure (7–23 per corpus issue). When `paragraphs` is
- * omitted the module renders the unit's resolved markdown paragraphs from the
- * story body instead (foreground content contract).
- */
-export const proseSchema = z.object({
-  type: z.literal('gm:prose'),
-  eyebrow: z.string().optional().describe('Mono uppercase kicker above the title.'),
-  title: z.string().optional().describe('Section title. Supports *emphasis* spans.'),
-  paragraphs: z
-    .array(z.string())
-    .optional()
-    .describe('Literal body paragraphs. Omit to render the section markdown.'),
-  onDark: z.boolean().default(false),
-})
-
-export type ProseConfig = z.infer<typeof proseSchema>
+// The zod schema is the module's generation AND render contract; it lives in
+// ./schema (zod-only imports) so the pack and tests can load it without
+// pulling the viz-engine runtime. See ../../pack/index.ts.
+export { proseSchema, type ProseConfig } from './schema'
 
 const proseModule: VizModule<ProseConfig> = {
   type: 'gm:prose',

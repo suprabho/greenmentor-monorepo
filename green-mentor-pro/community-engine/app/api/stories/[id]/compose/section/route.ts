@@ -21,18 +21,21 @@ import {
   type StoryOutline,
 } from "@vismay/story-pipeline";
 import { GREENMENTOR_PACK } from "@gm/story-vertical/pack";
-import { applyGmBandRhythm } from "@gm/story-vertical";
+import { applyGmBandRhythm, isGmForegroundType } from "@gm/story-vertical";
 import { requireAdminApiUser } from "@/lib/auth/apiGate";
 import { createAdminClient, isServiceRoleConfigured } from "@/lib/supabase/admin";
 import { casUpdateStoryFiles, getStory, type StoryRow } from "@/lib/db/stories";
 import { listStorySources } from "@/lib/db/story-sources";
 import {
+  hasMarkdownSection,
   readMarkdownProse,
   replaceConfigBody,
   replaceMarkdownProse,
   sectionAnchor,
   storySourceRowsToDocs,
+  visualBodyLayerTypes,
 } from "@/lib/stories/pipeline-store";
+import type { ComposeOutlineEntry } from "@/lib/db/stories";
 
 export const runtime = "nodejs";
 export const maxDuration = 120;
@@ -42,13 +45,27 @@ const MAX_CAS_RETRIES = 3;
 
 function buildContext(
   story: StoryRow,
-  entryHeading: string,
+  entry: ComposeOutlineEntry,
   docs: ReturnType<typeof storySourceRowsToDocs>
-): SectionContext | null {
+): SectionContext | { error: string } {
   const outline = story.compose_state.storyOutline as StoryOutline | undefined;
-  if (!outline) return null;
-  const stub = outline.sections.find((s) => s.heading === entryHeading);
-  if (!stub) return null;
+  if (!outline) {
+    return { error: "compose state has no pipeline outline — regenerate the outline" };
+  }
+  // Join by the index stamped at outline time; heading match is the fallback
+  // for drafts outlined before pipelineIndex existed.
+  const stub =
+    (typeof entry.pipelineIndex === "number"
+      ? outline.sections[entry.pipelineIndex]
+      : undefined) ?? outline.sections.find((s) => s.heading === entry.heading);
+  if (!stub) {
+    return {
+      error:
+        `outline entry "${entry.heading}" has no matching pipeline stub — ` +
+        "the heading was likely renamed after the outline was generated; " +
+        "regenerate the outline to re-sync",
+    };
+  }
   const pb = story.compose_state.pipelineBrief;
   const brief: ResearchBrief = {
     summary: pb?.summary ?? "",
@@ -97,14 +114,22 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     }
 
     const anchor = sectionAnchor(story.config_json, entry.sectionId) ?? entry.heading;
+    if (!hasMarkdownSection(story.body_markdown, anchor)) {
+      return NextResponse.json(
+        {
+          error:
+            `markdown heading "${anchor}" not found — it was likely renamed in the ` +
+            "document pane. Restore the heading (or update the section's `text` " +
+            "anchor in the config) before regenerating, or the prose would be lost.",
+        },
+        { status: 409 }
+      );
+    }
     const sources = await listStorySources(client, id);
     const docs = storySourceRowsToDocs(sources);
-    const ctx = buildContext(story, entry.heading, docs);
-    if (!ctx) {
-      return NextResponse.json(
-        { error: "compose state has no pipeline outline — regenerate the outline" },
-        { status: 400 }
-      );
+    const ctx = buildContext(story, entry, docs);
+    if ("error" in ctx) {
+      return NextResponse.json({ error: ctx.error }, { status: 400 });
     }
 
     let md = story.body_markdown;
@@ -128,12 +153,33 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       }
 
       if (pass === "visual" || pass === "combined") {
-        const visual = await generateSectionVisual(ctx, content, {
+        let visual = await generateSectionVisual(ctx, content, {
           pack: GREENMENTOR_PACK,
           ...(refine && pass === "visual"
             ? { refine: { feedback: refine.feedback, previous: undefined } }
             : {}),
         });
+        // The pipeline's schema legally admits vismay's core layer types
+        // (text, bigStat, quote, …) next to the gm modules, but those render
+        // outside the GreenMentor design language. One corrective retry; a
+        // persistent leak still lands and surfaces as a gm-layers-only lint
+        // warning on save.
+        const offBrand = visualBodyLayerTypes(
+          visual.body as Record<string, unknown>
+        ).filter((t) => !isGmForegroundType(t));
+        if (offBrand.length > 0) {
+          visual = await generateSectionVisual(ctx, content, {
+            pack: GREENMENTOR_PACK,
+            refine: {
+              feedback:
+                `Your previous body used core layer type(s) ${offBrand.join(", ")}, ` +
+                "which render outside the GreenMentor design language. Rebuild the " +
+                "body using ONLY gm:* vertical modules (plus 'chart' when the outline " +
+                "plans one) — choose the gm module that fits this content.",
+              previous: undefined,
+            },
+          });
+        }
         cfg = replaceConfigBody(cfg, entry.sectionId, visual.body);
         // Re-stamp the band + regions form (idempotent for untouched sections).
         cfg = JSON.stringify(applyGmBandRhythm(JSON.parse(cfg)), null, 2);

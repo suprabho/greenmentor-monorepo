@@ -116,6 +116,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       kind: s.kind,
       order: i,
       accepted: true,
+      pipelineIndex: i,
       context: s.context,
       expectedContent: s.expectedContent,
       visual: s.visual,

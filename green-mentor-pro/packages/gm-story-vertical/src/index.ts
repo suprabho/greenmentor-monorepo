@@ -20,7 +20,7 @@ type AnyVizModule = VizModule<any>
 
 export { GREENMENTOR_THEME, gmFontImportUrl } from './theme'
 export { surfaceInk, SURFACE_COLOR, type SurfaceTone } from './lib/tokens'
-export { lintGmStory, type GmLintIssue } from './lib/lintGmStory'
+export { lintGmStory, isGmForegroundType, type GmLintIssue } from './lib/lintGmStory'
 export { applyGmBandRhythm } from './lib/applyGmBandRhythm'
 
 function registerSafely(module: AnyVizModule): void {

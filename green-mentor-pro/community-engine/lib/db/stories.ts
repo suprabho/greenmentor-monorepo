@@ -59,6 +59,11 @@ export interface ComposeOutlineEntry {
   chartId?: string;
   /** engine 2: the config section id once materialized (null before). */
   sectionId?: string | null;
+  /** engine 2: index of this entry's stub in compose_state.storyOutline at
+   *  generation time — the stable join for per-section generation, so a
+   *  heading rename in the panel/editor can't silently detach the stub.
+   *  Absent on drafts outlined before this field existed (heading fallback). */
+  pipelineIndex?: number;
 }
 
 export interface ComposeState {

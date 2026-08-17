@@ -1,21 +1,11 @@
-import { z } from 'zod'
 import type { VizModule } from '@vismay/viz-engine'
 import { parseWithSchema } from '@vismay/viz-engine'
+import { pullquoteSchema, type PullquoteConfig } from './schema'
 
-/**
- * `gm:pullquote` — the green full-bleed quote band: giant ghosted quote glyph,
- * italic Instrument Serif quote, mono citation. Exactly ONE per issue in all
- * 34 corpus issues — `lintGmStory` enforces the same discipline.
- * Schema deliberately mirrors the core `quote` module (text/attribution) so
- * AI generation can fall back between them.
- */
-export const pullquoteSchema = z.object({
-  type: z.literal('gm:pullquote'),
-  text: z.string().min(1).describe('The quote, without surrounding quote marks.'),
-  attribution: z.string().optional().describe('Mono citation line, e.g. a name and role.'),
-})
-
-export type PullquoteConfig = z.infer<typeof pullquoteSchema>
+// The zod schema is the module's generation AND render contract; it lives in
+// ./schema (zod-only imports) so the pack and tests can load it without
+// pulling the viz-engine runtime. See ../../pack/index.ts.
+export { pullquoteSchema, type PullquoteConfig } from './schema'
 
 const pullquoteModule: VizModule<PullquoteConfig> = {
   type: 'gm:pullquote',

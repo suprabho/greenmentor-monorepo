@@ -1,16 +1,16 @@
 import type { DomainPack, PackLayerType } from '@vismay/story-pipeline'
-import { heroSchema } from '../modules/hero'
-import { standfirstSchema } from '../modules/standfirst'
-import { sectionHeaderSchema } from '../modules/sectionHeader'
-import { proseSchema } from '../modules/prose'
-import { pullquoteSchema } from '../modules/pullquote'
-import { takeawaysSchema } from '../modules/takeaways'
-import { audienceStripSchema } from '../modules/audienceStrip'
-import { footerSchema } from '../modules/footer'
-import { statGridSchema } from '../modules/statGrid'
-import { explainerGridSchema } from '../modules/explainerGrid'
-import { stepsSchema } from '../modules/steps'
-import { calloutSchema } from '../modules/callout'
+import { heroSchema } from '../modules/hero/schema'
+import { standfirstSchema } from '../modules/standfirst/schema'
+import { sectionHeaderSchema } from '../modules/sectionHeader/schema'
+import { proseSchema } from '../modules/prose/schema'
+import { pullquoteSchema } from '../modules/pullquote/schema'
+import { takeawaysSchema } from '../modules/takeaways/schema'
+import { audienceStripSchema } from '../modules/audienceStrip/schema'
+import { footerSchema } from '../modules/footer/schema'
+import { statGridSchema } from '../modules/statGrid/schema'
+import { explainerGridSchema } from '../modules/explainerGrid/schema'
+import { stepsSchema } from '../modules/steps/schema'
+import { calloutSchema } from '../modules/callout/schema'
 
 /**
  * The GreenMentor editorial desk for @vismay/story-pipeline. Passed by value
@@ -19,8 +19,9 @@ import { calloutSchema } from '../modules/callout'
  * The gm module zod schemas are used DIRECTLY as the generation contract
  * (they're provider-safe by construction: literal `type` discriminators, no
  * z.record, no tuples), so a generated layer is valid by the same parseConfig
- * the renderer runs — no mirror to drift. pack.test.ts asserts each schema
- * still parses its own sample through the real module parser.
+ * the renderer runs — no mirror to drift. Schemas are imported from each
+ * module's zod-only `schema.ts` leaf so this pack (and pack.test.ts, which
+ * asserts schema↔fixture agreement) never load the viz-engine runtime.
  *
  * All gm layers render in the `default` region of the `free` layout — the
  * modules are self-framing band renderers (see Band.tsx).
@@ -47,7 +48,7 @@ export const GREENMENTOR_PACK: DomainPack = {
     'A GreenMentor issue follows a fixed spine, in order: one gm:hero cover; one gm:standfirst ' +
     '(a single italic framing sentence); 3–6 argument sections alternating prose with exactly one ' +
     'quantitative moment (gm:statGrid) and at most one framework moment (gm:explainerGrid or ' +
-    'gm:steps or gm:comparison table); EXACTLY ONE gm:pullquote section; one gm:takeaways section ' +
+    'gm:steps); EXACTLY ONE gm:pullquote section; one gm:takeaways section ' +
     '(3–5 numbered items, practitioner phrasing); one gm:audienceStrip (exactly 4 chips naming ' +
     'roles); one gm:footer closing. Never place two dark sections adjacently. Section headings are ' +
     'short Syne-style declaratives ("Where India Stands"), not questions.',
