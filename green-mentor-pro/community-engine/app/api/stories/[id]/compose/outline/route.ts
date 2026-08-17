@@ -7,11 +7,19 @@
 
 import Anthropic from "@anthropic-ai/sdk";
 import { NextResponse } from "next/server";
+import {
+  generateOutline,
+  type ComposeAnswers,
+  type ResearchBrief,
+  type StoryOutline,
+} from "@vismay/story-pipeline";
+import { GREENMENTOR_PACK } from "@gm/story-vertical/pack";
 import { requireAdminApiUser } from "@/lib/auth/apiGate";
 import { createAdminClient, isServiceRoleConfigured } from "@/lib/supabase/admin";
 import { getStory, updateStory, type ComposeOutlineEntry } from "@/lib/db/stories";
 import { listStorySources } from "@/lib/db/story-sources";
 import { buildSourcesContext } from "@/lib/stories/compose";
+import { storySourceRowsToDocs } from "@/lib/stories/pipeline-store";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -67,6 +75,64 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
   const body = (await req.json().catch(() => ({}))) as { guidance?: unknown };
   const guidance = typeof body.guidance === "string" ? body.guidance.trim().slice(0, 500) : "";
+
+  // Engine 2 (web stories): the pipeline's outline stage, grounded on the
+  // angles stage's research brief, with the GreenMentor spine guidance and
+  // its structural lint + corrective retry built in.
+  if (story.body_format === "vismay") {
+    const docs = storySourceRowsToDocs(sources);
+    if (docs.length === 0) {
+      return NextResponse.json({ error: "no extracted sources yet" }, { status: 400 });
+    }
+    const pb = story.compose_state.pipelineBrief;
+    const brief: ResearchBrief = {
+      summary: pb?.summary ?? "",
+      keyFacts: pb?.keyFacts ?? [],
+      entities: pb?.entities ?? [],
+      suggestedFormat: "deck",
+      candidateAngles: [angle.title],
+      questions: [],
+    };
+    const answers: ComposeAnswers = {
+      "lead-angle": `${angle.title} — ${angle.thesis}`,
+      ...(guidance ? { "editor-guidance": guidance } : {}),
+    };
+    let outline: StoryOutline;
+    try {
+      outline = await generateOutline(
+        { sources: docs, brief, answers },
+        { format: "deck", pack: GREENMENTOR_PACK }
+      );
+    } catch (e) {
+      return NextResponse.json(
+        { error: `Outline generation failed: ${(e as Error).message}` },
+        { status: 502 }
+      );
+    }
+    const entries: ComposeOutlineEntry[] = outline.sections.map((s, i) => ({
+      id: `s${i + 1}`,
+      heading: s.heading,
+      intent: s.intent,
+      kind: s.kind,
+      order: i,
+      accepted: true,
+      context: s.context,
+      expectedContent: s.expectedContent,
+      visual: s.visual,
+      layout: s.layout,
+      chartId: s.chartId,
+      sectionId: null,
+    }));
+    const compose_state = {
+      ...story.compose_state,
+      engine: 2 as const,
+      phase: "outline" as const,
+      outline: entries,
+      storyOutline: outline as unknown,
+    };
+    await updateStory(client, id, { compose_state });
+    return NextResponse.json({ ok: true, compose_state });
+  }
 
   const system = `You are an editorial strategist for GreenMentor, a sustainability brand (plain, credible, India/ESG-grounded voice). Given a "${story.content_type}" piece titled "${story.title}" pursuing the angle "${angle.title}" (thesis: ${angle.thesis}), propose an ordered outline of 3-8 sections that builds the case. When the piece warrants it, open with a 'hero' section and close with a 'callout' summary of takeaways. Ground every section in the source material below — do not invent facts.${
     guidance ? ` The editor has given this specific guidance — prioritize it while staying grounded in the sources: ${guidance}` : ""

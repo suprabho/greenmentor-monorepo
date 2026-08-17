@@ -7,11 +7,14 @@
 
 import Anthropic from "@anthropic-ai/sdk";
 import { NextResponse } from "next/server";
+import { generateAngles } from "@vismay/story-pipeline";
+import { GREENMENTOR_PACK } from "@gm/story-vertical/pack";
 import { requireAdminApiUser } from "@/lib/auth/apiGate";
 import { createAdminClient, isServiceRoleConfigured } from "@/lib/supabase/admin";
 import { getStory, updateStory, type ComposeAngle } from "@/lib/db/stories";
 import { listStorySources } from "@/lib/db/story-sources";
 import { buildSourcesContext } from "@/lib/stories/compose";
+import { storySourceRowsToDocs } from "@/lib/stories/pipeline-store";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -60,6 +63,48 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
   if (!process.env.ANTHROPIC_API_KEY) {
     return NextResponse.json({ error: "ANTHROPIC_API_KEY is not set server-side" }, { status: 500 });
+  }
+
+  // Engine 2 (web stories): @vismay/story-pipeline with the GreenMentor pack.
+  // The pipeline's angles stage also returns the research brief the outline
+  // stage grounds on, so both land in compose_state together.
+  if (story.body_format === "vismay") {
+    const docs = storySourceRowsToDocs(sources);
+    if (docs.length === 0) {
+      return NextResponse.json(
+        { error: "no extracted sources yet — add or re-extract sources first" },
+        { status: 400 }
+      );
+    }
+    try {
+      const result = await generateAngles(docs, {
+        pack: GREENMENTOR_PACK,
+        ...(brief
+          ? { refine: { feedback: `Editorial steer: ${brief}`, previous: story.compose_state.angles } }
+          : {}),
+      });
+      const compose_state = {
+        ...story.compose_state,
+        engine: 2 as const,
+        phase: "angles" as const,
+        angles: result.angles,
+        chosenAngleId: null,
+        outline: [],
+        brief: brief || story.compose_state.brief,
+        pipelineBrief: {
+          summary: result.summary,
+          keyFacts: result.keyFacts,
+          entities: result.entities,
+        },
+      };
+      await updateStory(client, id, { compose_state });
+      return NextResponse.json({ ok: true, compose_state });
+    } catch (e) {
+      return NextResponse.json(
+        { error: `Angle generation failed: ${(e as Error).message}` },
+        { status: 502 }
+      );
+    }
   }
 
   const system = `You are an editorial strategist for GreenMentor, a sustainability brand. Given a "${story.content_type}" piece titled "${story.title}" and the source material below, propose 3-5 distinct, non-overlapping angles a writer could take. Ground every angle in the sources — do not invent facts not present in them. Call propose_angles.${

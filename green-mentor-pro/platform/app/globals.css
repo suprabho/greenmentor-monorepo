@@ -1,5 +1,12 @@
 @import "tailwindcss";
 
+/* Vendored vismay packages ship Tailwind utility classes in raw TS
+   (story-reader's StoryShell/blocks, viz-engine's slot dispatchers).
+   Tailwind v4 only scans sources it is told about — without these
+   @source lines the /stories reader renders unstyled. */
+@source "../../vendor/vismay/packages/viz-engine/src";
+@source "../../vendor/vismay/packages/story-reader/src";
+
 /* =================================================================
    Greenmentor design tokens — pitch-deck design system bundle.
    Same token set as green-mentor-plus, extended with the marketing

@@ -11,8 +11,29 @@ export const STORIES_TABLE = "community_stories";
 export type StoryContentType = "webinar" | "newsletter" | "post" | "social";
 export type StoryStatus = "draft" | "review" | "published" | "archived";
 
-/** The sources -> angles -> outline -> draft AI-assist pipeline's working state. */
-export type ComposePhase = "sources" | "angles" | "outline" | "drafted";
+/**
+ * Which authoring engine the row belongs to (migration 0020):
+ *  - 'blocks': legacy flat markdown + ```story:* fences (StoryBody/Substack).
+ *  - 'vismay': scrollytelling story — `body_markdown` is a full vismay
+ *    document (frontmatter + anchored markdown) and `config_json` is the
+ *    story config as JSON TEXT (string surgery must round-trip it exactly).
+ */
+export type StoryBodyFormat = "blocks" | "vismay";
+
+/**
+ * The AI-assist pipeline's working state. Two engines share the column:
+ *  - engine 1 (legacy, blocks rows): sources → angles → outline → drafted.
+ *  - engine 2 (vismay rows, @vismay/story-pipeline): sources → angles →
+ *    outline → content → visual → done, with per-section generation.
+ */
+export type ComposePhase =
+  | "sources"
+  | "angles"
+  | "outline"
+  | "drafted"
+  | "content"
+  | "visual"
+  | "done";
 
 export interface ComposeAngle {
   id: string;
@@ -25,17 +46,33 @@ export interface ComposeOutlineEntry {
   id: string;
   heading: string;
   intent: string;
-  kind: "prose" | "hero" | "chart" | "callout";
+  /** Legacy engine emits prose|hero|chart|callout; the pipeline engine emits
+   *  the vismay SectionKind vocabulary (cover|bodyText|bigStat|split|…). */
+  kind: string;
   order: number;
   accepted: boolean;
+  /** engine 2: pipeline outline extras, threaded to per-section generation. */
+  context?: string;
+  expectedContent?: string;
+  visual?: string;
+  layout?: string;
+  chartId?: string;
+  /** engine 2: the config section id once materialized (null before). */
+  sectionId?: string | null;
 }
 
 export interface ComposeState {
   phase: ComposePhase;
+  /** 2 = @vismay/story-pipeline compose (vismay rows). Absent/1 = legacy. */
+  engine?: 1 | 2;
   angles: ComposeAngle[];
   chosenAngleId: string | null;
   outline: ComposeOutlineEntry[];
   brief?: string;
+  /** engine 2: the angles stage's research brief, reused by the outline call. */
+  pipelineBrief?: { summary: string; keyFacts: string[]; entities: string[] };
+  /** engine 2: the raw StoryOutline (charts, image prompts) for later stages. */
+  storyOutline?: unknown;
 }
 
 export interface StoryRow {
@@ -47,6 +84,8 @@ export interface StoryRow {
   target_publish_date: string | null;
   notes: string | null;
   body_markdown: string | null;
+  body_format: StoryBodyFormat;
+  config_json: string | null;
   compose_state: ComposeState;
   created_at: string;
   updated_at: string;
@@ -75,6 +114,9 @@ export async function insertStory(
     owner_id?: string | null;
     target_publish_date?: string | null;
     notes?: string | null;
+    body_format?: StoryBodyFormat;
+    body_markdown?: string | null;
+    config_json?: string | null;
   }
 ): Promise<StoryRow> {
   const { data, error } = await supabase.from(STORIES_TABLE).insert(input).select("*").single();
@@ -94,12 +136,42 @@ export async function updateStory(
       | "target_publish_date"
       | "notes"
       | "body_markdown"
+      | "config_json"
       | "compose_state"
     >
   >
 ): Promise<void> {
   const { error } = await supabase.from(STORIES_TABLE).update(input).eq("id", id);
   if (error) throw new Error(error.message);
+}
+
+/**
+ * Compare-and-set write of a vismay story's document pair. The story's
+ * markdown and config must move together — concurrent per-section compose
+ * writes otherwise de-sync heading anchors from config sections. `updated_at`
+ * equality is the CAS token (the same scheme as vismay's dbSource
+ * casWriteStory); the single-row update makes md+config atomic. Chart writes
+ * live in community_story_charts precisely so they don't bump this token.
+ *
+ * Returns the new updated_at on success, or null on a CAS conflict (caller
+ * re-reads, re-applies its surgery, and retries).
+ */
+export async function casUpdateStoryFiles(
+  supabase: SupabaseClient,
+  id: string,
+  input: { body_markdown: string; config_json: string },
+  expectedUpdatedAt: string
+): Promise<string | null> {
+  const { data, error } = await supabase
+    .from(STORIES_TABLE)
+    .update(input)
+    .eq("id", id)
+    .eq("updated_at", expectedUpdatedAt)
+    .select("updated_at");
+  if (error) throw new Error(error.message);
+  const rows = data as { updated_at: string }[] | null;
+  if (!rows || rows.length === 0) return null;
+  return rows[0].updated_at;
 }
 
 export async function deleteStory(supabase: SupabaseClient, id: string): Promise<void> {

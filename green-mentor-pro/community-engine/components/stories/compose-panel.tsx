@@ -12,6 +12,7 @@ import { useState } from "react";
 import { clsx } from "clsx";
 import { Plus, CaretUp, CaretDown } from "@phosphor-icons/react/dist/ssr";
 import { Card, Chip } from "@/components/ui";
+import { GenerateSection } from "@/components/stories/generate-section";
 import type { ComposeState, StoryRow } from "@/lib/db/stories";
 import type { StorySourceRow } from "@/lib/db/story-sources";
 
@@ -62,10 +63,14 @@ export function ComposePanel({
   story,
   initialSources,
   onDraftGenerated,
+  onStoryRefreshed,
 }: {
   story: StoryRow;
   initialSources: StorySourceRow[];
   onDraftGenerated: (bodyMarkdown: string) => void;
+  /** engine 2: server-side generation rewrote the document pair — sync the
+   *  editor's panes/preview with the fresh row. */
+  onStoryRefreshed?: (row: StoryRow) => void;
 }) {
   const [sources, setSources] = useState<StorySourceRow[]>(initialSources);
   const [compose, setCompose] = useState<ComposeState>(story.compose_state);
@@ -73,12 +78,15 @@ export function ComposePanel({
 
   const base = `/api/stories/${story.id}/compose`;
   const acceptedCount = compose.outline.filter((e) => e.accepted).length;
+  // Web stories draft through the pipeline's materialize + per-section flow;
+  // the single-shot Draft stage is the legacy blocks path.
+  const isWebStory = story.body_format === "vismay";
 
   const TABS: Array<{ id: ComposeTab; label: string; count: number }> = [
     { id: "sources", label: "Sources", count: sources.length },
     { id: "angles", label: "Angles", count: compose.angles.length },
     { id: "outline", label: "Outline", count: compose.outline.length },
-    { id: "draft", label: "Draft", count: acceptedCount },
+    { id: "draft", label: isWebStory ? "Generate" : "Draft", count: acceptedCount },
   ];
 
   return (
@@ -124,7 +132,17 @@ export function ComposePanel({
         <OutlineSection base={base} compose={compose} setCompose={setCompose} />
       </div>
       <div hidden={tab !== "draft"}>
-        <DraftSection base={base} compose={compose} setCompose={setCompose} onDraftGenerated={onDraftGenerated} />
+        {isWebStory ? (
+          <GenerateSection
+            base={base}
+            storyId={story.id}
+            compose={compose}
+            setCompose={setCompose}
+            onStoryRefreshed={onStoryRefreshed}
+          />
+        ) : (
+          <DraftSection base={base} compose={compose} setCompose={setCompose} onDraftGenerated={onDraftGenerated} />
+        )}
       </div>
     </Card>
   );

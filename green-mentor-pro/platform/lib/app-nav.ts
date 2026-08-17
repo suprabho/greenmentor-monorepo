@@ -1,4 +1,5 @@
 import {
+  BookOpenText,
   Briefcase,
   ChartBar,
   Flame,
@@ -54,6 +55,7 @@ export const NAV_GROUPS: NavGroup[] = [
       // Community share cards publish straight into the News feed itself
       // (mergeFeed in app/(app)/feed/page.tsx) — no Library subtab.
       { label: "News", href: "/feed", icon: Newspaper, children: [] },
+      { label: "Stories", href: "/stories", icon: BookOpenText, children: [] },
       { label: "Jobs", href: "/jobs", icon: Briefcase, children: [] },
       { label: "Webinars & Events", href: "/webinars", icon: VideoCamera, children: [] },
     ],

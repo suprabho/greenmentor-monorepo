@@ -43,17 +43,22 @@ function configureTheme(monaco: Monaco) {
 export function MarkdownEditor({
   value,
   onChange,
+  language = "markdown",
+  height = "420px",
 }: {
   value: string;
   onChange: (next: string) => void;
+  /** Monaco language id — the web-story editor reuses this for config JSON. */
+  language?: "markdown" | "json";
+  height?: string;
 }) {
   return (
     <div className="overflow-hidden rounded-lg border border-gray-200">
       <Editor
-        height="420px"
+        height={height}
         value={value}
         onChange={(next) => onChange(next ?? "")}
-        language="markdown"
+        language={language}
         theme="gm-light"
         beforeMount={configureTheme}
         options={{

@@ -1,6 +1,16 @@
 import type { NextConfig } from "next";
 import path from "node:path";
 
+// Compose (engine 2) model routing, Phase A: with no Vercel AI Gateway key
+// configured, @vismay/story-pipeline's built-in escape hatch routes every
+// structured call through @anthropic-ai/sdk on the ANTHROPIC_API_KEY CE
+// already uses — byte-compatible with the legacy compose. Setting
+// AI_GATEWAY_API_KEY (Phase B) flips the pipeline to the gateway without a
+// code change; an explicit STORY_PIPELINE_ANTHROPIC_DIRECT always wins.
+if (!process.env.AI_GATEWAY_API_KEY && !process.env.STORY_PIPELINE_ANTHROPIC_DIRECT) {
+  process.env.STORY_PIPELINE_ANTHROPIC_DIRECT = "1";
+}
+
 const nextConfig: NextConfig = {
   // community-engine is a package inside the pnpm workspace, so its dependencies
   // (next included) are hoisted to the monorepo-root node_modules and the Vercel
@@ -13,10 +23,50 @@ const nextConfig: NextConfig = {
 
   // Keep the headless-browser packages out of the webpack bundle so their native
   // binaries are require()d at runtime instead of being (incorrectly) bundled.
-  serverExternalPackages: ["@sparticuz/chromium", "playwright-core", "playwright"],
+  // pdf-parse/pdfjs/canvas/liteparse are story-pipeline's ingest deps (all
+  // lazily imported inside its src/ingest/*); externalizing keeps their native
+  // binaries out of every lambda except the one route that extracts uploads.
+  serverExternalPackages: [
+    "@sparticuz/chromium",
+    "playwright-core",
+    "playwright",
+    "pdf-parse",
+    "pdfjs-dist",
+    "@napi-rs/canvas",
+    "@llamaindex/liteparse",
+    "jsdom",
+  ],
+
+  // Next 15's webpack still follows dynamic imports INSIDE transpiled
+  // packages and tries to bundle them, even when the target is listed in
+  // serverExternalPackages (story-pipeline's lazy ingest imports —
+  // @napi-rs/canvas ships a .node binary webpack can't parse). Force them
+  // external in the server build so they're require()d from node_modules at
+  // request time, exactly like the chromium/playwright entries above.
+  webpack: (config, { isServer }) => {
+    if (isServer) {
+      config.externals.push({
+        "@napi-rs/canvas": "commonjs @napi-rs/canvas",
+        "pdf-parse": "commonjs pdf-parse",
+        "pdfjs-dist": "commonjs pdfjs-dist",
+        "@llamaindex/liteparse": "commonjs @llamaindex/liteparse",
+        jsdom: "commonjs jsdom",
+        mailparser: "commonjs mailparser",
+      });
+    }
+    return config;
+  },
 
   // The vendored vismay packages ship raw TypeScript (main: src/index.ts).
-  transpilePackages: ["@vismay/viz-engine", "@vismay/viz-admin"],
+  transpilePackages: [
+    "@vismay/viz-engine",
+    "@vismay/viz-admin",
+    "@vismay/story-reader",
+    "@vismay/content-source",
+    "@vismay/story-pipeline",
+    "@vismay/ai-gateway",
+    "@gm/story-vertical",
+  ],
 
   // @sparticuz/chromium loads its brotli-packed Chromium (bin/*.br) from a path it
   // computes at runtime (import.meta.url of build/paths.js → ../bin), so Next's file

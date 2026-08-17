@@ -19,6 +19,7 @@ import { Card } from "@/components/ui";
 import { ComposePanel } from "@/components/stories/compose-panel";
 import { StoryBody } from "@/components/stories/story-body";
 import { MarkdownEditor } from "@/components/stories/markdown-editor";
+import { WebStoryEditor } from "@/components/stories/web-story-editor";
 import { useAdminPanel } from "@/components/admin";
 import type { StoryContentType, StoryRow, StoryStatus } from "@/lib/db/stories";
 import type { StorySourceRow } from "@/lib/db/story-sources";
@@ -50,14 +51,20 @@ export function StoryEditPanel({
 }) {
   const router = useRouter();
   const { isPanel, setDirty, close } = useAdminPanel();
-  const [tab, setTab] = useState<EditTab>("settings");
+  // Web stories open straight into the document/preview surface — settings
+  // are secondary once a draft exists.
+  const [tab, setTab] = useState<EditTab>(story.body_format === "vismay" ? "body" : "settings");
   const [title, setTitle] = useState(story.title);
   const [contentType, setContentType] = useState<StoryContentType>(story.content_type);
   const [storyStatus, setStoryStatus] = useState<StoryStatus>(story.status);
   const [targetDate, setTargetDate] = useState(story.target_publish_date ?? "");
   const [notes, setNotes] = useState(story.notes ?? "");
   const [bodyMarkdown, setBodyMarkdown] = useState(story.body_markdown ?? "");
+  const [configJson, setConfigJson] = useState(story.config_json ?? "");
+  const [lintWarnings, setLintWarnings] = useState<string[]>([]);
+  const [previewKey, setPreviewKey] = useState(0);
   const [sources, setSources] = useState(initialSources);
+  const isWebStory = story.body_format === "vismay";
   const [previewing, setPreviewing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -79,14 +86,17 @@ export function StoryEditPanel({
         storyStatus !== story.status ||
         targetDate !== (story.target_publish_date ?? "") ||
         notes !== (story.notes ?? "") ||
-        bodyMarkdown !== (story.body_markdown ?? ""),
+        bodyMarkdown !== (story.body_markdown ?? "") ||
+        configJson !== (story.config_json ?? ""),
     );
   }, [
     bodyMarkdown,
+    configJson,
     contentType,
     notes,
     setDirty,
     story.body_markdown,
+    story.config_json,
     story.content_type,
     story.notes,
     story.status,
@@ -111,9 +121,10 @@ export function StoryEditPanel({
           target_publish_date: targetDate || null,
           notes: notes.trim() || null,
           body_markdown: bodyMarkdown || null,
+          ...(isWebStory ? { config_json: configJson || null } : {}),
         }),
       });
-      const body = await res.json().catch(() => ({}));
+      const body = (await res.json().catch(() => ({}))) as { error?: string; warnings?: string[] };
       if (!res.ok) throw new Error(body.error ?? `HTTP ${res.status}`);
       onSaved?.({
         title: title.trim(),
@@ -122,7 +133,17 @@ export function StoryEditPanel({
         target_publish_date: targetDate || null,
         notes: notes.trim() || null,
         body_markdown: bodyMarkdown || null,
+        ...(isWebStory ? { config_json: configJson || null } : {}),
       });
+      if (isWebStory) {
+        // Stay in the editor — web-story authoring iterates against the
+        // preview pane; navigating away on every save would fight that loop.
+        setLintWarnings(body.warnings ?? []);
+        setPreviewKey((k) => k + 1);
+        setStatus({ type: "ok", msg: "Saved" });
+        router.refresh();
+        return;
+      }
       if (isPanel) close();
       else router.push("/stories");
       router.refresh();
@@ -208,7 +229,7 @@ export function StoryEditPanel({
                 active ? "bg-teal-900 text-white" : "text-gray-500 hover:bg-gray-100 hover:text-ink"
               )}
             >
-              {t.label}
+              {t.id === "body" && isWebStory ? "Web Story" : t.label}
             </button>
           );
         })}
@@ -228,6 +249,13 @@ export function StoryEditPanel({
             onDraftGenerated={(md) => {
               setBodyMarkdown(md);
               setTab("body");
+            }}
+            onStoryRefreshed={(row) => {
+              // Server-side generation rewrote the document pair — sync the
+              // editor panes and reload the preview iframe.
+              setBodyMarkdown(row.body_markdown ?? "");
+              setConfigJson(row.config_json ?? "");
+              setPreviewKey((k) => k + 1);
             }}
           />
         </div>
@@ -303,7 +331,19 @@ export function StoryEditPanel({
               </>
             )}
 
-            {tab === "body" && (
+            {tab === "body" && isWebStory && (
+              <WebStoryEditor
+                storyId={story.id}
+                markdown={bodyMarkdown}
+                configJson={configJson}
+                onMarkdownChange={setBodyMarkdown}
+                onConfigChange={setConfigJson}
+                warnings={lintWarnings}
+                previewKey={previewKey}
+              />
+            )}
+
+            {tab === "body" && !isWebStory && (
               <div className="flex flex-1 flex-col gap-1">
                 <div className="flex items-center justify-between">
                   <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-gray-500">Body</span>
