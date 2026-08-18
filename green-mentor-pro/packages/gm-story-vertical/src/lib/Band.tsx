@@ -52,19 +52,15 @@ export default function Band({
         overflow: 'hidden',
       }
 
+  // The column NEVER clips its own box: modules overdraw it by design (the
+  // pullquote / sectionHeader ghost glyphs sit at negative offsets), and an
+  // `overflow-y: auto` here also forces horizontal clipping per CSS — which
+  // cropped the pullquote's giant quote glyph to two stubs. Landscape decks
+  // rely on the outer frame's overflow:hidden at the slide edge; portrait
+  // relies on the region's own scroll container.
   const column: CSSProperties = isMobile
     ? { position: 'relative', width, maxWidth: '100%', ...style }
-    : {
-        position: 'relative',
-        width,
-        maxWidth: '100%',
-        maxHeight: '86svh',
-        // Safety net: content taller than the slide scrolls inside the
-        // column instead of being silently cropped. Invisible when it fits.
-        overflowY: 'auto',
-        overscrollBehavior: 'contain',
-        ...style,
-      }
+    : { position: 'relative', width, maxWidth: '100%', maxHeight: '86svh', ...style }
 
   return (
     <div style={outer}>
