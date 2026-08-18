@@ -5,8 +5,8 @@ import type { ReactNode } from "react";
 /**
  * Result cards for the standalone Chat skills (runScopingSkill / extractBillSkill /
  * understandEpdSkill in @gm/orchestrator). Each skill's tool output renders here,
- * keyed by the `tool-<name>` message part in MessageList. Styled to match
- * DataRequestCard (inline styles, green left-rail) so the transcript reads as one set.
+ * keyed by the `tool-<name>` message part in MessageList. Full-width with a plain
+ * border, matching the transcript's full-width OpenUI responses.
  */
 
 const ACCENT = "#1f8a5b";
@@ -22,7 +22,7 @@ function Shell({ label, title, right, loading, children }: {
   label: string; title?: ReactNode; right?: ReactNode; loading?: boolean; children?: ReactNode;
 }) {
   return (
-    <div style={{ width: "100%", maxWidth: 460, background: "#fff", border: `1px solid ${BORDER}`, borderLeft: `3px solid ${ACCENT}`, borderRadius: 12, padding: 16, opacity: loading ? 0.7 : 1 }}>
+    <div style={{ width: "100%", background: "#fff", border: `1px solid ${BORDER}`, borderRadius: 12, padding: 16, opacity: loading ? 0.7 : 1 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10 }}>
         <div style={{ minWidth: 0 }}>
           <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 0.5, color: ACCENT, textTransform: "uppercase" }}>{label}</div>
