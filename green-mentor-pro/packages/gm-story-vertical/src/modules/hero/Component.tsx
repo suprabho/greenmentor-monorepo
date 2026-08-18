@@ -10,6 +10,11 @@ import { renderEmphasis, Chip } from '../../lib/text'
 import { FONT, GREEN, INK, ON_DARK, PAPER } from '../../lib/tokens'
 
 const TITLE_SIZE = 'clamp(30px, 4.6vw, 54px)'
+// Portrait floor: Syne is a wide face — at 30px a single long word
+// ("Sustainability,") outruns the ~300px stacked-panel column and gets
+// clipped by the panel's overflow. 24px keeps the longest corpus words
+// inside the measure on a 390px viewport.
+const TITLE_SIZE_MOBILE = 'clamp(24px, 7vw, 30px)'
 
 function TopStrip({ brand, issueRef, onGreen }: { brand: string; issueRef: string; onGreen?: boolean }) {
   return (
@@ -33,14 +38,22 @@ function TopStrip({ brand, issueRef, onGreen }: { brand: string; issueRef: strin
   )
 }
 
-function TitleBlock({ config, align = 'left' }: { config: HeroConfig; align?: 'left' | 'center' }) {
+function TitleBlock({
+  config,
+  align = 'left',
+  isMobile = false,
+}: {
+  config: HeroConfig
+  align?: 'left' | 'center'
+  isMobile?: boolean
+}) {
   return (
     <div style={{ textAlign: align }}>
       <h1
         style={{
           fontFamily: FONT.display,
           fontWeight: 800,
-          fontSize: TITLE_SIZE,
+          fontSize: isMobile ? TITLE_SIZE_MOBILE : TITLE_SIZE,
           lineHeight: 1.05,
           letterSpacing: '-0.03em',
           color: ON_DARK.full,
@@ -207,7 +220,7 @@ export default function HeroComponent({ config, noteReady }: VizRenderProps<Hero
         >
           <TopStrip brand={config.brandLine} issueRef={issueRef} onGreen={isBold} />
           <div style={{ flex: 1, display: 'flex', alignItems: 'center' }}>
-            <TitleBlock config={config} align={isEditorial || isBold ? 'center' : 'left'} />
+            <TitleBlock config={config} align={isEditorial || isBold ? 'center' : 'left'} isMobile={isMobile} />
           </div>
           {isStacked && issueRef ? (
             <div
