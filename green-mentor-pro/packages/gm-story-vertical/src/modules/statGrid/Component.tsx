@@ -88,7 +88,7 @@ export default function StatGridComponent({
         style={{
           display: 'grid',
           gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
-          gap: 14,
+          gap: isMobile ? 10 : 14,
         }}
       >
         {config.items.map((item, i) => (
@@ -97,7 +97,7 @@ export default function StatGridComponent({
             style={{
               border: CARD_BORDER(config.onDark),
               borderRadius: RADIUS.card,
-              padding: 'clamp(16px, 2vw, 26px)',
+              padding: isMobile ? '12px 14px' : 'clamp(16px, 2vw, 26px)',
               opacity: revealed ? 1 : 0,
               transform: revealed ? 'none' : 'translateY(12px)',
               transition: animate

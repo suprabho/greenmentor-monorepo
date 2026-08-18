@@ -67,7 +67,7 @@ export default function ExplainerGridComponent({
         style={{
           display: 'grid',
           gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
-          gap: 14,
+          gap: isMobile ? 10 : 14,
         }}
       >
         {config.cards.map((card, i) => {
@@ -78,7 +78,7 @@ export default function ExplainerGridComponent({
               style={{
                 border: CARD_BORDER(config.onDark),
                 borderRadius: RADIUS.card,
-                padding: 'clamp(16px, 2vw, 24px)',
+                padding: isMobile ? '12px 14px' : 'clamp(16px, 2vw, 24px)',
                 background: isInverted ? INK.black : 'transparent',
                 opacity: revealed ? 1 : 0,
                 transform: revealed ? 'none' : 'translateY(12px)',
