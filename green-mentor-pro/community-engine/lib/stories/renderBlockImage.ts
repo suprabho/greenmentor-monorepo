@@ -191,7 +191,12 @@ function chartHtml(config: unknown): { html: string; width: number; height: numb
   return { html: docHtml(inner), width: width + 32, height: height + 32 };
 }
 
-async function screenshotBlock(
+/**
+ * Screenshot a self-contained HTML string. Exported so the gm:* rasterizers
+ * (renderGmBlockImage.ts) share ONE browser-launch + image-decode-wait path
+ * rather than each growing its own.
+ */
+export async function screenshotBlock(
   html: string,
   viewport: { width: number; height: number }
 ): Promise<Buffer> {

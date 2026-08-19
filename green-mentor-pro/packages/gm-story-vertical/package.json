@@ -11,7 +11,8 @@
     "./templates": "./src/templates/index.ts",
     "./pack": "./src/pack/index.ts",
     "./fixtures/issue38": "./src/fixtures/issue38.ts",
-    "./fixtures/allModules": "./src/fixtures/allModules.ts"
+    "./fixtures/allModules": "./src/fixtures/allModules.ts",
+    "./tokens": "./src/lib/tokens.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
