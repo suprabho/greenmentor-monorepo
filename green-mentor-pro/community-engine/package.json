@@ -7,7 +7,9 @@
     "build": "next build",
     "start": "next start -p 3200",
     "lint": "next lint",
-    "render:header": "tsx scripts/render-header.ts"
+    "render:header": "tsx scripts/render-header.ts",
+    "recap:generate": "node --env-file=.env.local --import tsx scripts/generate-recap.ts",
+    "recap:generate:ci": "node --import tsx scripts/generate-recap.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.104.1",

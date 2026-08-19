@@ -8,10 +8,12 @@
  * banner conventions.
  */
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { clsx } from "clsx";
 import { Plus, CaretUp, CaretDown } from "@phosphor-icons/react/dist/ssr";
 import { Card, Chip } from "@/components/ui";
+import { findRecapCategory } from "@/lib/recaps/framework";
+import type { RecapTopic } from "@/lib/db/recaps";
 import { GenerateSection } from "@/components/stories/generate-section";
 import { ModelPicker, useTextModel } from "./model-picker";
 import { LEGACY_SECTION_KINDS, VISMAY_SECTION_KINDS, type ComposeState, type StoryRow } from "@/lib/db/stories";
@@ -47,6 +49,16 @@ interface PipelineArticle {
   summary: string | null;
   published_at: string | null;
   entities: { slug: string; name: string; kind: string }[];
+}
+
+/** Matches lib/db/recaps.ts's RecapListRow — the /api/recaps picker list. */
+interface RecapListItem {
+  id: string;
+  title: string;
+  period_start: string;
+  period_end: string;
+  topics: RecapTopic[];
+  generated_at: string;
 }
 
 function StatusBanner({ status }: { status: Status }) {
@@ -133,14 +145,20 @@ export function ComposePanel({
       </div>
 
       <div hidden={tab !== "sources"}>
-        <SourcesSection base={base} sources={sources} setSources={setSources} />
+        <SourcesSection
+          base={base}
+          sources={sources}
+          setSources={setSources}
+          setCompose={setCompose}
+        />
       </div>
       <div hidden={tab !== "angles"}>
         <AnglesSection
           base={base}
           compose={compose}
           setCompose={setCompose}
-          sourceCount={sources.length}
+          sources={sources}
+          setSources={setSources}
           model={model}
         />
       </div>
@@ -169,12 +187,16 @@ function SourcesSection({
   base,
   sources,
   setSources,
+  setCompose,
 }: {
   base: string;
   sources: StorySourceRow[];
   setSources: (fn: (prev: StorySourceRow[]) => StorySourceRow[]) => void;
+  /** Attaching a recap updates compose_state server-side (recapId) — the
+   *  response carries it back so the Angles tab sees the topic picker. */
+  setCompose: (c: ComposeState) => void;
 }) {
-  const [mode, setMode] = useState<"none" | "link" | "text" | "library">("none");
+  const [mode, setMode] = useState<"none" | "link" | "text" | "library" | "recap">("none");
   const [title, setTitle] = useState("");
   const [url, setUrl] = useState("");
   const [text, setText] = useState("");
@@ -188,6 +210,10 @@ function SourcesSection({
   const [loadingArticles, setLoadingArticles] = useState(false);
   const [query, setQuery] = useState("");
   const [importing, setImporting] = useState(false);
+  const [recaps, setRecaps] = useState<RecapListItem[] | null>(null);
+  const [loadingRecaps, setLoadingRecaps] = useState(false);
+  const [recapUrls, setRecapUrls] = useState("");
+  const [generatingRecap, setGeneratingRecap] = useState(false);
 
   const close = () => {
     setMode("none");
@@ -195,6 +221,7 @@ function SourcesSection({
     setUrl("");
     setText("");
     setQuery("");
+    setRecapUrls("");
   };
 
   const openLibrary = async () => {
@@ -230,11 +257,66 @@ function SourcesSection({
         return;
       }
       setSources((prev) => [...prev, body.source as StorySourceRow]);
+      // The recap kind also rewrites compose_state (recapId) server-side.
+      if (body.compose_state) setCompose(body.compose_state as ComposeState);
       close();
     } catch (err) {
       setStatus({ type: "err", msg: err instanceof Error ? err.message : "Could not add source" });
     } finally {
       setSaving(false);
+    }
+  };
+
+  const openRecaps = async () => {
+    setMode("recap");
+    setStatus({ type: "idle" });
+    if (recaps !== null) return;
+    setLoadingRecaps(true);
+    try {
+      const res = await fetch("/api/recaps");
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok || !body.ok) throw new Error(body.error ?? `HTTP ${res.status}`);
+      setRecaps((body.recaps ?? []) as RecapListItem[]);
+    } catch (err) {
+      setStatus({ type: "err", msg: err instanceof Error ? err.message : "Could not load recaps" });
+    } finally {
+      setLoadingRecaps(false);
+    }
+  };
+
+  // Generate a fresh weekly recap (last 7 days of feed news + any pasted
+  // URLs), then attach it in the same motion — the common case is "recap me
+  // this week and let me pick a topic", not browsing old snapshots.
+  const generateRecap = async () => {
+    setGeneratingRecap(true);
+    setStatus({ type: "info", msg: "Generating the recap — this takes a minute…" });
+    try {
+      const urls = recapUrls
+        .split("\n")
+        .map((u) => u.trim())
+        .filter(Boolean);
+      const res = await fetch("/api/recaps", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ urls }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(body.error ?? `HTTP ${res.status}`);
+      if (body.mode === "unconfigured") {
+        setStatus({ type: "info", msg: "Recaps need SUPABASE_SERVICE_ROLE_KEY set server-side." });
+        return;
+      }
+      const recap = body.recap as RecapListItem;
+      setRecaps((prev) => [recap, ...(prev ?? [])]);
+      await add({ kind: "recap", recapId: recap.id });
+      // After add() (which resets status): keep skipped-URL warnings visible.
+      if (Array.isArray(body.warnings) && body.warnings.length > 0) {
+        setStatus({ type: "info", msg: (body.warnings as string[]).join(" · ") });
+      }
+    } catch (err) {
+      setStatus({ type: "err", msg: err instanceof Error ? err.message : "Could not generate a recap" });
+    } finally {
+      setGeneratingRecap(false);
     }
   };
 
@@ -412,6 +494,13 @@ function SourcesSection({
             >
               <Plus size={11} weight="bold" /> {importing ? "Importing…" : "From Substack"}
             </button>
+            <button
+              type="button"
+              onClick={() => void openRecaps()}
+              className="inline-flex items-center gap-1 rounded-pill border border-teal-900 px-2.5 py-1 text-[12px] font-medium text-teal-900 hover:bg-teal-50 disabled:opacity-40"
+            >
+              <Plus size={11} weight="bold" /> From recap
+            </button>
           </div>
         )}
       </div>
@@ -544,6 +633,66 @@ function SourcesSection({
         </div>
       )}
 
+      {mode === "recap" && (
+        <div className="mb-3 flex flex-col gap-2">
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-[12px] text-gray-500">
+              Attach a weekly ESG recap, then pick one of its topics in the Angles tab.
+            </p>
+            <button type="button" onClick={close} className="text-[12px] text-gray-500 hover:text-ink">
+              Cancel
+            </button>
+          </div>
+          <div className="flex flex-col gap-2 rounded-lg border border-gray-200 p-3">
+            <textarea
+              value={recapUrls}
+              onChange={(e) => setRecapUrls(e.target.value)}
+              rows={3}
+              placeholder={"Optional: curated URLs for the recap, one per line\nhttps://…"}
+              className={`${inputCls} resize-y font-mono text-[12px]`}
+            />
+            <div>
+              <button
+                type="button"
+                onClick={() => void generateRecap()}
+                disabled={generatingRecap || saving}
+                className="rounded-pill bg-teal-900 px-3 py-1.5 text-[12px] font-medium text-white disabled:opacity-40"
+              >
+                {generatingRecap ? "Generating…" : "Generate this week's recap"}
+              </button>
+            </div>
+          </div>
+          <div className="max-h-64 overflow-y-auto rounded-lg border border-gray-200">
+            {loadingRecaps ? (
+              <p className="p-3 text-[13px] text-gray-500">Loading…</p>
+            ) : (recaps ?? []).length === 0 ? (
+              <p className="p-3 text-[13px] text-gray-500">
+                No recaps yet — generate one above, or wait for the Monday worker.
+              </p>
+            ) : (
+              <ul className="divide-y divide-gray-100">
+                {(recaps ?? []).map((r) => (
+                  <li key={r.id}>
+                    <button
+                      type="button"
+                      disabled={saving || generatingRecap}
+                      onClick={() => void add({ kind: "recap", recapId: r.id })}
+                      className="flex w-full flex-col gap-0.5 px-3 py-2 text-left hover:bg-gray-50 disabled:opacity-40"
+                    >
+                      <span className="text-[13px] font-medium text-ink">{r.title}</span>
+                      <span className="text-[11.5px] text-gray-500">
+                        {r.period_start} → {r.period_end} · {r.topics.length} topic
+                        {r.topics.length === 1 ? "" : "s"}
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+      )}
+
       {sources.length === 0 ? (
         <p className="text-[13px] text-gray-500">No sources yet.</p>
       ) : (
@@ -553,6 +702,7 @@ function SourcesSection({
               <div className="flex items-start justify-between gap-2">
                 <div className="flex flex-wrap items-center gap-1.5">
                   {s.kind === "pipeline" ? <Chip tone="teal">library</Chip> : null}
+                  {s.kind === "recap" ? <Chip tone="teal">recap</Chip> : null}
                   <Chip tone={SOURCE_STATUS_TONE[s.status]}>{s.status}</Chip>
                 </div>
                 <button
@@ -584,17 +734,51 @@ function AnglesSection({
   base,
   compose,
   setCompose,
-  sourceCount,
+  sources,
+  setSources,
   model,
 }: {
   base: string;
   compose: ComposeState;
   setCompose: (c: ComposeState) => void;
-  sourceCount: number;
+  sources: StorySourceRow[];
+  /** Picking a recap topic attaches that topic's grounding sources server-side. */
+  setSources: (fn: (prev: StorySourceRow[]) => StorySourceRow[]) => void;
   model?: string;
 }) {
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState<Status>({ type: "idle" });
+  const sourceCount = sources.length;
+
+  // The topic picker needs the attached recap's full topics; the source row
+  // only carries condensed text. Gate on the source actually existing so a
+  // stale compose_state.recapId (source deleted elsewhere) shows nothing.
+  const hasRecapSource = sources.some((s) => s.kind === "recap");
+  const recapId = hasRecapSource ? (compose.recapId ?? null) : null;
+  const [recapTopics, setRecapTopics] = useState<RecapTopic[] | null>(null);
+  const [pickingTopic, setPickingTopic] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!recapId) {
+      setRecapTopics(null);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`/api/recaps/${recapId}`);
+        const body = await res.json().catch(() => ({}));
+        if (!cancelled && res.ok && body.recap) {
+          setRecapTopics((body.recap.topics ?? []) as RecapTopic[]);
+        }
+      } catch {
+        // best-effort — the picker just won't render
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [recapId]);
 
   const generate = async () => {
     setBusy(true);
@@ -629,6 +813,31 @@ function AnglesSection({
     }
   };
 
+  // Pick ONE recap topic: the server attaches its grounding sources + snapshots
+  // the topic into compose_state, then angles regenerate under its steer.
+  const pickTopic = async (recapTopicId: string) => {
+    setPickingTopic(recapTopicId);
+    setStatus({ type: "idle" });
+    try {
+      const res = await fetch(`${base}/recap-topic`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ recapTopicId }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(body.error ?? `HTTP ${res.status}`);
+      if (body.compose_state) setCompose(body.compose_state as ComposeState);
+      if (Array.isArray(body.sources)) {
+        setSources(() => body.sources as StorySourceRow[]);
+      }
+      await generate();
+    } catch (err) {
+      setStatus({ type: "err", msg: err instanceof Error ? err.message : "Could not pick that topic" });
+    } finally {
+      setPickingTopic(null);
+    }
+  };
+
   return (
     <section className="p-5">
       <div className="mb-3 flex items-center justify-between">
@@ -643,6 +852,38 @@ function AnglesSection({
         </button>
       </div>
       <StatusBanner status={status} />
+      {recapTopics && recapTopics.length > 0 && (
+        <div className="mb-4">
+          <h4 className="mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-gray-500">
+            Pick a recap topic
+          </h4>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {recapTopics.map((t) => {
+              const selected = compose.recapTopicId === t.id;
+              const picking = pickingTopic === t.id;
+              return (
+                <button
+                  key={t.id}
+                  type="button"
+                  disabled={busy || pickingTopic !== null}
+                  onClick={() => void pickTopic(t.id)}
+                  className={`rounded-lg border p-3 text-left transition-colors disabled:opacity-60 ${
+                    selected ? "border-teal-900 bg-green-50" : "border-gray-200 hover:bg-gray-50"
+                  }`}
+                >
+                  <div className="mb-1">
+                    <Chip tone="teal">{findRecapCategory(t.category)?.name ?? t.category}</Chip>
+                  </div>
+                  <div className="text-[13px] font-semibold text-ink">
+                    {picking ? "Attaching sources…" : t.title}
+                  </div>
+                  <div className="mt-0.5 text-[12px] text-gray-600">{t.summary}</div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
       {compose.angles.length === 0 ? (
         <p className="text-[13px] text-gray-500">
           {sourceCount === 0 ? "Add a source first." : "No angles yet."}

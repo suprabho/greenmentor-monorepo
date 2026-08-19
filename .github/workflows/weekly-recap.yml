@@ -1,0 +1,58 @@
+name: ESG feed — weekly recap
+
+# Distills the last 7 days of pipeline-ingested ESG articles into a cited
+# multi-topic recap row in `community_recaps` (community-engine's
+# scripts/generate-recap.ts). Recaps show up in the Stories compose flow's
+# "From recap" picker, where a chosen topic steers angles generation.
+#
+# The worker is feed-only; admin-curated URLs only come through the on-demand
+# POST /api/recaps path. Each run inserts a fresh snapshot row, so re-running
+# just adds another recap — nothing is overwritten.
+#
+# Required secrets — in the "Production" environment (Settings → Environments):
+#   NEXT_PUBLIC_SUPABASE_URL    - Supabase project URL
+#   SUPABASE_SERVICE_ROLE_KEY   - service-role key (worker writes, bypasses RLS)
+#   ANTHROPIC_API_KEY           - Claude API key (topic derivation)
+# Optional: set RECAP_MODEL below to override the model.
+
+on:
+  schedule:
+    # 05:30 UTC Mondays — after the weekend's feed-ingest runs, before the
+    # work week starts in EU/India.
+    - cron: '30 5 * * 1'
+  workflow_dispatch:
+
+concurrency:
+  group: esg-weekly-recap
+  cancel-in-progress: false
+
+jobs:
+  recap:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # Secrets (Supabase URL/service-role key, Anthropic key) live in the
+    # "Production" environment — the job must opt in to receive them.
+    environment: Production
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # No `version:` — pnpm/action-setup@v4 reads it from the root
+      # package.json `packageManager` field and rejects having both.
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          # Node 22+: @supabase/realtime-js needs native WebSocket (absent in Node 20).
+          node-version: '22'
+          cache: pnpm
+
+      - name: Install workspace
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate weekly recap
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: pnpm --filter green-mentor-pro-community-engine recap:generate:ci

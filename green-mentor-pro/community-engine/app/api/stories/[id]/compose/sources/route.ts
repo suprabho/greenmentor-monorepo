@@ -1,12 +1,15 @@
 /**
  * Sources — the material an admin grounds a story's AI-assisted draft in.
  *
- * Four kinds: a link (fetched server-side, SSRF-guarded, then run through the
+ * Five kinds: a link (fetched server-side, SSRF-guarded, then run through the
  * pipeline's readability extractor), pasted text (stored as-is), a pipeline
  * article (pulled from the Pipeline tab's already-ingested + AI-summarized
- * `articles` table — no live fetch), and an uploaded file. A fetch or parse
- * failure still inserts a visible `status: "failed"` row rather than erroring
- * the request, so the admin can see and retry it.
+ * `articles` table — no live fetch), a weekly recap (a `community_recaps` row
+ * condensed so every topic survives generation's per-source clip; also records
+ * `compose_state.recapId` so the Angles stage can offer its topic picker), and
+ * an uploaded file. A fetch or parse failure still inserts a visible
+ * `status: "failed"` row rather than erroring the request, so the admin can
+ * see and retry it.
  *
  * A file arrives one of two ways, and the difference is purely transport:
  *   - up to 4MB: multipart on this route, dispatched by content type;
@@ -32,14 +35,11 @@ import { NextResponse } from "next/server";
 import { requireAdminApiUser } from "@/lib/auth/apiGate";
 import { createAdminClient, isServiceRoleConfigured } from "@/lib/supabase/admin";
 import { listStorySources, insertStorySource } from "@/lib/db/story-sources";
-import { fetchGuarded } from "@/lib/security/urlGuard";
-import { htmlToPlainText } from "@/lib/stories/compose";
-import { fetchShareCardArticles } from "@/lib/share-cards/articles";
-import {
-  SUPPORTED_SOURCE_EXTS,
-  extractHtmlBody,
-  extractSourceFile,
-} from "@/lib/stories/source-extract";
+import { getStory, updateStory } from "@/lib/db/stories";
+import { getRecap } from "@/lib/db/recaps";
+import { condenseRecapForSource } from "@/lib/recaps/markdown";
+import { attachLinkSource, attachPipelineArticleSource } from "@/lib/stories/attach-sources";
+import { SUPPORTED_SOURCE_EXTS, extractSourceFile } from "@/lib/stories/source-extract";
 import {
   INLINE_UPLOAD_MAX_BYTES,
   SOURCE_UPLOAD_BUCKET,
@@ -84,6 +84,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     title?: string;
     text?: string;
     articleId?: string;
+    /** kind: 'recap' — the community_recaps row to attach. */
+    recapId?: string;
     /** kind: 'upload' — the storage path the client PUT the file to. */
     path?: string;
   };
@@ -94,18 +96,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     const articleId = body.articleId?.trim();
     if (!articleId) return NextResponse.json({ error: "articleId is required" }, { status: 400 });
 
-    const [article] = await fetchShareCardArticles(client, { ids: [articleId] });
-    if (!article) return NextResponse.json({ error: "article not found" }, { status: 404 });
-
-    const source = await insertStorySource(client, {
-      story_id: id,
-      kind: "pipeline",
-      title: article.title,
-      url: article.url,
-      extracted_text: article.summary,
-      status: article.summary ? "extracted" : "failed",
-      error: article.summary ? null : "Article has no summary yet",
-    });
+    const source = await attachPipelineArticleSource(client, id, articleId);
+    if (!source) return NextResponse.json({ error: "article not found" }, { status: 404 });
     return NextResponse.json({ ok: true, source });
   }
 
@@ -113,45 +105,40 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     const url = body.url?.trim();
     if (!url) return NextResponse.json({ error: "url is required" }, { status: 400 });
 
-    const result = await fetchGuarded(url, { accept: "text/html" });
-    if (!result.ok) {
-      const source = await insertStorySource(client, {
-        story_id: id,
-        kind: "link",
-        title: body.title?.trim() || url,
-        url,
-        status: "failed",
-        error: result.message,
-      });
-      return NextResponse.json({ ok: true, source });
+    const source = await attachLinkSource(client, id, url, body.title);
+    return NextResponse.json({ ok: true, source });
+  }
+
+  if (body.kind === "recap") {
+    const recapId = body.recapId?.trim();
+    if (!recapId) return NextResponse.json({ error: "recapId is required" }, { status: 400 });
+
+    const story = await getStory(client, id);
+    if (!story) return NextResponse.json({ error: "story not found" }, { status: 404 });
+
+    const recap = await getRecap(client, recapId);
+    if (!recap || recap.status !== "complete") {
+      return NextResponse.json({ error: "recap not found" }, { status: 404 });
     }
 
-    const upstream = result.response;
-    const contentType = upstream.headers.get("content-type") ?? "";
-    if (!upstream.ok || !contentType.startsWith("text/html")) {
-      const source = await insertStorySource(client, {
-        story_id: id,
-        kind: "link",
-        title: body.title?.trim() || url,
-        url,
-        status: "failed",
-        error: !upstream.ok ? `Upstream ${upstream.status}` : "Not an HTML page",
-      });
-      return NextResponse.json({ ok: true, source });
-    }
-
-    const html = await upstream.text();
-    const extracted = await extractHtmlBody(html, htmlToPlainText);
     const source = await insertStorySource(client, {
       story_id: id,
-      kind: "link",
-      title: body.title?.trim() || url,
-      url,
-      extracted_text: extracted,
-      status: extracted ? "extracted" : "failed",
-      error: extracted ? null : "No text content found",
+      kind: "recap",
+      title: recap.title,
+      url: null,
+      extracted_text: condenseRecapForSource(recap),
+      status: "extracted",
     });
-    return NextResponse.json({ ok: true, source });
+    // Attaching in one atomic POST; re-attaching a different recap resets the
+    // topic — angles steered by the old recap's topic would be meaningless.
+    const compose_state = {
+      ...story.compose_state,
+      recapId,
+      recapTopicId: null,
+      recapTopic: null,
+    };
+    await updateStory(client, id, { compose_state });
+    return NextResponse.json({ ok: true, source, compose_state });
   }
 
   if (body.kind === "upload") {
@@ -174,7 +161,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   return NextResponse.json(
     {
       error:
-        "kind must be 'link', 'text', 'pipeline', or 'upload' — or send multipart/form-data for an inline file",
+        "kind must be 'link', 'text', 'pipeline', 'recap', or 'upload' — or send multipart/form-data for an inline file",
     },
     { status: 400 }
   );

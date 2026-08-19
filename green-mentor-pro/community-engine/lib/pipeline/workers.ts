@@ -52,6 +52,14 @@ export const PIPELINE_WORKERS: WorkerDef[] = [
       "Syncs NSE's BRSR filing index, archives each XBRL to Storage, extracts BRSR Core indicators + Section A material topics, and canonicalizes new topic phrasings via Claude.",
     schedule: "Daily 15:30 UTC",
   },
+  {
+    id: "weekly-recap",
+    workflowFile: "weekly-recap.yml",
+    label: "Weekly ESG recap",
+    description:
+      "Distills the last 7 days of ingested ESG news into a cited multi-topic recap that seeds the Stories compose flow's topic picker.",
+    schedule: "Mondays 05:30 UTC",
+  },
 ];
 
 /** Most recent run of a worker's workflow, or null when it has never run. */

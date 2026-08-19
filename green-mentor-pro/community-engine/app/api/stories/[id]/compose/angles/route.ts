@@ -62,6 +62,17 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const body = (await req.json().catch(() => ({}))) as { brief?: string; model?: string };
   const brief = body.brief?.trim();
 
+  // A chosen recap topic (compose/recap-topic) steers every generation from
+  // compose_state — not from the request — so re-clicking "Generate angles"
+  // (which sends only {model}) keeps the focus.
+  const topic = story.compose_state.recapTopic;
+  const topicSteer = topic
+    ? `RECAP TOPIC FOCUS: every angle must be a way into this topic — "${topic.title}" (${topic.category}). ` +
+      `Thesis: ${topic.summary}${topic.keyFacts?.length ? ` Key facts: ${topic.keyFacts.join("; ")}.` : ""} ` +
+      `Ground angles in the attached sources for this topic; do not drift to the recap's other topics.`
+    : null;
+  const steer = [topicSteer, brief].filter(Boolean).join("\n\n");
+
   if (!process.env.ANTHROPIC_API_KEY) {
     return NextResponse.json({ error: "ANTHROPIC_API_KEY is not set server-side" }, { status: 500 });
   }
@@ -81,8 +92,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       const result = await generateAngles(docs, {
         pack: GREENMENTOR_PACK,
         model: resolveModel(body.model),
-        ...(brief
-          ? { refine: { feedback: `Editorial steer: ${brief}`, previous: story.compose_state.angles } }
+        ...(steer
+          ? { refine: { feedback: `Editorial steer: ${steer}`, previous: story.compose_state.angles } }
           : {}),
       });
       const compose_state = {
@@ -110,7 +121,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   }
 
   const system = `You are an editorial strategist for GreenMentor, a sustainability brand. Given a "${story.content_type}" piece titled "${story.title}" and the source material below, propose 3-5 distinct, non-overlapping angles a writer could take. Ground every angle in the sources — do not invent facts not present in them. Call propose_angles.${
-    brief ? `\n\nAuthor's steer: ${brief}` : ""
+    steer ? `\n\nAuthor's steer: ${steer}` : ""
   }`;
 
   const sourcesContext = buildSourcesContext(sources);
