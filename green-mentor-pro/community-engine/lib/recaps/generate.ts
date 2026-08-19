@@ -211,7 +211,9 @@ export async function generateRecap(
   const anthropic = new Anthropic();
   const message = await anthropic.messages.create({
     model,
-    max_tokens: 4096,
+    // 8 topics of tool-call JSON (summaries + keyFacts) can overrun 4096,
+    // and a truncated forced tool call surfaces as an empty topics array.
+    max_tokens: 8192,
     system: buildSystemPrompt(),
     tools: [
       {
@@ -225,6 +227,9 @@ export async function generateRecap(
     messages: [{ role: "user", content: renderInputs(articles, pages) }],
   });
 
+  if (message.stop_reason === "max_tokens") {
+    throw new Error("Recap response was truncated at max_tokens — raise the limit or trim inputs");
+  }
   const toolUse = message.content.find((b) => b.type === "tool_use");
   if (!toolUse || toolUse.type !== "tool_use") {
     throw new Error("Model did not return a recap");
