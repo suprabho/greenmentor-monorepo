@@ -37,9 +37,13 @@ const PACK_LAYER_TYPES = [
   'gm:explainerGrid',
   'gm:steps',
   'gm:callout',
+  'gm:comparisonTable',
+  'gm:definitionGrid',
+  'gm:scoreDonut',
   'gm:pullquote',
   'gm:takeaways',
   'gm:audienceStrip',
+  'gm:cta',
   'gm:footer',
 ] as const
 

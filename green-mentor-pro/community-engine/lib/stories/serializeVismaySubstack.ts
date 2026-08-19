@@ -117,6 +117,31 @@ async function imageBlock(
   }
 }
 
+/** `gm:footer.closingNote` is `{ emoji?, text, signature? }`. */
+function closingNote(layer: Layer): string {
+  const note = layer.closingNote;
+  if (!note || typeof note !== "object") return "";
+  const n = note as Layer;
+  const text = str(n, "text");
+  if (!text) return "";
+  const emoji = str(n, "emoji");
+  const signature = str(n, "signature");
+  return (
+    `<p>${emoji ? `${esc(emoji)} ` : ""}${inline(text)}</p>` +
+    (signature ? `<p><em>${esc(signature)}</em></p>` : "")
+  );
+}
+
+/** The eyebrow + accented h2 head that every titled gm band shares. */
+function head(layer: Layer): string {
+  const eyebrow = str(layer, "eyebrow");
+  const title = str(layer, "title");
+  return (
+    (eyebrow ? `<p><strong>${esc(eyebrow.toUpperCase())}</strong></p>` : "") +
+    (title ? `<h2 style="color:#2c6e3f">${stripEmphasis(title)}</h2>` : "")
+  );
+}
+
 async function layerToHtml(
   layer: Layer,
   section: JsonConfigSection,
@@ -129,13 +154,14 @@ async function layerToHtml(
   switch (type) {
     // ── Rasterized ──────────────────────────────────────────────────────────
     case "gm:hero": {
-      const title = stripEmphasis(str(layer, "title"));
+      const title = str(layer, "title");
       // The cover becomes the newsletter's title block: an image for the look, then
       // the headline as a real <h1> so it is the email's subject-line-shaped text
-      // and survives an image-blocking client.
-      const img = await imageBlock(type, layer, title, "", ctx);
+      // and survives an image-blocking client. The alt text is the bare words —
+      // `*spans*` are typography, not content.
+      const img = await imageBlock(type, layer, title.replace(/\*/g, ""), "", ctx);
       const sub = str(layer, "subtitle") ? `<p>${inline(str(layer, "subtitle"))}</p>` : "";
-      return `${img}<h1>${esc(title)}</h1>${sub}`;
+      return `${img}<h1>${stripEmphasis(title)}</h1>${sub}`;
     }
     case "gm:statGrid":
       return imageBlock(type, layer, "Key figures", "", ctx);
@@ -153,12 +179,7 @@ async function layerToHtml(
       return `<blockquote><p><em>${inline(str(layer, "text"))}</em></p></blockquote>`;
 
     case "gm:sectionHeader": {
-      const title = str(layer, "title") || anchor;
-      const eyebrow = str(layer, "eyebrow");
-      return (
-        (eyebrow ? `<p><strong>${esc(eyebrow.toUpperCase())}</strong></p>` : "") +
-        (title ? `<h2 style="color:#2c6e3f">${stripEmphasis(title)}</h2>` : "")
-      );
+      return head({ ...layer, title: str(layer, "title") || anchor });
     }
 
     case "gm:prose": {
@@ -167,13 +188,7 @@ async function layerToHtml(
       const override = Array.isArray(layer.paragraphs)
         ? (layer.paragraphs as unknown[]).filter((p): p is string => typeof p === "string")
         : null;
-      const title = str(layer, "title");
-      const eyebrow = str(layer, "eyebrow");
-      return (
-        (eyebrow ? `<p><strong>${esc(eyebrow.toUpperCase())}</strong></p>` : "") +
-        (title ? `<h2 style="color:#2c6e3f">${stripEmphasis(title)}</h2>` : "") +
-        (override ?? prose).map((p) => `<p>${inline(p)}</p>`).join("")
-      );
+      return head(layer) + (override ?? prose).map((p) => `<p>${inline(p)}</p>`).join("");
     }
 
     case "gm:pullquote": {
@@ -186,9 +201,8 @@ async function layerToHtml(
     case "gm:takeaways": {
       // Items are `{ lead, body }` — the bold lead is the skimmable line.
       const items = arr(layer, "items");
-      const title = str(layer, "title");
       return (
-        (title ? `<h2 style="color:#2c6e3f">${stripEmphasis(title)}</h2>` : "") +
+        head(layer) +
         `<ol>${items
           .map((i) => {
             const lead = str(i, "lead");
@@ -202,9 +216,8 @@ async function layerToHtml(
       // A numbered list, which is what the grid is once its one-inverted-cell
       // accent (a scroll affordance) has nothing to attach to.
       const cards = arr(layer, "cards");
-      const title = str(layer, "title");
       return (
-        (title ? `<h2 style="color:#2c6e3f">${stripEmphasis(title)}</h2>` : "") +
+        head(layer) +
         `<ol>${cards
           .map(
             (c) =>
@@ -216,9 +229,8 @@ async function layerToHtml(
 
     case "gm:steps": {
       const steps = arr(layer, "steps");
-      const title = str(layer, "title");
       return (
-        (title ? `<h2 style="color:#2c6e3f">${stripEmphasis(title)}</h2>` : "") +
+        head(layer) +
         `<ol>${steps
           .map((s) => {
             const stepTitle = str(s, "title");
@@ -230,7 +242,7 @@ async function layerToHtml(
 
     case "gm:definitionGrid": {
       const items = arr(layer, "items");
-      return `<dl>${items
+      return head(layer) + `<dl>${items
         .map(
           (i) => `<dt><strong>${esc(str(i, "term"))}</strong></dt><dd>${inline(str(i, "definition"))}</dd>`
         )
@@ -242,16 +254,21 @@ async function layerToHtml(
         (c): c is string => typeof c === "string"
       );
       const rows = (Array.isArray(layer.rows) ? layer.rows : []) as unknown[];
-      const head = `<tr>${cols.map((c) => `<th>${esc(c)}</th>`).join("")}</tr>`;
+      // `highlightColumn` is a tint in the story; Substack strips cell colour, so the
+      // emphasis becomes bold — the same "this is the column that matters" signal.
+      const hi = typeof layer.highlightColumn === "number" ? layer.highlightColumn : -1;
+      const cell = (tag: "th" | "td", text: string, i: number) =>
+        `<${tag}>${i === hi ? `<strong>${inline(text)}</strong>` : inline(text)}</${tag}>`;
+      const headRow = `<tr>${cols.map((c, i) => cell("th", c, i)).join("")}</tr>`;
       const body = rows
         .map((r) => {
           const cells = Array.isArray(r) ? r : [];
           return `<tr>${cols
-            .map((_c, i) => `<td>${inline(typeof cells[i] === "string" ? (cells[i] as string) : "")}</td>`)
+            .map((_c, i) => cell("td", typeof cells[i] === "string" ? (cells[i] as string) : "", i))
             .join("")}</tr>`;
         })
         .join("");
-      return `<table><thead>${head}</thead><tbody>${body}</tbody></table>`;
+      return head(layer) + `<table><thead>${headRow}</thead><tbody>${body}</tbody></table>`;
     }
 
     case "gm:callout": {
@@ -273,6 +290,7 @@ async function layerToHtml(
       const label = str(layer, "label");
       const note = str(layer, "note");
       return (
+        head(layer) +
         `<p><strong>${esc(String(value))} / ${esc(String(max))}</strong>${label ? ` — ${esc(label)}` : ""}</p>` +
         (note ? `<p>${inline(note)}</p>` : "")
       );
@@ -297,18 +315,20 @@ async function layerToHtml(
         cols
           .map((c) => `<p><strong>${esc(str(c, "label"))}</strong><br>${inline(str(c, "body"))}</p>`)
           .join("") +
-        (str(layer, "closingNote") ? `<p>${inline(str(layer, "closingNote"))}</p>` : "") +
+        closingNote(layer) +
         (str(layer, "copyright") ? `<p>${esc(str(layer, "copyright"))}</p>` : "")
       );
     }
 
     case "gm:cta": {
-      const label = str(layer, "buttonLabel");
-      const href = str(layer, "buttonHref");
+      const label = str(layer, "actionLabel");
+      const href = str(layer, "actionHref");
+      const note = str(layer, "note");
       return (
-        (str(layer, "title") ? `<h2 style="color:#2c6e3f">${esc(str(layer, "title"))}</h2>` : "") +
+        head(layer) +
         (str(layer, "body") ? `<p>${inline(str(layer, "body"))}</p>` : "") +
-        (label ? `<p><a href="${href || "#"}"><strong>${esc(label)} →</strong></a></p>` : "")
+        (label ? `<p><a href="${esc(href) || "#"}"><strong>${esc(label)} →</strong></a></p>` : "") +
+        (note ? `<p>${esc(note)}</p>` : "")
       );
     }
 

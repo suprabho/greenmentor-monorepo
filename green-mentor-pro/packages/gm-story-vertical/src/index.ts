@@ -44,6 +44,10 @@ export async function registerGmStoryModules(): Promise<void> {
     import('./modules/explainerGrid'),
     import('./modules/steps'),
     import('./modules/callout'),
+    import('./modules/comparisonTable'),
+    import('./modules/definitionGrid'),
+    import('./modules/scoreDonut'),
+    import('./modules/cta'),
   ])
   for (const m of modules) registerSafely(m.default as AnyVizModule)
 }
