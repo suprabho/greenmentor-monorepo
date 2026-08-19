@@ -15,6 +15,7 @@ import { getStory, updateStory, type ComposeAngle } from "@/lib/db/stories";
 import { listStorySources } from "@/lib/db/story-sources";
 import { buildSourcesContext } from "@/lib/stories/compose";
 import { storySourceRowsToDocs } from "@/lib/stories/pipeline-store";
+import { resolveModel } from "@/lib/stories/text-models";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -58,7 +59,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     return NextResponse.json({ error: "add at least one source before generating angles" }, { status: 400 });
   }
 
-  const body = (await req.json().catch(() => ({}))) as { brief?: string };
+  const body = (await req.json().catch(() => ({}))) as { brief?: string; model?: string };
   const brief = body.brief?.trim();
 
   if (!process.env.ANTHROPIC_API_KEY) {
@@ -79,6 +80,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     try {
       const result = await generateAngles(docs, {
         pack: GREENMENTOR_PACK,
+        model: resolveModel(body.model),
         ...(brief
           ? { refine: { feedback: `Editorial steer: ${brief}`, previous: story.compose_state.angles } }
           : {}),

@@ -46,6 +46,7 @@ import {
   visualBodyLayerTypes,
 } from "@/lib/stories/pipeline-store";
 import type { ComposeOutlineEntry } from "@/lib/db/stories";
+import { resolveModel } from "@/lib/stories/text-models";
 
 export const runtime = "nodejs";
 export const maxDuration = 120;
@@ -108,10 +109,12 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     entryId?: string;
     pass?: "content" | "visual" | "combined";
     feedback?: string;
+    model?: string;
   };
   const pass = body.pass ?? "combined";
   if (!body.entryId) return NextResponse.json({ error: "entryId is required" }, { status: 400 });
   const feedback = body.feedback?.trim();
+  const model = resolveModel(body.model);
 
   // ── Phase 1: generate (expensive, exactly once) ─────────────────────────
   const story = await getStory(client, id);
@@ -159,6 +162,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     if (pass === "content" || pass === "combined") {
       const draft = await generateSectionContent(ctx, {
         pack: GREENMENTOR_PACK,
+        model,
         ...(refine ? { refine: { feedback: refine.feedback, previous: content } } : {}),
       });
       draftParagraphs = draft.paragraphs;
@@ -168,6 +172,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     if (pass === "visual" || pass === "combined") {
       let visual = await generateSectionVisual(ctx, content, {
         pack: GREENMENTOR_PACK,
+        model,
         ...(refine && pass === "visual"
           ? { refine: { feedback: refine.feedback, previous: undefined } }
           : {}),
@@ -205,6 +210,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
               ".";
         visual = await generateSectionVisual(ctx, content, {
           pack: GREENMENTOR_PACK,
+          model,
           refine: { feedback, previous: undefined },
         });
       }

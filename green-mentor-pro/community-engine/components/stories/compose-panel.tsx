@@ -8,13 +8,20 @@
  * banner conventions.
  */
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { clsx } from "clsx";
 import { Plus, CaretUp, CaretDown } from "@phosphor-icons/react/dist/ssr";
 import { Card, Chip } from "@/components/ui";
 import { GenerateSection } from "@/components/stories/generate-section";
+import { ModelPicker, useTextModel } from "./model-picker";
 import { LEGACY_SECTION_KINDS, VISMAY_SECTION_KINDS, type ComposeState, type StoryRow } from "@/lib/db/stories";
 import type { StorySourceRow } from "@/lib/db/story-sources";
+import { createClient } from "@/lib/supabase/client";
+import {
+  INLINE_UPLOAD_MAX_BYTES,
+  SOURCE_UPLOAD_BUCKET,
+  SUPPORTED_SOURCE_EXTS,
+} from "@/lib/stories/source-upload";
 
 type Status = { type: "idle" | "ok" | "err" | "info"; msg?: string };
 type ComposeTab = "sources" | "angles" | "outline" | "draft";
@@ -81,6 +88,8 @@ export function ComposePanel({
   // Web stories draft through the pipeline's materialize + per-section flow;
   // the single-shot Draft stage is the legacy blocks path.
   const isWebStory = story.body_format === "vismay";
+  // One model for the whole document, honoured by every pipeline stage.
+  const { model, setModel, models } = useTextModel(isWebStory);
 
   const TABS: Array<{ id: ComposeTab; label: string; count: number }> = [
     { id: "sources", label: "Sources", count: sources.length },
@@ -120,16 +129,23 @@ export function ComposePanel({
             </button>
           );
         })}
+        {isWebStory ? <ModelPicker model={model} setModel={setModel} models={models} /> : null}
       </div>
 
       <div hidden={tab !== "sources"}>
         <SourcesSection base={base} sources={sources} setSources={setSources} />
       </div>
       <div hidden={tab !== "angles"}>
-        <AnglesSection base={base} compose={compose} setCompose={setCompose} sourceCount={sources.length} />
+        <AnglesSection
+          base={base}
+          compose={compose}
+          setCompose={setCompose}
+          sourceCount={sources.length}
+          model={model}
+        />
       </div>
       <div hidden={tab !== "outline"}>
-        <OutlineSection base={base} compose={compose} setCompose={setCompose} />
+        <OutlineSection base={base} compose={compose} setCompose={setCompose} model={model} />
       </div>
       <div hidden={tab !== "draft"}>
         {isWebStory ? (
@@ -139,6 +155,7 @@ export function ComposePanel({
             compose={compose}
             setCompose={setCompose}
             onStoryRefreshed={onStoryRefreshed}
+            model={model}
           />
         ) : (
           <DraftSection base={base} compose={compose} setCompose={setCompose} onDraftGenerated={onDraftGenerated} />
@@ -162,6 +179,9 @@ function SourcesSection({
   const [url, setUrl] = useState("");
   const [text, setText] = useState("");
   const [saving, setSaving] = useState(false);
+  // The file input is hidden and driven by the "Upload file" pill, so the row of
+  // controls stays visually consistent.
+  const fileRef = useRef<HTMLInputElement | null>(null);
   const [status, setStatus] = useState<Status>({ type: "idle" });
   const [deleting, setDeleting] = useState<string | null>(null);
   const [articles, setArticles] = useState<PipelineArticle[] | null>(null);
@@ -213,6 +233,86 @@ function SourcesSection({
       close();
     } catch (err) {
       setStatus({ type: "err", msg: err instanceof Error ? err.message : "Could not add source" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  /**
+   * Upload a source file, choosing the transport by size.
+   *
+   * Up to 4MB goes inline as multipart. Anything larger CANNOT reach a route
+   * handler at all (~4.5MB request-body ceiling), so it takes the signed-URL path:
+   * ask for a token, PUT the bytes straight to a private bucket, then hand the
+   * route the storage path to extract from. The caller doesn't choose — the
+   * distinction is transport, not intent.
+   */
+  const upload = async (file: File) => {
+    setSaving(true);
+    setStatus({ type: "idle" });
+    try {
+      let body: Record<string, unknown>;
+
+      if (file.size <= INLINE_UPLOAD_MAX_BYTES) {
+        const form = new FormData();
+        form.set("file", file);
+        // No Content-Type header: the browser must set the multipart boundary.
+        const res = await fetch(`${base}/sources`, { method: "POST", body: form });
+        body = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error((body.error as string) ?? `HTTP ${res.status}`);
+      } else {
+        const ticketRes = await fetch(`${base}/sources/upload-url`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ filename: file.name, size: file.size }),
+        });
+        const ticket = (await ticketRes.json().catch(() => ({}))) as {
+          bucket?: string;
+          path?: string;
+          token?: string;
+          error?: string;
+        };
+        if (!ticketRes.ok || !ticket.path || !ticket.token) {
+          throw new Error(ticket.error ?? `HTTP ${ticketRes.status}`);
+        }
+        const { error: putError } = await createClient()
+          .storage.from(ticket.bucket ?? SOURCE_UPLOAD_BUCKET)
+          // `upsert: false` — the path is a fresh uuid per ticket, so a collision
+          // would mean the token was replayed.
+          .uploadToSignedUrl(ticket.path, ticket.token, file, {
+            contentType: file.type || "application/octet-stream",
+            upsert: false,
+          });
+        if (putError) throw new Error(`Upload failed: ${putError.message}`);
+
+        // Extraction is a separate call so its failure is distinguishable from the
+        // upload's, and so the (slow) parse isn't holding a request open behind a
+        // multi-megabyte body.
+        const res = await fetch(`${base}/sources`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ kind: "upload", path: ticket.path, title: file.name }),
+        });
+        body = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error((body.error as string) ?? `HTTP ${res.status}`);
+      }
+
+      if (body.mode === "unconfigured") {
+        setStatus({ type: "info", msg: "Uploads need SUPABASE_SERVICE_ROLE_KEY set server-side." });
+        return;
+      }
+      const source = body.source as StorySourceRow;
+      setSources((prev) => [...prev, source]);
+      // A row can land `status: 'failed'` with a 200 — the row IS the record of the
+      // failure, so surface its reason rather than a silent success.
+      if (source.status === "failed") {
+        setStatus({ type: "err", msg: source.error ?? "That file could not be read." });
+      } else if (typeof body.warning === "string") {
+        setStatus({ type: "info", msg: body.warning });
+      }
+      close();
+    } catch (err) {
+      setStatus({ type: "err", msg: err instanceof Error ? err.message : "Could not upload file" });
     } finally {
       setSaving(false);
     }
@@ -275,6 +375,28 @@ function SourcesSection({
             >
               <Plus size={11} weight="bold" /> Paste text
             </button>
+            <button
+              type="button"
+              onClick={() => fileRef.current?.click()}
+              className="inline-flex items-center gap-1 rounded-pill border border-gray-200 px-2.5 py-1 text-[12px] font-medium text-gray-700 hover:bg-gray-50"
+            >
+              <Plus size={11} weight="bold" /> Upload file
+            </button>
+            {/* Hidden, driven by the button above — a bare file input can't be
+                styled to match the pill row. Derived from the extractor's own list
+                so the picker can't drift from what the server accepts. */}
+            <input
+              ref={fileRef}
+              type="file"
+              accept={SUPPORTED_SOURCE_EXTS.join(",")}
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                // Reset first so re-picking the same file fires `change` again.
+                e.target.value = "";
+                if (file) void upload(file);
+              }}
+            />
             <button
               type="button"
               onClick={() => void openLibrary()}
@@ -463,11 +585,13 @@ function AnglesSection({
   compose,
   setCompose,
   sourceCount,
+  model,
 }: {
   base: string;
   compose: ComposeState;
   setCompose: (c: ComposeState) => void;
   sourceCount: number;
+  model?: string;
 }) {
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState<Status>({ type: "idle" });
@@ -476,7 +600,11 @@ function AnglesSection({
     setBusy(true);
     setStatus({ type: "idle" });
     try {
-      const res = await fetch(`${base}/angles`, { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
+      const res = await fetch(`${base}/angles`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(model ? { model } : {}),
+      });
       const body = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(body.error ?? `HTTP ${res.status}`);
       setCompose(body.compose_state as ComposeState);
@@ -547,10 +675,12 @@ function OutlineSection({
   base,
   compose,
   setCompose,
+  model,
 }: {
   base: string;
   compose: ComposeState;
   setCompose: (c: ComposeState) => void;
+  model?: string;
 }) {
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState<Status>({ type: "idle" });
@@ -574,7 +704,7 @@ function OutlineSection({
       const res = await fetch(`${base}/outline`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ guidance: guidance.trim() || undefined }),
+        body: JSON.stringify({ guidance: guidance.trim() || undefined, ...(model ? { model } : {}) }),
       });
       const body = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(body.error ?? `HTTP ${res.status}`);

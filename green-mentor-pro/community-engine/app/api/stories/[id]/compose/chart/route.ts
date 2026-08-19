@@ -25,6 +25,7 @@ import { getStory } from "@/lib/db/stories";
 import { listStorySources } from "@/lib/db/story-sources";
 import { upsertStoryChart } from "@/lib/db/storyCharts";
 import { storySourceRowsToDocs } from "@/lib/stories/pipeline-store";
+import { resolveModel } from "@/lib/stories/text-models";
 
 export const runtime = "nodejs";
 export const maxDuration = 120;
@@ -50,7 +51,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     return NextResponse.json({ error: "the outline declares no charts" }, { status: 400 });
   }
 
-  const body = (await req.json().catch(() => ({}))) as { chartId?: string; feedback?: string };
+  const body = (await req.json().catch(() => ({}))) as { chartId?: string; feedback?: string; model?: string };
   const targets = body.chartId
     ? requirements.filter((r) => r.id === body.chartId)
     : requirements;
@@ -70,18 +71,19 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     questions: [],
   };
 
+  const model = resolveModel(body.model);
   const generated: string[] = [];
   try {
     for (let requirement of targets) {
       if (body.feedback && body.chartId) {
         requirement = await generateChartRequirement(
           { requirement, brief, sources: docs },
-          { pack: GREENMENTOR_PACK, feedback: body.feedback }
+          { pack: GREENMENTOR_PACK, feedback: body.feedback, model }
         );
       }
       const spec = await generateChart(
         { requirement, brief, sources: docs },
-        { pack: GREENMENTOR_PACK }
+        { pack: GREENMENTOR_PACK, model }
       );
       await upsertStoryChart(client, id, requirement.id, buildChartData(spec));
       generated.push(requirement.id);

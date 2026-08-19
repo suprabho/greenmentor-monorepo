@@ -11,6 +11,10 @@ import { statGridSchema } from '../modules/statGrid/schema'
 import { explainerGridSchema } from '../modules/explainerGrid/schema'
 import { stepsSchema } from '../modules/steps/schema'
 import { calloutSchema } from '../modules/callout/schema'
+import { comparisonTableSchema } from '../modules/comparisonTable/schema'
+import { definitionGridSchema } from '../modules/definitionGrid/schema'
+import { scoreDonutSchema } from '../modules/scoreDonut/schema'
+import { ctaSchema } from '../modules/cta/schema'
 
 /**
  * The GreenMentor editorial desk for @vismay/story-pipeline. Passed by value
@@ -48,9 +52,12 @@ export const GREENMENTOR_PACK: DomainPack = {
     'A GreenMentor issue follows a fixed spine, in order: one gm:hero cover; one gm:standfirst ' +
     '(a single italic framing sentence); 3–6 argument sections alternating prose with exactly one ' +
     'quantitative moment (gm:statGrid) and at most one framework moment (gm:explainerGrid or ' +
-    'gm:steps); EXACTLY ONE gm:pullquote section; one gm:takeaways section ' +
+    'gm:steps); at most one comparison moment (gm:comparisonTable, gm:definitionGrid or ' +
+    'gm:scoreDonut) where a section turns on a side-by-side, a vocabulary or a single index ' +
+    'score; EXACTLY ONE gm:pullquote section; one gm:takeaways section ' +
     '(3–5 numbered items, practitioner phrasing); one gm:audienceStrip (exactly 4 chips naming ' +
-    'roles); one gm:footer closing. Never place two dark sections adjacently. Section headings are ' +
+    'roles); an optional gm:cta when the issue has a concrete ask; one gm:footer closing. ' +
+    'Never place two dark sections adjacently. Section headings are ' +
     'short Syne-style declaratives ("Where India Stands"), not questions.',
   contentGuidance:
     'Voice: plain, credible, India/ESG-grounded. Short paragraphs (2–3 sentences). Numbers carry ' +
@@ -113,6 +120,24 @@ export const GREENMENTOR_PACK: DomainPack = {
       'A boxed worked example, definition or warning. badge is a 1-word uppercase chip ("Example", "Rule"). Use items for ✕/✓ contrasts or short lists.'
     ),
     layer(
+      comparisonTableSchema,
+      'gm:comparisonTable',
+      'Comparison table (2–3 columns)',
+      'For sections that turn on a side-by-side: standard vs standard, before vs after, India vs peer. columns is the header row (2–3 short labels); each row is an array of the SAME length, first cell being the row label. Keep cells to a phrase. highlightColumn tints the column the section argues for (0-indexed, counting the label column).'
+    ),
+    layer(
+      definitionGridSchema,
+      'gm:definitionGrid',
+      'Term/definition grid (glossary band)',
+      'For unfamiliar vocabulary a practitioner needs before the argument lands (Scope 3, CBAM, transition plan). 2–6 term/definition pairs, each definition ONE sentence. Use once at most, early. Prefer gm:explainerGrid when the items are a framework rather than a glossary.'
+    ),
+    layer(
+      scoreDonutSchema,
+      'gm:scoreDonut',
+      'Single score ring (index / readiness figure)',
+      'ONE score as a ring — an EPI rank, a readiness rating, a percentage of compliance. value plus max (default 100), label as the mono caption, note as one sentence giving the figure meaning. Use gm:statGrid instead the moment there is more than one number.'
+    ),
+    layer(
       pullquoteSchema,
       'gm:pullquote',
       'Full-bleed green pull quote',
@@ -129,6 +154,12 @@ export const GREENMENTOR_PACK: DomainPack = {
       'gm:audienceStrip',
       '"Resonates with" role chips',
       'EXACTLY ONE, after the takeaways: exactly 4 chips naming reader roles ("ESG & Sustainability Leads", "CFOs & Risk Officers", …).'
+    ),
+    layer(
+      ctaSchema,
+      'gm:cta',
+      'Call to action card (single button)',
+      'At most one, between the audience strip and the footer, and only when the issue has a real ask. title carries the ask, actionLabel/actionHref the button, note the small print. Omit entirely rather than inventing a link.'
     ),
     layer(
       footerSchema,

@@ -93,6 +93,17 @@ const nextConfig: NextConfig = {
     "/api/webinars/[id]/header": [
       "../../node_modules/.pnpm/@sparticuz+chromium@*/node_modules/@sparticuz/chromium/**",
     ],
+    // LiteParse (story-pipeline's best PDF reader) loads a prebuilt `*.node`
+    // binding plus the `libpdfium.so` it dlopen's. Next traces the `.node` from the
+    // JS require, but the sibling `.so` is opened at runtime and is otherwise
+    // dropped. Scoped to the ONE route that ingests uploads, so every other
+    // function stays small. A tracing gap degrades to pdf-parse rather than 500ing.
+    // Globs cover both the pnpm store layout and a hoisted node_modules.
+    "/api/stories/[id]/compose/sources": [
+      "../../node_modules/.pnpm/@llamaindex+liteparse@*/node_modules/@llamaindex/liteparse/*.{node,so}",
+      "../../node_modules/@llamaindex/liteparse/*.{node,so}",
+      "./node_modules/@llamaindex/liteparse/*.{node,so}",
+    ],
   },
 };
 

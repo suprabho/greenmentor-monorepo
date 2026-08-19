@@ -10,6 +10,8 @@
  *   - gm:callout with `paragraphs` AND `items`          — issue38 uses items only
  *   - gm:footer with `closingNote`                      — issue38 omits it
  *   - gm:surface `page` tone                            — issue38 never uses it
+ *   - gm:comparisonTable with a highlighted column      — not in issue38
+ *   - gm:definitionGrid, gm:scoreDonut, gm:cta          — not in issue38
  *
  * Rendered by the platform /stories/demo-all route; pack.test.ts asserts every
  * layer here parses through the module schemas and that coverage stays total.
@@ -52,11 +54,19 @@ measure, no surprises.
 
 ## Worked Example
 
+## Definitions
+
+## Side by Side
+
+## The Score
+
 ## Pull Quote
 
 ## Takeaways
 
 ## Audience
+
+## The Ask
 
 ## Closing
 `
@@ -77,7 +87,7 @@ export const allModulesConfig = {
           brandLine: 'GreenMentor · Module Gallery',
           title: 'Every Module, *One Story*',
           subtitle:
-            'A synthetic issue that walks the full gm story vertical — all thirteen modules, both prose modes, every band tone.',
+            'A synthetic issue that walks the full gm story vertical — all seventeen modules, both prose modes, every band tone.',
           tags: ['Fixture', 'All Modules', 'Render Test'],
           issueLabel: 'Issue',
           issueNumber: '00',
@@ -132,7 +142,7 @@ export const allModulesConfig = {
           title: 'Four Stats, *Four Columns*',
           columns: 4,
           items: [
-            { value: '13', label: 'gm modules', note: 'Registered by the vertical loader.', sourceTag: 'Registry' },
+            { value: '17', label: 'gm modules', note: 'Registered by the vertical loader.', sourceTag: 'Registry' },
             { value: '7', label: 'Band tones', note: 'light · tint · pale · off · dark · green · page.', sourceTag: 'Tokens' },
             { value: '30%', label: 'Emphasis spans', note: 'Italic serif accents inside titles.', sourceTag: 'House style' },
             { value: '22.46', unit: '/100', label: 'Count-up value', note: 'Decimal values animate on first activation.', sourceTag: 'Fixture' },
@@ -215,6 +225,60 @@ export const allModulesConfig = {
       ] } },
     },
     {
+      id: 'definitions',
+      text: 'Definitions',
+      background: [{ type: 'gm:surface', tone: 'light' }],
+      foreground: { layout: 'free', regions: { default: [
+        {
+          type: 'gm:definitionGrid',
+          eyebrow: 'Vocabulary',
+          title: 'Four Terms, *Two Columns*',
+          columns: 2,
+          items: [
+            { term: 'Scope 3', definition: 'Emissions from a company\u2019s value chain rather than its own operations.' },
+            { term: 'CBAM', definition: "The EU's carbon border levy on imported steel, cement, aluminium and fertiliser." },
+            { term: 'BRSR Core', definition: 'The assured subset of SEBI\u2019s disclosure format, mandatory for the top listed companies.' },
+            { term: 'Transition plan', definition: 'A dated, costed account of how a business intends to decarbonise.' },
+          ],
+        },
+      ] } },
+    },
+    {
+      id: 'side-by-side',
+      text: 'Side by Side',
+      background: [{ type: 'gm:surface', tone: 'tint' }],
+      foreground: { layout: 'free', regions: { default: [
+        {
+          type: 'gm:comparisonTable',
+          eyebrow: 'Comparison',
+          title: 'Three Columns, *One Highlighted*',
+          columns: ['Requirement', 'Voluntary Era', 'BRSR Core'],
+          highlightColumn: 2,
+          rows: [
+            ['Assurance', 'None', 'Reasonable assurance'],
+            ['Scope', 'Self-selected metrics', 'Nine fixed attributes'],
+            ['Value chain', 'Out of scope', 'Top suppliers, phased in'],
+          ],
+        },
+      ] } },
+    },
+    {
+      id: 'the-score',
+      text: 'The Score',
+      background: [{ type: 'gm:surface', tone: 'light' }],
+      foreground: { layout: 'free', regions: { default: [
+        {
+          type: 'gm:scoreDonut',
+          eyebrow: 'Index',
+          title: 'One Number, *One Ring*',
+          value: 22.46,
+          max: 100,
+          label: 'EPI Score 2026',
+          note: 'India ranks 176th of 180 economies — the ring is the whole argument, so it gets its own band.',
+        },
+      ] } },
+    },
+    {
       id: 'pull-quote',
       text: 'Pull Quote',
       background: [{ type: 'gm:surface', tone: 'green' }],
@@ -234,7 +298,7 @@ export const allModulesConfig = {
           type: 'gm:takeaways',
           eyebrow: 'Practitioner Summary',
           items: [
-            { lead: 'Thirteen modules, one scroll.', body: 'Every layer type the pack can emit appears exactly once here.' },
+            { lead: 'Seventeen modules, one scroll.', body: 'Every layer type the pack can emit appears exactly once here.' },
             { lead: 'Minimum items still render.', body: 'This band uses the schema floor of three takeaways, no title.' },
             { lead: 'Fixtures beat screenshots.', body: 'The pack test parses every layer on every commit.' },
           ],
@@ -250,6 +314,22 @@ export const allModulesConfig = {
           type: 'gm:audienceStrip',
           label: 'Resonates with',
           chips: ['Engine Maintainers', 'Story Editors', 'Compose Pipeline', 'QA Screenshots'],
+        },
+      ] } },
+    },
+    {
+      id: 'the-ask',
+      text: 'The Ask',
+      background: [{ type: 'gm:surface', tone: 'tint' }],
+      foreground: { layout: 'free', regions: { default: [
+        {
+          type: 'gm:cta',
+          eyebrow: 'Next Step',
+          title: 'One Card, *One Button*',
+          body: 'The only foreground module that takes pointer events — everything else in a story is inert by design.',
+          actionLabel: 'Read the full brief',
+          actionHref: 'https://greenmentor.co',
+          note: 'Fixture link. Weekly cadence, no spam.',
         },
       ] } },
     },
