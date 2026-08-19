@@ -13,6 +13,7 @@ import { clsx } from "clsx";
 import { Plus, CaretUp, CaretDown } from "@phosphor-icons/react/dist/ssr";
 import { Card, Chip } from "@/components/ui";
 import { GenerateSection } from "@/components/stories/generate-section";
+import { ModelPicker, useTextModel } from "./model-picker";
 import { LEGACY_SECTION_KINDS, VISMAY_SECTION_KINDS, type ComposeState, type StoryRow } from "@/lib/db/stories";
 import type { StorySourceRow } from "@/lib/db/story-sources";
 import { createClient } from "@/lib/supabase/client";
@@ -87,6 +88,8 @@ export function ComposePanel({
   // Web stories draft through the pipeline's materialize + per-section flow;
   // the single-shot Draft stage is the legacy blocks path.
   const isWebStory = story.body_format === "vismay";
+  // One model for the whole document, honoured by every pipeline stage.
+  const { model, setModel, models } = useTextModel(isWebStory);
 
   const TABS: Array<{ id: ComposeTab; label: string; count: number }> = [
     { id: "sources", label: "Sources", count: sources.length },
@@ -126,16 +129,23 @@ export function ComposePanel({
             </button>
           );
         })}
+        {isWebStory ? <ModelPicker model={model} setModel={setModel} models={models} /> : null}
       </div>
 
       <div hidden={tab !== "sources"}>
         <SourcesSection base={base} sources={sources} setSources={setSources} />
       </div>
       <div hidden={tab !== "angles"}>
-        <AnglesSection base={base} compose={compose} setCompose={setCompose} sourceCount={sources.length} />
+        <AnglesSection
+          base={base}
+          compose={compose}
+          setCompose={setCompose}
+          sourceCount={sources.length}
+          model={model}
+        />
       </div>
       <div hidden={tab !== "outline"}>
-        <OutlineSection base={base} compose={compose} setCompose={setCompose} />
+        <OutlineSection base={base} compose={compose} setCompose={setCompose} model={model} />
       </div>
       <div hidden={tab !== "draft"}>
         {isWebStory ? (
@@ -145,6 +155,7 @@ export function ComposePanel({
             compose={compose}
             setCompose={setCompose}
             onStoryRefreshed={onStoryRefreshed}
+            model={model}
           />
         ) : (
           <DraftSection base={base} compose={compose} setCompose={setCompose} onDraftGenerated={onDraftGenerated} />
@@ -574,11 +585,13 @@ function AnglesSection({
   compose,
   setCompose,
   sourceCount,
+  model,
 }: {
   base: string;
   compose: ComposeState;
   setCompose: (c: ComposeState) => void;
   sourceCount: number;
+  model?: string;
 }) {
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState<Status>({ type: "idle" });
@@ -587,7 +600,11 @@ function AnglesSection({
     setBusy(true);
     setStatus({ type: "idle" });
     try {
-      const res = await fetch(`${base}/angles`, { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
+      const res = await fetch(`${base}/angles`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(model ? { model } : {}),
+      });
       const body = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(body.error ?? `HTTP ${res.status}`);
       setCompose(body.compose_state as ComposeState);
@@ -658,10 +675,12 @@ function OutlineSection({
   base,
   compose,
   setCompose,
+  model,
 }: {
   base: string;
   compose: ComposeState;
   setCompose: (c: ComposeState) => void;
+  model?: string;
 }) {
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState<Status>({ type: "idle" });
@@ -685,7 +704,7 @@ function OutlineSection({
       const res = await fetch(`${base}/outline`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ guidance: guidance.trim() || undefined }),
+        body: JSON.stringify({ guidance: guidance.trim() || undefined, ...(model ? { model } : {}) }),
       });
       const body = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(body.error ?? `HTTP ${res.status}`);

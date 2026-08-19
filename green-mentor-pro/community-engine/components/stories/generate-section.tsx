@@ -24,12 +24,15 @@ export function GenerateSection({
   compose,
   setCompose,
   onStoryRefreshed,
+  model,
 }: {
   base: string;
   storyId: string;
   compose: ComposeState;
   setCompose: (next: ComposeState) => void;
   onStoryRefreshed?: (row: StoryRow) => void;
+  /** The document's text-model choice; omitted lets the route pick the default. */
+  model?: string;
 }) {
   const [materializing, setMaterializing] = useState(false);
   const [chartsBusy, setChartsBusy] = useState(false);
@@ -84,7 +87,12 @@ export function GenerateSection({
       const res = await fetch(`${base}/section`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ entryId, pass: "combined", ...(feedback ? { feedback } : {}) }),
+        body: JSON.stringify({
+          entryId,
+          pass: "combined",
+          ...(feedback ? { feedback } : {}),
+          ...(model ? { model } : {}),
+        }),
       });
       const body = (await res.json().catch(() => ({}))) as { error?: string };
       if (!res.ok) throw new Error(body.error ?? `HTTP ${res.status}`);
@@ -104,7 +112,7 @@ export function GenerateSection({
       const res = await fetch(`${base}/chart`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}),
+        body: JSON.stringify(model ? { model } : {}),
       });
       const body = (await res.json().catch(() => ({}))) as { error?: string };
       if (!res.ok) throw new Error(body.error ?? `HTTP ${res.status}`);

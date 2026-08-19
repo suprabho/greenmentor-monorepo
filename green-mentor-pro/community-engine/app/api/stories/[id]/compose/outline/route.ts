@@ -20,6 +20,7 @@ import { getStory, updateStory, LEGACY_SECTION_KINDS, type ComposeOutlineEntry }
 import { listStorySources } from "@/lib/db/story-sources";
 import { buildSourcesContext } from "@/lib/stories/compose";
 import { storySourceRowsToDocs } from "@/lib/stories/pipeline-store";
+import { resolveModel } from "@/lib/stories/text-models";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -73,7 +74,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     return NextResponse.json({ error: "ANTHROPIC_API_KEY is not set server-side" }, { status: 500 });
   }
 
-  const body = (await req.json().catch(() => ({}))) as { guidance?: unknown };
+  const body = (await req.json().catch(() => ({}))) as { guidance?: unknown; model?: string };
   const guidance = typeof body.guidance === "string" ? body.guidance.trim().slice(0, 500) : "";
 
   // Engine 2 (web stories): the pipeline's outline stage, grounded on the
@@ -101,7 +102,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     try {
       outline = await generateOutline(
         { sources: docs, brief, answers },
-        { format: "deck", pack: GREENMENTOR_PACK }
+        { format: "deck", pack: GREENMENTOR_PACK, model: resolveModel(body.model) }
       );
     } catch (e) {
       return NextResponse.json(
