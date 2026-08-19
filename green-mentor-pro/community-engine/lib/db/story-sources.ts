@@ -8,7 +8,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
  */
 export const STORY_SOURCES_TABLE = "story_sources";
 
-export type StorySourceKind = "link" | "text" | "pipeline";
+export type StorySourceKind = "link" | "text" | "pipeline" | "recap";
 export type StorySourceStatus = "pending" | "extracted" | "failed";
 
 export interface StorySourceRow {
@@ -55,6 +55,22 @@ export async function insertStorySource(
     .single();
   if (error) throw new Error(error.message);
   return data as StorySourceRow;
+}
+
+/** One source row, scoped by both ids (see deleteStorySource on why). */
+export async function getStorySource(
+  supabase: SupabaseClient,
+  storyId: string,
+  sourceId: string
+): Promise<StorySourceRow | null> {
+  const { data, error } = await supabase
+    .from(STORY_SOURCES_TABLE)
+    .select("*")
+    .eq("id", sourceId)
+    .eq("story_id", storyId)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  return (data as StorySourceRow | null) ?? null;
 }
 
 /** Scoped by both ids — the service-role client bypasses RLS entirely, so

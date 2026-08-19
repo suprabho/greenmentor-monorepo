@@ -74,16 +74,18 @@ function flatten(row: ArticleRow): ShareCardArticle {
 /**
  * News-pipe articles in the shape the card modules consume. `ids` scopes the
  * query to specific articles (the export route resolving a snapshot's picks);
- * otherwise returns the newest `limit` (the studio's picker list).
+ * otherwise returns the newest `limit` (the studio's picker list), optionally
+ * only those ingested since `since` (the weekly recap's 7-day window).
  */
 export async function fetchShareCardArticles(
   supabase: SupabaseClient,
-  opts: { ids?: string[]; limit?: number } = {}
+  opts: { ids?: string[]; limit?: number; since?: string } = {}
 ): Promise<ShareCardArticle[]> {
   let query = supabase.from("articles").select(ARTICLE_SELECT);
   if (opts.ids && opts.ids.length > 0) {
     query = query.in("id", opts.ids);
   } else {
+    if (opts.since) query = query.gte("created_at", opts.since);
     query = query.order("created_at", { ascending: false }).limit(opts.limit ?? 60);
   }
   const { data, error } = await query;

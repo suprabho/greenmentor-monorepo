@@ -98,6 +98,20 @@ export interface ComposeState {
   pipelineBrief?: { summary: string; keyFacts: string[]; entities: string[] };
   /** engine 2: the raw StoryOutline (charts, image prompts) for later stages. */
   storyOutline?: unknown;
+  /** Attached weekly recap (kind:'recap' source), if any. Set by the sources
+   *  route on attach; cleared when that source is deleted. */
+  recapId?: string | null;
+  /** The ONE recap topic the admin picked to steer angles (compose/recap-topic). */
+  recapTopicId?: string | null;
+  /** Snapshot of the chosen topic, so the angles route derives its steer from
+   *  compose_state alone — surviving regenerate clicks without a refetch. */
+  recapTopic?: {
+    id: string;
+    title: string;
+    category: string;
+    summary: string;
+    keyFacts?: string[];
+  } | null;
 }
 
 export interface StoryRow {
