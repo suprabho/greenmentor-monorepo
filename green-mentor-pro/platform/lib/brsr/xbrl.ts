@@ -156,6 +156,72 @@ export function matchIndicators(
     }
   }
 
+  // Fallback pass for defs declaring fallbackTags. Such a def is a non-negative
+  // magnitude, so a filed value <= 0 means "this concept does not apply to us"
+  // rather than a real measurement — banks and insurers file Turnover as 0, and
+  // IDEA FY2024-25 filed a negative — so a substitutable element stands in. Kept
+  // deliberately narrow: replace a zero in the SAME context, or seed a key that is
+  // absent from the whole filing. Without that second restriction, a fallback
+  // present in prior-year contexts would mint extra period rows on every filing
+  // whose primary tag is already healthy.
+  const fallbackByTag = new Map<string, BrsrIndicatorDef[]>();
+  for (const def of defs) {
+    for (const tag of def.fallbackTags ?? []) {
+      const list = fallbackByTag.get(tag);
+      if (list) list.push(def);
+      else fallbackByTag.set(tag, [def]);
+    }
+  }
+  if (fallbackByTag.size) {
+    type Candidate = { def: BrsrIndicatorDef; fact: XbrlFact; context: XbrlContext; value: number };
+    const candidates: Candidate[] = [];
+    for (const fact of facts) {
+      const defsForTag = fallbackByTag.get(fact.tag);
+      if (!defsForTag) continue;
+      const context = contexts.get(fact.contextRef);
+      if (!context) continue;
+      const value = toNumber(fact.value);
+      if (value === null || value <= 0) continue; // an unusable fallback rescues nothing
+      for (const def of defsForTag) {
+        if (!membersMatch(def, context)) continue;
+        candidates.push({ def, fact, context, value });
+      }
+    }
+
+    const entryOf = (c: Candidate): MatchedIndicator => ({
+      key: c.def.key,
+      rawTag: c.fact.tag, // audit trail: brsr_indicators.raw_tag shows the substitute
+      contextRef: c.fact.contextRef,
+      periodStart: c.context.periodStart,
+      periodEnd: c.context.periodEnd,
+      unit: c.fact.unitRef,
+      value: c.value,
+    });
+
+    // (a) swap out an unusable filed value, first candidate wins
+    for (const c of candidates) {
+      const slot = `${c.def.key} ${c.fact.contextRef}`;
+      const existing = byKeyContext.get(slot);
+      if (existing && existing.value <= 0) byKeyContext.set(slot, entryOf(c));
+    }
+
+    // (b) key still has no real value anywhere → seed only its latest period
+    const haveValue = new Set([...byKeyContext.values()].filter((i) => i.value > 0).map((i) => i.key));
+    const orphaned = new Map<string, Candidate[]>();
+    for (const c of candidates) {
+      if (haveValue.has(c.def.key)) continue;
+      const list = orphaned.get(c.def.key);
+      if (list) list.push(c);
+      else orphaned.set(c.def.key, [c]);
+    }
+    for (const [key, list] of orphaned) {
+      const latest = list.reduce((a, b) =>
+        String(b.context.periodEnd ?? "") > String(a.context.periodEnd ?? "") ? b : a,
+      );
+      byKeyContext.set(`${key} ${latest.fact.contextRef}`, entryOf(latest));
+    }
+  }
+
   const indicators = [...byKeyContext.values()];
   const matched = new Set(indicators.map((i) => i.key));
   return {

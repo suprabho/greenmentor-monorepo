@@ -34,6 +34,19 @@ export type BrsrIndicatorDef = {
   /** Exact XBRL member set (local names) the fact's context must carry.
    * Omitted → only non-dimensional (whole-entity) contexts match. */
   members?: string[];
+  /**
+   * Elements holding a *different but substitutable* concept, consulted only
+   * where `tags` yields nothing usable. Distinct from `tags`, which is for
+   * taxonomy aliases of the same concept and wins on first match: a fallback must
+   * never outrank a genuinely filed value.
+   *
+   * Declaring this asserts the indicator is a non-negative magnitude, so a filed
+   * value <= 0 counts as "not reported here" and lets the fallback stand in.
+   * Banks and insurers file Turnover as 0 because turnover is not a meaningful
+   * concept for them, and report the figure under TotalRevenueOfTheCompany;
+   * IDEA FY2024-25 filed a negative Turnover, apparently its net loss.
+   */
+  fallbackTags?: string[];
 };
 
 export const BRSR_TAG_MAP: BrsrIndicatorDef[] = [
@@ -107,5 +120,5 @@ export const BRSR_TAG_MAP: BrsrIndicatorDef[] = [
   { key: "recycled_input_pct", tags: ["RecycledOrReUsedInPutMaterialToTotalMaterial"], category: "social" },
 
   // — Financial —
-  { key: "turnover", tags: ["Turnover"], category: "financial" },
+  { key: "turnover", tags: ["Turnover"], fallbackTags: ["TotalRevenueOfTheCompany"], category: "financial" },
 ];
