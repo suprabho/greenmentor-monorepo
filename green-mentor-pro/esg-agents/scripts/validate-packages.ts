@@ -1,7 +1,8 @@
 /**
  * Lint every agent package: skill.md frontmatter valid, io.schema.json has
  * $defs.input/output with all objects additionalProperties:false, tools.json names
- * cover the frontmatter tools[], and registry.json matches the folders.
+ * cover the frontmatter tools[], tools.json schemas stay inside the strict tool-use
+ * subset, and registry.json matches the folders.
  *
  *   tsx scripts/validate-packages.ts
  */
@@ -15,6 +16,28 @@ const warn: string[] = [];
 
 function readJson(p: string): any {
   return JSON.parse(fs.readFileSync(p, "utf8"));
+}
+
+// loadAgent stamps strict:true on every tools.json entry, and the Anthropic API
+// validates strict tool schemas against a restricted JSON Schema subset: numeric
+// bounds on an integer/number property are rejected outright ("For 'integer'
+// type, properties maximum, minimum are not supported") — a 400 at run time, not
+// load time. Enforce the bound in the handler instead and state it in the
+// description. Not applied to io.schema.json: the emit tool is not strict, and
+// several shipping packages carry min/max there.
+const STRICT_BANNED_NUMERIC = ["minimum", "maximum", "exclusiveMinimum", "exclusiveMaximum", "multipleOf"];
+
+function assertStrictToolSchema(schema: any, where: string) {
+  if (!schema || typeof schema !== "object") return;
+  const types = Array.isArray(schema.type) ? schema.type : [schema.type];
+  if (types.some((t: unknown) => t === "integer" || t === "number")) {
+    for (const kw of STRICT_BANNED_NUMERIC) {
+      if (schema[kw] !== undefined) {
+        errors.push(`${where}: "${kw}" is not supported on a numeric property of a strict tool schema — clamp it in the handler and note the range in the description`);
+      }
+    }
+  }
+  for (const k of Object.keys(schema)) assertStrictToolSchema(schema[k], `${where}/${k}`);
 }
 
 function assertAllObjectsClosed(schema: any, where: string) {
@@ -65,6 +88,12 @@ for (const dir of dirs) {
   } else {
     const tools = readJson(toolsPath);
     const names = new Set(tools.map((t: any) => t.name));
+    for (const t of tools) {
+      // The emit tool entry is filtered out by loadAgent (runAgent rebuilds it
+      // from the output schema, unstrict), so its schema isn't subject to this.
+      if (t?.name === fm.emit_tool) continue;
+      assertStrictToolSchema(t?.input_schema, `${dir} tools/${t?.name}`);
+    }
     for (const t of fm.tools ?? []) {
       if (!names.has(t)) errors.push(`${dir}: frontmatter tool "${t}" not in tools.json`);
     }

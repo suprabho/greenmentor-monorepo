@@ -15,8 +15,10 @@
  *   profile     extract Section A contact block + turnover-weighted NIC sector +
  *               disclosure-coverage scorecard → brsr_filings + brsr_company_activities
  *   canon       map new topic phrasings to canonical topics via Claude → brsr_topic_canon
+ *   scale       resolve which ₹ unit each turnover fact is denominated in →
+ *               brsr_indicators.value_normalized (lib/brsr/scale.ts)
  *
- *   --stage=index|files|indicators|topics|profile|canon|all   default all
+ *   --stage=index|files|indicators|topics|profile|canon|scale|all   default all
  *   --from=DD-MM-YYYY --to=DD-MM-YYYY    index backfill window (NSE param format);
  *                                        omitted → NSE's default rolling ~1-year window
  *   --limit=N                            cap files downloaded / filings parsed this run
@@ -26,6 +28,11 @@
  *   --retopics                           topics stage: re-extract already-extracted filings
  *   --reprofile                          profile stage: re-extract already-profiled filings
  *   --dump-tags                          dev: print a numeric-tag histogram from stored XBRLs
+ *
+ * Stage ordering matters in one place: `indicators` deletes and re-inserts a
+ * filing's rows, which blanks the scale columns, so `scale` must run after it —
+ * that is why --stage=all sequences them that way, and why a manual --reparse
+ * needs a follow-up --stage=scale.
  *
  * Writes use the service-role client, so NEXT_PUBLIC_SUPABASE_URL +
  * SUPABASE_SERVICE_ROLE_KEY must be set. Indicator and topic extraction are
@@ -41,6 +48,7 @@ import {
   extractCompanyProfile,
   extractContexts,
   extractFacts,
+  extractMarketsServed,
   extractMaterialTopics,
   extractProductTurnover,
   matchIndicators,
@@ -50,6 +58,7 @@ import {
 import { BRSR_TAG_MAP } from "../lib/brsr/tag-map";
 import { resolveNic, turnoverWeightedSector } from "../lib/brsr/nic-sector";
 import { computeScorecard } from "../lib/brsr/scorecard";
+import { anchorLogOf, inferScale, isUsable } from "../lib/brsr/scale";
 import {
   buildCanonSystemPrompt,
   MAP_TOPICS_TOOL,
@@ -66,7 +75,7 @@ const BREAKER_LIMIT = Number(process.env.BRSR_BREAKER_LIMIT ?? 5);
 type Supabase = ReturnType<typeof createAdminClient>;
 
 type CliOptions = {
-  stage: "index" | "files" | "indicators" | "topics" | "canon" | "profile" | "all";
+  stage: "index" | "files" | "indicators" | "topics" | "canon" | "profile" | "scale" | "all";
   from?: string;
   to?: string;
   limit: number;
@@ -99,8 +108,8 @@ function parseCliOptions(): CliOptions {
     },
   });
   const stage = values.stage as CliOptions["stage"];
-  if (!["index", "files", "indicators", "topics", "canon", "profile", "all"].includes(stage)) {
-    throw new Error(`--stage must be index|files|indicators|topics|canon|profile|all, got "${stage}"`);
+  if (!["index", "files", "indicators", "topics", "canon", "profile", "scale", "all"].includes(stage)) {
+    throw new Error(`--stage must be index|files|indicators|topics|canon|profile|scale|all, got "${stage}"`);
   }
   for (const [flag, v] of [["from", values.from], ["to", values.to]] as const) {
     if (v && !/^\d{2}-\d{2}-\d{4}$/.test(v)) {
@@ -425,76 +434,91 @@ type ParseRow = {
 };
 
 async function extractIndicators(supabase: Supabase, opts: CliOptions): Promise<string> {
-  let query = supabase
-    .from("brsr_filings")
-    .select("id, symbol, fy_from, fy_to, xbrl_storage_path")
-    .eq("xbrl_status", "stored")
-    .order("submission_date", { ascending: false, nullsFirst: false });
-  if (!opts.reparse) query = query.eq("parse_status", "pending");
-  if (opts.symbol) query = query.eq("symbol", opts.symbol);
-  if (Number.isFinite(opts.limit)) query = query.limit(opts.limit);
-
-  const { data, error } = await query;
-  if (error) throw new Error(`could not read parse queue: ${error.message}`);
-  const queue = (data ?? []) as ParseRow[];
-  console.log(`[indicators] ${queue.length} filing(s) queued${opts.reparse ? " (reparse)" : ""}`);
-
   let parsed = 0;
   let failed = 0;
   let rows = 0;
-  for (const filing of queue) {
-    const label = `${filing.symbol} ${fyLabel(filing.fy_from, filing.fy_to)}`;
-    try {
-      const { data: blob, error: dlErr } = await supabase.storage.from(BUCKET).download(filing.xbrl_storage_path);
-      if (dlErr || !blob) throw new Error(`storage download failed: ${dlErr?.message ?? "no data"}`);
-      const xml = await blob.text();
+  let remaining = Number.isFinite(opts.limit) ? opts.limit : Infinity;
 
-      const { indicators, coverage } = matchIndicators(extractFacts(xml), extractContexts(xml));
-      console.log(
-        `[indicators] ${opts.dryRun ? "would parse" : "✓"} ${label}: ${coverage.matchedKeys.length}/${BRSR_TAG_MAP.length} keys · ${indicators.length} rows · ${coverage.contexts} contexts`,
-      );
-      if (opts.dryRun) continue;
+  // Drain loop, same as `topics`/`profile`: PostgREST caps an unbounded select at
+  // 1000 rows, and parsed filings leave the queue (status flips), so re-querying
+  // until empty is what covers a >1000-filing backlog. Without this the stage
+  // silently stopped at 1000 and still reported success. --reparse keeps rows in
+  // the queue, so it runs a single pass — batch it with --symbol/--limit, or drive
+  // a full re-extraction by resetting parse_status to 'pending'.
+  while (remaining > 0) {
+    let query = supabase
+      .from("brsr_filings")
+      .select("id, symbol, fy_from, fy_to, xbrl_storage_path")
+      .eq("xbrl_status", "stored")
+      .order("submission_date", { ascending: false, nullsFirst: false });
+    if (!opts.reparse) query = query.eq("parse_status", "pending");
+    if (opts.symbol) query = query.eq("symbol", opts.symbol);
+    if (Number.isFinite(remaining)) query = query.limit(Math.min(remaining, 1000));
 
-      const { error: delErr } = await supabase.from("brsr_indicators").delete().eq("filing_id", filing.id);
-      if (delErr) throw new Error(`indicator delete failed: ${delErr.message}`);
-      for (const batch of chunk(indicators, 500)) {
-        const { error: insErr } = await supabase.from("brsr_indicators").insert(
-          batch.map((i) => ({
-            filing_id: filing.id,
-            indicator_key: i.key,
-            raw_tag: i.rawTag,
-            context_ref: i.contextRef,
-            period_start: i.periodStart,
-            period_end: i.periodEnd,
-            unit: i.unit,
-            value_numeric: i.value,
-          })),
+    const { data, error } = await query;
+    if (error) throw new Error(`could not read parse queue: ${error.message}`);
+    const queue = (data ?? []) as ParseRow[];
+    if (queue.length === 0) break;
+    console.log(`[indicators] ${queue.length} filing(s) queued${opts.reparse ? " (reparse)" : ""}`);
+
+    for (const filing of queue) {
+      const label = `${filing.symbol} ${fyLabel(filing.fy_from, filing.fy_to)}`;
+      try {
+        const { data: blob, error: dlErr } = await supabase.storage.from(BUCKET).download(filing.xbrl_storage_path);
+        if (dlErr || !blob) throw new Error(`storage download failed: ${dlErr?.message ?? "no data"}`);
+        const xml = await blob.text();
+
+        const { indicators, coverage } = matchIndicators(extractFacts(xml), extractContexts(xml));
+        console.log(
+          `[indicators] ${opts.dryRun ? "would parse" : "✓"} ${label}: ${coverage.matchedKeys.length}/${BRSR_TAG_MAP.length} keys · ${indicators.length} rows · ${coverage.contexts} contexts`,
         );
-        if (insErr) throw new Error(`indicator insert failed: ${insErr.message}`);
-      }
-      const { error: updErr } = await supabase
-        .from("brsr_filings")
-        .update({
-          parse_status: "parsed",
-          parsed_at: new Date().toISOString(),
-          indicator_count: indicators.length,
-          parse_error: null,
-        })
-        .eq("id", filing.id);
-      if (updErr) throw new Error(`row update failed: ${updErr.message}`);
-      parsed++;
-      rows += indicators.length;
-    } catch (e) {
-      failed++;
-      const message = e instanceof Error ? e.message : String(e);
-      console.error(`[indicators] ✗ ${label}: ${message}`);
-      if (!opts.dryRun) {
-        await supabase
+        if (opts.dryRun) continue;
+
+        const { error: delErr } = await supabase.from("brsr_indicators").delete().eq("filing_id", filing.id);
+        if (delErr) throw new Error(`indicator delete failed: ${delErr.message}`);
+        for (const batch of chunk(indicators, 500)) {
+          const { error: insErr } = await supabase.from("brsr_indicators").insert(
+            batch.map((i) => ({
+              filing_id: filing.id,
+              indicator_key: i.key,
+              raw_tag: i.rawTag,
+              context_ref: i.contextRef,
+              period_start: i.periodStart,
+              period_end: i.periodEnd,
+              unit: i.unit,
+              value_numeric: i.value,
+            })),
+          );
+          if (insErr) throw new Error(`indicator insert failed: ${insErr.message}`);
+        }
+        const { error: updErr } = await supabase
           .from("brsr_filings")
-          .update({ parse_status: "failed", parse_error: message.slice(0, 500) })
+          .update({
+            parse_status: "parsed",
+            parsed_at: new Date().toISOString(),
+            indicator_count: indicators.length,
+            parse_error: null,
+          })
           .eq("id", filing.id);
+        if (updErr) throw new Error(`row update failed: ${updErr.message}`);
+        parsed++;
+        rows += indicators.length;
+      } catch (e) {
+        failed++;
+        const message = e instanceof Error ? e.message : String(e);
+        console.error(`[indicators] ✗ ${label}: ${message}`);
+        if (!opts.dryRun) {
+          await supabase
+            .from("brsr_filings")
+            .update({ parse_status: "failed", parse_error: message.slice(0, 500) })
+            .eq("id", filing.id);
+        }
       }
     }
+    remaining -= queue.length;
+    // --reparse leaves rows in the queue, so a second pass would re-do the same
+    // filings forever; dry-run writes nothing, so the queue never shrinks either.
+    if (opts.dryRun || opts.reparse) break;
   }
   const summary = `indicators: ${parsed} parsed (${rows} rows), ${failed} failed`;
   console.log(`[indicators] done — ${summary}${opts.dryRun ? " (dry-run, nothing written)" : ""}`);
@@ -628,13 +652,16 @@ async function extractProfiles(supabase: Supabase, opts: CliOptions): Promise<st
 
         const profile = extractCompanyProfile(xml);
         const products = extractProductTurnover(xml);
+        const markets = extractMarketsServed(xml);
         const sector = turnoverWeightedSector(products.map((p) => ({ nicCode: p.nicCode, turnover: p.turnover })));
         const { coverage } = matchIndicators(extractFacts(xml), extractContexts(xml));
         const scorecard = computeScorecard(coverage.matchedKeys);
 
+        const marketFieldCount = Object.keys(markets.matchedTags).length;
         console.log(
           `[profile] ${opts.dryRun ? "would extract" : "✓"} ${label}: sector ${sector.primarySection?.letter ?? "?"}` +
-            ` (${sector.primaryDivision?.code ?? "--"}) · ${products.length} activities · coverage ${scorecard.overall.score}`,
+            ` (${sector.primaryDivision?.code ?? "--"}) · ${products.length} activities · coverage ${scorecard.overall.score}` +
+            ` · ${marketFieldCount} market field(s)`,
         );
         if (opts.dryRun) continue;
 
@@ -655,6 +682,16 @@ async function extractProfiles(supabase: Supabase, opts: CliOptions): Promise<st
             sector_shares: sector.sectionShares,
             coverage_score: scorecard.overall.score,
             scorecard,
+            // Markets served (0032) — null-safe when a filer omits Section A Q20/21.
+            plants_national: markets.plantsNational,
+            offices_national: markets.officesNational,
+            plants_international: markets.plantsInternational,
+            offices_international: markets.officesInternational,
+            states_served: markets.statesServed,
+            countries_served: markets.countriesServed,
+            exports_pct_turnover: markets.exportsPctTurnover,
+            customer_types: markets.customerTypes,
+            markets_matched_tags: marketFieldCount ? markets.matchedTags : null,
             profile_status: "extracted",
             profile_extracted_at: new Date().toISOString(),
             profile_error: null,
@@ -810,6 +847,172 @@ async function canonTopics(supabase: Supabase, opts: CliOptions): Promise<string
 }
 
 // ---------------------------------------------------------------------------
+// stage — turnover scale normalization (deterministic, no network beyond the DB)
+
+/** Filings per indicator read. Each filing holds at most a handful of turnover /
+ * total_revenue rows (one per context), so a chunk this size stays far below
+ * PostgREST's 1000-row cap — see the guard in readIndicatorRows. */
+const SCALE_FILING_CHUNK = 150;
+
+/**
+ * The turnover + total_revenue rows for a set of filings.
+ *
+ * Deliberately driven by filing_id rather than paged over the whole table.
+ * Offset paging is wrong here twice over: without ORDER BY, successive .range()
+ * windows can overlap and skip (paging these two keys that way returned 9525 rows
+ * of which only 9179 were distinct, silently losing 346), and adding ORDER BY id
+ * makes it worse — indicator_key and id live in different indexes, so the planner
+ * walks the ~443k-row primary key hunting for the ~2% that match and hits the
+ * statement timeout. Chunking by a known id list sidesteps both: every query is
+ * bounded, index-served through brsr_indicators_filing_idx, and provably complete
+ * because we enumerate the filings ourselves.
+ */
+async function readIndicatorRows(supabase: Supabase, filingIds: string[]): Promise<ScaleRow[]> {
+  const out: ScaleRow[] = [];
+  for (const batch of chunk(filingIds, SCALE_FILING_CHUNK)) {
+    const { data, error } = await supabase
+      .from("brsr_indicators")
+      .select("id, filing_id, indicator_key, value_numeric, period_end")
+      .in("indicator_key", ["turnover", "total_revenue"])
+      .in("filing_id", batch);
+    if (error) throw new Error(`could not read turnover rows: ${error.message}`);
+    const rows = (data ?? []) as ScaleRow[];
+    // A full page would mean PostgREST truncated us and the chunk size is wrong.
+    if (rows.length >= 1000) {
+      throw new Error(`indicator read hit the row cap for ${batch.length} filings — lower SCALE_FILING_CHUNK`);
+    }
+    out.push(...rows);
+  }
+  return out;
+}
+
+type ScaleRow = { id: string; filing_id: string; indicator_key: string; value_numeric: number; period_end: string | null };
+
+/**
+ * Resolve which ₹ unit each turnover fact is denominated in and store the rupee
+ * figure beside the as-filed one.
+ *
+ * Unlike every other stage this one is table-wide rather than per-filing: the
+ * cross-year signal needs a company's other filings, which matchIndicators (one
+ * filing at a time) structurally cannot see. Reads only brsr_indicators +
+ * brsr_filings.symbol, so it needs no storage access and runs in seconds.
+ *
+ * Requires the `total_revenue` key, which only exists for filings parsed after
+ * that def was added — run `--stage=indicators` first. And because the indicators
+ * stage deletes and re-inserts a filing's rows, any --reparse blanks these
+ * columns and this stage has to run again after it.
+ */
+async function normalizeScale(supabase: Supabase, opts: CliOptions): Promise<string> {
+  // brsr_filings is small (~4k rows), so one ranged read is fine here; the
+  // indicator table is the one that needs chunking.
+  const filings: { id: string; symbol: string }[] = [];
+  for (let from = 0; ; from += 1000) {
+    const { data, error } = await supabase
+      .from("brsr_filings")
+      .select("id, symbol")
+      .eq("xbrl_status", "stored")
+      .order("id")
+      .range(from, from + 999);
+    if (error) throw new Error(`could not read filings for scale: ${error.message}`);
+    filings.push(...((data ?? []) as { id: string; symbol: string }[]));
+    if (!data || data.length < 1000) break;
+  }
+  const symbolOf = new Map(filings.map((f) => [f.id, f.symbol]));
+  const wanted = opts.symbol ? filings.filter((f) => f.symbol === opts.symbol) : filings;
+  const rows = (await readIndicatorRows(supabase, wanted.map((f) => f.id))).map((r) => ({
+    ...r,
+    value_numeric: Number(r.value_numeric),
+  }));
+
+  // Latest period per (filing, key) — a filing carries current + previous FY.
+  const latest = new Map<string, ScaleRow>();
+  for (const r of rows) {
+    const slot = `${r.filing_id} ${r.indicator_key}`;
+    const prev = latest.get(slot);
+    if (!prev || String(r.period_end ?? "") > String(prev.period_end ?? "")) latest.set(slot, r);
+  }
+  const crossTagOf = new Map<string, number>();
+  for (const [slot, r] of latest) {
+    if (slot.endsWith(" total_revenue")) crossTagOf.set(r.filing_id, r.value_numeric);
+  }
+
+  // Each company's anchor comes from its filings that are already plausible.
+  const byCompany = new Map<string, number[]>();
+  for (const [slot, r] of latest) {
+    if (!slot.endsWith(" turnover")) continue;
+    const symbol = symbolOf.get(r.filing_id);
+    if (!symbol) continue;
+    if (!byCompany.has(symbol)) byCompany.set(symbol, []);
+    byCompany.get(symbol)!.push(r.value_numeric);
+  }
+  const anchorOf = new Map<string, number | null>();
+  for (const [symbol, values] of byCompany) anchorOf.set(symbol, anchorLogOf(values));
+
+  // Every turnover row gets a verdict, not just the latest one, so a consumer
+  // reading any period sees a normalized value.
+  const turnoverRows = rows.filter((r) => r.indicator_key === "turnover");
+  const updates: { id: string; value_normalized: number | null; scale_multiplier: number; scale_source: string; scale_confidence: string }[] = [];
+  const tally = new Map<string, number>();
+  for (const r of turnoverRows) {
+    const symbol = symbolOf.get(r.filing_id);
+    const verdict = inferScale({
+      filed: r.value_numeric,
+      crossTag: crossTagOf.get(r.filing_id) ?? null,
+      anchorLog: symbol ? anchorOf.get(symbol) ?? null : null,
+    });
+    tally.set(verdict.source, (tally.get(verdict.source) ?? 0) + 1);
+    updates.push({
+      id: r.id,
+      // Anything not usable leaves no number — unresolved, and equally the
+      // `inconsistent` rows that look fine alone but contradict their own series.
+      // A wrong revenue corrupts peer ranking; a null one just redistributes the
+      // dimension's weight.
+      value_normalized: isUsable(verdict.confidence) ? r.value_numeric * verdict.multiplier : null,
+      scale_multiplier: verdict.multiplier,
+      scale_source: verdict.source,
+      scale_confidence: verdict.confidence,
+    });
+  }
+
+  const breakdown = [...tally.entries()].sort((a, b) => b[1] - a[1]).map(([k, v]) => `${k} ${v}`).join(", ");
+  const rescaled = updates.filter((u) => u.scale_multiplier !== 1).length;
+  console.log(`[scale] ${turnoverRows.length} turnover row(s): ${breakdown}`);
+  console.log(`[scale] ${rescaled} rescaled, ${updates.filter((u) => u.value_normalized === null).length} left unresolved`);
+  if (opts.dryRun) {
+    console.log(`[scale] dry-run — nothing written`);
+    return `scale: ${turnoverRows.length} evaluated, ${rescaled} would rescale (dry-run)`;
+  }
+
+  let written = 0;
+  for (const batch of chunk(updates, 200)) {
+    // One statement per row: the values differ per row, and PostgREST has no
+    // bulk-update-by-id. Batched only to bound concurrency.
+    for (const u of batch) {
+      const { error } = await supabase
+        .from("brsr_indicators")
+        .update({
+          value_normalized: u.value_normalized,
+          scale_multiplier: u.scale_multiplier,
+          scale_source: u.scale_source,
+          scale_confidence: u.scale_confidence,
+        })
+        .eq("id", u.id);
+      // A CHECK violation here almost always means 0034 is missing: it is what
+      // permits the `inconsistent` verdict that 0033 did not anticipate.
+      if (error) {
+        throw new Error(`scale update failed (${error.message}) — have migrations 0033 AND 0034 been applied?`);
+      }
+      written++;
+    }
+    console.log(`[scale]   ${written}/${updates.length}`);
+  }
+
+  const summary = `scale: ${written} row(s) stamped, ${rescaled} rescaled`;
+  console.log(`[scale] done — ${summary}`);
+  return summary;
+}
+
+// ---------------------------------------------------------------------------
 // --dump-tags — tag-map calibration helper
 
 async function dumpTags(supabase: Supabase, opts: CliOptions): Promise<void> {
@@ -865,12 +1068,13 @@ async function main() {
 
   const stages =
     opts.stage === "all"
-      ? (["index", "files", "indicators", "topics", "profile", "canon"] as const)
+      ? (["index", "files", "indicators", "scale", "topics", "profile", "canon"] as const)
       : ([opts.stage] as const);
   const summaries: string[] = [];
   if (stages.includes("index")) summaries.push(await syncIndex(supabase, opts));
   if (stages.includes("files")) summaries.push(await archiveFiles(supabase, opts));
   if (stages.includes("indicators")) summaries.push(await extractIndicators(supabase, opts));
+  if (stages.includes("scale")) summaries.push(await normalizeScale(supabase, opts));
   if (stages.includes("topics")) summaries.push(await extractTopics(supabase, opts));
   if (stages.includes("profile")) summaries.push(await extractProfiles(supabase, opts));
   if (stages.includes("canon")) summaries.push(await canonTopics(supabase, opts));

@@ -156,6 +156,72 @@ export function matchIndicators(
     }
   }
 
+  // Fallback pass for defs declaring fallbackTags. Such a def is a non-negative
+  // magnitude, so a filed value <= 0 means "this concept does not apply to us"
+  // rather than a real measurement — banks and insurers file Turnover as 0, and
+  // IDEA FY2024-25 filed a negative — so a substitutable element stands in. Kept
+  // deliberately narrow: replace a zero in the SAME context, or seed a key that is
+  // absent from the whole filing. Without that second restriction, a fallback
+  // present in prior-year contexts would mint extra period rows on every filing
+  // whose primary tag is already healthy.
+  const fallbackByTag = new Map<string, BrsrIndicatorDef[]>();
+  for (const def of defs) {
+    for (const tag of def.fallbackTags ?? []) {
+      const list = fallbackByTag.get(tag);
+      if (list) list.push(def);
+      else fallbackByTag.set(tag, [def]);
+    }
+  }
+  if (fallbackByTag.size) {
+    type Candidate = { def: BrsrIndicatorDef; fact: XbrlFact; context: XbrlContext; value: number };
+    const candidates: Candidate[] = [];
+    for (const fact of facts) {
+      const defsForTag = fallbackByTag.get(fact.tag);
+      if (!defsForTag) continue;
+      const context = contexts.get(fact.contextRef);
+      if (!context) continue;
+      const value = toNumber(fact.value);
+      if (value === null || value <= 0) continue; // an unusable fallback rescues nothing
+      for (const def of defsForTag) {
+        if (!membersMatch(def, context)) continue;
+        candidates.push({ def, fact, context, value });
+      }
+    }
+
+    const entryOf = (c: Candidate): MatchedIndicator => ({
+      key: c.def.key,
+      rawTag: c.fact.tag, // audit trail: brsr_indicators.raw_tag shows the substitute
+      contextRef: c.fact.contextRef,
+      periodStart: c.context.periodStart,
+      periodEnd: c.context.periodEnd,
+      unit: c.fact.unitRef,
+      value: c.value,
+    });
+
+    // (a) swap out an unusable filed value, first candidate wins
+    for (const c of candidates) {
+      const slot = `${c.def.key} ${c.fact.contextRef}`;
+      const existing = byKeyContext.get(slot);
+      if (existing && existing.value <= 0) byKeyContext.set(slot, entryOf(c));
+    }
+
+    // (b) key still has no real value anywhere → seed only its latest period
+    const haveValue = new Set([...byKeyContext.values()].filter((i) => i.value > 0).map((i) => i.key));
+    const orphaned = new Map<string, Candidate[]>();
+    for (const c of candidates) {
+      if (haveValue.has(c.def.key)) continue;
+      const list = orphaned.get(c.def.key);
+      if (list) list.push(c);
+      else orphaned.set(c.def.key, [c]);
+    }
+    for (const [key, list] of orphaned) {
+      const latest = list.reduce((a, b) =>
+        String(b.context.periodEnd ?? "") > String(a.context.periodEnd ?? "") ? b : a,
+      );
+      byKeyContext.set(`${key} ${latest.fact.contextRef}`, entryOf(latest));
+    }
+  }
+
   const indicators = [...byKeyContext.values()];
   const matched = new Set(indicators.map((i) => i.key));
   return {
@@ -181,7 +247,18 @@ export type MaterialTopic = {
   financialImplications: string | null;
 };
 
-/** Named + numeric XML entities (ingest-feed's decode() lacks the numeric forms). */
+/**
+ * Named + numeric XML entities (ingest-feed's decode() lacks the numeric forms),
+ * then a scrub of the characters Postgres refuses to store.
+ *
+ * Some filings carry encoding damage in their narrative blocks: LICI 2021-22 has
+ * a raw NUL followed by U+0019 where a smart apostrophe belongs, the wreckage of
+ * a mis-transcoded U+2019. Postgres accepts neither a NUL nor an unpaired
+ * surrogate in text or jsonb -- it rejects the whole row with "unsupported
+ * Unicode escape sequence", so a single bad glyph fails an entire filing. Scrub
+ * after decoding, which is also the step that would turn &#0; into a NUL in the
+ * first place. Tab/newline/CR survive; every caller collapses whitespace anyway.
+ */
 export function decodeXmlEntities(s: string): string {
   return s
     .replace(/&#(\d+);/g, (_, d) => String.fromCodePoint(Number(d)))
@@ -190,7 +267,11 @@ export function decodeXmlEntities(s: string): string {
     .replace(/&gt;/g, ">")
     .replace(/&quot;/g, '"')
     .replace(/&apos;/g, "'")
-    .replace(/&amp;/g, "&");
+    .replace(/&amp;/g, "&")
+    // C0 controls except \t (\u0009), \n (\u000A), \r (\u000D)
+    .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, "")
+    // lone halves of a surrogate pair, which are not valid UTF-8 either
+    .replace(/[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/g, "");
 }
 
 /** The canon join key: decoded, lowercased, whitespace-squeezed. */
@@ -372,6 +453,144 @@ export function extractProductTurnover(xml: string): ProductTurnover[] {
     rows.push({ contextRef, nicCode, turnover, name: cleanContact(facts[PRODUCT_NAME_TAG] ?? "") });
   }
   return rows;
+}
+
+// ---------------------------------------------------------------------------
+// Markets served — BRSR Section A Q20/21: plant/office locations (national vs
+// international), number of states/countries served, exports as % of turnover,
+// and the free-text customer-types brief.
+
+export type MarketsServed = {
+  plantsNational: number | null;
+  officesNational: number | null;
+  plantsInternational: number | null;
+  officesInternational: number | null;
+  statesServed: number | null;
+  countriesServed: number | null;
+  exportsPctTurnover: number | null; // as filed, clamped to 0..100
+  customerTypes: string | null;
+  /** field → XBRL local name that supplied it — audit trail for tag drift. */
+  matchedTags: Record<string, string>;
+};
+
+/**
+ * Extract the Section A markets-served facts. Unlike the identity block these
+ * tags drift across taxonomy years and filers, and the national/international
+ * split is modelled two ways in the wild — qualified tag names
+ * (NumberOfNationalPlant) or a location dimension on a bare count
+ * (NumberOfPlants in a National/International member context). In practice the
+ * second form dominates and is fully generic: one NumberOfLocations tag carrying
+ * BOTH axes as members (PlantMember + NationalMember), so the plant/office kind
+ * has to be read off the context exactly like the scope. Matching is therefore
+ * pattern-based over self-describing local names, resolved by tag name first and
+ * context member second on each axis, with the winning tag recorded per field.
+ * Verify coverage against stored XBRLs with --dump-tags after taxonomy updates.
+ */
+export function extractMarketsServed(xml: string): MarketsServed {
+  const facts = extractFacts(xml);
+  const contexts = extractContexts(xml);
+
+  // "national" | "international" from the tag name, else from dimension members.
+  const scopeOf = (fact: XbrlFact): "national" | "international" | null => {
+    if (/International|OutsideIndia|Overseas/i.test(fact.tag)) return "international";
+    if (/National|InIndia|Domestic/i.test(fact.tag)) return "national";
+    const members = contexts.get(fact.contextRef)?.members ?? [];
+    if (members.some((m) => /International|OutsideIndia|Overseas/i.test(m))) return "international";
+    if (members.some((m) => /National|InIndia|Domestic/i.test(m))) return "national";
+    return null;
+  };
+
+  // "plant" | "office" the same way. A row dimensioned only on LocationMember is
+  // the Q20 all-locations total, so it resolves to null and stays out of both the
+  // plant and the office field rather than being double-counted into one.
+  const kindOf = (fact: XbrlFact): "plant" | "office" | null => {
+    if (/Plant|Factory|Manufactur/i.test(fact.tag)) return "plant";
+    if (/Office/i.test(fact.tag)) return "office";
+    const members = contexts.get(fact.contextRef)?.members ?? [];
+    if (members.some((m) => /Plant|Factory|Manufactur/i.test(m))) return "plant";
+    if (members.some((m) => /Office/i.test(m))) return "office";
+    return null;
+  };
+
+  // Among matching numeric facts prefer the most recent period (CY over PY rows).
+  const pickLatest = (matches: XbrlFact[]): XbrlFact | null => {
+    let best: XbrlFact | null = null;
+    let bestEnd = "";
+    for (const f of matches) {
+      const end = contexts.get(f.contextRef)?.periodEnd ?? "";
+      if (!best || end > bestEnd) {
+        best = f;
+        bestEnd = end;
+      }
+    }
+    return best;
+  };
+
+  const matchedTags: Record<string, string> = {};
+  const numberField = (
+    field: string,
+    tagRe: RegExp,
+    scope?: "national" | "international",
+    kind?: "plant" | "office",
+  ): number | null => {
+    const matches = facts.filter(
+      (f) =>
+        tagRe.test(f.tag) &&
+        toNumber(f.value) !== null &&
+        (!scope || scopeOf(f) === scope) &&
+        (!kind || kindOf(f) === kind),
+    );
+    const fact = pickLatest(matches);
+    if (!fact) return null;
+    matchedTags[field] = fact.tag;
+    return toNumber(fact.value);
+  };
+
+  // Q20 — plant/office counts. One pattern admits both the kind-qualified tags
+  // (NumberOfNationalPlant) and the generic dimensioned count (NumberOfLocations);
+  // kindOf/scopeOf then pick the right cell. Anchoring on NumberOf keeps the
+  // Percentage…PlantsAndOfficesThatWereAssessed P3/P5 tags out.
+  const LOCATION_COUNT_RE = /^NumberOf\w*(?:Plant|Office|Location|Factory|Site)/i;
+  const plantsNational = numberField("plantsNational", LOCATION_COUNT_RE, "national", "plant");
+  const officesNational = numberField("officesNational", LOCATION_COUNT_RE, "national", "office");
+  const plantsInternational = numberField("plantsInternational", LOCATION_COUNT_RE, "international", "plant");
+  const officesInternational = numberField("officesInternational", LOCATION_COUNT_RE, "international", "office");
+  const statesServed = numberField("statesServed", /^NumberOf\w*State/i);
+  const countriesServed = numberField("countriesServed", /^NumberOf\w*Countr/i);
+
+  // Q21b — "contribution of exports as a percentage of the total turnover".
+  // Filed value conventions vary (0.35 vs 35); stored as filed, clamped 0..100.
+  let exportsPctTurnover = numberField("exportsPctTurnover", /Export.*(Percentage|Turnover)|(Percentage|Contribution).*Export/i);
+  if (exportsPctTurnover !== null && (exportsPctTurnover < 0 || exportsPctTurnover > 100)) exportsPctTurnover = null;
+
+  // Q21c — customer-types brief. Usually a TextBlock, which extractFacts skips,
+  // so search the raw XML for any customer-types element and strip its markup.
+  let customerTypes: string | null = null;
+  const customerRe = /<[\w.-]+:(\w*Type[s]?OfCustomer\w*)\b[^>]*>([\s\S]*?)<\/[\w.-]+:\1>/i;
+  const customerMatch = xml.match(customerRe);
+  if (customerMatch) {
+    // TextBlock bodies carry entity-escaped HTML — decode first, then strip the
+    // revealed tags, then decode once more for double-escaped entities (&amp;amp;).
+    const text = decodeXmlEntities(decodeXmlEntities(customerMatch[2]).replace(/<[^>]+>/g, " "))
+      .replace(/\s+/g, " ")
+      .trim();
+    if (text && !/^(?:na|n\.?a\.?|nil|none|not applicable|-{1,3})$/i.test(text)) {
+      customerTypes = text.slice(0, 1000);
+      matchedTags.customerTypes = customerMatch[1];
+    }
+  }
+
+  return {
+    plantsNational,
+    officesNational,
+    plantsInternational,
+    officesInternational,
+    statesServed,
+    countriesServed,
+    exportsPctTurnover,
+    customerTypes,
+    matchedTags,
+  };
 }
 
 /** Tag → {count, sample} histogram of numeric facts — backs --dump-tags. */

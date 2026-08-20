@@ -12,12 +12,26 @@ export type AgentFamily =
   | "drafting"
   | "publication"
   | "orchestrator"
-  | "comms";
+  | "comms"
+  | "research";
 
 export interface HitlGate {
   required: boolean;
   gate: string | null; // e.g. "data_quality_signoff"
   blocks_phase: number;
+}
+
+/**
+ * Anthropic server-side tools an agent may use (run on Anthropic's infra, no
+ * client dispatch). Declared in frontmatter — NOT in tools.json, which stays
+ * strictly the callable/grounding tool contract.
+ */
+export interface ServerToolsConfig {
+  web_search?: {
+    max_uses?: number; // default 8 — hard cap on searches per run
+    allowed_domains?: string[];
+    blocked_domains?: string[];
+  };
 }
 
 /** Shape of skill.md YAML frontmatter. */
@@ -31,12 +45,14 @@ export interface AgentFrontmatter {
   inputs?: string[];
   outputs?: string[];
   tools: string[]; // subset of tools.json names
+  server_tools?: ServerToolsConfig;
   emit_tool?: string;
   hitl_gate: HitlGate;
   version: string; // semver
   prompt_variant?: string; // absent => "control"
   enabled?: boolean; // false => stub (e.g. comms-outreach)
   max_tokens?: number;
+  max_turns?: number; // grounding-loop turn budget; default 8
   temperature?: number;
 }
 
@@ -58,6 +74,7 @@ export interface LoadedAgent {
   phase: number;
   family: AgentFamily;
   tools: Anthropic.Messages.Tool[]; // callable tools, strict:true
+  serverTools: Record<string, unknown>[]; // Anthropic server-tool params (e.g. web_search); loosely typed — the SDK's Tool union lags new server-tool variants
   emitToolName: string; // forced final-output tool
   inputSchema: Record<string, unknown>;
   outputSchema: Record<string, unknown>;
@@ -67,6 +84,7 @@ export interface LoadedAgent {
   promptVariant: string;
   enabled: boolean;
   maxTokens: number;
+  maxTurns: number;
   temperature: number;
 }
 

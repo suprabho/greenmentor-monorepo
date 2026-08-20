@@ -1,0 +1,46 @@
+[
+  {
+    "name": "get_company_brsr_profile",
+    "description": "Resolve a company to its latest profiled BRSR filing: Section A identity, product/service split (NIC codes + turnover shares), absolute revenue (INR crore), sector/industry classification, and markets served where filed. Look up by NSE symbol (preferred) or company name.",
+    "strict": true,
+    "input_schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "symbol": { "type": ["string", "null"], "description": "NSE ticker, e.g. RELIANCE" },
+        "name": { "type": ["string", "null"], "description": "Company name substring when the symbol is unknown" }
+      },
+      "required": []
+    }
+  },
+  {
+    "name": "find_brsr_peer_candidates",
+    "description": "Peer candidates from the BRSR corpus sharing NIC divisions with the subject, each with deterministic 0-100 similarity scores (business: turnover-share-weighted NIC overlap; revenue: order-of-magnitude distance; market: filed markets-served comparison, null when filings lack the data). Returns candidates sorted by overall score. Copy these scores through unchanged.",
+    "strict": true,
+    "input_schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "symbol": { "type": "string", "description": "The subject company's NSE ticker" },
+        "max_candidates": { "type": ["integer", "null"], "description": "Candidate pool size, 1-50; default 25. Bounds are clamped server-side — strict tool-use schemas reject minimum/maximum on integers." }
+      },
+      "required": ["symbol"]
+    }
+  },
+  {
+    "name": "emit_peer_set",
+    "description": "Return the complete peer research result (subject profile + ranked peers with per-dimension scores, rationale and sources + methodology + caveats). Call exactly once when finished.",
+    "strict": true,
+    "input_schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "subject": { "type": "object" },
+        "peers": { "type": "array", "items": { "type": "object" } },
+        "methodology": { "type": "string" },
+        "caveats": { "type": "array", "items": { "type": "string" } }
+      },
+      "required": ["subject", "peers", "methodology", "caveats"]
+    }
+  }
+]

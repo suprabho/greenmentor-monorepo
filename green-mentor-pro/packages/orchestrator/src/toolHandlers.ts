@@ -5,6 +5,7 @@ import { createAdminClient } from "./admin";
 import { PHASE_PRIMARY_ARTIFACT } from "./db/types";
 import { PHASE_ORDER, type PhaseKey } from "./orchestrator/pipeline";
 import { efdbBase, efdbGet } from "./efdb/client";
+import { findBrsrPeerCandidates, getCompanyBrsrProfile } from "./peer";
 
 /** Tools that touch the DB no-op on demo ctx (org_dev/eng_dev are not uuids). */
 const isUuid = (s: string) =>
@@ -54,6 +55,12 @@ function mapEf(raw: any) {
 }
 
 const HANDLERS: Record<string, ToolHandler> = {
+  // Peer research grounding — the implementations live in ./peer so the Agent
+  // Studio (esg-agents) can wire the same tools via the @gm/orchestrator/peer
+  // subpath without importing this package's barrel.
+  get_company_brsr_profile: (input) => getCompanyBrsrProfile(input),
+  find_brsr_peer_candidates: (input) => findBrsrPeerCandidates(input),
+
   // EFDB — emission-factor lookup (Phase 6). Hits the EFDB FastAPI service: pgvector
   // semantic search first, then the keyword list endpoint as a fallback. Returns
   // ranked candidates in the provenance shape the calculation agent expects.

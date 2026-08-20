@@ -5,6 +5,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { PHASE_PRIMARY_ARTIFACT } from "@/lib/db/types";
 import { PHASE_ORDER, type PhaseKey } from "@/lib/orchestrator/pipeline";
 import { efdbBase, efdbGet } from "@/lib/efdb/client";
+import { runPeerTool } from "@gm/orchestrator/peer";
 
 /** Tools that touch the DB no-op on demo ctx (org_dev/eng_dev are not uuids). */
 const isUuid = (s: string) =>
@@ -184,6 +185,12 @@ export async function runCallableTool(
   input: unknown,
   ctx: ToolContext,
 ): Promise<unknown> {
+  // Peer-research grounding (BRSR corpus) is implemented once in
+  // @gm/orchestrator/peer and shared with the platform (one implementation).
+  // It needs no tenant ctx: BRSR filings are public regulatory data.
+  const peer = runPeerTool(name, input);
+  if (peer) return peer;
+
   const handler = HANDLERS[name];
   if (!handler) {
     // The agent may only call tools declared in its package; an unknown name is a bug.
