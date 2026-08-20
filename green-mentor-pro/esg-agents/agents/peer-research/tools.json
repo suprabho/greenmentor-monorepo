@@ -22,7 +22,7 @@
       "additionalProperties": false,
       "properties": {
         "symbol": { "type": "string", "description": "The subject company's NSE ticker" },
-        "max_candidates": { "type": ["integer", "null"], "minimum": 1, "maximum": 50, "description": "Candidate pool size; default 25" }
+        "max_candidates": { "type": ["integer", "null"], "description": "Candidate pool size, 1-50; default 25. Bounds are clamped server-side — strict tool-use schemas reject minimum/maximum on integers." }
       },
       "required": ["symbol"]
     }
