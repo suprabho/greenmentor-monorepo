@@ -65,6 +65,14 @@ const fyLabel = (fyFrom: number, fyTo: number) =>
   fyFrom === fyTo ? `CY ${fyFrom}` : `${fyFrom}-${String(fyTo).padStart(4, "0").slice(-2)}`;
 
 /** Page through a PostgREST query (server caps responses at 1000 rows). */
+/**
+ * Every row of a query, paged past PostgREST's 1000-row cap.
+ *
+ * Each builder MUST impose a stable sort. Postgres gives no ordering guarantee
+ * without ORDER BY, so successive .range() windows over an unsorted result can
+ * overlap and skip — measured on this database, an unordered two-key page of
+ * brsr_indicators returned 9525 rows of which only 9179 were distinct.
+ */
 async function fetchAllRows<T>(
   build: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: { message: string } | null }>,
 ): Promise<T[]> {
@@ -166,6 +174,7 @@ async function fetchRevenueByFiling(admin: any, filingIds: string[]): Promise<Ma
       .select("filing_id, value_numeric, value_normalized, scale_confidence, unit, period_end, context_ref")
       .eq("indicator_key", "turnover")
       .in("filing_id", filingIds)
+      .order("id")
       .range(from, to),
   );
   const best = new Map<string, Record<string, any>>();
@@ -243,7 +252,7 @@ export async function findPeerCandidates(
   // to a division.
   const baseSelect = "filing_id, brsr_filings!inner(id, symbol, fy_from, fy_to, profile_status)";
   const matchRows = await fetchAllRows<Record<string, any>>((from, to) => {
-    let q = admin.from("brsr_company_activities").select(baseSelect).range(from, to);
+    let q = admin.from("brsr_company_activities").select(baseSelect).order("id").range(from, to);
     q = divisions.length
       ? q.in("division_code", divisions)
       : q.in("section_letter", sections.length ? sections : [subject.sector!.sectionLetter]);
@@ -264,13 +273,14 @@ export async function findPeerCandidates(
 
   const [filings, allActivities, revenueByFiling] = await Promise.all([
     fetchAllRows<Record<string, any>>((from, to) =>
-      admin.from("brsr_filings").select("*").in("id", filingIds).range(from, to),
+      admin.from("brsr_filings").select("*").in("id", filingIds).order("id").range(from, to),
     ),
     fetchAllRows<Record<string, any>>((from, to) =>
       admin
         .from("brsr_company_activities")
         .select("filing_id, nic_code, product_name, turnover, division_code, section_letter")
         .in("filing_id", filingIds)
+        .order("id")
         .range(from, to),
     ),
     fetchRevenueByFiling(admin, filingIds),

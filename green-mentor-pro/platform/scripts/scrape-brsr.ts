@@ -849,7 +849,14 @@ async function canonTopics(supabase: Supabase, opts: CliOptions): Promise<string
 // ---------------------------------------------------------------------------
 // stage — turnover scale normalization (deterministic, no network beyond the DB)
 
-/** Every row of a table, paged past PostgREST's 1000-row response cap. */
+/**
+ * Every row of a table, paged past PostgREST's 1000-row response cap.
+ *
+ * The caller MUST impose a stable sort. Postgres gives no ordering guarantee
+ * without ORDER BY, so successive .range() windows over an unsorted result can
+ * overlap and skip: paging the turnover + total_revenue set unordered returned
+ * 9525 rows of which only 9179 were distinct, silently losing 346.
+ */
 async function fetchAllRows<T>(
   build: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: { message: string } | null }>,
   what: string,
@@ -882,7 +889,8 @@ type ScaleRow = { id: string; filing_id: string; indicator_key: string; value_nu
  */
 async function normalizeScale(supabase: Supabase, opts: CliOptions): Promise<string> {
   const filings = await fetchAllRows<{ id: string; symbol: string }>(
-    (from, to) => supabase.from("brsr_filings").select("id, symbol").eq("xbrl_status", "stored").range(from, to),
+    (from, to) =>
+      supabase.from("brsr_filings").select("id, symbol").eq("xbrl_status", "stored").order("id").range(from, to),
     "filings for scale",
   );
   const symbolOf = new Map(filings.map((f) => [f.id, f.symbol]));
@@ -892,6 +900,7 @@ async function normalizeScale(supabase: Supabase, opts: CliOptions): Promise<str
       .from("brsr_indicators")
       .select("id, filing_id, indicator_key, value_numeric, period_end")
       .in("indicator_key", ["turnover", "total_revenue"])
+      .order("id")
       .range(from, to);
   if (opts.symbol) {
     const ids = filings.filter((f) => f.symbol === opts.symbol).map((f) => f.id);
@@ -901,6 +910,7 @@ async function normalizeScale(supabase: Supabase, opts: CliOptions): Promise<str
         .select("id, filing_id, indicator_key, value_numeric, period_end")
         .in("indicator_key", ["turnover", "total_revenue"])
         .in("filing_id", ids)
+        .order("id")
         .range(from, to);
   }
   const rows = (await fetchAllRows<ScaleRow>(indicatorQuery, "turnover rows")).map((r) => ({
