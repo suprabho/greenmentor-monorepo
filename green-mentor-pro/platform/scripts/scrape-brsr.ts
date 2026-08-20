@@ -849,26 +849,41 @@ async function canonTopics(supabase: Supabase, opts: CliOptions): Promise<string
 // ---------------------------------------------------------------------------
 // stage — turnover scale normalization (deterministic, no network beyond the DB)
 
+/** Filings per indicator read. Each filing holds at most a handful of turnover /
+ * total_revenue rows (one per context), so a chunk this size stays far below
+ * PostgREST's 1000-row cap — see the guard in readIndicatorRows. */
+const SCALE_FILING_CHUNK = 150;
+
 /**
- * Every row of a table, paged past PostgREST's 1000-row response cap.
+ * The turnover + total_revenue rows for a set of filings.
  *
- * The caller MUST impose a stable sort. Postgres gives no ordering guarantee
- * without ORDER BY, so successive .range() windows over an unsorted result can
- * overlap and skip: paging the turnover + total_revenue set unordered returned
- * 9525 rows of which only 9179 were distinct, silently losing 346.
+ * Deliberately driven by filing_id rather than paged over the whole table.
+ * Offset paging is wrong here twice over: without ORDER BY, successive .range()
+ * windows can overlap and skip (paging these two keys that way returned 9525 rows
+ * of which only 9179 were distinct, silently losing 346), and adding ORDER BY id
+ * makes it worse — indicator_key and id live in different indexes, so the planner
+ * walks the ~443k-row primary key hunting for the ~2% that match and hits the
+ * statement timeout. Chunking by a known id list sidesteps both: every query is
+ * bounded, index-served through brsr_indicators_filing_idx, and provably complete
+ * because we enumerate the filings ourselves.
  */
-async function fetchAllRows<T>(
-  build: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: { message: string } | null }>,
-  what: string,
-): Promise<T[]> {
-  const out: T[] = [];
-  const page = 1000;
-  for (let from = 0; ; from += page) {
-    const { data, error } = await build(from, from + page - 1);
-    if (error) throw new Error(`could not read ${what}: ${error.message}`);
-    out.push(...(data ?? []));
-    if (!data || data.length < page) return out;
+async function readIndicatorRows(supabase: Supabase, filingIds: string[]): Promise<ScaleRow[]> {
+  const out: ScaleRow[] = [];
+  for (const batch of chunk(filingIds, SCALE_FILING_CHUNK)) {
+    const { data, error } = await supabase
+      .from("brsr_indicators")
+      .select("id, filing_id, indicator_key, value_numeric, period_end")
+      .in("indicator_key", ["turnover", "total_revenue"])
+      .in("filing_id", batch);
+    if (error) throw new Error(`could not read turnover rows: ${error.message}`);
+    const rows = (data ?? []) as ScaleRow[];
+    // A full page would mean PostgREST truncated us and the chunk size is wrong.
+    if (rows.length >= 1000) {
+      throw new Error(`indicator read hit the row cap for ${batch.length} filings — lower SCALE_FILING_CHUNK`);
+    }
+    out.push(...rows);
   }
+  return out;
 }
 
 type ScaleRow = { id: string; filing_id: string; indicator_key: string; value_numeric: number; period_end: string | null };
@@ -888,32 +903,23 @@ type ScaleRow = { id: string; filing_id: string; indicator_key: string; value_nu
  * columns and this stage has to run again after it.
  */
 async function normalizeScale(supabase: Supabase, opts: CliOptions): Promise<string> {
-  const filings = await fetchAllRows<{ id: string; symbol: string }>(
-    (from, to) =>
-      supabase.from("brsr_filings").select("id, symbol").eq("xbrl_status", "stored").order("id").range(from, to),
-    "filings for scale",
-  );
-  const symbolOf = new Map(filings.map((f) => [f.id, f.symbol]));
-
-  let indicatorQuery = (from: number, to: number) =>
-    supabase
-      .from("brsr_indicators")
-      .select("id, filing_id, indicator_key, value_numeric, period_end")
-      .in("indicator_key", ["turnover", "total_revenue"])
+  // brsr_filings is small (~4k rows), so one ranged read is fine here; the
+  // indicator table is the one that needs chunking.
+  const filings: { id: string; symbol: string }[] = [];
+  for (let from = 0; ; from += 1000) {
+    const { data, error } = await supabase
+      .from("brsr_filings")
+      .select("id, symbol")
+      .eq("xbrl_status", "stored")
       .order("id")
-      .range(from, to);
-  if (opts.symbol) {
-    const ids = filings.filter((f) => f.symbol === opts.symbol).map((f) => f.id);
-    indicatorQuery = (from, to) =>
-      supabase
-        .from("brsr_indicators")
-        .select("id, filing_id, indicator_key, value_numeric, period_end")
-        .in("indicator_key", ["turnover", "total_revenue"])
-        .in("filing_id", ids)
-        .order("id")
-        .range(from, to);
+      .range(from, from + 999);
+    if (error) throw new Error(`could not read filings for scale: ${error.message}`);
+    filings.push(...((data ?? []) as { id: string; symbol: string }[]));
+    if (!data || data.length < 1000) break;
   }
-  const rows = (await fetchAllRows<ScaleRow>(indicatorQuery, "turnover rows")).map((r) => ({
+  const symbolOf = new Map(filings.map((f) => [f.id, f.symbol]));
+  const wanted = opts.symbol ? filings.filter((f) => f.symbol === opts.symbol) : filings;
+  const rows = (await readIndicatorRows(supabase, wanted.map((f) => f.id))).map((r) => ({
     ...r,
     value_numeric: Number(r.value_numeric),
   }));
