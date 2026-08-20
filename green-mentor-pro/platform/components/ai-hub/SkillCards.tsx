@@ -183,7 +183,11 @@ export function ExtractedDataCard({ data, loading }: { data: ExtractData; loadin
   );
 }
 
-/* -------------------------------- Peer set ---------------------------------- */
+/* -------------------------------- Peer set ----------------------------------
+   NOTE: not registered in MessageList's SKILL_CARDS yet — the peer-research
+   agent lives in the Agent Studio (esg-agents/agents/peer-research) until it
+   graduates to the public AI Hub. Re-register "tool-findPeersSkill" → PeerSetCard
+   and re-add findPeersSkill in @gm/orchestrator skillTools.ts to enable it. */
 
 interface PeerScores {
   business?: number | null; revenue?: number | null; market?: number | null;

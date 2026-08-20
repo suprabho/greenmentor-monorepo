@@ -1,0 +1,101 @@
+{
+  "$defs": {
+    "input": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "company": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "symbol": { "type": ["string", "null"], "description": "NSE ticker, e.g. RELIANCE" },
+            "name": { "type": ["string", "null"], "description": "Company name when the symbol is unknown" },
+            "description": { "type": ["string", "null"], "description": "Optional free-text context about the company" }
+          }
+        },
+        "max_peers": { "type": ["integer", "null"], "minimum": 1, "maximum": 15, "description": "Peers to return; default 8" },
+        "notes": { "type": ["string", "null"], "description": "Optional user constraints, e.g. 'domestic peers only'" }
+      },
+      "required": ["company"]
+    },
+    "output": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "subject": { "$ref": "#/$defs/SubjectProfile" },
+        "peers": { "type": "array", "items": { "$ref": "#/$defs/Peer" } },
+        "methodology": { "type": "string", "description": "How the cohort was built and each dimension scored, incl. where web research was used" },
+        "caveats": { "type": "array", "items": { "type": "string" } }
+      },
+      "required": ["subject", "peers", "methodology", "caveats"]
+    },
+    "SubjectProfile": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "symbol": { "type": ["string", "null"] },
+        "name": { "type": "string" },
+        "sector": { "type": ["string", "null"], "description": "NIC section + title, e.g. 'C — Manufacturing (secondary)'" },
+        "industry": { "type": ["string", "null"], "description": "NIC division + title" },
+        "revenue_inr_cr": { "type": ["number", "null"] },
+        "products": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "name": { "type": ["string", "null"] },
+              "nic_code": { "type": ["string", "null"] },
+              "turnover_share": { "type": ["number", "null"], "description": "Share of turnover as filed" }
+            },
+            "required": ["name"]
+          }
+        },
+        "markets_summary": { "type": ["string", "null"], "description": "One sentence on operational markets (domestic/export, key geographies)" },
+        "fy": { "type": ["string", "null"], "description": "Filing FY the profile comes from, e.g. '2024-25'" }
+      },
+      "required": ["name", "products"]
+    },
+    "Peer": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string" },
+        "symbol": { "type": ["string", "null"], "description": "NSE ticker; null for unlisted/foreign peers" },
+        "nse_listed": { "type": "boolean" },
+        "scores": { "$ref": "#/$defs/Scores" },
+        "rationale": { "type": "string", "description": "1-2 concrete sentences naming the overlap, not generic sector talk" },
+        "shared_products": { "type": "array", "items": { "type": "string" } },
+        "revenue_inr_cr": { "type": ["number", "null"] },
+        "markets_summary": { "type": ["string", "null"] },
+        "sources": { "type": "array", "items": { "$ref": "#/$defs/Source" } }
+      },
+      "required": ["name", "nse_listed", "scores", "rationale", "sources"]
+    },
+    "Scores": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "business": { "type": ["integer", "null"], "minimum": 0, "maximum": 100 },
+        "revenue": { "type": ["integer", "null"], "minimum": 0, "maximum": 100 },
+        "market": { "type": ["integer", "null"], "minimum": 0, "maximum": 100 },
+        "overall": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "estimated_dimensions": {
+          "type": "array",
+          "items": { "type": "string", "enum": ["business", "revenue", "market"] },
+          "description": "Dimensions the agent estimated from web research rather than deterministic filing scores"
+        }
+      },
+      "required": ["business", "revenue", "market", "overall", "estimated_dimensions"]
+    },
+    "Source": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "kind": { "type": "string", "enum": ["brsr", "web"] },
+        "ref": { "type": "string", "description": "Filing reference (e.g. 'NSE BRSR filing ULTRACEMCO FY 2024-25') or URL" }
+      },
+      "required": ["kind", "ref"]
+    }
+  }
+}
