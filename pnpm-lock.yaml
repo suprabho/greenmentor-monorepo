@@ -171,6 +171,9 @@ importers:
       '@gm/agents':
         specifier: workspace:*
         version: link:../packages/agents
+      '@gm/orchestrator':
+        specifier: workspace:*
+        version: link:../packages/orchestrator
       '@phosphor-icons/react':
         specifier: ^2.1.7
         version: 2.1.10(react-dom@19.2.0(react@19.2.0))(react@19.2.0)

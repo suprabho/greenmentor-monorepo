@@ -10,9 +10,11 @@ const sharedEnv = path.join(__dirname, "..", ".env.shared");
 if (existsSync(sharedEnv)) process.loadEnvFile(sharedEnv);
 
 const nextConfig: NextConfig = {
-  // @gm/agents ships raw TS (main: src/index.ts) and is consumed via workspace:* with
-  // no build step, so Next must transpile it (same seam the platform app uses).
-  transpilePackages: ["@gm/agents"],
+  // @gm/agents and @gm/orchestrator ship raw TS (main: src/index.ts) and are consumed via
+  // workspace:* with no build step, so Next must transpile them (same seam the platform app
+  // uses). The Agent Studio's peer-research test bench imports @gm/orchestrator/peer — a
+  // narrow subpath, so the package barrel (pipeline / EFDB / report renderer) stays out.
+  transpilePackages: ["@gm/agents", "@gm/orchestrator"],
   // esg-agents is a package inside the pnpm workspace; its deps live in the monorepo-root
   // node_modules/.pnpm store. Trace from the workspace root (NOT __dirname) so Next sees the
   // COMPLETE dependency tree — pinning to this app dir puts the trace root *below* the real

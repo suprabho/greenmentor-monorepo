@@ -288,3 +288,66 @@ export async function findPeerCandidates(
     .sort((a, b) => (b.scores.overall ?? 0) - (a.scores.overall ?? 0))
     .slice(0, limit);
 }
+
+/** One row in the Studio's company picker — the BRSR corpus directory. */
+export interface BrsrCompanyListItem {
+  symbol: string;
+  name: string;
+  sector: string | null;
+  industry: string | null;
+  revenueInrCr: number | null;
+  fy: string;
+  /** Filing carries Section A markets data (migration 0032 + backfill) — the
+   *  market similarity dimension is only filing-grounded when this is true. */
+  hasMarketsData: boolean;
+}
+
+/**
+ * Directory of cleanly-profiled companies (latest FY each) for the Agent Studio
+ * picker — the same corpus behind the BRSR intelligence reports. `search`
+ * matches symbol or legal/company name.
+ */
+export async function listBrsrCompanies(
+  opts: { search?: string; limit?: number } = {},
+): Promise<BrsrCompanyListItem[]> {
+  const limit = Math.min(Math.max(opts.limit ?? 50, 1), 200);
+  const admin = createAdminClient();
+
+  const rows = await fetchAllRows<Record<string, any>>((from, to) => {
+    let q = admin
+      .from("brsr_filings")
+      .select(
+        "id, symbol, company_name, legal_name, fy_from, fy_to, primary_section, primary_section_title," +
+          " primary_division, primary_division_title, plants_national, offices_national, plants_international," +
+          " offices_international, states_served, countries_served, exports_pct_turnover",
+      )
+      .eq("profile_status", "extracted");
+    const needle = opts.search?.trim().replace(/[,()]/g, " ").replace(/\s+/g, " ");
+    if (needle) {
+      q = q.or(`symbol.ilike.%${needle}%,legal_name.ilike.%${needle}%,company_name.ilike.%${needle}%`);
+    }
+    return q.order("symbol", { ascending: true }).range(from, to);
+  });
+
+  const latest = new Map<string, Record<string, any>>();
+  for (const r of rows) {
+    const prev = latest.get(r.symbol);
+    if (!prev || r.fy_to > prev.fy_to) latest.set(r.symbol, r);
+  }
+  const picked = [...latest.values()].slice(0, limit);
+  const revenue = await fetchRevenueByFiling(admin, picked.map((f) => f.id));
+
+  return picked.map((f) => {
+    const rev = toNum(revenue.get(f.id)?.value_numeric);
+    const unit = (revenue.get(f.id)?.unit as string | null) ?? null;
+    return {
+      symbol: f.symbol,
+      name: f.legal_name || f.company_name,
+      sector: f.primary_section ? `${f.primary_section} — ${f.primary_section_title ?? ""}`.trim() : null,
+      industry: f.primary_division ? `${f.primary_division} — ${f.primary_division_title ?? ""}`.trim() : null,
+      revenueInrCr: rev != null && (!unit || /inr/i.test(unit)) ? Math.round((rev / 1e7) * 100) / 100 : null,
+      fy: fyLabel(f.fy_from, f.fy_to),
+      hasMarketsData: marketsFromRow(f) != null,
+    };
+  });
+}

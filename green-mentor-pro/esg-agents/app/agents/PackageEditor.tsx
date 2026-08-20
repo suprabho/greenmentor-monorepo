@@ -2,17 +2,19 @@
 
 import { useMemo, useState } from "react";
 import type { AgentMeta, PackageFiles } from "@/lib/agents/packageIO";
+import TestRunPanel from "./TestRunPanel";
 
 const ACCENT = "#1f8a5b";
 const BORDER = "#e3e8e5";
 
-type TabId = "skill" | "io" | "tools" | "templates";
+type TabId = "skill" | "io" | "tools" | "templates" | "test";
 
 const TABS: { id: TabId; label: string; file?: string; hint: string }[] = [
   { id: "skill", label: "Prompt & config", file: "skill.md", hint: "Frontmatter (model, phase, gate) + the markdown body that IS the system prompt." },
   { id: "io", label: "I/O schema", file: "io.schema.json", hint: "$defs.input / $defs.output — Claude is forced to match the output shape." },
   { id: "tools", label: "Tools", file: "tools.json", hint: "Anthropic tool definitions the agent may call mid-run." },
   { id: "templates", label: "Templates", hint: "Reusable message / report / form scaffolds the agent fills." },
+  { id: "test", label: "Test run", hint: "Run this package against the live runtime — grounding tools included. Saved edits apply on the next run." },
 ];
 
 export default function PackageEditor({ meta, pkg }: { meta: AgentMeta; pkg: PackageFiles }) {
@@ -37,6 +39,7 @@ export default function PackageEditor({ meta, pkg }: { meta: AgentMeta; pkg: Pac
     tab === "skill" ? "skill.md"
     : tab === "io" ? "io.schema.json"
     : tab === "tools" ? "tools.json"
+    : tab === "test" ? ""
     : pkg.templates.length ? `templates/${pkg.templates[tplIdx].name}` : "";
 
   const content = edits[fileId] ?? "";
@@ -92,7 +95,8 @@ export default function PackageEditor({ meta, pkg }: { meta: AgentMeta; pkg: Pac
       {/* tabs */}
       <div style={{ display: "flex", gap: 4, margin: "16px 0 4px", borderBottom: `1px solid ${BORDER}` }}>
         {TABS.map((t) => {
-          const tDirty = t.id === "templates"
+          const tDirty = t.id === "test" ? false
+            : t.id === "templates"
             ? pkg.templates.some((tp) => edits[`templates/${tp.name}`] !== saved[`templates/${tp.name}`])
             : edits[t.file!] !== saved[t.file!];
           const active = tab === t.id;
@@ -137,8 +141,11 @@ export default function PackageEditor({ meta, pkg }: { meta: AgentMeta; pkg: Pac
         </div>
       )}
 
+      {/* test bench */}
+      {tab === "test" && <TestRunPanel agentKey={meta.key} />}
+
       {/* editor */}
-      {fileId ? (
+      {tab !== "test" && (fileId ? (
         <textarea
           value={content}
           onChange={(e) => setEdits((prev) => ({ ...prev, [fileId]: e.target.value }))}
@@ -152,9 +159,10 @@ export default function PackageEditor({ meta, pkg }: { meta: AgentMeta; pkg: Pac
         />
       ) : (
         <div style={{ padding: 24, color: "#8a958f", fontSize: 13 }}>This agent has no templates.</div>
-      )}
+      ))}
 
-      {/* footer */}
+      {/* footer — file editing only; the test bench owns its own actions */}
+      {tab !== "test" && (
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 12 }}>
         <button
           onClick={save}
@@ -178,6 +186,7 @@ export default function PackageEditor({ meta, pkg }: { meta: AgentMeta; pkg: Pac
           <span style={{ fontSize: 12.5, fontWeight: 600, color: status.ok ? ACCENT : "#c2410c" }}>{status.msg}</span>
         )}
       </div>
+      )}
     </div>
   );
 }
