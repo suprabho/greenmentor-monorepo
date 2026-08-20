@@ -181,7 +181,18 @@ export type MaterialTopic = {
   financialImplications: string | null;
 };
 
-/** Named + numeric XML entities (ingest-feed's decode() lacks the numeric forms). */
+/**
+ * Named + numeric XML entities (ingest-feed's decode() lacks the numeric forms),
+ * then a scrub of the characters Postgres refuses to store.
+ *
+ * Some filings carry encoding damage in their narrative blocks: LICI 2021-22 has
+ * a raw NUL followed by U+0019 where a smart apostrophe belongs, the wreckage of
+ * a mis-transcoded U+2019. Postgres accepts neither a NUL nor an unpaired
+ * surrogate in text or jsonb -- it rejects the whole row with "unsupported
+ * Unicode escape sequence", so a single bad glyph fails an entire filing. Scrub
+ * after decoding, which is also the step that would turn &#0; into a NUL in the
+ * first place. Tab/newline/CR survive; every caller collapses whitespace anyway.
+ */
 export function decodeXmlEntities(s: string): string {
   return s
     .replace(/&#(\d+);/g, (_, d) => String.fromCodePoint(Number(d)))
@@ -190,7 +201,11 @@ export function decodeXmlEntities(s: string): string {
     .replace(/&gt;/g, ">")
     .replace(/&quot;/g, '"')
     .replace(/&apos;/g, "'")
-    .replace(/&amp;/g, "&");
+    .replace(/&amp;/g, "&")
+    // C0 controls except \t (\u0009), \n (\u000A), \r (\u000D)
+    .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, "")
+    // lone halves of a surrogate pair, which are not valid UTF-8 either
+    .replace(/[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/g, "");
 }
 
 /** The canon join key: decoded, lowercased, whitespace-squeezed. */
