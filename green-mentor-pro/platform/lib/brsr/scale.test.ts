@@ -109,6 +109,77 @@ describe("inferScale", () => {
   });
 });
 
+/**
+ * The floor alone misses a unit error that leaves the value above it, so a value
+ * is also checked against its own company's median.
+ */
+describe("inferScale — above the floor, against the company's own series", () => {
+  it("recovers a value that clears the floor but contradicts the series", () => {
+    // DALBHARAT FY2021 filed 1.35e9; its other years are 1.47e11 / 1.48e11.
+    const v = inferScale({ filed: 1.35e9, crossTag: null, anchorLog: Math.log10(1.47e11) });
+    expect(v).toEqual({ multiplier: 1e2, source: "cross_year", confidence: "medium" });
+    expect(1.35e9 * v.multiplier).toBeCloseTo(1.35e11, -9);
+  });
+
+  it("recovers a 1e3 gap — Rs '000 is a real convention", () => {
+    // TCS FY2022 filed 2.25e9 against a ~2.41e12 series.
+    expect(inferScale({ filed: 2.25e9, crossTag: null, anchorLog: Math.log10(2.41e12) })).toEqual({
+      multiplier: 1e3,
+      source: "cross_year",
+      confidence: "medium",
+    });
+  });
+
+  it("flags a contradiction no unit explains, rather than scaling it", () => {
+    // SPLPETRO FY2022: 1.08e8 vs a 5.25e10 median — best unit snap is 0.69 dex out.
+    expect(inferScale({ filed: 1.08e8, crossTag: null, anchorLog: Math.log10(5.25e10) })).toEqual({
+      multiplier: 1,
+      source: "inconsistent",
+      confidence: "inconsistent",
+    });
+  });
+
+  it("never rescales a value LARGER than its series — units only shrink", () => {
+    // SHAKTIPUMP FY2022 filed 9.30e11 against a 2.64e10 median. Reporting in lakh
+    // or crore cannot inflate a number, so this is flagged, never "corrected".
+    expect(inferScale({ filed: 9.3e11, crossTag: null, anchorLog: Math.log10(2.64e10) })).toEqual({
+      multiplier: 1,
+      source: "inconsistent",
+      confidence: "inconsistent",
+    });
+  });
+
+  it("leaves a value consistent with its series alone", () => {
+    // SHAKTIPUMP FY2023 (9.23e9) is 0.45 dex from the median — ordinary variation.
+    expect(inferScale({ filed: 9.23e9, crossTag: null, anchorLog: Math.log10(2.64e10) })).toEqual({
+      multiplier: 1,
+      source: "as_filed",
+      confidence: "high",
+    });
+  });
+
+  it("takes both signals agreeing as high confidence above the floor", () => {
+    expect(inferScale({ filed: 1.35e9, crossTag: 1.4e11, anchorLog: Math.log10(1.47e11) })).toEqual({
+      multiplier: 1e2,
+      source: "both",
+      confidence: "high",
+    });
+  });
+
+  it("leaves a plausible value alone when the company has no anchor", () => {
+    expect(inferScale({ filed: 5e10, crossTag: null, anchorLog: null })).toEqual({
+      multiplier: 1,
+      source: "as_filed",
+      confidence: "high",
+    });
+  });
+
+  it("tolerates real growth below the trigger", () => {
+    // 20x across a filing window is steep but real; must not be rescaled.
+    expect(inferScale({ filed: 1e10, crossTag: null, anchorLog: Math.log10(2e11) }).source).toBe("as_filed");
+  });
+});
+
 describe("anchorLogOf", () => {
   it("uses only plausible values and takes the median", () => {
     // DALBHARAT: 1.35e9, 1.32e2, 1.47e11, 1.48e11 — the 1.32e2 must not drag it.
@@ -128,9 +199,11 @@ describe("anchorLogOf", () => {
 });
 
 describe("isUsable", () => {
-  it("accepts high and medium, rejects unresolved", () => {
+  it("accepts high and medium, rejects unresolved and inconsistent", () => {
     expect(isUsable("high")).toBe(true);
     expect(isUsable("medium")).toBe(true);
     expect(isUsable("unresolved")).toBe(false);
+    // Withheld for a different reason, but equally not to be used as revenue.
+    expect(isUsable("inconsistent")).toBe(false);
   });
 });

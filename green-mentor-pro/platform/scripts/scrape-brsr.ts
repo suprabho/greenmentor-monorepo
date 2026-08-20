@@ -58,7 +58,7 @@ import {
 import { BRSR_TAG_MAP } from "../lib/brsr/tag-map";
 import { resolveNic, turnoverWeightedSector } from "../lib/brsr/nic-sector";
 import { computeScorecard } from "../lib/brsr/scorecard";
-import { anchorLogOf, inferScale } from "../lib/brsr/scale";
+import { anchorLogOf, inferScale, isUsable } from "../lib/brsr/scale";
 import {
   buildCanonSystemPrompt,
   MAP_TOPICS_TOOL,
@@ -957,9 +957,11 @@ async function normalizeScale(supabase: Supabase, opts: CliOptions): Promise<str
     tally.set(verdict.source, (tally.get(verdict.source) ?? 0) + 1);
     updates.push({
       id: r.id,
-      // Unresolved leaves no number: a wrong revenue corrupts peer ranking,
-      // whereas a null one just redistributes the dimension's weight.
-      value_normalized: verdict.confidence === "unresolved" ? null : r.value_numeric * verdict.multiplier,
+      // Anything not usable leaves no number — unresolved, and equally the
+      // `inconsistent` rows that look fine alone but contradict their own series.
+      // A wrong revenue corrupts peer ranking; a null one just redistributes the
+      // dimension's weight.
+      value_normalized: isUsable(verdict.confidence) ? r.value_numeric * verdict.multiplier : null,
       scale_multiplier: verdict.multiplier,
       scale_source: verdict.source,
       scale_confidence: verdict.confidence,
@@ -989,7 +991,11 @@ async function normalizeScale(supabase: Supabase, opts: CliOptions): Promise<str
           scale_confidence: u.scale_confidence,
         })
         .eq("id", u.id);
-      if (error) throw new Error(`scale update failed (${error.message}) — has migration 0033 been applied?`);
+      // A CHECK violation here almost always means 0034 is missing: it is what
+      // permits the `inconsistent` verdict that 0033 did not anticipate.
+      if (error) {
+        throw new Error(`scale update failed (${error.message}) — have migrations 0033 AND 0034 been applied?`);
+      }
       written++;
     }
     console.log(`[scale]   ${written}/${updates.length}`);
