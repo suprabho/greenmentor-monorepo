@@ -47,6 +47,22 @@ export function loadAgent(packageDirOrKey: string): LoadedAgent {
     .filter((t) => allowed.has(t.name) && t.name !== emitToolName)
     .map((t) => ({ ...t, strict: true as const })) as Anthropic.Messages.Tool[];
 
+  // Server-side tools (frontmatter `server_tools`, not tools.json): executed on
+  // Anthropic's infra within a single API turn, so they take no strict flag and
+  // no runCallableTool dispatch. Haiku 4.5 predates the dynamic-filtering web
+  // search variant, so it gets the basic one.
+  const serverTools: Record<string, unknown>[] = [];
+  if (fm.server_tools?.web_search) {
+    const ws = fm.server_tools.web_search;
+    serverTools.push({
+      type: fm.model === "claude-haiku-4-5" ? "web_search_20250305" : "web_search_20260209",
+      name: "web_search",
+      max_uses: ws.max_uses ?? 8,
+      ...(ws.allowed_domains?.length ? { allowed_domains: ws.allowed_domains } : {}),
+      ...(ws.blocked_domains?.length ? { blocked_domains: ws.blocked_domains } : {}),
+    });
+  }
+
   // Templates: *.md -> string, *.json -> parsed object, keyed by basename.
   const templates: Record<string, unknown> = {};
   const tplDir = path.join(packageDir, "templates");
@@ -67,6 +83,7 @@ export function loadAgent(packageDirOrKey: string): LoadedAgent {
     phase: fm.phase,
     family: fm.family,
     tools,
+    serverTools,
     emitToolName: fm.emit_tool ?? `emit_${fm.name.replace(/-/g, "_")}`,
     inputSchema,
     outputSchema,
@@ -76,6 +93,7 @@ export function loadAgent(packageDirOrKey: string): LoadedAgent {
     promptVariant,
     enabled: fm.enabled ?? true,
     maxTokens: fm.max_tokens ?? 4096,
+    maxTurns: fm.max_turns ?? 8,
     temperature: fm.temperature ?? 0,
   };
 }

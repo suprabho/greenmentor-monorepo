@@ -183,6 +183,119 @@ export function ExtractedDataCard({ data, loading }: { data: ExtractData; loadin
   );
 }
 
+/* -------------------------------- Peer set ---------------------------------- */
+
+interface PeerScores {
+  business?: number | null; revenue?: number | null; market?: number | null;
+  overall?: number; estimated_dimensions?: string[];
+}
+interface PeerRow {
+  name?: string; symbol?: string | null; nse_listed?: boolean;
+  scores?: PeerScores; rationale?: string; shared_products?: string[];
+  revenue_inr_cr?: number | null; markets_summary?: string | null;
+  sources?: { kind?: string; ref?: string }[];
+}
+interface PeerSetData {
+  error?: string;
+  subject?: {
+    symbol?: string | null; name?: string; sector?: string | null; industry?: string | null;
+    revenue_inr_cr?: number | null; markets_summary?: string | null; fy?: string | null;
+  };
+  peers?: PeerRow[];
+  methodology?: string;
+  caveats?: string[];
+}
+
+function ScoreCell({ value, estimated }: { value?: number | null; estimated?: boolean }) {
+  if (value == null) return <span style={{ textAlign: "right", color: MUTED }}>—</span>;
+  const fg = value >= 70 ? ACCENT : value >= 40 ? "#a8710a" : "#b23b3b";
+  return (
+    <span style={{ textAlign: "right", fontWeight: 700, color: fg }} title={estimated ? "estimated from web research" : "from BRSR filings"}>
+      {value}{estimated ? "*" : ""}
+    </span>
+  );
+}
+
+export function PeerSetCard({ data, loading }: { data: PeerSetData; loading?: boolean }) {
+  if (loading) return <Shell label="Peers · researching…" title="…" loading />;
+  const d = data ?? {};
+  if (d.error) return <Shell label="Peers"><ErrorNote error={d.error} /></Shell>;
+  const peers = d.peers ?? [];
+  const s = d.subject ?? {};
+  const anyEstimated = peers.some((p) => (p.scores?.estimated_dimensions ?? []).length > 0);
+
+  return (
+    <Shell
+      label={`Peer set${s.fy ? ` · BRSR FY ${s.fy}` : ""}`}
+      title={`${peers.length} peer${peers.length === 1 ? "" : "s"} for ${s.name ?? "the company"}${s.symbol ? ` (${s.symbol})` : ""}`}
+    >
+      {(s.sector || s.revenue_inr_cr != null) && (
+        <div style={{ fontSize: 12.5, color: "#5d6b64", marginTop: 2 }}>
+          {[s.industry ?? s.sector, s.revenue_inr_cr != null ? `revenue ₹${s.revenue_inr_cr.toLocaleString("en-IN")} cr` : null, s.markets_summary]
+            .filter(Boolean).join(" · ")}
+        </div>
+      )}
+
+      {peers.length === 0 ? (
+        <div style={{ fontSize: 12.5, color: MUTED, marginTop: 10 }}>No peers could be established for this company.</div>
+      ) : (
+        <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 8 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 52px 52px 52px 52px", gap: 8, fontSize: 10.5, fontWeight: 700, color: MUTED, textTransform: "uppercase" }}>
+            <span>Company</span>
+            <span style={{ textAlign: "right" }}>Business</span>
+            <span style={{ textAlign: "right" }}>Revenue</span>
+            <span style={{ textAlign: "right" }}>Market</span>
+            <span style={{ textAlign: "right" }}>Overall</span>
+          </div>
+          {peers.map((p, i) => {
+            const est = p.scores?.estimated_dimensions ?? [];
+            return (
+              <div key={i} style={{ borderBottom: i < peers.length - 1 ? `1px solid ${BORDER}` : "none", paddingBottom: 8 }}>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 52px 52px 52px 52px", gap: 8, fontSize: 12.5, color: INK, fontVariantNumeric: "tabular-nums", alignItems: "baseline" }}>
+                  <span style={{ fontWeight: 700, minWidth: 0 }}>
+                    {p.name}
+                    {p.symbol && <span style={{ fontWeight: 600, color: MUTED, marginLeft: 6, fontSize: 11 }}>{p.symbol}</span>}
+                    {p.nse_listed === false && <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 700, color: "#5d6b64", background: "#f0f6f3", border: `1px solid ${BORDER}`, padding: "1px 5px", borderRadius: 5 }}>UNLISTED</span>}
+                    {p.revenue_inr_cr != null && <span style={{ fontWeight: 500, color: MUTED, marginLeft: 6, fontSize: 11 }}>₹{p.revenue_inr_cr.toLocaleString("en-IN")} cr</span>}
+                  </span>
+                  <ScoreCell value={p.scores?.business} estimated={est.includes("business")} />
+                  <ScoreCell value={p.scores?.revenue} estimated={est.includes("revenue")} />
+                  <ScoreCell value={p.scores?.market} estimated={est.includes("market")} />
+                  <span style={{ textAlign: "right", fontWeight: 800, color: INK }}>{p.scores?.overall ?? "—"}</span>
+                </div>
+                {p.rationale && <div style={{ fontSize: 12, color: "#5d6b64", marginTop: 3 }}>{p.rationale}</div>}
+                {!!p.sources?.length && (
+                  <div style={{ fontSize: 10.5, color: MUTED, marginTop: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {p.sources.map((src, j) => (
+                      <span key={j}>
+                        {j > 0 && " · "}
+                        {src.kind === "web" && src.ref?.startsWith("http")
+                          ? <a href={src.ref} target="_blank" rel="noopener noreferrer" style={{ color: MUTED }}>{new URL(src.ref).hostname}</a>
+                          : src.ref}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {anyEstimated && <div style={{ marginTop: 8, fontSize: 11, color: MUTED }}>* estimated from web research (no filing data for that dimension)</div>}
+      {d.methodology && (<><Heading>Methodology</Heading><div style={{ fontSize: 12, color: "#5d6b64" }}>{d.methodology}</div></>)}
+      {!!d.caveats?.length && (
+        <div style={{ marginTop: 10, borderTop: `1px solid ${BORDER}`, paddingTop: 8 }}>
+          <Heading>Caveats</Heading>
+          <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12, color: "#a8710a" }}>
+            {d.caveats.map((c, i) => <li key={i} style={{ marginBottom: 2 }}>{c}</li>)}
+          </ul>
+        </div>
+      )}
+    </Shell>
+  );
+}
+
 /* ------------------------------- EPD summary -------------------------------- */
 
 interface GwpModule { module?: string; gwp_fossil?: number | null; gwp_biogenic?: number | null; gwp_total?: number | null; unit?: string }

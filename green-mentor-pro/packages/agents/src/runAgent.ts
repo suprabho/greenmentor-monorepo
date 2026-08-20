@@ -61,10 +61,18 @@ export async function runAgent<I, O>(
     { role: "user", content: JSON.stringify(input) },
   ];
 
+  // Server tools (e.g. web_search) execute Anthropic-side within a turn. The SDK's
+  // Tool union lags new server-tool type variants, so the pass-through is cast.
+  const apiTools = [
+    ...agent.tools,
+    ...(agent.serverTools as unknown as Anthropic.Messages.Tool[]),
+    emitTool,
+  ];
+
   let forceEmit = false;
   let lastErrors: string | null = null;
 
-  for (let turn = 0; turn < 8; turn++) {
+  for (let turn = 0; turn < agent.maxTurns; turn++) {
     // Emit BEFORE the (slow, 10–30s) model call so streamed callers see liveness
     // while the turn is in flight rather than only after it returns.
     opts.onProgress?.({ turn: turn + 1, note: forceEmit ? "finalizing result…" : "thinking…" });
@@ -74,11 +82,19 @@ export async function runAgent<I, O>(
       // Some newer models (e.g. Opus 4.8) reject the deprecated `temperature` param.
       ...(supportsTemperature(agent.model) ? { temperature: agent.temperature } : {}),
       system: agent.system,
-      tools: [...agent.tools, emitTool],
+      tools: apiTools,
       tool_choice: forceEmit ? { type: "tool", name: agent.emitToolName } : { type: "auto" },
       messages,
     });
     messages.push({ role: "assistant", content: msg.content });
+
+    if (msg.content.some((b) => (b as { type: string }).type === "server_tool_use")) {
+      opts.onProgress?.({ turn: turn + 1, note: "searching the web…" });
+    }
+
+    // A long server-tool turn can pause mid-flight; resume it as-is — the paused
+    // content is already appended, and forcing emit here would cut the turn short.
+    if (msg.stop_reason === "pause_turn") continue;
 
     const toolUses = msg.content.filter(
       (b): b is Anthropic.Messages.ToolUseBlock => b.type === "tool_use",

@@ -41,6 +41,7 @@ import {
   extractCompanyProfile,
   extractContexts,
   extractFacts,
+  extractMarketsServed,
   extractMaterialTopics,
   extractProductTurnover,
   matchIndicators,
@@ -628,13 +629,16 @@ async function extractProfiles(supabase: Supabase, opts: CliOptions): Promise<st
 
         const profile = extractCompanyProfile(xml);
         const products = extractProductTurnover(xml);
+        const markets = extractMarketsServed(xml);
         const sector = turnoverWeightedSector(products.map((p) => ({ nicCode: p.nicCode, turnover: p.turnover })));
         const { coverage } = matchIndicators(extractFacts(xml), extractContexts(xml));
         const scorecard = computeScorecard(coverage.matchedKeys);
 
+        const marketFieldCount = Object.keys(markets.matchedTags).length;
         console.log(
           `[profile] ${opts.dryRun ? "would extract" : "✓"} ${label}: sector ${sector.primarySection?.letter ?? "?"}` +
-            ` (${sector.primaryDivision?.code ?? "--"}) · ${products.length} activities · coverage ${scorecard.overall.score}`,
+            ` (${sector.primaryDivision?.code ?? "--"}) · ${products.length} activities · coverage ${scorecard.overall.score}` +
+            ` · ${marketFieldCount} market field(s)`,
         );
         if (opts.dryRun) continue;
 
@@ -655,6 +659,16 @@ async function extractProfiles(supabase: Supabase, opts: CliOptions): Promise<st
             sector_shares: sector.sectionShares,
             coverage_score: scorecard.overall.score,
             scorecard,
+            // Markets served (0032) — null-safe when a filer omits Section A Q20/21.
+            plants_national: markets.plantsNational,
+            offices_national: markets.officesNational,
+            plants_international: markets.plantsInternational,
+            offices_international: markets.officesInternational,
+            states_served: markets.statesServed,
+            countries_served: markets.countriesServed,
+            exports_pct_turnover: markets.exportsPctTurnover,
+            customer_types: markets.customerTypes,
+            markets_matched_tags: marketFieldCount ? markets.matchedTags : null,
             profile_status: "extracted",
             profile_extracted_at: new Date().toISOString(),
             profile_error: null,

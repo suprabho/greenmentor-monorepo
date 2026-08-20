@@ -3,6 +3,7 @@ import { z } from "zod";
 import path from "node:path";
 import { loadAgent, runAgent, type CallableToolFn } from "@gm/agents";
 import { agentsRoot } from "./agentsRoot";
+import { runCallableTool } from "./toolHandlers";
 
 /**
  * Standalone "skills" for the Chat page — each is an assistant-invoked tool whose
@@ -62,9 +63,12 @@ export function buildSkillTools(ctx: SkillToolCtx) {
   // clearly non-persistent id so any stubbed grounding call is self-describing.
   const runCtx = { orgId: ctx.orgId, engagementId: "skill_standalone", financialYear: ctx.financialYear };
 
-  async function run<O = any>(agentKey: string, input: unknown): Promise<O> {
+  // Most chat skills stub their grounding tools (no engagement context to ground
+  // against); skills whose grounding reads global corpora (peer research → BRSR
+  // tables) pass the real dispatcher instead.
+  async function run<O = any>(agentKey: string, input: unknown, dispatcher: CallableToolFn = stubCallable): Promise<O> {
     const agent = loadAgent(path.join(agentsRoot(), agentKey));
-    const result = await runAgent<unknown, O>(agent, input, runCtx, { runCallableTool: stubCallable });
+    const result = await runAgent<unknown, O>(agent, input, runCtx, { runCallableTool: dispatcher });
     return result.output;
   }
 
@@ -137,6 +141,33 @@ export function buildSkillTools(ctx: SkillToolCtx) {
             },
             document_text: input.document_text,
           }),
+        );
+      },
+    }),
+
+    findPeersSkill: tool({
+      description:
+        "Run the Peer Research skill: research peer companies for a given company and rank them on Business (products/services), Revenue (size), and Market (operational markets) similarity — grounded in BRSR filings (NIC codes, turnover splits, filed revenue) plus web research for gaps and unlisted peers. Call this when the user wants peers, comparables, or a benchmarking cohort for a company. Pass the company's NSE symbol or name in `company`. The client renders the result as a Peer-set card. After it returns, do NOT restate the peer list in your reply — the card is the answer; add only follow-up questions.",
+      inputSchema: z.object({
+        company: z.string().describe("The subject company — NSE symbol (e.g. 'ULTRACEMCO') or company name."),
+        max_peers: z.number().int().min(1).max(15).nullish().describe("How many peers to return; default 8."),
+        notes: z.string().nullish().describe("Optional user constraints, e.g. 'domestic peers only' or 'similar revenue scale'."),
+      }),
+      execute: async (input) => {
+        const q = input.company.trim();
+        // Ticker-ish (short, no spaces) → try as symbol too; the agent's profile
+        // tool prefers symbol and falls back to name lookup.
+        const symbolish = /^[A-Za-z0-9&.-]{1,12}$/.test(q) ? q.toUpperCase() : null;
+        return guarded(() =>
+          run(
+            "peer-research",
+            {
+              company: { symbol: symbolish, name: q },
+              ...(input.max_peers ? { max_peers: input.max_peers } : {}),
+              ...(input.notes ? { notes: input.notes } : {}),
+            },
+            runCallableTool,
+          ),
         );
       },
     }),

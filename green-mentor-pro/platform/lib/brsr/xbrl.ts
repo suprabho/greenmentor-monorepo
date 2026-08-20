@@ -374,6 +374,119 @@ export function extractProductTurnover(xml: string): ProductTurnover[] {
   return rows;
 }
 
+// ---------------------------------------------------------------------------
+// Markets served — BRSR Section A Q20/21: plant/office locations (national vs
+// international), number of states/countries served, exports as % of turnover,
+// and the free-text customer-types brief.
+
+export type MarketsServed = {
+  plantsNational: number | null;
+  officesNational: number | null;
+  plantsInternational: number | null;
+  officesInternational: number | null;
+  statesServed: number | null;
+  countriesServed: number | null;
+  exportsPctTurnover: number | null; // as filed, clamped to 0..100
+  customerTypes: string | null;
+  /** field → XBRL local name that supplied it — audit trail for tag drift. */
+  matchedTags: Record<string, string>;
+};
+
+/**
+ * Extract the Section A markets-served facts. Unlike the identity block these
+ * tags drift across taxonomy years and filers, and the national/international
+ * split is modelled two ways in the wild — qualified tag names
+ * (NumberOfNationalPlant) or a location dimension on a bare count
+ * (NumberOfPlants in a National/International member context). Matching is
+ * therefore pattern-based over self-describing local names, scoped by tag name
+ * first and context member second, with the winning tag recorded per field.
+ * Verify coverage against stored XBRLs with --dump-tags after taxonomy updates.
+ */
+export function extractMarketsServed(xml: string): MarketsServed {
+  const facts = extractFacts(xml);
+  const contexts = extractContexts(xml);
+
+  // "national" | "international" from the tag name, else from dimension members.
+  const scopeOf = (fact: XbrlFact): "national" | "international" | null => {
+    if (/International|OutsideIndia|Overseas/i.test(fact.tag)) return "international";
+    if (/National|InIndia|Domestic/i.test(fact.tag)) return "national";
+    const members = contexts.get(fact.contextRef)?.members ?? [];
+    if (members.some((m) => /International|OutsideIndia|Overseas/i.test(m))) return "international";
+    if (members.some((m) => /National|InIndia|Domestic/i.test(m))) return "national";
+    return null;
+  };
+
+  // Among matching numeric facts prefer the most recent period (CY over PY rows).
+  const pickLatest = (matches: XbrlFact[]): XbrlFact | null => {
+    let best: XbrlFact | null = null;
+    let bestEnd = "";
+    for (const f of matches) {
+      const end = contexts.get(f.contextRef)?.periodEnd ?? "";
+      if (!best || end > bestEnd) {
+        best = f;
+        bestEnd = end;
+      }
+    }
+    return best;
+  };
+
+  const matchedTags: Record<string, string> = {};
+  const numberField = (
+    field: string,
+    tagRe: RegExp,
+    scope?: "national" | "international",
+  ): number | null => {
+    const matches = facts.filter(
+      (f) => tagRe.test(f.tag) && toNumber(f.value) !== null && (!scope || scopeOf(f) === scope),
+    );
+    const fact = pickLatest(matches);
+    if (!fact) return null;
+    matchedTags[field] = fact.tag;
+    return toNumber(fact.value);
+  };
+
+  const plantsNational = numberField("plantsNational", /^NumberOf\w*Plant/i, "national");
+  const officesNational = numberField("officesNational", /^NumberOf\w*Office/i, "national");
+  const plantsInternational = numberField("plantsInternational", /^NumberOf\w*Plant/i, "international");
+  const officesInternational = numberField("officesInternational", /^NumberOf\w*Office/i, "international");
+  const statesServed = numberField("statesServed", /^NumberOf\w*State/i);
+  const countriesServed = numberField("countriesServed", /^NumberOf\w*Countr/i);
+
+  // Q21b — "contribution of exports as a percentage of the total turnover".
+  // Filed value conventions vary (0.35 vs 35); stored as filed, clamped 0..100.
+  let exportsPctTurnover = numberField("exportsPctTurnover", /Export.*(Percentage|Turnover)|(Percentage|Contribution).*Export/i);
+  if (exportsPctTurnover !== null && (exportsPctTurnover < 0 || exportsPctTurnover > 100)) exportsPctTurnover = null;
+
+  // Q21c — customer-types brief. Usually a TextBlock, which extractFacts skips,
+  // so search the raw XML for any customer-types element and strip its markup.
+  let customerTypes: string | null = null;
+  const customerRe = /<[\w.-]+:(\w*Type[s]?OfCustomer\w*)\b[^>]*>([\s\S]*?)<\/[\w.-]+:\1>/i;
+  const customerMatch = xml.match(customerRe);
+  if (customerMatch) {
+    // TextBlock bodies carry entity-escaped HTML — decode first, then strip the
+    // revealed tags, then decode once more for double-escaped entities (&amp;amp;).
+    const text = decodeXmlEntities(decodeXmlEntities(customerMatch[2]).replace(/<[^>]+>/g, " "))
+      .replace(/\s+/g, " ")
+      .trim();
+    if (text && !/^(?:na|n\.?a\.?|nil|none|not applicable|-{1,3})$/i.test(text)) {
+      customerTypes = text.slice(0, 1000);
+      matchedTags.customerTypes = customerMatch[1];
+    }
+  }
+
+  return {
+    plantsNational,
+    officesNational,
+    plantsInternational,
+    officesInternational,
+    statesServed,
+    countriesServed,
+    exportsPctTurnover,
+    customerTypes,
+    matchedTags,
+  };
+}
+
 /** Tag → {count, sample} histogram of numeric facts — backs --dump-tags. */
 export function tagHistogram(xml: string): Map<string, { count: number; unit: string | null; sample: string }> {
   const hist = new Map<string, { count: number; unit: string | null; sample: string }>();

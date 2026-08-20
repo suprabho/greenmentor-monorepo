@@ -8,7 +8,7 @@ import { Renderer, BuiltinActionType, type ActionEvent } from "@openuidev/react-
 import { openuiChatLibrary } from "@openuidev/react-ui/genui-lib";
 import { ThemeProvider, createTheme } from "@openuidev/react-ui";
 import DataRequestCard, { type DataRequestData } from "@/app/(app)/buddy/DataRequestCard";
-import { ScopeResultCard, ExtractedDataCard, EpdSummaryCard } from "./SkillCards";
+import { ScopeResultCard, ExtractedDataCard, EpdSummaryCard, PeerSetCard } from "./SkillCards";
 
 // GreenMentor green (green-700/800/900) mapped onto OpenUI's accent tokens so the
 // generated components match the brand instead of OpenUI's default blue.
@@ -56,6 +56,7 @@ const SKILL_CARDS: Record<string, ComponentType<{ data: Record<string, unknown>;
   "tool-runScopingSkill": ScopeResultCard,
   "tool-extractBillSkill": ExtractedDataCard,
   "tool-understandEpdSkill": EpdSummaryCard,
+  "tool-findPeersSkill": PeerSetCard,
 };
 
 function SkillPart({ Card, part }: { Card: ComponentType<{ data: Record<string, unknown>; loading?: boolean }>; part: Part }) {

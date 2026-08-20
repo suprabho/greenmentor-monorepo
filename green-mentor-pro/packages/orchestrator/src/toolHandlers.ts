@@ -5,6 +5,7 @@ import { createAdminClient } from "./admin";
 import { PHASE_PRIMARY_ARTIFACT } from "./db/types";
 import { PHASE_ORDER, type PhaseKey } from "./orchestrator/pipeline";
 import { efdbBase, efdbGet } from "./efdb/client";
+import { findPeerCandidates, resolveCompany, type CompanyBrsrProfile } from "./db/brsrPeers";
 
 /** Tools that touch the DB no-op on demo ctx (org_dev/eng_dev are not uuids). */
 const isUuid = (s: string) =>
@@ -53,7 +54,74 @@ function mapEf(raw: any) {
   };
 }
 
+// Compact profile for the model: full activity vectors are already folded into
+// the deterministic scores, so tool payloads carry only what the agent needs to
+// reason and cite (top products, sector, revenue, markets, filing FY).
+function profileForModel(p: CompanyBrsrProfile) {
+  return {
+    symbol: p.symbol,
+    name: p.legalName ?? p.companyName,
+    fy: p.fy,
+    website: p.website,
+    sector: p.sector ? `${p.sector.sectionLetter} — ${p.sector.title} (${p.sector.superSector})` : null,
+    industry: p.industry ? `${p.industry.divisionCode} — ${p.industry.title}` : null,
+    products: p.activities.slice(0, 10).map((a) => ({
+      name: a.productName,
+      nic_code: a.nicCode,
+      turnover_share: a.turnover,
+    })),
+    revenue_inr_cr: p.revenue?.inrCr ?? null,
+    markets: p.markets,
+    source: { kind: "brsr", ref: `NSE BRSR filing ${p.symbol} FY ${p.fy}` },
+  };
+}
+
 const HANDLERS: Record<string, ToolHandler> = {
+  // BRSR company profile for the peer-research agent — Section A identity,
+  // products/turnover split, absolute revenue, markets served. Public regulatory
+  // data, so no tenant scoping; reads only cleanly profiled filings.
+  get_company_brsr_profile: async (input) => {
+    const { symbol, name } = (input ?? {}) as { symbol?: string | null; name?: string | null };
+    if (!symbol?.trim() && !name?.trim()) {
+      return { company: null, note: "provide an NSE symbol or a company name" };
+    }
+    try {
+      const profile = await resolveCompany({ symbol: symbol ?? undefined, name: name ?? undefined });
+      if (!profile) {
+        return {
+          company: null,
+          note: "no profiled BRSR filing found — the company may be unlisted, not yet scraped, or the name may need refining (try the NSE symbol)",
+        };
+      }
+      return { company: profileForModel(profile) };
+    } catch (e) {
+      return { company: null, error: e instanceof Error ? e.message : String(e) };
+    }
+  },
+
+  // Peer candidates sharing NIC divisions with the subject, with deterministic
+  // similarity scores (lib: src/peer/scoring.ts). The agent ranks/annotates these;
+  // it must not invent scores. market=null → cover that pair via web research.
+  find_brsr_peer_candidates: async (input) => {
+    const { symbol, max_candidates } = (input ?? {}) as { symbol?: string; max_candidates?: number | null };
+    if (!symbol?.trim()) return { candidates: [], note: "symbol is required" };
+    try {
+      const subject = await resolveCompany({ symbol });
+      if (!subject) return { candidates: [], note: `no profiled BRSR filing for symbol "${symbol}"` };
+      const candidates = await findPeerCandidates(subject, { limit: max_candidates ?? 25 });
+      return {
+        subject: profileForModel(subject),
+        candidates: candidates.map((c) => ({ ...profileForModel(c.profile), scores: c.scores })),
+        count: candidates.length,
+        note: candidates.length
+          ? "scores are deterministic (0-100) from BRSR filings; market=null means filings lack markets data for the pair — use web research there"
+          : "no NIC-division peers found in the BRSR corpus — fall back to web research",
+      };
+    } catch (e) {
+      return { candidates: [], error: e instanceof Error ? e.message : String(e) };
+    }
+  },
+
   // EFDB — emission-factor lookup (Phase 6). Hits the EFDB FastAPI service: pgvector
   // semantic search first, then the keyword list endpoint as a fallback. Returns
   // ranked candidates in the provenance shape the calculation agent expects.
