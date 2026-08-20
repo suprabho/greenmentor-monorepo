@@ -39,7 +39,13 @@ export interface CompanyBrsrProfile {
   sector: { sectionLetter: string; title: string; superSector: string } | null;
   industry: { divisionCode: string; title: string } | null;
   activities: BrsrActivity[];
-  /** Absolute turnover from brsr_indicators (key "turnover"), latest period. */
+  /**
+   * Absolute turnover in RUPEES from brsr_indicators (key "turnover"), latest
+   * period, read from value_normalized. Null when the scale stage could not
+   * establish which unit the filer used — roughly 10% of filings report in
+   * lakh/crore behind unitRef="INR", and a wrongly-scaled figure would corrupt
+   * revenueSimilarity, whereas a null one just redistributes its weight.
+   */
   revenue: { value: number; unit: string | null; inrCr: number | null } | null;
   /** Markets-served columns (null until the markets migration + backfill land). */
   markets: MarketsProfile | null;
@@ -110,7 +116,11 @@ function mapProfile(
   activities: Record<string, any>[],
   revenueRow: Record<string, any> | undefined,
 ): CompanyBrsrProfile {
-  const revenue = toNum(revenueRow?.value_numeric);
+  // value_normalized carries the rupee figure; value_numeric stays as filed. An
+  // unresolved row leaves value_normalized null, which is what makes revenue absent
+  // rather than wrong. Rows predating migration 0033 / the scale stage are also
+  // null, so revenue is simply unavailable until that backfill runs.
+  const revenue = toNum(revenueRow?.value_normalized);
   const unit = (revenueRow?.unit as string | null) ?? null;
   return {
     filingId: filing.id,
@@ -138,8 +148,8 @@ function mapProfile(
         ? {
             value: revenue,
             unit,
-            // Turnover facts are filed in plain rupees (unitRef INR); surface ₹ crore
-            // for readability. Left null for exotic units rather than guessed.
+            // Already normalized to rupees upstream, so this is just a display
+            // conversion. Left null for exotic units rather than guessed.
             inrCr: !unit || /inr/i.test(unit) ? Math.round((revenue / 1e7) * 100) / 100 : null,
           }
         : null,
@@ -153,7 +163,7 @@ async function fetchRevenueByFiling(admin: any, filingIds: string[]): Promise<Ma
   const rows = await fetchAllRows<Record<string, any>>((from, to) =>
     admin
       .from("brsr_indicators")
-      .select("filing_id, value_numeric, unit, period_end, context_ref")
+      .select("filing_id, value_numeric, value_normalized, scale_confidence, unit, period_end, context_ref")
       .eq("indicator_key", "turnover")
       .in("filing_id", filingIds)
       .range(from, to),

@@ -121,4 +121,10 @@ export const BRSR_TAG_MAP: BrsrIndicatorDef[] = [
 
   // — Financial —
   { key: "turnover", tags: ["Turnover"], fallbackTags: ["TotalRevenueOfTheCompany"], category: "financial" },
+  // Stored in its own right, not just as turnover's fallback: where a filer reports
+  // both, the pair is the only in-filing signal for which ₹ unit the turnover fact
+  // is denominated in (SAKSOFT FY2025 files 49262.57 and 4926257426.95 — exactly
+  // 1e5 apart). Keeping it as a first-class key lets the `scale` stage read that
+  // signal from the table instead of re-parsing every archived XBRL.
+  { key: "total_revenue", tags: ["TotalRevenueOfTheCompany"], category: "financial" },
 ];
