@@ -2,9 +2,12 @@ import { describe, expect, it } from "vitest";
 import { extractMarketsServed } from "./xbrl";
 
 /**
- * Fixtures cover the two shapes the national/international split takes in the
- * wild: qualified tag names (NumberOfNationalPlant) and a location dimension on
- * a bare count (NumberOfPlants in a National/International member context).
+ * Fixtures cover the three shapes the national/international split takes in the
+ * wild: qualified tag names (NumberOfNationalPlant), a location dimension on a
+ * bare count (NumberOfPlants in a National/International member context), and —
+ * the form NSE filers actually use — a fully generic NumberOfLocations carrying
+ * both the scope and the plant/office axis as members, alongside a LocationMember
+ * row holding the Q20 all-locations total.
  */
 
 const wrap = (body: string) => `<?xml version="1.0"?>
@@ -23,8 +26,28 @@ const wrap = (body: string) => `<?xml version="1.0"?>
     <xbrli:period><xbrli:startDate>2025-04-01</xbrli:startDate><xbrli:endDate>2026-03-31</xbrli:endDate></xbrli:period>
     <xbrli:scenario><xbrldi:explicitMember xmlns:xbrldi="http://xbrl.org/2006/xbrldi" dimension="in-capmkt:LocationAxis">in-capmkt:InternationalMember</xbrldi:explicitMember></xbrli:scenario>
   </xbrli:context>
+  ${dualMemberContexts}
   ${body}
 </xbrli:xbrl>`;
+
+/**
+ * Contexts dimensioned on BOTH the location scope and the plant/office axis, as
+ * NSE filings emit them. D_Nat_Total carries only LocationMember — the Q20 total,
+ * which must not be counted as either a plant or an office.
+ */
+const dualMemberContexts = ["Nat_Plant", "Nat_Office", "Int_Plant", "Int_Office", "Nat_Total", "Int_Total"]
+  .map((id) => {
+    const scope = id.startsWith("Nat") ? "NationalMember" : "InternationalMember";
+    const kind = id.endsWith("Plant") ? "PlantMember" : id.endsWith("Office") ? "OfficeMember" : "LocationMember";
+    return `<xbrli:context id="D_${id}">
+    <xbrli:period><xbrli:startDate>2025-04-01</xbrli:startDate><xbrli:endDate>2026-03-31</xbrli:endDate></xbrli:period>
+    <xbrli:scenario>
+      <xbrldi:explicitMember xmlns:xbrldi="http://xbrl.org/2006/xbrldi" dimension="in-capmkt:LocationAxis">in-capmkt:${scope}</xbrldi:explicitMember>
+      <xbrldi:explicitMember xmlns:xbrldi="http://xbrl.org/2006/xbrldi" dimension="in-capmkt:TypeOfLocationAxis">in-capmkt:${kind}</xbrldi:explicitMember>
+    </xbrli:scenario>
+  </xbrli:context>`;
+  })
+  .join("\n  ");
 
 describe("extractMarketsServed", () => {
   it("extracts qualified-tag-name filings (NumberOfNationalPlant style)", () => {
@@ -61,6 +84,29 @@ describe("extractMarketsServed", () => {
     expect(m.plantsInternational).toBe(1);
     expect(m.officesNational).toBe(15);
     expect(m.officesInternational).toBeNull();
+  });
+
+  // Regression: the plant/office kind lives only in the context members here, so
+  // a tag-name-only match leaves all four counts null on every real NSE filing.
+  it("extracts generic NumberOfLocations dimensioned on both scope and kind", () => {
+    const m = extractMarketsServed(
+      wrap(`
+        <in-capmkt:NumberOfLocations contextRef="D_Nat_Plant">6</in-capmkt:NumberOfLocations>
+        <in-capmkt:NumberOfLocations contextRef="D_Nat_Office">31</in-capmkt:NumberOfLocations>
+        <in-capmkt:NumberOfLocations contextRef="D_Int_Plant">2</in-capmkt:NumberOfLocations>
+        <in-capmkt:NumberOfLocations contextRef="D_Int_Office">4</in-capmkt:NumberOfLocations>
+        <in-capmkt:NumberOfLocations contextRef="D_Nat_Total">37</in-capmkt:NumberOfLocations>
+        <in-capmkt:NumberOfLocations contextRef="D_Int_Total">6</in-capmkt:NumberOfLocations>
+      `),
+    );
+    expect(m.plantsNational).toBe(6);
+    expect(m.officesNational).toBe(31);
+    expect(m.plantsInternational).toBe(2);
+    expect(m.officesInternational).toBe(4);
+    expect(m.matchedTags.plantsNational).toBe("NumberOfLocations");
+    // the LocationMember totals stay out of both fields — plants + offices == total
+    expect(m.plantsNational! + m.officesNational!).toBe(37);
+    expect(m.plantsInternational! + m.officesInternational!).toBe(6);
   });
 
   it("prefers the current-year context over the prior year", () => {

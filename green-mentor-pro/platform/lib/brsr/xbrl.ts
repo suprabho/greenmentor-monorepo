@@ -397,9 +397,12 @@ export type MarketsServed = {
  * tags drift across taxonomy years and filers, and the national/international
  * split is modelled two ways in the wild — qualified tag names
  * (NumberOfNationalPlant) or a location dimension on a bare count
- * (NumberOfPlants in a National/International member context). Matching is
- * therefore pattern-based over self-describing local names, scoped by tag name
- * first and context member second, with the winning tag recorded per field.
+ * (NumberOfPlants in a National/International member context). In practice the
+ * second form dominates and is fully generic: one NumberOfLocations tag carrying
+ * BOTH axes as members (PlantMember + NationalMember), so the plant/office kind
+ * has to be read off the context exactly like the scope. Matching is therefore
+ * pattern-based over self-describing local names, resolved by tag name first and
+ * context member second on each axis, with the winning tag recorded per field.
  * Verify coverage against stored XBRLs with --dump-tags after taxonomy updates.
  */
 export function extractMarketsServed(xml: string): MarketsServed {
@@ -413,6 +416,18 @@ export function extractMarketsServed(xml: string): MarketsServed {
     const members = contexts.get(fact.contextRef)?.members ?? [];
     if (members.some((m) => /International|OutsideIndia|Overseas/i.test(m))) return "international";
     if (members.some((m) => /National|InIndia|Domestic/i.test(m))) return "national";
+    return null;
+  };
+
+  // "plant" | "office" the same way. A row dimensioned only on LocationMember is
+  // the Q20 all-locations total, so it resolves to null and stays out of both the
+  // plant and the office field rather than being double-counted into one.
+  const kindOf = (fact: XbrlFact): "plant" | "office" | null => {
+    if (/Plant|Factory|Manufactur/i.test(fact.tag)) return "plant";
+    if (/Office/i.test(fact.tag)) return "office";
+    const members = contexts.get(fact.contextRef)?.members ?? [];
+    if (members.some((m) => /Plant|Factory|Manufactur/i.test(m))) return "plant";
+    if (members.some((m) => /Office/i.test(m))) return "office";
     return null;
   };
 
@@ -435,9 +450,14 @@ export function extractMarketsServed(xml: string): MarketsServed {
     field: string,
     tagRe: RegExp,
     scope?: "national" | "international",
+    kind?: "plant" | "office",
   ): number | null => {
     const matches = facts.filter(
-      (f) => tagRe.test(f.tag) && toNumber(f.value) !== null && (!scope || scopeOf(f) === scope),
+      (f) =>
+        tagRe.test(f.tag) &&
+        toNumber(f.value) !== null &&
+        (!scope || scopeOf(f) === scope) &&
+        (!kind || kindOf(f) === kind),
     );
     const fact = pickLatest(matches);
     if (!fact) return null;
@@ -445,10 +465,15 @@ export function extractMarketsServed(xml: string): MarketsServed {
     return toNumber(fact.value);
   };
 
-  const plantsNational = numberField("plantsNational", /^NumberOf\w*Plant/i, "national");
-  const officesNational = numberField("officesNational", /^NumberOf\w*Office/i, "national");
-  const plantsInternational = numberField("plantsInternational", /^NumberOf\w*Plant/i, "international");
-  const officesInternational = numberField("officesInternational", /^NumberOf\w*Office/i, "international");
+  // Q20 — plant/office counts. One pattern admits both the kind-qualified tags
+  // (NumberOfNationalPlant) and the generic dimensioned count (NumberOfLocations);
+  // kindOf/scopeOf then pick the right cell. Anchoring on NumberOf keeps the
+  // Percentage…PlantsAndOfficesThatWereAssessed P3/P5 tags out.
+  const LOCATION_COUNT_RE = /^NumberOf\w*(?:Plant|Office|Location|Factory|Site)/i;
+  const plantsNational = numberField("plantsNational", LOCATION_COUNT_RE, "national", "plant");
+  const officesNational = numberField("officesNational", LOCATION_COUNT_RE, "national", "office");
+  const plantsInternational = numberField("plantsInternational", LOCATION_COUNT_RE, "international", "plant");
+  const officesInternational = numberField("officesInternational", LOCATION_COUNT_RE, "international", "office");
   const statesServed = numberField("statesServed", /^NumberOf\w*State/i);
   const countriesServed = numberField("countriesServed", /^NumberOf\w*Countr/i);
 
