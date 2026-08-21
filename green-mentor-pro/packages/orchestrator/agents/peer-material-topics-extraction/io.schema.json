@@ -1,0 +1,92 @@
+{
+  "$defs": {
+    "input": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "peers": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 15,
+          "description": "The peer cohort, typically from a peer-research run",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "symbol": { "type": "string", "description": "NSE ticker, e.g. RELIANCE" },
+              "name": { "type": ["string", "null"], "description": "Company name, for display" }
+            },
+            "required": ["symbol"]
+          }
+        },
+        "financial_year": { "type": ["string", "null"], "description": "FY label like \"2024-25\"; default = each peer's latest filing" },
+        "notes": { "type": ["string", "null"], "description": "Optional user constraints, e.g. 'merge aggressively'" }
+      },
+      "required": ["peers"]
+    },
+    "output": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "topics": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/MaterialTopic" },
+          "description": "Deduplicated topics, sorted by frequency desc, then pillar (E, S, G), then name"
+        },
+        "peers_covered": { "type": "array", "items": { "$ref": "#/$defs/PeerCoverage" } },
+        "peers_missing": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Input symbols with no topics-extracted BRSR filing"
+        },
+        "methodology": { "type": "string", "description": "Which filings grounded the table, how variants were merged, how pillars were assigned" },
+        "caveats": { "type": "array", "items": { "type": "string" } }
+      },
+      "required": ["topics", "peers_covered", "peers_missing", "methodology", "caveats"]
+    },
+    "MaterialTopic": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string", "description": "Deduplicated display name of the material topic, title case" },
+        "description": { "type": "string", "description": "1-2 sentences synthesized across the disclosing peers' rationales — never one peer's rationale verbatim" },
+        "pillar": { "type": "string", "enum": ["E", "S", "G"], "description": "E=Environmental, S=Social, G=Governance" },
+        "peers": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/TopicPeer" },
+          "description": "Peers that disclosed this topic — the 'frequency in aligned data' column"
+        },
+        "frequency": { "type": "integer", "minimum": 1, "description": "Number of distinct disclosing peers; must equal peers.length" },
+        "risk_opportunity": {
+          "type": ["string", "null"],
+          "enum": ["risk", "opportunity", "both", "mixed", null],
+          "description": "Cohort-level lean of the peers' R/O flags; null when flags are absent"
+        }
+      },
+      "required": ["name", "description", "pillar", "peers", "frequency"]
+    },
+    "TopicPeer": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "symbol": { "type": "string" },
+        "name": { "type": ["string", "null"] },
+        "as_disclosed": { "type": "string", "description": "The peer's verbatim topic wording; multiple merged variants joined with '; '" }
+      },
+      "required": ["symbol", "as_disclosed"]
+    },
+    "PeerCoverage": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "symbol": { "type": "string" },
+        "name": { "type": ["string", "null"] },
+        "fy": { "type": ["string", "null"], "description": "Filing FY the topics come from, e.g. '2024-25'" },
+        "topic_count": { "type": "integer", "minimum": 0, "description": "Raw disclosed rows for this peer (0 = filing extracted but table empty)" },
+        "source": { "type": "string", "description": "e.g. 'NSE BRSR filing RELIANCE FY 2024-25'" }
+      },
+      "required": ["symbol", "fy", "topic_count", "source"]
+    }
+  }
+}
