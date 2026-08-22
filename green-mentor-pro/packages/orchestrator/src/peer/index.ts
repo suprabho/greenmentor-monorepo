@@ -12,6 +12,7 @@ import {
   resolveCompany,
   type CompanyBrsrProfile,
 } from "../db/brsrPeers";
+import { getPeerMaterialTopics } from "./topics";
 
 export {
   resolveCompany,
@@ -32,6 +33,18 @@ export {
   type ActivityShare,
   type MarketsProfile,
 } from "./scoring";
+
+export {
+  getPeerMaterialTopics,
+  peerTopicsForModel,
+  PEER_TOPICS_TOOL_NAMES,
+} from "./topics";
+export {
+  fetchPeerMaterialTopics,
+  type PeerMaterialTopics,
+  type PeerTopicRow,
+  type PeerTopicsResult,
+} from "../db/brsrTopics";
 
 /** Tool names the peer-research agent may call (agents/peer-research/tools.json). */
 export const PEER_TOOL_NAMES = ["get_company_brsr_profile", "find_brsr_peer_candidates"] as const;
@@ -113,5 +126,6 @@ export async function findBrsrPeerCandidates(input: unknown): Promise<unknown> {
 export function runPeerTool(name: string, input: unknown): Promise<unknown> | null {
   if (name === "get_company_brsr_profile") return getCompanyBrsrProfile(input);
   if (name === "find_brsr_peer_candidates") return findBrsrPeerCandidates(input);
+  if (name === "get_peer_material_topics") return getPeerMaterialTopics(input);
   return null;
 }

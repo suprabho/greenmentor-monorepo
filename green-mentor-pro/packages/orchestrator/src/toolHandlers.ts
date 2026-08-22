@@ -5,7 +5,7 @@ import { createAdminClient } from "./admin";
 import { PHASE_PRIMARY_ARTIFACT } from "./db/types";
 import { PHASE_ORDER, type PhaseKey } from "./orchestrator/pipeline";
 import { efdbBase, efdbGet } from "./efdb/client";
-import { findBrsrPeerCandidates, getCompanyBrsrProfile } from "./peer";
+import { findBrsrPeerCandidates, getCompanyBrsrProfile, getPeerMaterialTopics } from "./peer";
 
 /** Tools that touch the DB no-op on demo ctx (org_dev/eng_dev are not uuids). */
 const isUuid = (s: string) =>
@@ -60,6 +60,7 @@ const HANDLERS: Record<string, ToolHandler> = {
   // subpath without importing this package's barrel.
   get_company_brsr_profile: (input) => getCompanyBrsrProfile(input),
   find_brsr_peer_candidates: (input) => findBrsrPeerCandidates(input),
+  get_peer_material_topics: (input) => getPeerMaterialTopics(input),
 
   // EFDB — emission-factor lookup (Phase 6). Hits the EFDB FastAPI service: pgvector
   // semantic search first, then the keyword list endpoint as a fallback. Returns

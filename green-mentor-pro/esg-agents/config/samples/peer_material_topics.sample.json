@@ -1,0 +1,9 @@
+{
+  "peers": [
+    { "symbol": "RELIANCE", "name": "Reliance Industries Limited" },
+    { "symbol": "ONGC", "name": "Oil and Natural Gas Corporation Limited" },
+    { "symbol": "IOC", "name": "Indian Oil Corporation Limited" }
+  ],
+  "financial_year": null,
+  "notes": null
+}

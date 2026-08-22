@@ -1,0 +1,40 @@
+[
+  {
+    "name": "get_peer_material_topics",
+    "description": "Material responsible business conduct issues (BRSR Section A) for a cohort of peers, from the scraped corpus. Per NSE symbol it returns the latest topics-extracted filing (or the requested FY's, when extracted) with each disclosed row: verbatim topic, Risk/Opportunity flag, truncated rationale, and — where mapped — a canonical-topic + pillar hint (environment/social/governance/cross_cutting) from the LLM canon cache. `missing` lists symbols with no topics-extracted filing. Batched: call ONCE with all symbols. 1-15 symbols, clamped server-side — strict tool-use schemas reject array/numeric bounds.",
+    "strict": true,
+    "input_schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "symbols": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "NSE tickers, e.g. [\"RELIANCE\", \"ONGC\"]; 1-15, clamped server-side"
+        },
+        "financial_year": {
+          "type": ["string", "null"],
+          "description": "Optional FY label like \"2024-25\"; default = each peer's latest topics-extracted filing"
+        }
+      },
+      "required": ["symbols"]
+    }
+  },
+  {
+    "name": "emit_material_topics_table",
+    "description": "Return the complete deduplicated material-topics table (topics with description, pillar and disclosing peers + coverage lists + methodology + caveats). Call exactly once when finished.",
+    "strict": true,
+    "input_schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "topics": { "type": "array", "items": { "type": "object" } },
+        "peers_covered": { "type": "array", "items": { "type": "object" } },
+        "peers_missing": { "type": "array", "items": { "type": "string" } },
+        "methodology": { "type": "string" },
+        "caveats": { "type": "array", "items": { "type": "string" } }
+      },
+      "required": ["topics", "peers_covered", "peers_missing", "methodology", "caveats"]
+    }
+  }
+]

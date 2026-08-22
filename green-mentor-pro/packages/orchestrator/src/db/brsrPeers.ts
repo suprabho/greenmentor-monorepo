@@ -61,7 +61,7 @@ export interface PeerCandidate {
   };
 }
 
-const fyLabel = (fyFrom: number, fyTo: number) =>
+export const fyLabel = (fyFrom: number, fyTo: number) =>
   fyFrom === fyTo ? `CY ${fyFrom}` : `${fyFrom}-${String(fyTo).padStart(4, "0").slice(-2)}`;
 
 /** Page through a PostgREST query (server caps responses at 1000 rows). */
@@ -73,7 +73,7 @@ const fyLabel = (fyFrom: number, fyTo: number) =>
  * overlap and skip — measured on this database, an unordered two-key page of
  * brsr_indicators returned 9525 rows of which only 9179 were distinct.
  */
-async function fetchAllRows<T>(
+export async function fetchAllRows<T>(
   build: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: { message: string } | null }>,
 ): Promise<T[]> {
   const out: T[] = [];
