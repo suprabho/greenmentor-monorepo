@@ -1,4 +1,6 @@
-import { frontmatter, gmSection, GM_STORY_DEFAULTS } from './spine'
+import { frontmatter, gmSection, closingSection, GM_STORY_DEFAULTS } from './spine'
+
+export { closingSection } from './spine'
 
 /**
  * Starter story templates — one per corpus family. Each yields the document
@@ -23,11 +25,6 @@ const PLACEHOLDER = {
     { lead: 'First takeaway.', body: 'One-sentence elaboration.' },
     { lead: 'Second takeaway.', body: 'One-sentence elaboration.' },
     { lead: 'Third takeaway.', body: 'One-sentence elaboration.' },
-  ],
-  footerCols: [
-    { label: 'Publication', body: 'What this briefing is and who it serves.' },
-    { label: 'Next Issue', body: 'One-line tease of the next issue.' },
-    { label: 'Referenced', body: 'Standards / sources referenced in this issue.' },
   ],
 }
 
@@ -114,9 +111,7 @@ export const analyticalBriefing: GmStoryTemplate = {
         gmSection('audience', 'Audience', 'pale', [
           { type: 'gm:audienceStrip', chips: PLACEHOLDER.chips },
         ]),
-        gmSection('closing', 'Closing', 'dark', [
-          { type: 'gm:footer', logo: 'GreenMentor', columns: PLACEHOLDER.footerCols },
-        ]),
+        closingSection(),
       ],
     }),
 }
@@ -185,9 +180,7 @@ export const caseStudy: GmStoryTemplate = {
         gmSection('audience', 'Audience', 'pale', [
           { type: 'gm:audienceStrip', chips: PLACEHOLDER.chips },
         ]),
-        gmSection('closing', 'Closing', 'dark', [
-          { type: 'gm:footer', logo: 'GreenMentor', columns: PLACEHOLDER.footerCols },
-        ]),
+        closingSection(),
       ],
     }),
 }
@@ -233,14 +226,9 @@ export const photoEssay: GmStoryTemplate = {
         gmSection('audience', 'Audience', 'pale', [
           { type: 'gm:audienceStrip', chips: PLACEHOLDER.chips },
         ]),
-        gmSection('closing', 'Closing', 'dark', [
-          {
-            type: 'gm:footer',
-            logo: 'GreenMentor',
-            columns: PLACEHOLDER.footerCols,
-            closingNote: { emoji: '🌱', text: 'See you at the next one.', signature: 'The GreenMentor team' },
-          },
-        ]),
+        closingSection({
+          closingNote: { emoji: '🌱', text: 'See you at the next one.', signature: 'The GreenMentor team' },
+        }),
       ],
     }),
 }
@@ -270,9 +258,7 @@ export const socialTeaser: GmStoryTemplate = {
         gmSection('pull-quote', 'Pull Quote', 'green', [
           { type: 'gm:pullquote', text: PLACEHOLDER.quote },
         ]),
-        gmSection('closing', 'Closing', 'dark', [
-          { type: 'gm:footer', logo: 'GreenMentor', columns: PLACEHOLDER.footerCols },
-        ]),
+        closingSection(),
       ],
     }),
 }
