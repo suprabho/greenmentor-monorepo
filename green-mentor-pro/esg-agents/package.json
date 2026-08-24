@@ -11,6 +11,7 @@
     "engagement:seed": "tsx scripts/seed-engagement.ts",
     "phase:advance": "tsx scripts/advance-phase.ts",
     "packages:validate": "tsx scripts/validate-packages.ts",
+    "packages:pull": "tsx scripts/pull-packages.ts",
     "registry:build": "tsx scripts/build-registry.ts"
   },
   "dependencies": {

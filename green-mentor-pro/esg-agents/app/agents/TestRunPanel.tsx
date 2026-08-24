@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { AGENT_MODEL_CHOICES } from "@gm/agents/models";
 import PeerRunResult, { type PeerResultData } from "./PeerRunResult";
 import TopicsRunResult, { type TopicsResultData } from "./TopicsRunResult";
 
@@ -16,6 +17,9 @@ import TopicsRunResult, { type TopicsResultData } from "./TopicsRunResult";
  * `peers_missing`); every other agent gets a JSON input box. All post to the
  * existing /api/agents/[key]/run demo path, which binds the app's callable-tool
  * handlers — so runs here are grounded, not stubbed.
+ *
+ * The model dropdown overrides the package's model for one run only — nothing is
+ * written to skill.md. Use it to compare models before committing one in the header.
  */
 
 const ACCENT = "#1f8a5b";
@@ -48,7 +52,14 @@ const btn = (primary: boolean, enabled: boolean): React.CSSProperties => ({
 
 const MAX_COHORT = 15;
 
-export default function TestRunPanel({ agentKey }: { agentKey: string }) {
+export default function TestRunPanel({
+  agentKey,
+  defaultModel,
+}: {
+  agentKey: string;
+  /** The model saved in skill.md — what a run uses unless the dropdown overrides it. */
+  defaultModel: string;
+}) {
   const isPeer = agentKey === "peer-research";
   const isTopics = agentKey === "peer-material-topics-extraction";
   const usesPicker = isPeer || isTopics;
@@ -61,6 +72,11 @@ export default function TestRunPanel({ agentKey }: { agentKey: string }) {
   const [maxPeers, setMaxPeers] = useState(8);
 
   const [json, setJson] = useState("{\n  \n}");
+  const [model, setModel] = useState(defaultModel);
+
+  // Following the package's model when it's saved in the header keeps the two
+  // controls from silently disagreeing about what "default" means.
+  useEffect(() => setModel(defaultModel), [defaultModel]);
 
   const [busy, setBusy] = useState<null | "run" | "preview">(null);
   const [elapsed, setElapsed] = useState(0);
@@ -158,7 +174,8 @@ export default function TestRunPanel({ agentKey }: { agentKey: string }) {
       const res = await fetch(`/api/agents/${agentKey}/run`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ input }),
+        // Omit rather than echo the default — the route falls back to the package.
+        body: JSON.stringify({ input, ...(model !== defaultModel ? { model } : {}) }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error ?? `HTTP ${res.status}`);
@@ -179,8 +196,38 @@ export default function TestRunPanel({ agentKey }: { agentKey: string }) {
 
   const canRun = !busy && (isPeer ? !!selected : isTopics ? cohort.length > 0 : true);
 
+  const modelNote = AGENT_MODEL_CHOICES.find((c) => c.id === model)?.note;
+
   return (
     <div>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 14 }}>
+        <span style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 0.4, color: MUTED, textTransform: "uppercase" }}>
+          Model
+        </span>
+        <select
+          value={model}
+          onChange={(e) => setModel(e.target.value)}
+          title={modelNote ?? undefined}
+          aria-label="Model for this run"
+          style={{ fontSize: 12.5, padding: "5px 8px", border: `1px solid ${BORDER}`, borderRadius: 7, background: "#fbfcfb", color: "#1a2420" }}
+        >
+          {/* A package model outside the known set still has to be selectable. */}
+          {!AGENT_MODEL_CHOICES.some((c) => c.id === model) && <option value={model}>{model} ⚠</option>}
+          {AGENT_MODEL_CHOICES.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.label}
+              {c.id === defaultModel ? " (package default)" : ""}
+              {c.note ? " ⚠" : ""}
+            </option>
+          ))}
+        </select>
+        <span style={{ fontSize: 11.5, color: model === defaultModel ? MUTED : "#b8860b" }}>
+          {model === defaultModel
+            ? "this run uses the package's model"
+            : "overrides the package for this run only — skill.md is not touched"}
+        </span>
+      </div>
+
       {isPeer ? (
         <>
           <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 0.4, color: MUTED, textTransform: "uppercase", marginBottom: 6 }}>

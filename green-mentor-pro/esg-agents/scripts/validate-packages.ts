@@ -9,6 +9,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import matter from "gray-matter";
+import { isAgentModel } from "@gm/agents";
 
 const AGENTS_ROOT = path.join(process.cwd(), "agents");
 const errors: string[] = [];
@@ -68,6 +69,9 @@ for (const dir of dirs) {
 
   for (const field of ["name", "model", "phase", "family", "tools", "version"]) {
     if (fm[field] === undefined) errors.push(`${dir}: skill.md frontmatter missing "${field}"`);
+  }
+  if (fm.model !== undefined && !isAgentModel(fm.model)) {
+    errors.push(`${dir}: skill.md model "${fm.model}" is not a supported Claude model`);
   }
   if (fm.name && fm.name !== dir) warn.push(`${dir}: frontmatter name "${fm.name}" != folder`);
   if (!registryKeys.has(fm.name)) warn.push(`${dir}: not present in registry.json`);

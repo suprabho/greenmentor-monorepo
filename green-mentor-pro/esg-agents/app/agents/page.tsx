@@ -5,7 +5,9 @@ export default function AgentsIndex() {
       <div style={{ fontSize: 13.5, maxWidth: 460, margin: "0 auto", lineHeight: 1.5 }}>
         Each agent is controlled by four plain files — its <strong>prompt &amp; config</strong> (skill.md), its{" "}
         <strong>I/O contract</strong> (io.schema.json), its <strong>tools</strong>, and its <strong>templates</strong>.
-        Pick one on the left to edit them; changes save straight to disk and the runtime re-reads them on the next run.
+        Pick one on the left to edit them. Saved edits are stored in the database and laid over the
+        deployed package, so the runtime picks them up on the next run — here and in the pipeline.
+        A file marked <strong>◆</strong> is a stored edit; revert it to fall back to the package in the repo.
       </div>
     </div>
   );
