@@ -1,0 +1,45 @@
+[
+  {
+    "name": "get_nic_framework_materiality",
+    "description": "What SASB, Sustainalytics and MSCI each prescribe as material for a NIC-2008 industry, from the scraped framework corpora and their curated NIC crosswalks. Give it `nic_codes` (2-8 digit, resolved to their NIC Division) or an NSE `symbol` (its BRSR Section A product rows are turnover-weighted onto Divisions; `scope.from_symbol.turnoverShares` shows the split). Per framework it returns `matched_industries` (with `matched_at`: \"division\" for an exact NIC Division hit, \"section\" when nothing mapped and the match widened to the whole NIC Section — a sector-level answer — plus the crosswalk author's `crosswalk_confidence`) and the union of `issues` those industries flag, each with `prevalence` (share of matched industries flagging it), the framework's own `framework_grouping`, and for MSCI `avg_weight_pct` / `max_weight_pct` / `company_specific`. SASB issues carry their industry-specific `disclosure_topics` when the match is division-level. Batched: call ONCE with everything. 1-10 NIC codes, clamped server-side — strict tool-use schemas reject array/numeric bounds.",
+    "strict": true,
+    "input_schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "nic_codes": {
+          "type": ["array", "null"],
+          "items": { "type": "string" },
+          "description": "NIC-2008 codes, 2-8 digits, e.g. [\"20119\", \"19201\"]; 1-10, clamped server-side. Omit when passing a symbol."
+        },
+        "symbol": {
+          "type": ["string", "null"],
+          "description": "NSE ticker, e.g. \"RELIANCE\" — its BRSR filing's NIC codes are used. Ignored when nic_codes is given."
+        },
+        "frameworks": {
+          "type": ["array", "null"],
+          "items": { "type": "string", "enum": ["sasb", "sustainalytics", "msci"] },
+          "description": "Subset to query; omit or null for all three. Drop \"msci\" for a table free of proprietary reference data."
+        }
+      },
+      "required": ["nic_codes", "symbol"]
+    }
+  },
+  {
+    "name": "emit_framework_materiality_table",
+    "description": "Return the complete deduplicated framework-materiality table (topics with description, pillar, per-framework mappings and MSCI weight + the resolved NIC scope + per-framework coverage + methodology + caveats). Call exactly once when finished.",
+    "strict": true,
+    "input_schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "topics": { "type": "array", "items": { "type": "object" } },
+        "nic_scope": { "type": "object" },
+        "frameworks_covered": { "type": "array", "items": { "type": "object" } },
+        "methodology": { "type": "string" },
+        "caveats": { "type": "array", "items": { "type": "string" } }
+      },
+      "required": ["topics", "nic_scope", "frameworks_covered", "methodology", "caveats"]
+    }
+  }
+]

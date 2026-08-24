@@ -6,6 +6,7 @@ import { PHASE_PRIMARY_ARTIFACT } from "@/lib/db/types";
 import { PHASE_ORDER, type PhaseKey } from "@/lib/orchestrator/pipeline";
 import { efdbBase, efdbGet } from "@/lib/efdb/client";
 import { runPeerTool } from "@gm/orchestrator/peer";
+import { runFrameworkTool } from "@gm/orchestrator/frameworks";
 
 /** Tools that touch the DB no-op on demo ctx (org_dev/eng_dev are not uuids). */
 const isUuid = (s: string) =>
@@ -190,6 +191,12 @@ export async function runCallableTool(
   // It needs no tenant ctx: BRSR filings are public regulatory data.
   const peer = runPeerTool(name, input);
   if (peer) return peer;
+
+  // Framework materiality grounding (SASB / Sustainalytics / MSCI by NIC code) —
+  // same arrangement as the peer tools: one implementation in @gm/orchestrator,
+  // no tenant ctx (published framework taxonomies, not tenant data).
+  const framework = runFrameworkTool(name, input);
+  if (framework) return framework;
 
   const handler = HANDLERS[name];
   if (!handler) {

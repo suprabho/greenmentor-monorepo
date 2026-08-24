@@ -1,0 +1,5 @@
+{
+  "nic_codes": ["20119", "20299"],
+  "frameworks": ["sasb", "sustainalytics", "msci"],
+  "notes": "Chemicals manufacturer — NIC Division 20. Flag any topic only one framework names."
+}
