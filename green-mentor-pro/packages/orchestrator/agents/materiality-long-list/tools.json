@@ -1,0 +1,17 @@
+[
+  {
+    "name": "emit_materiality_long_list",
+    "description": "Return the distilled materiality long list (20-25 deduplicated topics with description, E/S/G pillar, combined peer+framework frequency and per-source provenance + methodology + caveats). Call exactly once when finished.",
+    "strict": true,
+    "input_schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "topics": { "type": "array", "items": { "type": "object" } },
+        "methodology": { "type": "string" },
+        "caveats": { "type": "array", "items": { "type": "string" } }
+      },
+      "required": ["topics", "methodology", "caveats"]
+    }
+  }
+]

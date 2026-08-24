@@ -153,6 +153,7 @@ export default function PipelineBoard() {
           </div>
           <div style={{ display: "flex", gap: 16 }}>
             <a href="/buddy" style={{ fontSize: 13, color: ACCENT, fontWeight: 600, textDecoration: "none" }}>🌱 ESG Buddy →</a>
+            <a href="/materiality" style={{ fontSize: 13, color: ACCENT, fontWeight: 600, textDecoration: "none" }}>Materiality Long List →</a>
             <a href="/agents" style={{ fontSize: 13, color: ACCENT, fontWeight: 600, textDecoration: "none" }}>Agent Studio →</a>
           </div>
         </div>

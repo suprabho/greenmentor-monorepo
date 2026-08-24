@@ -30,6 +30,7 @@ export default function EngagementsHome({
             <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: 0.3, color: ACCENT }}>GREENMENTOR · ESG-AGENTS</span>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+            <a href="/materiality" style={{ color: ACCENT, fontSize: 12.5, fontWeight: 600, textDecoration: "none" }}>Materiality Long List →</a>
             <a href="/agents" style={{ color: ACCENT, fontSize: 12.5, fontWeight: 600, textDecoration: "none" }}>Agent Studio →</a>
             <form action={logoutAction}>
               <button type="submit" style={{ background: "none", border: "none", color: "#5d6b64", fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}>{email} · Sign out</button>

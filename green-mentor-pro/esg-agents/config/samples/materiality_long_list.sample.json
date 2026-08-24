@@ -1,0 +1,143 @@
+{
+  "subject": { "symbol": "DEEPAKNTR", "name": "Deepak Nitrite" },
+  "framework_topics": {
+    "topics": [
+      {
+        "name": "GHG Emissions",
+        "description": "Direct and energy-related greenhouse-gas emissions from chemical manufacturing, a transition-risk driver for energy-intensive producers.",
+        "pillar": "E",
+        "frameworks": [
+          { "framework": "sasb", "as_named": "Greenhouse Gas Emissions" },
+          { "framework": "sustainalytics", "as_named": "Carbon – Own Operations" },
+          { "framework": "msci", "as_named": "Carbon Emissions" }
+        ],
+        "convergence": 3,
+        "msci_weight_pct": 9.4
+      },
+      {
+        "name": "Water & Wastewater Management",
+        "description": "Freshwater withdrawal and effluent treatment in water-stressed basins where chemical plants operate.",
+        "pillar": "E",
+        "frameworks": [
+          { "framework": "sasb", "as_named": "Water Management" },
+          { "framework": "msci", "as_named": "Water Stress" }
+        ],
+        "convergence": 2,
+        "msci_weight_pct": 6.1
+      },
+      {
+        "name": "Employee Health & Safety",
+        "description": "Process-safety and occupational-safety management for a workforce handling hazardous substances.",
+        "pillar": "S",
+        "frameworks": [
+          { "framework": "sasb", "as_named": "Workforce Health & Safety" },
+          { "framework": "sustainalytics", "as_named": "Occupational Health and Safety" },
+          { "framework": "msci", "as_named": "Health & Safety" }
+        ],
+        "convergence": 3,
+        "msci_weight_pct": 7.8
+      },
+      {
+        "name": "Hazardous Materials & Chemical Safety",
+        "description": "Managing the safety, handling and regulatory obligations of hazardous chemical products across their lifecycle.",
+        "pillar": "E",
+        "frameworks": [
+          { "framework": "sasb", "as_named": "Hazardous Waste Management" },
+          { "framework": "msci", "as_named": "Toxic Emissions & Waste" }
+        ],
+        "convergence": 2,
+        "msci_weight_pct": 11.2
+      },
+      {
+        "name": "Business Ethics",
+        "description": "Anti-corruption, competitive behaviour and regulatory compliance across operations.",
+        "pillar": "G",
+        "frameworks": [
+          { "framework": "sasb", "as_named": "Business Ethics" },
+          { "framework": "sustainalytics", "as_named": "Business Ethics" }
+        ],
+        "convergence": 2,
+        "msci_weight_pct": null
+      },
+      {
+        "name": "Corporate Governance",
+        "description": "Board composition, ownership and pay — MSCI's pillar-level governance rollup.",
+        "pillar": "G",
+        "frameworks": [{ "framework": "msci", "as_named": "Corporate Governance" }],
+        "convergence": 1,
+        "msci_weight_pct": 33.0
+      }
+    ],
+    "frameworks_covered": [
+      { "framework": "sasb", "matched_count": 2, "match_level": "division" },
+      { "framework": "sustainalytics", "matched_count": 3, "match_level": "division" },
+      { "framework": "msci", "matched_count": 4, "match_level": "division" }
+    ],
+    "methodology": "SASB, Sustainalytics and MSCI matched at NIC Division 20 (chemicals).",
+    "caveats": ["MSCI Key Issue weights are proprietary reference data — internal use only."]
+  },
+  "peer_topics": {
+    "topics": [
+      {
+        "name": "Climate Change & Emissions",
+        "description": "Peers disclose decarbonisation of operations and energy sourcing as a principal material issue.",
+        "pillar": "E",
+        "peers": [
+          { "symbol": "AARTIIND", "name": "Aarti Industries", "as_disclosed": "Climate change and GHG emissions" },
+          { "symbol": "ATUL", "name": "Atul Ltd", "as_disclosed": "Energy & emissions management" },
+          { "symbol": "SRF", "name": "SRF Ltd", "as_disclosed": "Climate change mitigation" }
+        ],
+        "frequency": 3,
+        "risk_opportunity": "risk"
+      },
+      {
+        "name": "Water Stewardship",
+        "description": "Peers report water sourcing, recycling and zero-liquid-discharge commitments at manufacturing sites.",
+        "pillar": "E",
+        "peers": [
+          { "symbol": "AARTIIND", "name": "Aarti Industries", "as_disclosed": "Water and effluent management" },
+          { "symbol": "SRF", "name": "SRF Ltd", "as_disclosed": "Water stewardship" }
+        ],
+        "frequency": 2,
+        "risk_opportunity": "risk"
+      },
+      {
+        "name": "Occupational Health & Safety",
+        "description": "Peers treat process and worker safety as material given hazardous-chemical operations.",
+        "pillar": "S",
+        "peers": [
+          { "symbol": "AARTIIND", "name": "Aarti Industries", "as_disclosed": "Employee health and safety" },
+          { "symbol": "ATUL", "name": "Atul Ltd", "as_disclosed": "Occupational health & safety" },
+          { "symbol": "SRF", "name": "SRF Ltd", "as_disclosed": "Process safety and worker wellbeing" }
+        ],
+        "frequency": 3,
+        "risk_opportunity": "risk"
+      },
+      {
+        "name": "Talent & Human Capital",
+        "description": "Attracting and retaining skilled chemistry and engineering talent.",
+        "pillar": "S",
+        "peers": [{ "symbol": "ATUL", "name": "Atul Ltd", "as_disclosed": "Talent attraction and retention" }],
+        "frequency": 1,
+        "risk_opportunity": "opportunity"
+      },
+      {
+        "name": "Corporate Governance & Ethics",
+        "description": "Peers disclose board oversight, ethics and compliance as material governance issues.",
+        "pillar": "G",
+        "peers": [
+          { "symbol": "AARTIIND", "name": "Aarti Industries", "as_disclosed": "Corporate governance" },
+          { "symbol": "SRF", "name": "SRF Ltd", "as_disclosed": "Ethics and compliance" }
+        ],
+        "frequency": 2,
+        "risk_opportunity": null
+      }
+    ],
+    "peers_missing": ["NOCIL"],
+    "methodology": "Topics extracted from the latest BRSR filings of 3 of the 4 selected peers.",
+    "caveats": ["NOCIL has no topics-extracted filing yet."]
+  },
+  "peers_analysed": 4,
+  "target_count": null,
+  "notes": "Small sample fixture — the evidence supports fewer than 20 topics; expect a caveat instead of padding."
+}

@@ -16,7 +16,10 @@ export default async function AgentsLayout({ children }: { children: React.React
         </div>
         <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 18 }}>
           <h1 style={{ fontSize: 23, margin: "6px 0 0", fontWeight: 750 }}>Agent Studio</h1>
-          <Link href="/" style={{ fontSize: 13, color: ACCENT, fontWeight: 600, textDecoration: "none" }}>← Pipeline board</Link>
+          <div style={{ display: "flex", gap: 14 }}>
+            <Link href="/materiality" style={{ fontSize: 13, color: ACCENT, fontWeight: 600, textDecoration: "none" }}>Materiality Long List →</Link>
+            <Link href="/" style={{ fontSize: 13, color: ACCENT, fontWeight: 600, textDecoration: "none" }}>← Pipeline board</Link>
+          </div>
         </div>
 
         <div style={{ display: "grid", gridTemplateColumns: "290px 1fr", gap: 20, alignItems: "start" }}>
