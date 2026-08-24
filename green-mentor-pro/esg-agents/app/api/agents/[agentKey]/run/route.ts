@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { loadAgent } from "@/lib/agents/loadAgent";
+import { loadAgentWithOverrides } from "@/lib/agents/loadAgent";
 import { runAgent } from "@/lib/agents/runAgent";
 import { resolveAgentModel } from "@gm/agents";
 import { getSession } from "@/lib/auth/session";
@@ -48,7 +48,7 @@ export async function POST(
 
   // ---- Legacy demo path (no DB) ----
   try {
-    const agent = loadAgent(agentKey);
+    const agent = await loadAgentWithOverrides(agentKey);
     if (!agent.enabled) {
       return NextResponse.json({ error: `${agentKey} is disabled in v1` }, { status: 409 });
     }

@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { AGENT_MODEL_CHOICES } from "@gm/agents/models";
-import type { AgentMeta, PackageFiles } from "@/lib/agents/packageIO";
+import type { AgentMeta, PackageFilesWithOverrides } from "@/lib/agents/packageIO";
 import { readFrontmatterModel, setFrontmatterModel } from "@/lib/agents/frontmatterModel";
 import TestRunPanel from "./TestRunPanel";
 
@@ -19,7 +19,7 @@ const TABS: { id: TabId; label: string; file?: string; hint: string }[] = [
   { id: "test", label: "Test run", hint: "Run this package against the live runtime — grounding tools included. Saved edits apply on the next run." },
 ];
 
-export default function PackageEditor({ meta, pkg }: { meta: AgentMeta; pkg: PackageFiles }) {
+export default function PackageEditor({ meta, pkg }: { meta: AgentMeta; pkg: PackageFilesWithOverrides }) {
   const initial = useMemo(() => {
     const m: Record<string, string> = {
       "skill.md": pkg.skill,
@@ -31,6 +31,8 @@ export default function PackageEditor({ meta, pkg }: { meta: AgentMeta; pkg: Pac
   }, [pkg]);
 
   const [saved, setSaved] = useState<Record<string, string>>(initial);
+  // Files currently served from the store rather than the deployed package.
+  const [overridden, setOverridden] = useState<string[]>(pkg.overridden);
   const [edits, setEdits] = useState<Record<string, string>>(initial);
   const [tab, setTab] = useState<TabId>("skill");
   const [tplIdx, setTplIdx] = useState(0);
@@ -56,6 +58,7 @@ export default function PackageEditor({ meta, pkg }: { meta: AgentMeta; pkg: Pac
   const savedModel = readFrontmatterModel(saved["skill.md"]) ?? meta.model;
   const modelNote = AGENT_MODEL_CHOICES.find((c) => c.id === model)?.note;
   const skillDirty = edits["skill.md"] !== saved["skill.md"];
+  const fileOverridden = fileId !== "" && overridden.includes(fileId);
 
   // Rewrite the frontmatter in the buffer rather than saving straight through: the
   // dropdown and the Prompt & config textarea edit the same file, so writing here
@@ -80,6 +83,7 @@ export default function PackageEditor({ meta, pkg }: { meta: AgentMeta; pkg: Pac
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error ?? `HTTP ${res.status}`);
       setSaved((s) => ({ ...s, [id]: body }));
+      setOverridden((o) => (o.includes(id) ? o : [...o, id].sort()));
       setStatus({ ok: true, msg: `Saved ${id} ✓ — the runtime re-reads it on the next run.` });
     } catch (e) {
       setStatus({ ok: false, msg: e instanceof Error ? e.message : "save failed" });
@@ -88,6 +92,45 @@ export default function PackageEditor({ meta, pkg }: { meta: AgentMeta; pkg: Pac
     }
   };
   const save = () => saveFile(fileId);
+
+  /** Re-seed from the server. Used after a revert, when the package content the
+   *  client holds is the stored edit and the underlying package file is unknown. */
+  const reload = async () => {
+    const res = await fetch(`/api/agents/${meta.key}/package`);
+    const data = (await res.json()) as PackageFilesWithOverrides;
+    if (!res.ok) throw new Error((data as unknown as { error?: string })?.error ?? `HTTP ${res.status}`);
+    const next: Record<string, string> = {
+      "skill.md": data.skill,
+      "io.schema.json": data.ioSchema,
+      "tools.json": data.tools,
+    };
+    data.templates.forEach((t) => (next[`templates/${t.name}`] = t.content));
+    setSaved(next);
+    setEdits(next);
+    setOverridden(data.overridden);
+  };
+
+  /** Drop the stored edit for this file; it falls back to the deployed package. */
+  const revert = async () => {
+    if (!fileId) return;
+    setBusy(true);
+    setStatus(null);
+    try {
+      const res = await fetch(`/api/agents/${meta.key}/package`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ file: fileId }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error ?? `HTTP ${res.status}`);
+      await reload();
+      setStatus({ ok: true, msg: `Reverted ${fileId} to the deployed package.` });
+    } catch (e) {
+      setStatus({ ok: false, msg: e instanceof Error ? e.message : "revert failed" });
+    } finally {
+      setBusy(false);
+    }
+  };
 
   const reset = () => {
     setEdits((e) => ({ ...e, [fileId]: saved[fileId] }));
@@ -150,7 +193,7 @@ export default function PackageEditor({ meta, pkg }: { meta: AgentMeta; pkg: Pac
                   fontSize: 12, fontWeight: 650, cursor: busy ? "not-allowed" : "pointer", opacity: busy ? 0.45 : 1,
                 }}
               >
-                {busy ? "Saving…" : "Save to disk"}
+                {busy ? "Saving…" : "Save"}
               </button>
             </>
           )}
@@ -164,6 +207,10 @@ export default function PackageEditor({ meta, pkg }: { meta: AgentMeta; pkg: Pac
             : t.id === "templates"
             ? pkg.templates.some((tp) => edits[`templates/${tp.name}`] !== saved[`templates/${tp.name}`])
             : edits[t.file!] !== saved[t.file!];
+          const tOverridden = t.id === "test" ? false
+            : t.id === "templates"
+            ? pkg.templates.some((tp) => overridden.includes(`templates/${tp.name}`))
+            : overridden.includes(t.file!);
           const active = tab === t.id;
           return (
             <button
@@ -179,6 +226,7 @@ export default function PackageEditor({ meta, pkg }: { meta: AgentMeta; pkg: Pac
             >
               {t.label}
               {t.id === "templates" && ` (${pkg.templates.length})`}
+              {tOverridden && <span title="served from the store, not the deployed package" style={{ color: ACCENT, marginLeft: 4 }}>◆</span>}
               {tDirty && <span style={{ color: "#b8860b", marginLeft: 4 }}>•</span>}
             </button>
           );
@@ -237,7 +285,7 @@ export default function PackageEditor({ meta, pkg }: { meta: AgentMeta; pkg: Pac
             fontSize: 13.5, fontWeight: 650, cursor: dirty && !busy ? "pointer" : "not-allowed", opacity: dirty && !busy ? 1 : 0.45,
           }}
         >
-          {busy ? "Saving…" : "Save to disk"}
+          {busy ? "Saving…" : "Save"}
         </button>
         <button
           onClick={reset}
@@ -246,6 +294,23 @@ export default function PackageEditor({ meta, pkg }: { meta: AgentMeta; pkg: Pac
         >
           Reset
         </button>
+        {fileOverridden && (
+          <>
+            <span
+              title="This file is served from the store. The deployed package still has the original."
+              style={{ fontSize: 11.5, fontWeight: 700, color: ACCENT, background: "#e9f2ec", borderRadius: 6, padding: "3px 9px" }}
+            >
+              ◆ stored edit
+            </span>
+            <button
+              onClick={revert}
+              disabled={busy}
+              style={{ background: "#fff", color: "#5d6b64", border: `1px solid ${BORDER}`, borderRadius: 8, padding: "8px 14px", fontSize: 13, fontWeight: 600, cursor: busy ? "not-allowed" : "pointer", opacity: busy ? 0.5 : 1 }}
+            >
+              Revert to package
+            </button>
+          </>
+        )}
         {dirty && <span style={{ fontSize: 12.5, color: "#b8860b", fontWeight: 600 }}>● unsaved changes</span>}
         {status && (
           <span style={{ fontSize: 12.5, fontWeight: 600, color: status.ok ? ACCENT : "#c2410c" }}>{status.msg}</span>

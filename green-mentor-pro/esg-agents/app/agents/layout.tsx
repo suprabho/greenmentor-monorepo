@@ -1,12 +1,12 @@
 import Link from "next/link";
-import { listAgents } from "@/lib/agents/packageIO";
+import { listAgentsWithOverrides } from "@/lib/agents/packageIO";
 
-export const dynamic = "force-dynamic"; // reads the filesystem per request
+export const dynamic = "force-dynamic"; // reads the packages + their stored edits per request
 
 const ACCENT = "#1f8a5b";
 
-export default function AgentsLayout({ children }: { children: React.ReactNode }) {
-  const agents = listAgents();
+export default async function AgentsLayout({ children }: { children: React.ReactNode }) {
+  const agents = await listAgentsWithOverrides();
   return (
     <div style={{ minHeight: "100vh", background: "#f6f8f7", color: "#1a2420", fontFamily: "ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto" }}>
       <div style={{ maxWidth: 1180, margin: "0 auto", padding: "24px 24px 64px" }}>

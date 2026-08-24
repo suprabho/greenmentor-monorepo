@@ -1,7 +1,7 @@
 import { PHASES, PHASE_ORDER, type PhaseKey } from "./pipeline";
 import { isRunnable } from "./gates";
 import { assemblePhaseInput, parsedDocuments } from "./assembleInput";
-import { loadAgent } from "@/lib/agents/loadAgent";
+import { loadAgentWithOverrides } from "@/lib/agents/loadAgent";
 import { runAgent } from "@/lib/agents/runAgent";
 import { getEngagement } from "@/lib/db/engagements";
 import { getPhaseStates, setPhaseStatus, transitionPhase, cascadeStaleDownstream } from "@/lib/db/phases";
@@ -87,7 +87,7 @@ export async function runPhase(
   let run: Awaited<ReturnType<typeof createRun>> | null = null;
   try {
     const def = PHASES[phaseKey];
-    const agent = loadAgent(def.agentKey);
+    const agent = await loadAgentWithOverrides(def.agentKey);
 
     // Assemble input from prior artifacts (one read of all phases' latest artifacts).
     const upstream = await getArtifactsForPhases(orgId, engagementId, PHASE_ORDER);

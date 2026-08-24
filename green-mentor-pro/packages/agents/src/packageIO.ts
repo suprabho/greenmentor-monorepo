@@ -112,23 +112,23 @@ function syncRegistryModel(dirName: string, model: string): void {
   fs.writeFileSync(registryPath, lines.join("\n"), "utf8");
 }
 
-/** Write one editable file back to disk, validating content first. Returns the saved path. */
-export function writePackageFile(key: string, file: string, content: string): { ok: true; file: string } {
-  const dir = agentDir(key);
+/** The four file kinds the Agent Studio may edit. */
+export function isEditablePackageFile(file: string): boolean {
+  if (file === "skill.md" || file === "io.schema.json" || file === "tools.json") return true;
+  if (!file.startsWith("templates/")) return false;
+  const name = file.slice("templates/".length);
+  return Boolean(name) && !name.includes("/") && !name.includes("..");
+}
 
-  let target: string;
-  if (file === "skill.md" || file === "io.schema.json" || file === "tools.json") {
-    target = path.join(dir, file);
-  } else if (file.startsWith("templates/")) {
-    const name = file.slice("templates/".length);
-    if (!name || name.includes("/") || name.includes("..")) throw new Error("invalid template path");
-    target = path.join(dir, "templates", name);
-    if (!fs.existsSync(target)) throw new Error(`unknown template file: ${name}`);
-  } else {
-    throw new Error(`file not editable: ${file}`);
-  }
+/**
+ * Validate an edited package file before it is stored, so a bad save can't break the
+ * loader. Storage-agnostic on purpose — the filesystem writer below and the
+ * database-backed store in esg-agents both gate on this. Returns the parsed skill.md
+ * frontmatter (null for the other file kinds) so callers can project from it.
+ */
+export function validatePackageFile(file: string, content: string): Record<string, any> | null {
+  if (!isEditablePackageFile(file)) throw new Error(`file not editable: ${file}`);
 
-  // Validate before writing so a bad save can't break the loader.
   if (file.endsWith(".json")) {
     try {
       JSON.parse(content);
@@ -136,22 +136,36 @@ export function writePackageFile(key: string, file: string, content: string): { 
       throw new Error(`invalid JSON: ${e instanceof Error ? e.message : "parse error"}`);
     }
   }
-  let skillFm: Record<string, any> | null = null;
-  if (file === "skill.md") {
-    let fm;
-    try {
-      fm = matter(content);
-    } catch (e) {
-      throw new Error(`invalid frontmatter: ${e instanceof Error ? e.message : "parse error"}`);
-    }
-    if (!fm.data?.name) throw new Error("frontmatter must include a 'name' field");
-    if (!fm.data?.model) throw new Error("frontmatter must include a 'model' field");
-    // Catch a bad model at save time — otherwise the package writes fine and the
-    // first run fails with a 404 from the Anthropic API.
-    if (!isAgentModel(fm.data.model)) {
-      throw new Error(`unknown model '${fm.data.model}' — not one of the supported Claude models`);
-    }
-    skillFm = fm.data;
+  if (file !== "skill.md") return null;
+
+  let fm;
+  try {
+    fm = matter(content);
+  } catch (e) {
+    throw new Error(`invalid frontmatter: ${e instanceof Error ? e.message : "parse error"}`);
+  }
+  if (!fm.data?.name) throw new Error("frontmatter must include a 'name' field");
+  if (!fm.data?.model) throw new Error("frontmatter must include a 'model' field");
+  // Catch a bad model at save time — otherwise the package stores fine and the
+  // first run fails with a 404 from the Anthropic API.
+  if (!isAgentModel(fm.data.model)) {
+    throw new Error(`unknown model '${fm.data.model}' — not one of the supported Claude models`);
+  }
+  return fm.data;
+}
+
+/** Write one editable file back to disk, validating content first. Returns the saved path. */
+export function writePackageFile(key: string, file: string, content: string): { ok: true; file: string } {
+  const dir = agentDir(key);
+  const skillFm = validatePackageFile(file, content);
+
+  let target: string;
+  if (file.startsWith("templates/")) {
+    const name = file.slice("templates/".length);
+    target = path.join(dir, "templates", name);
+    if (!fs.existsSync(target)) throw new Error(`unknown template file: ${name}`);
+  } else {
+    target = path.join(dir, file);
   }
 
   fs.writeFileSync(target, content, "utf8");
