@@ -1,0 +1,234 @@
+{
+  "$defs": {
+    "input": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "subject": {
+          "type": ["object", "null"],
+          "additionalProperties": false,
+          "properties": {
+            "symbol": { "type": ["string", "null"], "description": "NSE ticker of the subject company, e.g. RELIANCE" },
+            "name": { "type": ["string", "null"], "description": "Subject company name, for methodology text" }
+          }
+        },
+        "framework_topics": {
+          "$ref": "#/$defs/FrameworkTable",
+          "description": "The nic-framework-materiality output for the subject's industry — what the frameworks prescribe"
+        },
+        "peer_topics": {
+          "$ref": "#/$defs/PeerTable",
+          "description": "The peer-material-topics-extraction output over the user-selected cohort — what peers disclosed"
+        },
+        "peers_analysed": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Size of the selected peer cohort — the \"of M peers\" denominator, which can exceed the peers that had extracted topics"
+        },
+        "target_count": {
+          "type": ["integer", "null"],
+          "minimum": 5,
+          "maximum": 40,
+          "description": "Desired long-list length; null/omitted = the default 20-25 band"
+        },
+        "notes": { "type": ["string", "null"], "description": "Optional user constraints, e.g. 'merge aggressively'" }
+      },
+      "required": ["framework_topics", "peer_topics", "peers_analysed"]
+    },
+    "output": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "topics": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/LongListTopic" },
+          "description": "The distilled long list (20-25 unless target_count or thin evidence says otherwise), sorted by peer_count + framework_count desc, then pillar (E, S, G), then name"
+        },
+        "methodology": {
+          "type": "string",
+          "description": "What the two inputs were (cohort size, frameworks covered), how variants were merged, how the list was cut to the band, how pillars were assigned"
+        },
+        "caveats": { "type": "array", "items": { "type": "string" } }
+      },
+      "required": ["topics", "methodology", "caveats"]
+    },
+    "FrameworkTable": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "topics": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/FrameworkTopicIn" },
+          "description": "Deduplicated framework topics from nic-framework-materiality"
+        },
+        "frameworks_covered": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "framework": { "type": "string", "enum": ["sasb", "sustainalytics", "msci"] },
+              "matched_count": { "type": "integer" },
+              "match_level": { "type": ["string", "null"] }
+            },
+            "required": ["framework"]
+          },
+          "description": "Per-framework coverage — its length is frameworks_analysed"
+        },
+        "methodology": { "type": ["string", "null"] },
+        "caveats": { "type": ["array", "null"], "items": { "type": "string" } }
+      },
+      "required": ["topics", "frameworks_covered"]
+    },
+    "FrameworkTopicIn": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "pillar": { "type": "string", "enum": ["E", "S", "G"] },
+        "frameworks": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "framework": { "type": "string", "enum": ["sasb", "sustainalytics", "msci"] },
+              "as_named": { "type": "string" }
+            },
+            "required": ["framework", "as_named"]
+          }
+        },
+        "convergence": { "type": "integer" },
+        "msci_weight_pct": { "type": ["number", "null"] }
+      },
+      "required": ["name", "description", "pillar", "frameworks", "convergence"]
+    },
+    "PeerTable": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "topics": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/PeerTopicIn" },
+          "description": "Deduplicated disclosed topics from peer-material-topics-extraction"
+        },
+        "peers_missing": {
+          "type": ["array", "null"],
+          "items": { "type": "string" },
+          "description": "Selected symbols with no topics-extracted filing — carry into caveats"
+        },
+        "methodology": { "type": ["string", "null"] },
+        "caveats": { "type": ["array", "null"], "items": { "type": "string" } }
+      },
+      "required": ["topics"]
+    },
+    "PeerTopicIn": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "pillar": { "type": "string", "enum": ["E", "S", "G"] },
+        "peers": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "symbol": { "type": "string" },
+              "name": { "type": ["string", "null"] },
+              "as_disclosed": { "type": "string" }
+            },
+            "required": ["symbol", "as_disclosed"]
+          }
+        },
+        "frequency": { "type": "integer" },
+        "risk_opportunity": { "type": ["string", "null"] }
+      },
+      "required": ["name", "description", "pillar", "peers", "frequency"]
+    },
+    "LongListTopic": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string", "description": "Deduplicated display name of the material topic, title case" },
+        "description": {
+          "type": "string",
+          "description": "1-2 sentences synthesized across the merged framework and peer variants — never one source's text verbatim"
+        },
+        "pillar": { "type": "string", "enum": ["E", "S", "G"], "description": "E=Environmental, S=Social, G=Governance" },
+        "frequency": { "$ref": "#/$defs/Frequency" },
+        "sources": { "$ref": "#/$defs/Sources" }
+      },
+      "required": ["name", "description", "pillar", "frequency", "sources"]
+    },
+    "Frequency": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "peer_count": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Distinct disclosing peers; must equal sources.peers.length"
+        },
+        "peers_analysed": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "The input peers_analysed, echoed on every topic — the \"of M peers\" denominator"
+        },
+        "framework_count": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Distinct prescribing frameworks; must equal sources.frameworks.length"
+        },
+        "frameworks_analysed": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of frameworks in the input's frameworks_covered"
+        },
+        "label": {
+          "type": "string",
+          "description": "The table cell, e.g. \"7 of 10 peers + 3 frameworks\"; a clause with count 0 is omitted"
+        }
+      },
+      "required": ["peer_count", "peers_analysed", "framework_count", "frameworks_analysed", "label"]
+    },
+    "Sources": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "peers": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "symbol": { "type": "string" },
+              "name": { "type": ["string", "null"] },
+              "as_disclosed": { "type": "string", "description": "The peer's verbatim wording; merged variants joined with '; '" }
+            },
+            "required": ["symbol", "as_disclosed"]
+          },
+          "description": "Every disclosing peer behind this topic — empty array when no peer evidence"
+        },
+        "frameworks": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "framework": { "type": "string", "enum": ["sasb", "sustainalytics", "msci"] },
+              "as_named": { "type": "string", "description": "The framework's verbatim label; merged variants joined with '; '" }
+            },
+            "required": ["framework", "as_named"]
+          },
+          "description": "Every prescribing framework behind this topic — empty array when no framework evidence"
+        }
+      },
+      "required": ["peers", "frameworks"]
+    }
+  }
+}
