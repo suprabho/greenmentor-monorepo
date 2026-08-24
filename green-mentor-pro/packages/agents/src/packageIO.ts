@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import matter from "gray-matter";
+import { isAgentModel } from "./anthropic/models";
 
 /**
  * Server-side read/write of agent package files for the Agent Studio UI.
@@ -27,6 +28,12 @@ export interface PackageFiles {
   ioSchema: string;
   tools: string;
   templates: { name: string; content: string }[];
+  /**
+   * skill.md's parsed frontmatter. The Studio header reads `model` from here rather
+   * than from the AgentMeta row, because registry.json is a projection that can lag
+   * an unsaved (or just-saved) edit — the file on disk is the source of truth.
+   */
+  frontmatter: Record<string, unknown>;
 }
 
 export function listAgents(): AgentMeta[] {
@@ -54,7 +61,55 @@ export function readPackage(key: string): PackageFiles {
         .filter((n) => !n.startsWith("."))
         .map((name) => ({ name, content: fs.readFileSync(path.join(tplDir, name), "utf8") }))
     : [];
-  return { key, skill: read("skill.md"), ioSchema: read("io.schema.json"), tools: read("tools.json"), templates };
+  const skill = read("skill.md");
+  return {
+    key,
+    skill,
+    ioSchema: read("io.schema.json"),
+    tools: read("tools.json"),
+    templates,
+    frontmatter: (matter(skill).data ?? {}) as Record<string, unknown>,
+  };
+}
+
+/**
+ * Patch the `model` of one agent's row in registry.json after its skill.md is saved,
+ * so the Studio's header badge and left rail reflect a model change without a manual
+ * `pnpm registry:build`.
+ *
+ * Deliberately narrow, on two axes:
+ *
+ *  - Only `model` is synced. registry.json carries hand-authored fields no projection
+ *    reproduces (`name` is a display name like "Peer Material Topics Skill", not the
+ *    frontmatter slug; `depth` exists nowhere else), so rewriting the row from
+ *    frontmatter would destroy them. Other fields stay exactly as stale-or-not as
+ *    they are today.
+ *  - The edit is textual, not a JSON round-trip, because the file is hand-formatted
+ *    one row per line with aligned columns — re-serializing it would reflow all 12
+ *    rows on every save. If the row isn't on a single line (someone reformatted the
+ *    file), we leave it alone rather than mangle it.
+ */
+function syncRegistryModel(dirName: string, model: string): void {
+  const registryPath = path.join(AGENTS_ROOT, "registry.json");
+  if (!fs.existsSync(registryPath)) return;
+  const lines = fs.readFileSync(registryPath, "utf8").split("\n");
+
+  const i = lines.findIndex((l) => l.includes(`"path": "agents/${dirName}"`));
+  if (i < 0) return;
+
+  // Keep the column alignment: absorb the length change into the run of spaces that
+  // follows the value, so shorter ids don't pull the rest of the row leftwards.
+  const patched = lines[i].replace(
+    /("model"\s*:\s*")([^"]*)(",)( *)/,
+    (_m, open: string, old: string, close: string, pad: string) => {
+      const slack = Math.max(1, pad.length + old.length - model.length);
+      return `${open}${model}${close}${" ".repeat(slack)}`;
+    },
+  );
+  if (patched === lines[i]) return; // no model field on that row, or already current
+
+  lines[i] = patched;
+  fs.writeFileSync(registryPath, lines.join("\n"), "utf8");
 }
 
 /** Write one editable file back to disk, validating content first. Returns the saved path. */
@@ -81,6 +136,7 @@ export function writePackageFile(key: string, file: string, content: string): { 
       throw new Error(`invalid JSON: ${e instanceof Error ? e.message : "parse error"}`);
     }
   }
+  let skillFm: Record<string, any> | null = null;
   if (file === "skill.md") {
     let fm;
     try {
@@ -90,8 +146,15 @@ export function writePackageFile(key: string, file: string, content: string): { 
     }
     if (!fm.data?.name) throw new Error("frontmatter must include a 'name' field");
     if (!fm.data?.model) throw new Error("frontmatter must include a 'model' field");
+    // Catch a bad model at save time — otherwise the package writes fine and the
+    // first run fails with a 404 from the Anthropic API.
+    if (!isAgentModel(fm.data.model)) {
+      throw new Error(`unknown model '${fm.data.model}' — not one of the supported Claude models`);
+    }
+    skillFm = fm.data;
   }
 
   fs.writeFileSync(target, content, "utf8");
+  if (skillFm) syncRegistryModel(path.basename(dir), String(skillFm.model));
   return { ok: true, file };
 }

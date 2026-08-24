@@ -1,6 +1,12 @@
 import type Anthropic from "@anthropic-ai/sdk";
 
-export type AgentModel = "claude-opus-4-8" | "claude-sonnet-4-6" | "claude-haiku-4-5";
+export type AgentModel =
+  | "claude-opus-5"
+  | "claude-sonnet-5"
+  | "claude-fable-5"
+  | "claude-opus-4-8"
+  | "claude-sonnet-4-6"
+  | "claude-haiku-4-5";
 
 export type AgentFamily =
   | "planning"

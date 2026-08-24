@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { loadAgent } from "@/lib/agents/loadAgent";
 import { runAgent } from "@/lib/agents/runAgent";
+import { resolveAgentModel } from "@gm/agents";
 import { getSession } from "@/lib/auth/session";
 import { runPhase, PhaseNotRunnableError } from "@/lib/orchestrator/runPhase";
 import { PHASES, PHASE_ORDER, type PhaseKey } from "@/lib/orchestrator/pipeline";
@@ -17,7 +18,10 @@ const AGENT_TO_PHASE: Record<string, PhaseKey> = Object.fromEntries(
  *  • Real (body has engagementId): authenticated + tenant-scoped + persisted via
  *    runPhase (DB runs/artifacts/review_queue). ctx is derived server-side.
  *  • Legacy demo (no engagementId): the original in-memory path — loads the package
- *    and runs it with client-supplied input/ctx, no persistence.
+ *    and runs it with client-supplied input/ctx, no persistence. This is what the
+ *    Agent Studio's test bench hits, so it also accepts an optional `model` that
+ *    overrides the package's for that one run. The persisted path above takes no
+ *    such override — production runs stay driven by skill.md on disk.
  */
 export async function POST(
   req: Request,
@@ -48,11 +52,17 @@ export async function POST(
     if (!agent.enabled) {
       return NextResponse.json({ error: `${agentKey} is disabled in v1` }, { status: 409 });
     }
-    const result = await runAgent(agent, body.input ?? {}, {
-      orgId: body.ctx?.orgId ?? "org_dev",
-      engagementId: body.ctx?.engagementId ?? "eng_dev",
-      financialYear: body.ctx?.financialYear,
-    });
+    const result = await runAgent(
+      agent,
+      body.input ?? {},
+      {
+        orgId: body.ctx?.orgId ?? "org_dev",
+        engagementId: body.ctx?.engagementId ?? "eng_dev",
+        financialYear: body.ctx?.financialYear,
+      },
+      // Unknown/stale ids fall back to the package model rather than erroring.
+      { model: resolveAgentModel(body.model, agent.model) },
+    );
     return NextResponse.json({ output: result.output, meta: result.meta });
   } catch (e: unknown) {
     const message = e instanceof Error ? e.message : "agent run failed";

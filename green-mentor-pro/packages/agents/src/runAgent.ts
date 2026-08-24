@@ -1,7 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import Ajv from "ajv";
 import addFormats from "ajv-formats";
-import type { LoadedAgent, AgentRunResult, ToolContext } from "./types";
+import type { AgentModel, LoadedAgent, AgentRunResult, ToolContext } from "./types";
 import { getClient } from "./anthropic/client";
 import { supportsTemperature } from "./anthropic/models";
 
@@ -28,6 +28,12 @@ export interface AgentProgressEvent {
 export interface RunAgentOptions {
   runCallableTool?: CallableToolFn;
   onProgress?: (ev: AgentProgressEvent) => void;
+  /**
+   * Run on this model instead of the package's own. Used by the Agent Studio's test
+   * bench to try a model without editing skill.md; production (runPhase) leaves it
+   * unset so the package on disk stays the source of truth.
+   */
+  model?: AgentModel;
 }
 
 /**
@@ -49,6 +55,10 @@ export async function runAgent<I, O>(
   if (!agent.enabled) throw new Error(`${agent.key} is a disabled stub — not runnable in v1`);
 
   const client = getClient();
+
+  // The package's model unless the caller overrode it. Everything downstream —
+  // the request, the temperature check, meta.model — reports this one.
+  const model = opts.model ?? agent.model;
 
   const emitTool: Anthropic.Messages.Tool = {
     name: agent.emitToolName,
@@ -87,10 +97,11 @@ export async function runAgent<I, O>(
     // Plain object first, cast at the call site — same reason as apiTools above:
     // this SDK version's request-param types lag `container`.
     const requestParams = {
-      model: agent.model,
+      model,
       max_tokens: agent.maxTokens,
-      // Some newer models (e.g. Opus 4.8) reject the deprecated `temperature` param.
-      ...(supportsTemperature(agent.model) ? { temperature: agent.temperature } : {}),
+      // Newer models (Fable 5, Opus 5, Sonnet 5, Opus 4.8) reject the deprecated
+      // `temperature` param.
+      ...(supportsTemperature(model) ? { temperature: agent.temperature } : {}),
       system: agent.system,
       tools: apiTools,
       tool_choice: forceEmit ? { type: "tool", name: agent.emitToolName } : { type: "auto" },
@@ -132,7 +143,7 @@ export async function runAgent<I, O>(
           raw: msg,
           meta: {
             agent: agent.key,
-            model: agent.model,
+            model,
             version: agent.version,
             promptVariant: agent.promptVariant,
             stopReason: msg.stop_reason,

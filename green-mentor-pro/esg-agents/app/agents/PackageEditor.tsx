@@ -1,7 +1,9 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { AGENT_MODEL_CHOICES } from "@gm/agents/models";
 import type { AgentMeta, PackageFiles } from "@/lib/agents/packageIO";
+import { readFrontmatterModel, setFrontmatterModel } from "@/lib/agents/frontmatterModel";
 import TestRunPanel from "./TestRunPanel";
 
 const ACCENT = "#1f8a5b";
@@ -46,26 +48,46 @@ export default function PackageEditor({ meta, pkg }: { meta: AgentMeta; pkg: Pac
   const dirty = fileId !== "" && edits[fileId] !== saved[fileId];
   const activeTab = TABS.find((t) => t.id === tab)!;
 
-  const save = async () => {
-    if (!dirty || !fileId) return;
+  // The model comes from skill.md, not from meta — registry.json is a projection that
+  // lags an unsaved edit. Reading the *edited* buffer also means typing a new model
+  // straight into the Prompt & config textarea moves the dropdown, and vice versa.
+  const model = readFrontmatterModel(edits["skill.md"]) ?? meta.model;
+  // The test bench runs whatever is on disk, so it defaults to the saved model.
+  const savedModel = readFrontmatterModel(saved["skill.md"]) ?? meta.model;
+  const modelNote = AGENT_MODEL_CHOICES.find((c) => c.id === model)?.note;
+  const skillDirty = edits["skill.md"] !== saved["skill.md"];
+
+  // Rewrite the frontmatter in the buffer rather than saving straight through: the
+  // dropdown and the Prompt & config textarea edit the same file, so writing here
+  // would clobber unsaved prompt edits. This marks the tab dirty and the change goes
+  // out via the existing "Save to disk" button.
+  const pickModel = (next: string) => {
+    setEdits((prev) => ({ ...prev, "skill.md": setFrontmatterModel(prev["skill.md"], next) }));
+    setStatus(null);
+  };
+
+  const saveFile = async (id: string) => {
+    const body = edits[id];
+    if (!id || body === saved[id]) return;
     setBusy(true);
     setStatus(null);
     try {
       const res = await fetch(`/api/agents/${meta.key}/package`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ file: fileId, content }),
+        body: JSON.stringify({ file: id, content: body }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error ?? `HTTP ${res.status}`);
-      setSaved((s) => ({ ...s, [fileId]: content }));
-      setStatus({ ok: true, msg: `Saved ${fileId} ✓ — the runtime re-reads it on the next run.` });
+      setSaved((s) => ({ ...s, [id]: body }));
+      setStatus({ ok: true, msg: `Saved ${id} ✓ — the runtime re-reads it on the next run.` });
     } catch (e) {
       setStatus({ ok: false, msg: e instanceof Error ? e.message : "save failed" });
     } finally {
       setBusy(false);
     }
   };
+  const save = () => saveFile(fileId);
 
   const reset = () => {
     setEdits((e) => ({ ...e, [fileId]: saved[fileId] }));
@@ -86,11 +108,54 @@ export default function PackageEditor({ meta, pkg }: { meta: AgentMeta; pkg: Pac
         </div>
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "flex-end" }}>
           {meta.phase > 0 && badge(`phase ${meta.phase}`, "#eef1f0", "#5d6b64")}
-          {badge(meta.model.replace("claude-", ""), "#e9f2ec", ACCENT)}
+          <select
+            value={model}
+            onChange={(e) => pickModel(e.target.value)}
+            title={modelNote ?? "Model this agent runs on — saved into skill.md frontmatter."}
+            aria-label="Model"
+            style={{
+              background: "#e9f2ec", color: ACCENT, fontSize: 11.5, fontWeight: 700,
+              padding: "3px 6px 3px 9px", borderRadius: 6, border: `1px solid ${ACCENT}33`, cursor: "pointer",
+            }}
+          >
+            {/* A hand-edited model outside the known set still needs to show up. */}
+            {!AGENT_MODEL_CHOICES.some((c) => c.id === model) && (
+              <option value={model}>{model.replace("claude-", "")} ⚠</option>
+            )}
+            {AGENT_MODEL_CHOICES.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.label}
+                {c.note ? " ⚠" : ""}
+              </option>
+            ))}
+          </select>
           {meta.hitl_gate && badge(`gate: ${meta.hitl_gate}`, "#fbf2dc", "#b8860b")}
           {meta.enabled === false && badge("stub", "#eef1f0", "#8a958f")}
         </div>
       </div>
+
+      {/* The dropdown edits skill.md, whose Save button lives on another tab — so the
+          model change gets its own, reachable from wherever the user changed it. */}
+      {(skillDirty || modelNote) && (
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 10, marginTop: 8, flexWrap: "wrap" }}>
+          {modelNote && <span style={{ fontSize: 11.5, color: "#b8860b" }}>⚠ {modelNote}</span>}
+          {skillDirty && (
+            <>
+              <span style={{ fontSize: 11.5, color: "#b8860b", fontWeight: 600 }}>● skill.md unsaved</span>
+              <button
+                onClick={() => saveFile("skill.md")}
+                disabled={busy}
+                style={{
+                  background: ACCENT, color: "#fff", border: "none", borderRadius: 7, padding: "4px 11px",
+                  fontSize: 12, fontWeight: 650, cursor: busy ? "not-allowed" : "pointer", opacity: busy ? 0.45 : 1,
+                }}
+              >
+                {busy ? "Saving…" : "Save to disk"}
+              </button>
+            </>
+          )}
+        </div>
+      )}
 
       {/* tabs */}
       <div style={{ display: "flex", gap: 4, margin: "16px 0 4px", borderBottom: `1px solid ${BORDER}` }}>
@@ -142,7 +207,7 @@ export default function PackageEditor({ meta, pkg }: { meta: AgentMeta; pkg: Pac
       )}
 
       {/* test bench */}
-      {tab === "test" && <TestRunPanel agentKey={meta.key} />}
+      {tab === "test" && <TestRunPanel agentKey={meta.key} defaultModel={savedModel} />}
 
       {/* editor */}
       {tab !== "test" && (fileId ? (
