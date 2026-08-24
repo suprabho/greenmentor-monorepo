@@ -21,6 +21,7 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const OUTS = [
   resolve(HERE, "../lib/msci/materiality-data.ts"), // @gm/platform (source of truth)
   resolve(HERE, "../../community-engine/lib/msci/materiality-data.ts"), // community-engine (admin dashboard)
+  resolve(HERE, "../../packages/orchestrator/src/frameworks/msci/materiality-data.ts"), // @gm/orchestrator (nic-framework-materiality grounding)
 ];
 
 type RawIssue = { name: string; description?: string };

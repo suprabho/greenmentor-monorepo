@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { AGENT_MODEL_CHOICES } from "@gm/agents/models";
 import PeerRunResult, { type PeerResultData } from "./PeerRunResult";
 import TopicsRunResult, { type TopicsResultData } from "./TopicsRunResult";
+import FrameworkRunResult, { type FrameworkResultData } from "./FrameworkRunResult";
 
 /**
  * Test bench tab for the Agent Studio — runs a package against the live runtime
@@ -14,7 +15,9 @@ import TopicsRunResult, { type TopicsResultData } from "./TopicsRunResult";
  * peer-material-topics-extraction gets a multi-select cohort picker over the
  * same corpus (note: the picker lists profiled filings, while the topics tool
  * needs the topics stage — a picked company can still come back in
- * `peers_missing`); every other agent gets a JSON input box. All post to the
+ * `peers_missing`); nic-framework-materiality takes NIC-2008 codes directly or
+ * borrows a company's from the same picker, plus a framework toggle; every other
+ * agent gets a JSON input box. All post to the
  * existing /api/agents/[key]/run demo path, which binds the app's callable-tool
  * handlers — so runs here are grounded, not stubbed.
  *
@@ -52,6 +55,21 @@ const btn = (primary: boolean, enabled: boolean): React.CSSProperties => ({
 
 const MAX_COHORT = 15;
 
+/** nic-framework-materiality: the frameworks the grounding tool can collate. */
+const FRAMEWORK_KEYS = ["sasb", "sustainalytics", "msci"] as const;
+const FRAMEWORK_LABEL: Record<string, string> = {
+  sasb: "SASB",
+  sustainalytics: "Sustainalytics",
+  msci: "MSCI",
+};
+/** Comma/space separated NIC codes → the array the tool expects. */
+const parseNicCodes = (raw: string) =>
+  raw
+    .split(/[,\s]+/)
+    .map((c) => c.replace(/\D/g, ""))
+    .filter(Boolean)
+    .slice(0, 10);
+
 export default function TestRunPanel({
   agentKey,
   defaultModel,
@@ -62,7 +80,10 @@ export default function TestRunPanel({
 }) {
   const isPeer = agentKey === "peer-research";
   const isTopics = agentKey === "peer-material-topics-extraction";
-  const usesPicker = isPeer || isTopics;
+  const isFramework = agentKey === "nic-framework-materiality";
+  // The framework agent can take a symbol instead of NIC codes, so it wants the
+  // same company picker — but only while the user is on the "by company" tab.
+  const usesPicker = isPeer || isTopics || isFramework;
 
   const [query, setQuery] = useState("");
   const [companies, setCompanies] = useState<CompanyItem[]>([]);
@@ -70,6 +91,11 @@ export default function TestRunPanel({
   const [selected, setSelected] = useState<CompanyItem | null>(null);
   const [cohort, setCohort] = useState<CompanyItem[]>([]);
   const [maxPeers, setMaxPeers] = useState(8);
+
+  // nic-framework-materiality inputs
+  const [nicCodes, setNicCodes] = useState("");
+  const [nicMode, setNicMode] = useState<"codes" | "symbol">("codes");
+  const [frameworks, setFrameworks] = useState<string[]>([...FRAMEWORK_KEYS]);
 
   const [json, setJson] = useState("{\n  \n}");
   const [model, setModel] = useState(defaultModel);
@@ -83,6 +109,7 @@ export default function TestRunPanel({
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<{ data: PeerResultData; meta: RunMeta | null; mode: "run" | "preview" } | null>(null);
   const [topicsResult, setTopicsResult] = useState<{ data: TopicsResultData; meta: RunMeta | null; mode: "run" | "preview" } | null>(null);
+  const [frameworkResult, setFrameworkResult] = useState<{ data: FrameworkResultData; meta: RunMeta | null; mode: "run" | "preview" } | null>(null);
   const [genericOut, setGenericOut] = useState<string | null>(null);
 
   // Company lookup, debounced. Runs once on mount too, so the picker opens with
@@ -103,11 +130,12 @@ export default function TestRunPanel({
     }
   }, []);
 
+  const pickerActive = usesPicker && (!isFramework || nicMode === "symbol");
   useEffect(() => {
-    if (!usesPicker) return;
+    if (!pickerActive) return;
     const t = setTimeout(() => void loadCompanies(query), query ? 250 : 0);
     return () => clearTimeout(t);
-  }, [usesPicker, query, loadCompanies]);
+  }, [pickerActive, query, loadCompanies]);
 
   const addToCohort = (c: CompanyItem) =>
     setCohort((prev) =>
@@ -127,20 +155,32 @@ export default function TestRunPanel({
     return () => clearInterval(id);
   }, [busy]);
 
+  const frameworkQuery = () => {
+    const params = new URLSearchParams();
+    if (nicMode === "symbol") params.set("symbol", selected!.symbol);
+    else params.set("nic_codes", parseNicCodes(nicCodes).join(","));
+    if (frameworks.length !== FRAMEWORK_KEYS.length) params.set("frameworks", frameworks.join(","));
+    return params.toString();
+  };
+
   const preview = async () => {
-    if (isPeer ? !selected : !cohort.length) return;
+    if (isPeer ? !selected : isFramework ? !frameworkReady : !cohort.length) return;
     setBusy("preview");
     setError(null);
     setResult(null);
     setTopicsResult(null);
+    setFrameworkResult(null);
     try {
       const url = isPeer
         ? `/api/brsr/peer-preview?symbol=${encodeURIComponent(selected!.symbol)}`
-        : `/api/brsr/topics-preview?symbols=${encodeURIComponent(cohort.map((c) => c.symbol).join(","))}`;
+        : isFramework
+          ? `/api/frameworks/materiality-preview?${frameworkQuery()}`
+          : `/api/brsr/topics-preview?symbols=${encodeURIComponent(cohort.map((c) => c.symbol).join(","))}`;
       const res = await fetch(url);
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error ?? `HTTP ${res.status}`);
       if (isPeer) setResult({ data, meta: null, mode: "preview" });
+      else if (isFramework) setFrameworkResult({ data, meta: null, mode: "preview" });
       else setTopicsResult({ data, meta: null, mode: "preview" });
     } catch (e) {
       setError(e instanceof Error ? e.message : "preview failed");
@@ -154,6 +194,7 @@ export default function TestRunPanel({
     setError(null);
     setResult(null);
     setTopicsResult(null);
+    setFrameworkResult(null);
     setGenericOut(null);
     const started = Date.now();
     try {
@@ -164,6 +205,16 @@ export default function TestRunPanel({
       } else if (isTopics) {
         if (!cohort.length) throw new Error("pick at least one company first");
         input = { peers: cohort.map((c) => ({ symbol: c.symbol, name: c.name })) };
+      } else if (isFramework) {
+        if (!frameworks.length) throw new Error("pick at least one framework");
+        if (nicMode === "symbol") {
+          if (!selected) throw new Error("pick a company first");
+          input = { symbol: selected.symbol, frameworks };
+        } else {
+          const codes = parseNicCodes(nicCodes);
+          if (!codes.length) throw new Error("enter at least one NIC code");
+          input = { nic_codes: codes, frameworks };
+        }
       } else {
         try {
           input = JSON.parse(json);
@@ -186,6 +237,7 @@ export default function TestRunPanel({
       };
       if (isPeer) setResult({ data: data.output ?? {}, meta, mode: "run" });
       else if (isTopics) setTopicsResult({ data: data.output ?? {}, meta, mode: "run" });
+      else if (isFramework) setFrameworkResult({ data: data.output ?? {}, meta, mode: "run" });
       else setGenericOut(JSON.stringify(data.output ?? data, null, 2));
     } catch (e) {
       setError(e instanceof Error ? e.message : "run failed");
@@ -194,7 +246,10 @@ export default function TestRunPanel({
     }
   };
 
-  const canRun = !busy && (isPeer ? !!selected : isTopics ? cohort.length > 0 : true);
+  const frameworkReady =
+    frameworks.length > 0 && (nicMode === "symbol" ? !!selected : parseNicCodes(nicCodes).length > 0);
+  const canRun =
+    !busy && (isPeer ? !!selected : isTopics ? cohort.length > 0 : isFramework ? frameworkReady : true);
 
   const modelNote = AGENT_MODEL_CHOICES.find((c) => c.id === model)?.note;
 
@@ -370,6 +425,113 @@ export default function TestRunPanel({
             extracted yet will come back under <code>peers_missing</code>.
           </div>
         </>
+      ) : isFramework ? (
+        <>
+          <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 0.4, color: MUTED, textTransform: "uppercase", marginBottom: 6 }}>
+            Industry — NIC-2008
+          </div>
+
+          <div style={{ display: "inline-flex", border: `1px solid ${BORDER}`, borderRadius: 8, overflow: "hidden", marginBottom: 10 }}>
+            {(["codes", "symbol"] as const).map((m) => (
+              <button
+                key={m}
+                onClick={() => setNicMode(m)}
+                style={{ background: nicMode === m ? "#f2f8f5" : "#fff", color: nicMode === m ? ACCENT : "#5d6b64", border: "none", borderRight: m === "codes" ? `1px solid ${BORDER}` : "none", padding: "7px 14px", fontSize: 12.5, fontWeight: 650, cursor: "pointer" }}
+              >
+                {m === "codes" ? "By NIC code" : "By company"}
+              </button>
+            ))}
+          </div>
+
+          {nicMode === "codes" ? (
+            <>
+              <input
+                value={nicCodes}
+                onChange={(e) => setNicCodes(e.target.value)}
+                placeholder="e.g. 20119, 20299 — 2-8 digit NIC-2008 codes, up to 10"
+                style={{ width: "100%", boxSizing: "border-box", fontSize: 13.5, padding: "9px 12px", border: `1px solid ${BORDER}`, borderRadius: 8, background: "#fbfcfb", color: "#1a2420" }}
+              />
+              <div style={{ marginTop: 6, fontSize: 11, color: MUTED }}>
+                Only the leading 2 digits (the NIC Division) decide the industry, so 20119 and 20299
+                resolve to the same Division 20. Frameworks are matched at Division level and widen to
+                the NIC Section only where nothing maps.
+              </div>
+            </>
+          ) : (
+            <>
+              <input
+                value={query}
+                onChange={(e) => { setQuery(e.target.value); setSelected(null); }}
+                placeholder="Search by NSE symbol or company name…"
+                style={{ width: "100%", boxSizing: "border-box", fontSize: 13.5, padding: "9px 12px", border: `1px solid ${BORDER}`, borderRadius: 8, background: "#fbfcfb", color: "#1a2420" }}
+              />
+              {selected ? (
+                <div style={{ marginTop: 8, display: "flex", alignItems: "center", gap: 10, border: `1px solid ${ACCENT}55`, background: "#f2f8f5", borderRadius: 8, padding: "9px 12px" }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 13.5, fontWeight: 700, color: "#1a2420" }}>
+                      {selected.name} <span style={{ color: MUTED, fontWeight: 600, fontSize: 11.5 }}>{selected.symbol}</span>
+                    </div>
+                    <div style={{ fontSize: 11.5, color: "#5d6b64" }}>
+                      {[selected.industry ?? selected.sector, `FY ${selected.fy}`].filter(Boolean).join(" · ")}
+                    </div>
+                  </div>
+                  <button onClick={() => setSelected(null)} style={{ ...btn(false, true), padding: "5px 10px", fontSize: 12 }}>
+                    Change
+                  </button>
+                </div>
+              ) : (
+                <div style={{ marginTop: 8, maxHeight: 220, overflow: "auto", border: `1px solid ${BORDER}`, borderRadius: 8 }}>
+                  {picking && <div style={{ padding: 12, fontSize: 12.5, color: MUTED }}>Loading…</div>}
+                  {!picking && companies.length === 0 && (
+                    <div style={{ padding: 12, fontSize: 12.5, color: MUTED }}>No profiled BRSR companies matched.</div>
+                  )}
+                  {companies.map((c) => (
+                    <button
+                      key={c.symbol}
+                      onClick={() => setSelected(c)}
+                      style={{ display: "block", width: "100%", textAlign: "left", background: "none", border: "none", borderBottom: `1px solid ${BORDER}`, padding: "9px 12px", cursor: "pointer" }}
+                    >
+                      <div style={{ fontSize: 13, fontWeight: 650, color: "#1a2420" }}>
+                        {c.name} <span style={{ color: MUTED, fontWeight: 600, fontSize: 11 }}>{c.symbol}</span>
+                      </div>
+                      <div style={{ fontSize: 11, color: "#5d6b64" }}>{c.industry ?? c.sector}</div>
+                    </button>
+                  ))}
+                </div>
+              )}
+              <div style={{ marginTop: 6, fontSize: 11, color: MUTED }}>
+                The company&apos;s BRSR Section A product rows are turnover-weighted onto NIC Divisions —
+                a diversified filer contributes more than one.
+              </div>
+            </>
+          )}
+
+          <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 0.4, color: MUTED, textTransform: "uppercase", margin: "14px 0 6px" }}>
+            Frameworks
+          </div>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            {FRAMEWORK_KEYS.map((f) => {
+              const on = frameworks.includes(f);
+              return (
+                <button
+                  key={f}
+                  onClick={() => setFrameworks((prev) => (on ? prev.filter((x) => x !== f) : [...prev, f]))}
+                  style={{ background: on ? "#f2f8f5" : "#fff", color: on ? ACCENT : "#5d6b64", border: `1px solid ${on ? `${ACCENT}55` : BORDER}`, borderRadius: 8, padding: "6px 12px", fontSize: 12.5, fontWeight: 650, cursor: "pointer" }}
+                >
+                  {on ? "✓ " : ""}
+                  {FRAMEWORK_LABEL[f]}
+                </button>
+              );
+            })}
+          </div>
+          {frameworks.includes("msci") && (
+            <div style={{ marginTop: 8, fontSize: 11.5, fontWeight: 600, color: "#7a3fa8", background: "#f4ecfa", border: "1px solid #dcc8ea", borderRadius: 8, padding: "7px 11px" }}>
+              MSCI is proprietary reference data — its Key Issue weights are the only prioritisation
+              signal here, but any table containing them is internal-use only. Deselect it for a
+              freely shareable table.
+            </div>
+          )}
+        </>
       ) : (
         <>
           <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 0.4, color: MUTED, textTransform: "uppercase", marginBottom: 6 }}>
@@ -398,9 +560,16 @@ export default function TestRunPanel({
             {busy === "preview" ? "Loading…" : "Preview disclosed topics (no LLM)"}
           </button>
         )}
+        {isFramework && (
+          <button onClick={preview} disabled={!frameworkReady || !!busy} style={btn(false, frameworkReady && !busy)}>
+            {busy === "preview" ? "Loading…" : "Preview framework issues (no LLM)"}
+          </button>
+        )}
         {busy === "run" && (
           <span style={{ fontSize: 12, color: MUTED }}>
-            {isTopics ? "grounding + dedupe can take a minute" : "grounding + web research can take a minute"}
+            {isTopics || isFramework
+              ? "grounding + dedupe can take a minute"
+              : "grounding + web research can take a minute"}
           </span>
         )}
         {error && <span style={{ fontSize: 12.5, fontWeight: 600, color: "#c2410c" }}>{error}</span>}
@@ -408,6 +577,9 @@ export default function TestRunPanel({
 
       {result && <PeerRunResult data={result.data} meta={result.meta} mode={result.mode} />}
       {topicsResult && <TopicsRunResult data={topicsResult.data} meta={topicsResult.meta} mode={topicsResult.mode} />}
+      {frameworkResult && (
+        <FrameworkRunResult data={frameworkResult.data} meta={frameworkResult.meta} mode={frameworkResult.mode} />
+      )}
       {genericOut && (
         <pre style={{ marginTop: 14, background: "#f6f8f7", border: `1px solid ${BORDER}`, borderRadius: 10, padding: 14, fontSize: 12, lineHeight: 1.55, overflow: "auto", maxHeight: 520 }}>
           {genericOut}

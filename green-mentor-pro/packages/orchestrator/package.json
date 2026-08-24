@@ -6,7 +6,8 @@
   "types": "src/index.ts",
   "exports": {
     ".": "./src/index.ts",
-    "./peer": "./src/peer/index.ts"
+    "./peer": "./src/peer/index.ts",
+    "./frameworks": "./src/frameworks/index.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
