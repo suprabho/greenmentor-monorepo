@@ -92,11 +92,11 @@ async function readSource(req: Request): Promise<Buffer | NextResponse> {
       { status: 422 }
     );
   }
-  const contentType = res.headers.get("content-type") ?? "";
-  if (contentType && !contentType.startsWith("image/")) {
+  const resType = res.headers.get("content-type") ?? "";
+  if (resType && !resType.startsWith("image/")) {
     return NextResponse.json(
       {
-        error: `That URL returned ${contentType.split(";")[0]} instead of an image — it may be behind a login page. Upload the photo instead.`,
+        error: `That URL returned ${resType.split(";")[0]} instead of an image — it may be behind a login page. Upload the photo instead.`,
       },
       { status: 422 }
     );
