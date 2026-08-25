@@ -30,6 +30,7 @@ import {
   sizeFor,
   speakersFor,
   templateFor,
+  titleScaleFor,
 } from "./types";
 import { brandFor, type Brand } from "./brands";
 
@@ -59,6 +60,16 @@ export type RenderOpts = {
 /** Wide-and-short canvases get the horizontal compact layout. */
 function isCompact(width: number, height: number): boolean {
   return width / height >= 3.2 && height < 360;
+}
+
+/**
+ * Typographic unit for the stacked/template layouts, anchored to the 627px
+ * newsletter baseline height but guarded by width: on narrow/portrait canvases
+ * (square, story) a pure height anchor would inflate the type until the
+ * headline swallowed the whole canvas and pushed the speaker stage out.
+ */
+function unitFor(width: number, height: number): number {
+  return Math.min(height / 627, width / 800);
 }
 
 function speakerPhotoTag(sp: HeaderSpeaker, origin?: string): string {
@@ -152,6 +163,44 @@ ${modeCss}
     <div class="scrim"></div>
     ${bodyHtml}
   </div>
+  <script>
+    // Headline auto-fit. The speaker stage never flex-shrinks, so an oversized
+    // headline (long copy, big titleScale, small canvas) overflows the .mid
+    // block instead of eating the photos — this shrinks the title/subtitle
+    // together until everything fits (down to 45% of the starting size).
+    // Runs identically in the editor preview iframe and the export screenshot
+    // (the screenshot's settle delay leaves it ample time to converge).
+    (function () {
+      var content = document.querySelector("#header .content");
+      if (!content) return;
+      var mid = content.querySelector(".mid");
+      var els = [].slice.call(content.querySelectorAll(".title, .subtitle"));
+      if (!els.length) return;
+      var base = els.map(function (el) {
+        return parseFloat(getComputedStyle(el).fontSize);
+      });
+      function overflowing() {
+        return (
+          content.scrollHeight > content.clientHeight + 1 ||
+          (mid && mid.scrollHeight > mid.clientHeight + 1)
+        );
+      }
+      function fit() {
+        var k = 1;
+        while (overflowing() && k > 0.45) {
+          k -= 0.05;
+          for (var i = 0; i < els.length; i++) {
+            els[i].style.fontSize = base[i] * k + "px";
+          }
+        }
+      }
+      fit();
+      // Refit once webfonts land (metrics change can re-trigger overflow).
+      if (document.fonts && document.fonts.ready) {
+        document.fonts.ready.then(fit).catch(function () {});
+      }
+    })();
+  </script>
 </body>
 </html>`;
 }
@@ -203,10 +252,10 @@ function stackedDocument(
 ): string {
   const { width, height } = size;
   const t = config.theme;
-  // Typographic scale anchored to the newsletter baseline height.
-  const u = height / 627;
+  // Typographic scale anchored to the newsletter baseline (width-guarded).
+  const u = unitFor(width, height);
   const pad = Math.round(56 * u);
-  const titlePx = Math.round((config.title.length > 90 ? 40 : 48) * u);
+  const titlePx = Math.round((config.title.length > 90 ? 40 : 48) * u * titleScaleFor(config));
   const photoPx = Math.round(72 * u);
   const logoPx = Math.round(40 * u * logoFor(config).scale);
 
@@ -283,8 +332,8 @@ function stackedDocument(
     font-size: ${Math.round(14 * u)}px; font-weight: 600; color: #fff;
   }
   .chip-ic { font-size: ${Math.round(14 * u)}px; line-height: 1; }
-  .mid { display: flex; flex-direction: column; justify-content: center; flex: 1; padding: ${Math.round(28 * u)}px 0; }
-  .footer { display: flex; align-items: flex-end; justify-content: space-between; gap: ${Math.round(20 * u)}px; }
+  .mid { display: flex; flex-direction: column; justify-content: center; flex: 1; min-height: 0; overflow: hidden; padding: ${Math.round(28 * u)}px 0; }
+  .footer { display: flex; align-items: flex-end; justify-content: space-between; gap: ${Math.round(20 * u)}px; flex-shrink: 0; }
   .speaker { display: flex; align-items: center; gap: ${Math.round(14 * u)}px; }
   .sp-photo {
     width: ${photoPx}px; height: ${photoPx}px;
@@ -342,7 +391,7 @@ function compactDocument(
   const u = height / 220;
   const px = (n: number) => Math.round(n * u);
   const len = config.title.length;
-  const titlePx = px(len > 64 ? 24 : len > 40 ? 28 : 33);
+  const titlePx = Math.round(px(len > 64 ? 24 : len > 40 ? 28 : 33) * titleScaleFor(config));
   const photoPx = px(52);
   const logoPx = Math.round(30 * u * logoFor(config).scale);
 
@@ -537,24 +586,31 @@ function spotlightDocument(
 ): string {
   const { width, height } = size;
   const t = config.theme;
-  const u = height / 627;
+  const u = unitFor(width, height);
   const px = (n: number) => Math.round(n * u);
   const pad = px(46);
-  const titlePx = px(config.title.length > 90 ? 30 : 38);
+  const titlePx = Math.round(px(config.title.length > 90 ? 30 : 38) * titleScaleFor(config));
   const logoPx = Math.round(34 * u * logoFor(config).scale);
 
   const roster = speakersFor(config);
   const n = roster.length;
 
-  // Fit the stage to the canvas: shrink every card by the same factor once the
-  // natural sizes (lead 190u, supporting 148u) would overflow the width.
+  // Photos target half the canvas height (tag + name + role text under them
+  // included), then every card shrinks by one shared factor if the row would
+  // overflow the width — so the grid adapts to both the size preset and the
+  // roster length.
   const gap = px(18);
-  const leadW0 = px(190);
-  const supW0 = px(148);
+  const textBlock = px(74);
+  const leadH0 = Math.max(px(120), Math.round(height * 0.5) - textBlock);
+  const supH0 = Math.round(leadH0 * 0.82);
+  const leadW0 = Math.round(leadH0 / 1.24);
+  const supW0 = Math.round(supH0 / 1.24);
   const natural = n ? leadW0 + (n - 1) * supW0 + (n - 1) * gap : 0;
   const fit = n ? Math.min(1, (width - 2 * pad) / natural) : 1;
   const leadW = Math.round(leadW0 * fit);
   const supW = Math.round(supW0 * fit);
+  const leadH = Math.round(leadH0 * fit);
+  const supH = Math.round(supH0 * fit);
 
   // Center-out order: lead in the middle, then alternate right / left.
   const leftSide: HeaderSpeaker[] = [];
@@ -572,6 +628,7 @@ function spotlightDocument(
       ({ s, lead }) => `
       <div class="cell${lead ? " lead" : ""}">
         ${portraitHtml(s, lead ? "ph-lead" : "ph-sup", opts.origin)}
+        <div class="cell-tag">${esc(tagFor(s, lead))}</div>
         <div class="cell-name">${esc(s.name)}</div>
         ${s.role ? `<div class="cell-role">${esc(s.role)}</div>` : ""}
         ${s.org ? `<div class="cell-org">${esc(s.org)}</div>` : ""}
@@ -582,28 +639,33 @@ function spotlightDocument(
   const chips = chipsHtml(config);
 
   const modeCss = `${templateBaseCss(px, t.accent, logoPx, pad)}
-  .mid { display: flex; flex-direction: column; align-items: center; text-align: center; margin-top: ${px(16)}px; }
+  .mid { display: flex; flex-direction: column; align-items: center; text-align: center; margin-top: ${px(16)}px; min-height: 0; overflow: hidden; }
   .title { max-width: ${Math.round(width * 0.84)}px; font-size: ${titlePx}px; }
   .subtitle { max-width: ${Math.round(width * 0.7)}px; font-size: ${px(17)}px; margin-top: ${px(10)}px; }
   .chips { justify-content: center; margin-top: ${px(16)}px; }
-  .stage { display: flex; align-items: flex-end; justify-content: center; gap: ${gap}px; margin-top: auto; padding-top: ${px(20)}px; }
+  .stage { display: flex; align-items: flex-end; justify-content: center; gap: ${gap}px; margin-top: auto; padding-top: ${px(20)}px; flex-shrink: 0; }
   .cell { display: flex; flex-direction: column; align-items: center; text-align: center; width: ${supW}px; }
   .cell.lead { width: ${leadW}px; }
   .ph-lead {
-    width: ${leadW}px; height: ${Math.round(leadW * 1.18)}px;
+    width: ${leadW}px; height: ${leadH}px;
     border-radius: ${px(18)}px; object-fit: cover;
     border: 2px solid ${t.accent};
     box-shadow: 0 ${px(14)}px ${px(40)}px rgba(0,0,0,0.45);
   }
   .ph-sup {
-    width: ${supW}px; height: ${Math.round(supW * 1.18)}px;
+    width: ${supW}px; height: ${supH}px;
     border-radius: ${px(16)}px; object-fit: cover;
     border: 2px solid rgba(255,255,255,0.35);
     box-shadow: 0 ${px(10)}px ${px(28)}px rgba(0,0,0,0.35);
   }
   .monogram { font-size: ${px(34)}px; }
   .cell.lead .monogram { font-size: ${px(44)}px; }
-  .cell-name { font-size: ${px(15)}px; font-weight: 700; line-height: 1.15; margin-top: ${px(10)}px; }
+  .cell-tag {
+    font-size: ${px(10)}px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.14em; opacity: 0.75; margin-top: ${px(10)}px;
+  }
+  .cell.lead .cell-tag { color: ${t.accent}; opacity: 1; }
+  .cell-name { font-size: ${px(15)}px; font-weight: 700; line-height: 1.15; margin-top: ${px(3)}px; }
   .cell.lead .cell-name { font-size: ${px(19)}px; }
   .cell-role { font-size: ${px(12)}px; opacity: 0.85; margin-top: ${px(3)}px; }
   .cell-org { font-size: ${px(12)}px; font-weight: 700; margin-top: ${px(2)}px; }`;
@@ -635,10 +697,10 @@ function lineupDocument(
 ): string {
   const { width, height } = size;
   const t = config.theme;
-  const u = height / 627;
+  const u = unitFor(width, height);
   const px = (n: number) => Math.round(n * u);
   const pad = px(44);
-  const titlePx = px(config.title.length > 90 ? 28 : 34);
+  const titlePx = Math.round(px(config.title.length > 90 ? 28 : 34) * titleScaleFor(config));
   const logoPx = Math.round(34 * u * logoFor(config).scale);
   const roster = speakersFor(config);
   const chips = chipsHtml(config);
@@ -657,14 +719,14 @@ function lineupDocument(
     .join("");
 
   const modeCss = `${templateBaseCss(px, t.accent, logoPx, pad)}
-  .mid { margin-top: ${px(16)}px; }
+  .mid { margin-top: ${px(16)}px; min-height: 0; overflow: hidden; }
   .title { max-width: ${Math.round(width * 0.9)}px; font-size: ${titlePx}px; }
   .subtitle { max-width: ${Math.round(width * 0.75)}px; font-size: ${px(16)}px; margin-top: ${px(8)}px; }
   .chips { margin-top: ${px(14)}px; }
   .stage {
     display: flex; justify-content: center; gap: ${px(14)}px;
-    margin-top: auto; padding-top: ${px(20)}px;
-    height: ${Math.round(height * 0.46)}px; box-sizing: content-box;
+    margin-top: auto; padding-top: ${px(20)}px; flex-shrink: 0;
+    height: ${Math.round(height * 0.5)}px;
   }
   .col {
     flex: 1 1 0; max-width: ${px(250)}px; min-width: 0;
@@ -723,28 +785,36 @@ function billboardDocument(
 ): string {
   const { width, height } = size;
   const t = config.theme;
-  const u = height / 627;
+  const u = unitFor(width, height);
   const px = (n: number) => Math.round(n * u);
   const pad = px(48);
-  const titlePx = px(config.title.length > 90 ? 36 : 44);
+  const titlePx = Math.round(px(config.title.length > 90 ? 36 : 44) * titleScaleFor(config));
   const logoPx = Math.round(34 * u * logoFor(config).scale);
   const roster = speakersFor(config);
   const n = roster.length;
   const chips = chipsHtml(config);
 
+  // Photos target half the canvas height (tag + name + role text included),
+  // then shrink by one shared factor if the row would overflow the width.
   const gap = px(20);
-  const leadW0 = px(168);
-  const supW0 = px(136);
+  const textBlock = px(78);
+  const leadH0 = Math.max(px(110), Math.round(height * 0.5) - textBlock);
+  const supH0 = Math.round(leadH0 * 0.84);
+  const leadW0 = Math.round(leadH0 / 1.1);
+  const supW0 = Math.round(supH0 / 1.1);
   const natural = n ? leadW0 + (n - 1) * supW0 + (n - 1) * gap : 0;
   const fit = n ? Math.min(1, (width - 2 * pad) / natural) : 1;
   const leadW = Math.round(leadW0 * fit);
   const supW = Math.round(supW0 * fit);
+  const leadH = Math.round(leadH0 * fit);
+  const supH = Math.round(supH0 * fit);
 
   const cells = roster
     .map(
       (s, i) => `
       <div class="cell${i === 0 ? " lead" : ""}">
         ${portraitHtml(s, "ph", opts.origin)}
+        <div class="cell-tag">${esc(tagFor(s, i === 0))}</div>
         <div class="cell-name">${esc(s.name)}</div>
         ${s.role ? `<div class="cell-role">${esc(s.role)}</div>` : ""}
         ${s.org ? `<div class="cell-org">${esc(s.org)}</div>` : ""}
@@ -753,24 +823,29 @@ function billboardDocument(
     .join("");
 
   const modeCss = `${templateBaseCss(px, t.accent, logoPx, pad)}
-  .mid { margin-top: ${px(18)}px; }
+  .mid { margin-top: ${px(18)}px; min-height: 0; overflow: hidden; }
   .title { max-width: ${Math.round(width * 0.68)}px; font-size: ${titlePx}px; }
   .subtitle { max-width: ${Math.round(width * 0.6)}px; font-size: ${px(17)}px; margin-top: ${px(10)}px; }
   .chips { margin-top: ${px(16)}px; }
-  .stage { display: flex; align-items: flex-end; justify-content: flex-end; gap: ${gap}px; margin-top: auto; padding-top: ${px(20)}px; }
+  .stage { display: flex; align-items: flex-end; justify-content: flex-end; gap: ${gap}px; margin-top: auto; padding-top: ${px(20)}px; flex-shrink: 0; }
   .cell { display: flex; flex-direction: column; align-items: flex-start; width: ${supW}px; }
   .cell.lead { width: ${leadW}px; }
   .ph {
-    width: 100%; height: ${Math.round(supW * 1.05)}px;
+    width: 100%; height: ${supH}px;
     border-radius: ${px(14)}px; object-fit: cover;
     border: 2px solid rgba(255,255,255,0.35);
     box-shadow: 0 ${px(10)}px ${px(28)}px rgba(0,0,0,0.35);
   }
-  .cell.lead .ph { height: ${Math.round(leadW * 1.05)}px; border-color: ${t.accent}; }
+  .cell.lead .ph { height: ${leadH}px; border-color: ${t.accent}; }
   .monogram { font-size: ${px(30)}px; }
+  .cell-tag {
+    font-size: ${px(10)}px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.14em; opacity: 0.75; margin-top: ${px(8)}px;
+  }
+  .cell.lead .cell-tag { color: ${t.accent}; opacity: 1; }
   .cell-name {
     font-size: ${px(14)}px; font-weight: 800; text-transform: uppercase;
-    letter-spacing: 0.02em; line-height: 1.15; margin-top: ${px(8)}px;
+    letter-spacing: 0.02em; line-height: 1.15; margin-top: ${px(3)}px;
   }
   .cell-role { font-size: ${px(11)}px; opacity: 0.85; margin-top: ${px(3)}px; }
   .cell-org {
@@ -805,10 +880,10 @@ function galleryDocument(
 ): string {
   const { width, height } = size;
   const t = config.theme;
-  const u = height / 627;
+  const u = unitFor(width, height);
   const px = (n: number) => Math.round(n * u);
   const pad = px(46);
-  const titlePx = px(config.title.length > 90 ? 30 : 38);
+  const titlePx = Math.round(px(config.title.length > 90 ? 30 : 38) * titleScaleFor(config));
   const logoPx = Math.round(34 * u * logoFor(config).scale);
   const roster = speakersFor(config);
   const chips = chipsHtml(config);
@@ -833,17 +908,17 @@ function galleryDocument(
     .join("");
 
   const modeCss = `${templateBaseCss(px, t.accent, logoPx, pad)}
-  .mid { margin-top: ${px(16)}px; }
+  .mid { margin-top: ${px(16)}px; min-height: 0; overflow: hidden; }
   .title { max-width: ${Math.round(width * 0.85)}px; font-size: ${titlePx}px; }
   .subtitle { max-width: ${Math.round(width * 0.7)}px; font-size: ${px(16)}px; margin-top: ${px(8)}px; }
   .chips { margin-top: ${px(14)}px; }
   .stage {
     display: flex; justify-content: center; gap: ${px(16)}px;
-    margin-top: auto; padding-top: ${px(20)}px;
-    height: ${Math.round(height * 0.5)}px; box-sizing: content-box;
+    margin-top: auto; padding-top: ${px(20)}px; flex-shrink: 0;
+    height: ${Math.round(height * 0.55)}px;
   }
   .card {
-    position: relative; flex: 1 1 0; max-width: ${px(300)}px; min-width: 0;
+    position: relative; flex: 1 1 0; max-width: ${px(340)}px; min-width: 0;
     border-radius: ${px(22)}px; overflow: hidden;
     border: 1px solid rgba(255,255,255,0.28);
     box-shadow: 0 ${px(18)}px ${px(50)}px rgba(0,0,0,0.35);

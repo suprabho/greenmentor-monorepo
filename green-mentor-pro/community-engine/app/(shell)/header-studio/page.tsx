@@ -605,6 +605,21 @@ export default function HeaderStudioPage() {
           onChange={(e) => set("title", e.target.value)}
         />
       </Field>
+      <Field label={`Title size (${(config.titleScale ?? 1).toFixed(2)}×)`}>
+        <input
+          type="range"
+          min={0.6}
+          max={1.6}
+          step={0.05}
+          className="w-full accent-green-500"
+          value={config.titleScale ?? 1}
+          onChange={(e) => set("titleScale", Number(e.target.value))}
+        />
+        <span className="block text-[11px] leading-relaxed text-gray-500">
+          Starting size — the headline still auto-shrinks if it would crowd the
+          speaker photos, so it can never push them off the canvas.
+        </span>
+      </Field>
       <Field label="Subtitle (optional)">
         <input
           className={inputCls}

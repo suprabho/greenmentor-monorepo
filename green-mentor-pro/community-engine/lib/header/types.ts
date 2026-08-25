@@ -222,6 +222,13 @@ export type HeaderConfig = {
   /** Layout template id from TEMPLATE_PRESETS. Omitted -> "classic". */
   template?: string;
   /**
+   * Title size multiplier (0.5–2, default 1) on the layout's computed title
+   * size. This sets the *starting* size — the renderer still auto-shrinks the
+   * headline block if it would overflow / crowd the speaker stage, so a large
+   * value can never push the photos off the canvas.
+   */
+  titleScale?: number;
+  /**
    * Which brand lockup to show bottom-right — a brand id from the catalog
    * (lib/header/brands.ts), e.g. "greenmentor". Resolved via getBrand(), which
    * falls back to the default brand, so an unknown/missing id still renders.
@@ -267,6 +274,12 @@ export const DEFAULT_CONFIG: HeaderConfig = {
     card: false,
   },
 };
+
+/** Resolve the title multiplier, clamped so extreme values can't break layout. */
+export function titleScaleFor(config: Pick<HeaderConfig, "titleScale">): number {
+  const s = config.titleScale ?? 1;
+  return Math.min(2, Math.max(0.5, Number.isFinite(s) ? s : 1));
+}
 
 /** Resolve the logo config with defaults so partial/older configs stay valid. */
 export function logoFor(config: HeaderConfig): BrandLogo {

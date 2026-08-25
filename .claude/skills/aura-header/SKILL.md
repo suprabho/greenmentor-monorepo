@@ -150,6 +150,11 @@ Multi-speaker variant — swap `speaker` for `speakers` (lead first) and pick a
 
 - Keep titles under ~90 chars — the renderer drops the title size automatically
   past that, but very long titles still crowd the speaker row.
+- `titleScale` (0.5–2, default 1) multiplies the computed title size. It only
+  sets the *starting* size: the rendered document auto-shrinks the headline
+  block until nothing overflows, and the speaker stage never gives up its
+  space (photos hold ≥ half the canvas in the multi-speaker templates), so a
+  big value can't push the photos off.
 - `newsletter-strip` (1100×220) uses a horizontal layout (badge + title + chips
   on the left, speaker + brand on the right) and clamps the title to 2 lines —
   keep its title short (≤ ~55 chars) and use 1–2 chips so it reads as a banner.
