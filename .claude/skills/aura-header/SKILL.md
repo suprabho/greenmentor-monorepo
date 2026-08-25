@@ -155,13 +155,19 @@ Multi-speaker variant — swap `speaker` for `speakers` (lead first) and pick a
   block until nothing overflows, and the speaker stage never gives up its
   space (photos hold ≥ half the canvas in the multi-speaker templates), so a
   big value can't push the photos off.
-- `photoFx` styles every speaker photo: `{ "bw": true }` renders them black &
-  white (non-destructive CSS grayscale); `{ "panel": true }` paints a
-  light→accent gradient panel behind each photo frame — meant for cutout
-  photos with transparent backgrounds (in-app the studio's "Cut out BG"
-  button makes those via POST `/api/photo/cutout`, a vendored U²-Net model —
-  no external service). B&W cutouts on accent panels reproduce the
-  RIOBook-style reference look.
+- `photoFx` styles every speaker photo: `bw: true` renders them black & white
+  (non-destructive CSS grayscale); `panel: true` paints a gradient panel
+  behind each photo frame — meant for cutout photos with transparent
+  backgrounds (in-app the studio's "Cut out BG" button makes those via POST
+  `/api/photo/cutout`, a vendored U²-Net model — no external service, and
+  stores original / cutout / B&W-cutout variants on the speaker's
+  `photoVariants` for its picker). The panel gradient is configurable:
+  `gradientType` ("linear" with `gradientAngle`, default 180°, or "radial")
+  over `stops` (`{ color, alpha 0–1, at % }`, default light-grey → accent).
+  Frame overrides: `radius` (baseline px, canvas-scaled), `border: false`
+  hides frame borders, `borderColor` overrides them (lead's accent
+  included). B&W cutouts on accent panels reproduce the RIOBook-style
+  reference look.
 - `newsletter-strip` (1100×220) uses a horizontal layout (badge + title + chips
   on the left, speaker + brand on the right) and clamps the title to 2 lines —
   keep its title short (≤ ~55 chars) and use 1–2 chips so it reads as a banner.

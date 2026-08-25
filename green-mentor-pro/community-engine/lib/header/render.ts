@@ -26,6 +26,7 @@ import {
   type HeaderConfig,
   type HeaderSpeaker,
   auraEmbedUrl,
+  defaultPanelStops,
   logoFor,
   sizeFor,
   speakersFor,
@@ -104,28 +105,71 @@ function tagFor(sp: HeaderSpeaker, isLead: boolean): string {
   return sp.tag?.trim() || (isLead ? "Host" : "Speaker");
 }
 
+/** #RGB / #RRGGBB → rgba() string with the given alpha. */
+function rgba(hex: string, alpha: number): string {
+  const h = hex.trim().replace(/^#/, "");
+  const full = h.length === 3 ? h.split("").map((c) => c + c).join("") : h;
+  const n = parseInt(full, 16);
+  if (full.length !== 6 || Number.isNaN(n)) return hex;
+  const a = Math.min(1, Math.max(0, alpha));
+  return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${+a.toFixed(3)})`;
+}
+
+/** The panel-backdrop gradient from photoFx (type / angle / stops). */
+function panelGradient(fx: NonNullable<HeaderConfig["photoFx"]>, accent: string): string {
+  const stops = fx.stops?.length ? fx.stops : defaultPanelStops(accent);
+  const list = stops
+    .map((s) => `${rgba(s.color, s.alpha ?? 1)} ${Math.round(s.at)}%`)
+    .join(", ");
+  return fx.gradientType === "radial"
+    ? `radial-gradient(circle at 50% 30%, ${list})`
+    : `linear-gradient(${fx.gradientAngle ?? 180}deg, ${list})`;
+}
+
+/** Selector groups a layout hands to photoFxCss. */
+type PhotoFxSelectors = {
+  /** The portrait surfaces (img or monogram div) — bw filter + panel bg. */
+  photos: string;
+  /** The framed boxes carrying border-radius/border (often = photos). */
+  frames: string;
+  /** Higher-specificity lead-frame selectors whose accent border must also
+   *  yield to explicit border overrides. */
+  leadFrames?: string;
+};
+
 /**
- * CSS for the configured photo treatment, applied to a layout's portrait
- * selectors (comma-separated). `bw` desaturates the photos; `panel` paints a
- * light→accent gradient behind each frame — invisible under full-bleed
- * photos, a branded backdrop under transparent cutouts. Monogram tiles keep
- * their own background.
+ * CSS for the configured photo treatment. `bw` desaturates the photos;
+ * `panel` paints the configured gradient behind each portrait (invisible
+ * under full-bleed photos, a branded backdrop under transparent cutouts —
+ * monogram tiles keep their own background); `radius` / `border` /
+ * `borderColor` override the frames. Appended after each layout's own rules,
+ * so equal-specificity overrides win by order.
  */
-function photoFxCss(config: HeaderConfig, selectors: string): string {
+function photoFxCss(config: HeaderConfig, px: (n: number) => number, sel: PhotoFxSelectors): string {
   const fx = config.photoFx;
-  if (!fx?.bw && !fx?.panel) return "";
-  const each = selectors.split(",").map((s) => s.trim());
+  if (!fx) return "";
+  const photos = sel.photos.split(",").map((s) => s.trim());
+  const frames = [
+    ...sel.frames.split(","),
+    ...(sel.leadFrames ? sel.leadFrames.split(",") : []),
+  ].map((s) => s.trim());
   const parts: string[] = [];
   if (fx.bw) {
-    parts.push(`  ${each.map((s) => `img${s}`).join(", ")} { filter: grayscale(1) contrast(1.04); }`);
+    parts.push(`  ${photos.map((s) => `img${s}`).join(", ")} { filter: grayscale(1) contrast(1.04); }`);
   }
   if (fx.panel) {
-    const nonMono = each.map((s) => `${s}:not(.monogram)`).join(", ");
-    parts.push(
-      `  ${nonMono} { background: linear-gradient(180deg, #EDF3F0 0%, ${config.theme.accent} 175%); }`
-    );
+    const nonMono = photos.map((s) => `${s}:not(.monogram)`).join(", ");
+    parts.push(`  ${nonMono} { background: ${panelGradient(fx, config.theme.accent)}; }`);
   }
-  return `\n${parts.join("\n")}`;
+  if (typeof fx.radius === "number" && Number.isFinite(fx.radius)) {
+    parts.push(`  ${frames.join(", ")} { border-radius: ${px(Math.max(0, fx.radius))}px; }`);
+  }
+  if (fx.border === false) {
+    parts.push(`  ${frames.join(", ")} { border-color: transparent; }`);
+  } else if (fx.borderColor?.trim()) {
+    parts.push(`  ${frames.join(", ")} { border-color: ${fx.borderColor.trim()}; }`);
+  }
+  return parts.length ? `\n${parts.join("\n")}` : "";
 }
 
 /** Head + body shell shared by both layouts: reset, aura iframe, scrim. */
@@ -373,7 +417,7 @@ function stackedDocument(
   .brand-logo { display: inline-block; vertical-align: bottom; height: ${logoPx}px; width: auto; }  .brand-sub {
     font-size: ${Math.round(10 * u)}px; font-weight: 600; opacity: 0.75;
     text-transform: uppercase; letter-spacing: 0.16em; margin-top: ${Math.round(6 * u)}px;
-  }${photoFxCss(config, ".sp-photo")}`;
+  }${photoFxCss(config, (n) => Math.round(n * u), { photos: ".sp-photo", frames: ".sp-photo" })}`;
 
   const bodyHtml = `<div class="content">
       <div>${badge}</div>
@@ -506,7 +550,7 @@ function compactDocument(
   .brand-logo { display: inline-block; vertical-align: bottom; height: ${logoPx}px; width: auto; }  .brand-sub {
     font-size: ${px(9)}px; font-weight: 600; opacity: 0.75;
     text-transform: uppercase; letter-spacing: 0.16em; margin-top: ${px(4)}px;
-  }${photoFxCss(config, ".sp-photo")}`;
+  }${photoFxCss(config, px, { photos: ".sp-photo", frames: ".sp-photo" })}`;
 
   const hasRight = !!(speaker || brand);
   const bodyHtml = `<div class="content">
@@ -692,7 +736,7 @@ function spotlightDocument(
   .cell-name { font-size: ${px(15)}px; font-weight: 700; line-height: 1.15; margin-top: ${px(3)}px; }
   .cell.lead .cell-name { font-size: ${px(19)}px; }
   .cell-role { font-size: ${px(12)}px; opacity: 0.85; margin-top: ${px(3)}px; }
-  .cell-org { font-size: ${px(12)}px; font-weight: 700; margin-top: ${px(2)}px; }${photoFxCss(config, ".ph-lead, .ph-sup")}`;
+  .cell-org { font-size: ${px(12)}px; font-weight: 700; margin-top: ${px(2)}px; }${photoFxCss(config, px, { photos: ".ph-lead, .ph-sup", frames: ".ph-lead, .ph-sup" })}`;
 
   const bodyHtml = `<div class="content">
       ${topbarHtml(config)}
@@ -780,7 +824,7 @@ function lineupDocument(
     flex: 1; min-height: 0; width: 100%; margin-top: ${px(10)}px;
     border-radius: ${px(10)}px; object-fit: cover;
   }
-  .monogram { font-size: ${px(30)}px; }${photoFxCss(config, ".col-photo")}`;
+  .monogram { font-size: ${px(30)}px; }${photoFxCss(config, px, { photos: ".col-photo", frames: ".col, .col-photo", leadFrames: ".col.lead" })}`;
 
   const bodyHtml = `<div class="content">
       ${topbarHtml(config)}
@@ -875,7 +919,7 @@ function billboardDocument(
   .cell-org {
     font-size: ${px(11)}px; font-weight: 700; color: ${t.accent};
     text-transform: uppercase; letter-spacing: 0.08em; margin-top: ${px(2)}px;
-  }${photoFxCss(config, ".ph")}`;
+  }${photoFxCss(config, px, { photos: ".ph", frames: ".ph", leadFrames: ".cell.lead .ph" })}`;
 
   const bodyHtml = `<div class="content">
       ${topbarHtml(config)}
@@ -966,7 +1010,7 @@ function galleryDocument(
   }
   .card.lead .card-tag { background: ${t.accent}; color: #04241C; border-color: transparent; }
   .card-name { font-size: ${px(16)}px; font-weight: 800; line-height: 1.15; }
-  .card-role { font-size: ${px(11)}px; opacity: 0.9; margin-top: ${px(2)}px; }${photoFxCss(config, ".card-photo")}`;
+  .card-role { font-size: ${px(11)}px; opacity: 0.9; margin-top: ${px(2)}px; }${photoFxCss(config, px, { photos: ".card-photo", frames: ".card", leadFrames: ".card.lead" })}`;
 
   const bodyHtml = `<div class="content">
       ${topbarHtml(config)}

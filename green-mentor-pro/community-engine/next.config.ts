@@ -110,7 +110,9 @@ const nextConfig: NextConfig = {
     // onnxruntime-node native binding needs no include — the tracer resolves
     // it from the require graph; the excludes below keep only the bindings a
     // Vercel lambda can actually run.
-    "/api/photo/cutout": ["./models/**"],
+    // public/avatars is traced in too: the route reads bundled preset photos
+    // from the filesystem (static assets aren't otherwise in the lambda).
+    "/api/photo/cutout": ["./models/**", "./public/avatars/**"],
   },
 
   // onnxruntime-node ships ~280MB of prebuilt bindings across five

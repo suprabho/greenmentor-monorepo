@@ -7,6 +7,18 @@
 //
 // All three render from lib/header/render.ts, so this type is the contract.
 
+/**
+ * Stored photo variants for a speaker. "Cut out BG" fills `cutout` (transparent
+ * background) and `cutoutBw` (transparent + black & white) and remembers the
+ * pre-cutout photo as `original`, so the studio's variant picker can switch
+ * between them without reprocessing.
+ */
+export type SpeakerPhotoVariants = {
+  original?: string;
+  cutout?: string;
+  cutoutBw?: string;
+};
+
 /** A speaker / host shown in the lower-left card (optional). */
 export type HeaderSpeaker = {
   name: string;
@@ -16,6 +28,8 @@ export type HeaderSpeaker = {
   org?: string;
   /** Absolute URL or app-relative path (e.g. "/avatars/supro.jpg"). */
   photo?: string;
+  /** Hosted variants of `photo` (original / cutout / B&W cutout). */
+  photoVariants?: SpeakerPhotoVariants;
   /**
    * Small label over the card in multi-speaker templates, e.g. "Host",
    * "Moderator", "Speaker". Templates that show tags fall back to
@@ -157,18 +171,49 @@ export function speakersFor(
   return list.filter((s) => s && s.enabled !== false && s.name.trim());
 }
 
+/** One color stop of the photo-panel gradient. */
+export type PanelStop = {
+  /** Hex color (#RGB or #RRGGBB). */
+  color: string;
+  /** 0–1 opacity of this stop. Omitted -> 1. */
+  alpha?: number;
+  /** Stop position in % (can exceed 100 to push a color past the edge). */
+  at: number;
+};
+
 /**
  * Photo treatment applied to every speaker portrait at render time.
  * - `bw`: black & white (CSS grayscale — non-destructive, toggle any time).
- * - `panel`: a light→accent gradient panel painted behind each photo frame.
- *   Invisible behind ordinary full-bleed photos, but gives cutout PNGs
- *   (transparent background, see the studio's "Cut out BG" button) a branded
- *   backdrop like the reference posters.
+ * - `panel`: a gradient panel painted behind each photo frame. Invisible
+ *   behind ordinary full-bleed photos, but gives cutout PNGs (transparent
+ *   background, see the studio's "Cut out BG" button) a branded backdrop like
+ *   the reference posters. Its gradient is configurable: `gradientType`
+ *   linear (with `gradientAngle`, default 180°) or radial, over `stops`
+ *   (color + alpha + position; default light-grey → accent).
+ * - Frame overrides, applied whether or not the panel is on: `radius` (corner
+ *   radius in baseline px, scaled with the canvas), `border` (false hides the
+ *   photo frames' borders), `borderColor` (overrides every frame's border
+ *   color, the lead's accent included).
  */
 export type HeaderPhotoFx = {
   bw?: boolean;
   panel?: boolean;
+  gradientType?: "linear" | "radial";
+  /** Linear gradient direction in degrees (default 180 = top→bottom). */
+  gradientAngle?: number;
+  stops?: PanelStop[];
+  radius?: number;
+  border?: boolean;
+  borderColor?: string;
 };
+
+/** Default panel gradient stops (light grey → brand accent, past the edge). */
+export function defaultPanelStops(accent: string): PanelStop[] {
+  return [
+    { color: "#EDF3F0", alpha: 1, at: 0 },
+    { color: accent, alpha: 1, at: 175 },
+  ];
+}
 
 /** Theme controls for the text overlay legibility scrim + accent. */
 export type HeaderTheme = {

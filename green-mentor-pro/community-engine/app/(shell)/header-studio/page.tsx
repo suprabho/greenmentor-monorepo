@@ -31,6 +31,7 @@ import {
   type HeaderConfig,
   type HeaderSpeaker,
 } from "@/lib/header/types";
+import { defaultPanelStops, type HeaderPhotoFx, type PanelStop } from "@/lib/header/types";
 import { listBrands, getBrand } from "@/lib/header/brands";
 import { createClient } from "@/lib/supabase/client";
 import { getHeader } from "@/lib/db/headers";
@@ -113,6 +114,30 @@ function webinarToConfig(
   };
 }
 
+/** Black & white copy of an image blob via a canvas pixel pass (keeps alpha). */
+async function desaturateBlob(blob: Blob): Promise<Blob> {
+  const bmp = await createImageBitmap(blob);
+  const canvas = document.createElement("canvas");
+  canvas.width = bmp.width;
+  canvas.height = bmp.height;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("Canvas unavailable");
+  ctx.drawImage(bmp, 0, 0);
+  const img = ctx.getImageData(0, 0, bmp.width, bmp.height);
+  const d = img.data;
+  for (let i = 0; i < d.length; i += 4) {
+    const y = Math.round(0.2126 * d[i] + 0.7152 * d[i + 1] + 0.0722 * d[i + 2]);
+    d[i] = d[i + 1] = d[i + 2] = y;
+  }
+  ctx.putImageData(img, 0, 0);
+  return new Promise((resolve, reject) =>
+    canvas.toBlob(
+      (b) => (b ? resolve(b) : reject(new Error("Canvas export failed"))),
+      "image/png"
+    )
+  );
+}
+
 /** Debounce a value so the aura iframe doesn't reload on every keystroke. */
 function useDebounced<T>(value: T, ms: number): T {
   const [v, setV] = useState(value);
@@ -159,6 +184,7 @@ function applyDraft(prev: HeaderConfig, draft: Partial<HeaderConfig>): HeaderCon
     ...prev,
     ...draft,
     theme: { ...prev.theme, ...draft.theme },
+    photoFx: draft.photoFx ? { ...prev.photoFx, ...draft.photoFx } : prev.photoFx,
     speakers: speakers ?? prev.speakers,
     speaker: speakers ? speakers[0] : prev.speaker,
   };
@@ -364,6 +390,16 @@ export default function HeaderStudioPage() {
   // Logo color/size, with the same defaults the renderer's logoFor() applies.
   const logo = config.logo ?? { color: BRAND_GREEN, scale: 1, fill: false };
 
+  // Photo effects shorthand. Stops materialize the defaults on first edit so
+  // the editor always has concrete rows to mutate.
+  const fx: HeaderPhotoFx = config.photoFx ?? {};
+  const setFx = (patch: Partial<HeaderPhotoFx>) =>
+    set("photoFx", { ...config.photoFx, ...patch });
+  const panelStops: PanelStop[] =
+    fx.stops?.length ? fx.stops : defaultPanelStops(config.theme.accent);
+  const setStop = (idx: number, patch: Partial<PanelStop>) =>
+    setFx({ stops: panelStops.map((s, j) => (j === idx ? { ...s, ...patch } : s)) });
+
   // Preview scales to fill whatever width its panel has (full-width on mobile).
   const [previewRef, previewW] = useMeasuredWidth<HTMLDivElement>();
   const scale = previewW > 0 ? previewW / size.width : 0;
@@ -403,7 +439,11 @@ export default function HeaderStudioPage() {
       setConfig((c) => {
         const list = c.speakers ?? (c.speaker ? [c.speaker] : []);
         const next = list.map((s, j) =>
-          j === index ? { ...s, photo: url, enabled: true } : s
+          // A fresh upload starts a new variant set — stale cutouts of the
+          // previous photo would be misleading in the picker.
+          j === index
+            ? { ...s, photo: url, enabled: true, photoVariants: { original: url } }
+            : s
         );
         return { ...c, speakers: next, speaker: next[0] ?? c.speaker };
       });
@@ -414,10 +454,12 @@ export default function HeaderStudioPage() {
     }
   }
 
-  // Remove the background from a roster entry's photo: the server runs the
-  // vendored U²-Net model and returns a transparent PNG, which then goes
-  // through the normal upload flow so the cutout is baked into a hosted URL.
-  // Also turns on the panel backdrop so the cutout sits on a branded gradient.
+  // Remove the background from a roster entry's photo. The server runs the
+  // vendored U²-Net model and returns a transparent PNG; a B&W copy is made
+  // client-side, both are uploaded, and the three variants (original / cutout
+  // / B&W cutout) are stored on the speaker so the picker can switch between
+  // them without reprocessing. Also turns on the panel backdrop so cutouts
+  // sit on a branded gradient.
   async function cutoutSpeakerPhoto(index: number) {
     const photo = speakerList[index]?.photo?.trim();
     if (!photo || cutoutBusy !== null) return;
@@ -433,13 +475,31 @@ export default function HeaderStudioPage() {
         const body = await res.json().catch(() => ({}));
         throw new Error(body.error ?? `HTTP ${res.status}`);
       }
-      const blob = await res.blob();
-      const file = new File([blob], "cutout.png", { type: "image/png" });
-      const url = await uploadImage(file, "speakers");
+      const cutBlob = await res.blob();
+      const cutUrl = await uploadImage(
+        new File([cutBlob], "cutout.png", { type: "image/png" }),
+        "speakers"
+      );
+      const bwBlob = await desaturateBlob(cutBlob);
+      const bwUrl = await uploadImage(
+        new File([bwBlob], "cutout-bw.png", { type: "image/png" }),
+        "speakers"
+      );
       setConfig((c) => {
         const list = c.speakers ?? (c.speaker ? [c.speaker] : []);
         const next = list.map((s, j) =>
-          j === index ? { ...s, photo: url, enabled: true } : s
+          j === index
+            ? {
+                ...s,
+                photo: cutUrl,
+                enabled: true,
+                photoVariants: {
+                  original: s.photoVariants?.original ?? photo,
+                  cutout: cutUrl,
+                  cutoutBw: bwUrl,
+                },
+              }
+            : s
         );
         return {
           ...c,
@@ -867,6 +927,40 @@ export default function HeaderStudioPage() {
                 </button>
               </div>
             </Field>
+            {/* Variant picker: switch the active photo between the stored
+                original / cutout / B&W cutout without reprocessing. */}
+            <div className="flex flex-wrap items-center gap-1.5">
+              {(
+                [
+                  ["original", "Original"],
+                  ["cutout", "Cut-out"],
+                  ["cutoutBw", "Cut-out B&W"],
+                ] as const
+              ).map(([key, label]) => {
+                const url = sp.photoVariants?.[key];
+                const active = !!url && sp.photo === url;
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    disabled={!url}
+                    onClick={() => url && updateSpeaker(i, { photo: url })}
+                    className={`rounded-pill border px-2.5 py-1 text-[11px] font-semibold transition disabled:cursor-not-allowed disabled:opacity-40 ${
+                      active
+                        ? "border-green-500 bg-green-50 text-green-700"
+                        : "border-gray-200 text-gray-600 hover:bg-gray-50"
+                    }`}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+              {!sp.photoVariants?.cutout && (
+                <span className="text-[11px] text-gray-400">
+                  Run “Cut out BG” to generate the cut-out variants
+                </span>
+              )}
+            </div>
           </div>
         ))}
         <button
@@ -1099,6 +1193,161 @@ export default function HeaderStudioPage() {
           onChange={(on) => set("photoFx", { ...config.photoFx, panel: on })}
         />
       </div>
+
+      {/* ---- Photo frame ---- */}
+      <div className="space-y-3 border-t border-gray-100 pt-3">
+        <span className="block text-[12px] font-semibold uppercase tracking-wide text-gray-500">
+          Photo frame
+        </span>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <Field
+            label={`Corner radius${typeof fx.radius === "number" ? ` (${fx.radius}px)` : " (auto)"}`}
+          >
+            <div className="flex items-center gap-2">
+              <input
+                type="range"
+                min={0}
+                max={48}
+                step={1}
+                className="w-full accent-green-500"
+                value={fx.radius ?? 16}
+                onChange={(e) => setFx({ radius: Number(e.target.value) })}
+              />
+              <button
+                type="button"
+                title="Back to each template's own radius"
+                onClick={() => setFx({ radius: undefined })}
+                className="shrink-0 rounded-[8px] bg-gray-100 px-2 py-1 text-[11px] font-semibold text-gray-600"
+              >
+                Auto
+              </button>
+            </div>
+          </Field>
+          <Field label="Border">
+            <div className="flex items-center gap-2">
+              <Toggle
+                label="Show photo border"
+                checked={fx.border !== false}
+                onChange={(on) => setFx({ border: on })}
+              />
+              <input
+                type="color"
+                title="Border color"
+                className="h-8 w-10 rounded-[8px] border border-gray-200 disabled:opacity-40"
+                disabled={fx.border === false}
+                value={fx.borderColor ?? "#FFFFFF"}
+                onChange={(e) => setFx({ borderColor: e.target.value })}
+              />
+              <button
+                type="button"
+                title="Back to the defaults (accent for the lead, white for the rest)"
+                onClick={() => setFx({ borderColor: undefined })}
+                className="shrink-0 rounded-[8px] bg-gray-100 px-2 py-1 text-[11px] font-semibold text-gray-600"
+              >
+                Auto
+              </button>
+            </div>
+          </Field>
+        </div>
+      </div>
+
+      {/* ---- Panel gradient (only meaningful while the panel is on) ---- */}
+      {fx.panel && (
+        <div className="space-y-3 border-t border-gray-100 pt-3">
+          <span className="block text-[12px] font-semibold uppercase tracking-wide text-gray-500">
+            Panel gradient
+          </span>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <Field label="Type">
+              <select
+                className={inputCls}
+                value={fx.gradientType ?? "linear"}
+                onChange={(e) =>
+                  setFx({ gradientType: e.target.value as "linear" | "radial" })
+                }
+              >
+                <option value="linear">Linear</option>
+                <option value="radial">Radial</option>
+              </select>
+            </Field>
+            {(fx.gradientType ?? "linear") === "linear" && (
+              <Field label={`Angle (${fx.gradientAngle ?? 180}°)`}>
+                <input
+                  type="range"
+                  min={0}
+                  max={360}
+                  step={5}
+                  className="w-full accent-green-500"
+                  value={fx.gradientAngle ?? 180}
+                  onChange={(e) => setFx({ gradientAngle: Number(e.target.value) })}
+                />
+              </Field>
+            )}
+          </div>
+          <div>
+            <span className="mb-1 block text-[12px] font-semibold text-gray-700">
+              Color stops (color · opacity % · position %)
+            </span>
+            <div className="space-y-2">
+              {panelStops.map((s, idx) => (
+                <div key={idx} className="flex items-center gap-2">
+                  <input
+                    type="color"
+                    title="Stop color"
+                    className="h-8 w-10 shrink-0 rounded-[8px] border border-gray-200"
+                    value={s.color}
+                    onChange={(e) => setStop(idx, { color: e.target.value })}
+                  />
+                  <input
+                    type="number"
+                    title="Opacity %"
+                    min={0}
+                    max={100}
+                    className={`${inputCls} w-20 text-center`}
+                    value={Math.round((s.alpha ?? 1) * 100)}
+                    onChange={(e) =>
+                      setStop(idx, {
+                        alpha: Math.min(100, Math.max(0, Number(e.target.value))) / 100,
+                      })
+                    }
+                  />
+                  <input
+                    type="number"
+                    title="Position % (may exceed 100)"
+                    min={-100}
+                    max={300}
+                    className={`${inputCls} w-20 text-center`}
+                    value={Math.round(s.at)}
+                    onChange={(e) => setStop(idx, { at: Number(e.target.value) })}
+                  />
+                  <button
+                    type="button"
+                    title="Remove stop"
+                    disabled={panelStops.length <= 2}
+                    onClick={() =>
+                      setFx({ stops: panelStops.filter((_, j) => j !== idx) })
+                    }
+                    className="shrink-0 rounded-[8px] bg-gray-100 p-1.5 text-gray-600 disabled:opacity-40"
+                  >
+                    <X size={13} />
+                  </button>
+                </div>
+              ))}
+              <button
+                type="button"
+                onClick={() =>
+                  setFx({
+                    stops: [...panelStops, { color: "#FFFFFF", alpha: 1, at: 100 }],
+                  })
+                }
+                className="flex items-center gap-1.5 rounded-[10px] border border-dashed border-gray-300 px-3 py-1.5 text-[12.5px] font-semibold text-gray-600"
+              >
+                <Plus size={13} /> Add stop
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 

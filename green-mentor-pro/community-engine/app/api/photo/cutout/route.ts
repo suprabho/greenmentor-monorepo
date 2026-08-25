@@ -11,6 +11,8 @@
  * hosted photo URL and every render surface stays unchanged.
  */
 
+import { readFile } from "node:fs/promises";
+import path from "node:path";
 import { NextResponse } from "next/server";
 import { isAdmin } from "@/lib/auth/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -54,15 +56,48 @@ async function readSource(req: Request): Promise<Buffer | NextResponse> {
       { status: 400 }
     );
   }
-  // App-relative paths (bundled avatars) resolve against this deployment.
-  const url = raw.startsWith("/") ? new URL(raw, new URL(req.url).origin).href : raw;
-  if (!/^https?:\/\//.test(url)) {
+
+  // App-relative paths (the bundled /avatars/… presets) are read straight
+  // from the deployed public/ dir. Fetching them over HTTP bounced off auth
+  // middleware / Vercel deployment protection and came back as an HTML login
+  // page, which sharp then rejected with a cryptic "corrupt header … html
+  // line 1" error.
+  if (raw.startsWith("/")) {
+    const publicDir = path.join(process.cwd(), "public");
+    const abs = path.normalize(path.join(publicDir, raw.split("?")[0]));
+    if (!abs.startsWith(publicDir + path.sep)) {
+      return NextResponse.json({ error: "Invalid app-relative path." }, { status: 400 });
+    }
+    const bytes = await readFile(abs).catch(() => null);
+    if (!bytes) {
+      return NextResponse.json(
+        { error: `No bundled file at ${raw} — upload the photo or paste a hosted URL.` },
+        { status: 404 }
+      );
+    }
+    return Buffer.from(bytes);
+  }
+
+  if (!/^https?:\/\//.test(raw)) {
     return NextResponse.json({ error: "url must be http(s) or app-relative." }, { status: 400 });
   }
-  const res = await fetch(url).catch(() => null);
+  // Forward the caller's cookies for same-origin URLs so photos behind this
+  // deployment's auth (or Vercel's deployment protection) resolve too.
+  const sameOrigin = new URL(raw).origin === new URL(req.url).origin;
+  const cookie = sameOrigin ? (req.headers.get("cookie") ?? "") : "";
+  const res = await fetch(raw, cookie ? { headers: { cookie } } : undefined).catch(() => null);
   if (!res?.ok) {
     return NextResponse.json(
       { error: `Could not fetch the photo (${res ? `HTTP ${res.status}` : "network error"}).` },
+      { status: 422 }
+    );
+  }
+  const contentType = res.headers.get("content-type") ?? "";
+  if (contentType && !contentType.startsWith("image/")) {
+    return NextResponse.json(
+      {
+        error: `That URL returned ${contentType.split(";")[0]} instead of an image — it may be behind a login page. Upload the photo instead.`,
+      },
       { status: 422 }
     );
   }
