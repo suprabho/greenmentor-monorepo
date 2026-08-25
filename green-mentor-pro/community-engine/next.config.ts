@@ -35,6 +35,7 @@ const nextConfig: NextConfig = {
     "@napi-rs/canvas",
     "@llamaindex/liteparse",
     "jsdom",
+    "onnxruntime-node",
   ],
 
   // Next 15's webpack still follows dynamic imports INSIDE transpiled
@@ -103,6 +104,27 @@ const nextConfig: NextConfig = {
       "../../node_modules/.pnpm/@llamaindex+liteparse@*/node_modules/@llamaindex/liteparse/*.{node,so}",
       "../../node_modules/@llamaindex/liteparse/*.{node,so}",
       "./node_modules/@llamaindex/liteparse/*.{node,so}",
+    ],
+    // Speaker-photo background removal reads the vendored U²-Net model with a
+    // runtime-computed path (process.cwd()), which the tracer can't see. The
+    // onnxruntime-node native binding needs no include — the tracer resolves
+    // it from the require graph; the excludes below keep only the bindings a
+    // Vercel lambda can actually run.
+    // public/avatars is traced in too: the route reads bundled preset photos
+    // from the filesystem (static assets aren't otherwise in the lambda).
+    "/api/photo/cutout": ["./models/**", "./public/avatars/**"],
+  },
+
+  // onnxruntime-node ships ~280MB of prebuilt bindings across five
+  // platform/arch combos (and the pnpm store can hold several versions at
+  // once), which blew /api/photo/cutout past Vercel's 250MB uncompressed
+  // function limit. Lambdas are linux-x64 — strip everything else from every
+  // function's trace. (Un-exclude linux/arm64 if functions ever move to Arm.)
+  outputFileTracingExcludes: {
+    "*": [
+      "../../node_modules/.pnpm/onnxruntime-node@*/node_modules/onnxruntime-node/bin/napi-v6/darwin/**",
+      "../../node_modules/.pnpm/onnxruntime-node@*/node_modules/onnxruntime-node/bin/napi-v6/win32/**",
+      "../../node_modules/.pnpm/onnxruntime-node@*/node_modules/onnxruntime-node/bin/napi-v6/linux/arm64/**",
     ],
   },
 };

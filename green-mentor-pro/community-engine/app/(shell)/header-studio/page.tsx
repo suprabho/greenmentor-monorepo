@@ -11,6 +11,7 @@ import {
   TextT,
   User,
   Palette,
+  Scissors,
   Upload,
 } from "@phosphor-icons/react";
 import { Card, PageHeader, Chip } from "@/components/ui";
@@ -22,12 +23,15 @@ import {
   LOGO_COLOR_PRESETS,
   LOGO_SIZE_PRESETS,
   SIZE_PRESETS,
+  TEMPLATE_PRESETS,
   sizeFor,
+  templateFor,
   type AuraPreset,
   type HeaderChip,
   type HeaderConfig,
   type HeaderSpeaker,
 } from "@/lib/header/types";
+import { defaultPanelStops, type HeaderPhotoFx, type PanelStop } from "@/lib/header/types";
 import { listBrands, getBrand } from "@/lib/header/brands";
 import { createClient } from "@/lib/supabase/client";
 import { getHeader } from "@/lib/db/headers";
@@ -95,18 +99,43 @@ function webinarToConfig(
       : `${fmtT(start)} IST`;
     chips.push({ icon: "⏰", label });
   }
-  const lead = instructors[0];
-  const speaker: HeaderSpeaker = lead
-    ? instructorToSpeaker(lead)
-    : { name: "", enabled: false };
+  const speakers = instructors.map(instructorToSpeaker);
   const headline = (w.hook || w.title).trim();
   return {
     badge: "WEBINAR",
     title: headline,
     subtitle: w.hook ? w.title : "",
     chips,
-    speaker,
+    speakers,
+    speaker: speakers[0] ?? { name: "", enabled: false },
+    // A multi-instructor webinar defaults to the lead-centered template; a
+    // single instructor keeps whatever template is already selected.
+    ...(speakers.length > 1 ? { template: "spotlight" } : {}),
   };
+}
+
+/** Black & white copy of an image blob via a canvas pixel pass (keeps alpha). */
+async function desaturateBlob(blob: Blob): Promise<Blob> {
+  const bmp = await createImageBitmap(blob);
+  const canvas = document.createElement("canvas");
+  canvas.width = bmp.width;
+  canvas.height = bmp.height;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("Canvas unavailable");
+  ctx.drawImage(bmp, 0, 0);
+  const img = ctx.getImageData(0, 0, bmp.width, bmp.height);
+  const d = img.data;
+  for (let i = 0; i < d.length; i += 4) {
+    const y = Math.round(0.2126 * d[i] + 0.7152 * d[i + 1] + 0.0722 * d[i + 2]);
+    d[i] = d[i + 1] = d[i + 2] = y;
+  }
+  ctx.putImageData(img, 0, 0);
+  return new Promise((resolve, reject) =>
+    canvas.toBlob(
+      (b) => (b ? resolve(b) : reject(new Error("Canvas export failed"))),
+      "image/png"
+    )
+  );
 }
 
 /** Debounce a value so the aura iframe doesn't reload on every keystroke. */
@@ -146,11 +175,18 @@ function useMeasuredWidth<T extends HTMLElement>() {
  * default role/org don't linger when the brief names a new person.
  */
 function applyDraft(prev: HeaderConfig, draft: Partial<HeaderConfig>): HeaderConfig {
+  const speakers = draft.speakers?.length
+    ? draft.speakers.map((s) => ({ ...s, enabled: true }))
+    : draft.speaker
+      ? [{ ...draft.speaker, enabled: true }]
+      : undefined;
   return {
     ...prev,
     ...draft,
     theme: { ...prev.theme, ...draft.theme },
-    speaker: draft.speaker ? { ...draft.speaker, enabled: true } : prev.speaker,
+    photoFx: draft.photoFx ? { ...prev.photoFx, ...draft.photoFx } : prev.photoFx,
+    speakers: speakers ?? prev.speakers,
+    speaker: speakers ? speakers[0] : prev.speaker,
   };
 }
 
@@ -221,6 +257,10 @@ export default function HeaderStudioPage() {
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [photoError, setPhotoError] = useState<string | null>(null);
   const photoInputRef = useRef<HTMLInputElement>(null);
+  // Which roster row the shared hidden file input uploads into.
+  const photoTargetRef = useRef(0);
+  // Roster row currently running background removal (null = idle).
+  const [cutoutBusy, setCutoutBusy] = useState<number | null>(null);
   // Mobile only: which section's bottom sheet is open (null = none). The four
   // editing sections live in a bottom nav + sheets on phones; on desktop they
   // stay inline in the left column.
@@ -324,11 +364,41 @@ export default function HeaderStudioPage() {
   const set = <K extends keyof HeaderConfig>(k: K, v: HeaderConfig[K]) =>
     setConfig((c) => ({ ...c, [k]: v }));
 
-  // Undefined `enabled` is treated as on, matching the renderer.
-  const speakerOn = !!config.speaker && config.speaker.enabled !== false;
+  // The editable roster: the `speakers` array, seeded from the legacy single
+  // `speaker` for older saved configs. Index 0 is the lead instructor. Every
+  // write mirrors speakers[0] back onto `speaker` so classic-template renders
+  // and older readers stay in sync.
+  const speakerList: HeaderSpeaker[] =
+    config.speakers ?? (config.speaker ? [config.speaker] : []);
+  const setSpeakers = (list: HeaderSpeaker[]) =>
+    setConfig((c) => ({
+      ...c,
+      speakers: list,
+      speaker: list[0] ?? { name: "", enabled: false },
+    }));
+  const updateSpeaker = (i: number, patch: Partial<HeaderSpeaker>) =>
+    setSpeakers(speakerList.map((s, j) => (j === i ? { ...s, ...patch } : s)));
+
+  // Undefined `enabled` is treated as on, matching the renderer. The toggle
+  // flips every roster entry at once (non-destructive — the list is kept).
+  const speakerOn =
+    speakerList.length > 0 && speakerList.some((s) => s.enabled !== false);
+
+  const activeTemplate =
+    TEMPLATE_PRESETS.find((t) => t.id === templateFor(config)) ?? TEMPLATE_PRESETS[0];
 
   // Logo color/size, with the same defaults the renderer's logoFor() applies.
   const logo = config.logo ?? { color: BRAND_GREEN, scale: 1, fill: false };
+
+  // Photo effects shorthand. Stops materialize the defaults on first edit so
+  // the editor always has concrete rows to mutate.
+  const fx: HeaderPhotoFx = config.photoFx ?? {};
+  const setFx = (patch: Partial<HeaderPhotoFx>) =>
+    set("photoFx", { ...config.photoFx, ...patch });
+  const panelStops: PanelStop[] =
+    fx.stops?.length ? fx.stops : defaultPanelStops(config.theme.accent);
+  const setStop = (idx: number, patch: Partial<PanelStop>) =>
+    setFx({ stops: panelStops.map((s, j) => (j === idx ? { ...s, ...patch } : s)) });
 
   // Preview scales to fill whatever width its panel has (full-width on mobile).
   const [previewRef, previewW] = useMeasuredWidth<HTMLDivElement>();
@@ -357,22 +427,91 @@ export default function HeaderStudioPage() {
     }
   }
 
-  // Upload a speaker headshot → hosted URL on the speaker card. Useful after
+  // Upload a speaker headshot → hosted URL on that roster entry. Useful after
   // linking an instructor whose photo is a platform-relative path (dropped
-  // because it wouldn't load in the render).
-  async function uploadSpeakerPhoto(file: File) {
+  // because it wouldn't load in the render). The shared hidden file input
+  // targets whichever row's Upload button was clicked (photoTargetRef).
+  async function uploadSpeakerPhoto(file: File, index: number) {
     setPhotoError(null);
     setUploadingPhoto(true);
     try {
       const url = await uploadImage(file, "speakers");
-      setConfig((c) => ({
-        ...c,
-        speaker: { ...c.speaker, name: c.speaker?.name ?? "", photo: url, enabled: true },
-      }));
+      setConfig((c) => {
+        const list = c.speakers ?? (c.speaker ? [c.speaker] : []);
+        const next = list.map((s, j) =>
+          // A fresh upload starts a new variant set — stale cutouts of the
+          // previous photo would be misleading in the picker.
+          j === index
+            ? { ...s, photo: url, enabled: true, photoVariants: { original: url } }
+            : s
+        );
+        return { ...c, speakers: next, speaker: next[0] ?? c.speaker };
+      });
     } catch (e) {
       setPhotoError((e as Error).message);
     } finally {
       setUploadingPhoto(false);
+    }
+  }
+
+  // Remove the background from a roster entry's photo. The server runs the
+  // vendored U²-Net model and returns a transparent PNG; a B&W copy is made
+  // client-side, both are uploaded, and the three variants (original / cutout
+  // / B&W cutout) are stored on the speaker so the picker can switch between
+  // them without reprocessing. Also turns on the panel backdrop so cutouts
+  // sit on a branded gradient.
+  async function cutoutSpeakerPhoto(index: number) {
+    const photo = speakerList[index]?.photo?.trim();
+    if (!photo || cutoutBusy !== null) return;
+    setPhotoError(null);
+    setCutoutBusy(index);
+    try {
+      const res = await fetch("/api/photo/cutout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: photo }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error ?? `HTTP ${res.status}`);
+      }
+      const cutBlob = await res.blob();
+      const cutUrl = await uploadImage(
+        new File([cutBlob], "cutout.png", { type: "image/png" }),
+        "speakers"
+      );
+      const bwBlob = await desaturateBlob(cutBlob);
+      const bwUrl = await uploadImage(
+        new File([bwBlob], "cutout-bw.png", { type: "image/png" }),
+        "speakers"
+      );
+      setConfig((c) => {
+        const list = c.speakers ?? (c.speaker ? [c.speaker] : []);
+        const next = list.map((s, j) =>
+          j === index
+            ? {
+                ...s,
+                photo: cutUrl,
+                enabled: true,
+                photoVariants: {
+                  original: s.photoVariants?.original ?? photo,
+                  cutout: cutUrl,
+                  cutoutBw: bwUrl,
+                },
+              }
+            : s
+        );
+        return {
+          ...c,
+          speakers: next,
+          speaker: next[0] ?? c.speaker,
+          photoFx: { ...c.photoFx, panel: true },
+        };
+      });
+    } catch (e) {
+      setPhotoError((e as Error).message);
+    } finally {
+      setCutoutBusy(null);
     }
   }
 
@@ -485,6 +624,22 @@ export default function HeaderStudioPage() {
   // ---- Editing sections (inline on desktop, bottom sheets on mobile) ----
   const backgroundBody = (
     <>
+      <Field label="Template">
+        <select
+          className={inputCls}
+          value={activeTemplate.id}
+          onChange={(e) => set("template", e.target.value)}
+        >
+          {TEMPLATE_PRESETS.map((t) => (
+            <option key={t.id} value={t.id}>
+              {t.label}
+            </option>
+          ))}
+        </select>
+        <span className="mt-1 block text-[11px] leading-relaxed text-gray-500">
+          {activeTemplate.hint}
+        </span>
+      </Field>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <Field label="Size">
           <select
@@ -554,6 +709,21 @@ export default function HeaderStudioPage() {
           onChange={(e) => set("title", e.target.value)}
         />
       </Field>
+      <Field label={`Title size (${(config.titleScale ?? 1).toFixed(2)}×)`}>
+        <input
+          type="range"
+          min={0.6}
+          max={1.6}
+          step={0.05}
+          className="w-full accent-green-500"
+          value={config.titleScale ?? 1}
+          onChange={(e) => set("titleScale", Number(e.target.value))}
+        />
+        <span className="block text-[11px] leading-relaxed text-gray-500">
+          Starting size — the headline still auto-shrinks if it would crowd the
+          speaker photos, so it can never push them off the canvas.
+        </span>
+      </Field>
       <Field label="Subtitle (optional)">
         <input
           className={inputCls}
@@ -611,29 +781,33 @@ export default function HeaderStudioPage() {
     <>
       <div className="flex items-center justify-between">
         <span className="block text-[12px] font-semibold uppercase tracking-wide text-gray-500">
-          Speaker
+          Speakers
         </span>
         <Toggle
-          label="Show speaker"
+          label="Show speakers"
           checked={speakerOn}
           onChange={(on) =>
-            set("speaker", {
-              ...(config.speaker ?? { name: "" }),
-              enabled: on,
-            })
+            speakerList.length
+              ? setSpeakers(speakerList.map((s) => ({ ...s, enabled: on })))
+              : setSpeakers([{ name: "", enabled: on }])
           }
         />
       </div>
-      {/* Pull a speaker straight from the instructor roster. Fills the fields
-          below (and turns the card on); they stay editable afterwards. */}
+      <p className="text-[11px] leading-relaxed text-gray-500">
+        The first speaker is the lead instructor — the multi-speaker templates
+        put them front and center, and the grid re-sizes itself as speakers are
+        added or removed.
+      </p>
+      {/* Pull speakers straight from the instructor roster. Each pick appends
+          a card below (and turns it on); the fields stay editable afterwards. */}
       {instructors.length > 0 && (
-        <Field label="Link an instructor">
+        <Field label="Add from the instructor roster">
           <select
             className={inputCls}
             value=""
             onChange={(e) => {
               const inst = instructors.find((i) => i.id === e.target.value);
-              if (inst) set("speaker", instructorToSpeaker(inst));
+              if (inst) setSpeakers([...speakerList, instructorToSpeaker(inst)]);
             }}
           >
             <option value="">Choose from the roster…</option>
@@ -646,86 +820,177 @@ export default function HeaderStudioPage() {
           </select>
         </Field>
       )}
-      <div
-        className={`grid grid-cols-1 gap-3 sm:grid-cols-2 ${
-          speakerOn ? "" : "pointer-events-none opacity-50"
-        }`}
-      >
-        <Field label="Name">
-          <input
-            className={inputCls}
-            value={config.speaker?.name ?? ""}
-            onChange={(e) =>
-              set("speaker", { ...config.speaker, name: e.target.value })
-            }
-          />
-        </Field>
-        <Field label="Role">
-          <input
-            className={inputCls}
-            value={config.speaker?.role ?? ""}
-            onChange={(e) =>
-              set("speaker", { ...config.speaker, name: config.speaker?.name ?? "", role: e.target.value })
-            }
-          />
-        </Field>
-        <Field label="Organisation">
-          <input
-            className={inputCls}
-            value={config.speaker?.org ?? ""}
-            onChange={(e) =>
-              set("speaker", { ...config.speaker, name: config.speaker?.name ?? "", org: e.target.value })
-            }
-          />
-        </Field>
-        <Field label="Photo (upload, or paste a path / URL)">
-          <div className="flex gap-2">
-            <input
-              list="avatars"
-              className={inputCls}
-              placeholder="Paste an image URL…"
-              value={config.speaker?.photo ?? ""}
-              onChange={(e) =>
-                set("speaker", { ...config.speaker, name: config.speaker?.name ?? "", photo: e.target.value })
-              }
-            />
-            <button
-              type="button"
-              title="Upload an image"
-              disabled={uploadingPhoto}
-              onClick={() => photoInputRef.current?.click()}
-              className="flex shrink-0 items-center gap-1.5 rounded-[10px] bg-gray-100 px-3 text-[12.5px] font-semibold text-gray-800 hover:bg-gray-200 disabled:opacity-60"
-            >
-              {uploadingPhoto ? (
-                <Spinner size={13} className="animate-spin" />
-              ) : (
-                <Upload size={13} />
+      <div className={`space-y-3 ${speakerOn ? "" : "pointer-events-none opacity-50"}`}>
+        {speakerList.map((sp, i) => (
+          <div key={i} className="space-y-3 rounded-[12px] border border-gray-200 p-3">
+            <div className="flex items-center justify-between">
+              <span
+                className={`text-[11px] font-bold uppercase tracking-wide ${
+                  i === 0 ? "text-green-700" : "text-gray-500"
+                }`}
+              >
+                {i === 0 ? "Lead instructor" : `Speaker ${i + 1}`}
+              </span>
+              <div className="flex items-center gap-2">
+                {i > 0 && (
+                  <button
+                    type="button"
+                    title="Move to the front (make lead)"
+                    onClick={() =>
+                      setSpeakers([sp, ...speakerList.filter((_, j) => j !== i)])
+                    }
+                    className="rounded-[8px] bg-gray-100 px-2 py-1 text-[11px] font-semibold text-gray-700 hover:bg-gray-200"
+                  >
+                    Make lead
+                  </button>
+                )}
+                <button
+                  type="button"
+                  title="Remove speaker"
+                  onClick={() => setSpeakers(speakerList.filter((_, j) => j !== i))}
+                  className="rounded-[8px] bg-gray-100 p-1.5 text-gray-600 hover:bg-gray-200"
+                >
+                  <X size={13} />
+                </button>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <Field label="Name">
+                <input
+                  className={inputCls}
+                  value={sp.name}
+                  onChange={(e) => updateSpeaker(i, { name: e.target.value })}
+                />
+              </Field>
+              <Field label="Tag (e.g. Host, Moderator)">
+                <input
+                  className={inputCls}
+                  placeholder={i === 0 ? "Host" : "Speaker"}
+                  value={sp.tag ?? ""}
+                  onChange={(e) => updateSpeaker(i, { tag: e.target.value })}
+                />
+              </Field>
+              <Field label="Role">
+                <input
+                  className={inputCls}
+                  value={sp.role ?? ""}
+                  onChange={(e) => updateSpeaker(i, { role: e.target.value })}
+                />
+              </Field>
+              <Field label="Organisation">
+                <input
+                  className={inputCls}
+                  value={sp.org ?? ""}
+                  onChange={(e) => updateSpeaker(i, { org: e.target.value })}
+                />
+              </Field>
+            </div>
+            <Field label="Photo (upload, or paste a path / URL)">
+              <div className="flex gap-2">
+                <input
+                  list="avatars"
+                  className={inputCls}
+                  placeholder="Paste an image URL…"
+                  value={sp.photo ?? ""}
+                  onChange={(e) => updateSpeaker(i, { photo: e.target.value })}
+                />
+                <button
+                  type="button"
+                  title="Upload an image"
+                  disabled={uploadingPhoto}
+                  onClick={() => {
+                    photoTargetRef.current = i;
+                    photoInputRef.current?.click();
+                  }}
+                  className="flex shrink-0 items-center gap-1.5 rounded-[10px] bg-gray-100 px-3 text-[12.5px] font-semibold text-gray-800 hover:bg-gray-200 disabled:opacity-60"
+                >
+                  {uploadingPhoto ? (
+                    <Spinner size={13} className="animate-spin" />
+                  ) : (
+                    <Upload size={13} />
+                  )}
+                  Upload
+                </button>
+                <button
+                  type="button"
+                  title="Remove the photo's background (AI cutout)"
+                  disabled={cutoutBusy !== null || !sp.photo?.trim()}
+                  onClick={() => cutoutSpeakerPhoto(i)}
+                  className="flex shrink-0 items-center gap-1.5 rounded-[10px] bg-gray-100 px-3 text-[12.5px] font-semibold text-gray-800 hover:bg-gray-200 disabled:opacity-60"
+                >
+                  {cutoutBusy === i ? (
+                    <Spinner size={13} className="animate-spin" />
+                  ) : (
+                    <Scissors size={13} />
+                  )}
+                  {cutoutBusy === i ? "Cutting…" : "Cut out BG"}
+                </button>
+              </div>
+            </Field>
+            {/* Variant picker: switch the active photo between the stored
+                original / cutout / B&W cutout without reprocessing. */}
+            <div className="flex flex-wrap items-center gap-1.5">
+              {(
+                [
+                  ["original", "Original"],
+                  ["cutout", "Cut-out"],
+                  ["cutoutBw", "Cut-out B&W"],
+                ] as const
+              ).map(([key, label]) => {
+                const url = sp.photoVariants?.[key];
+                const active = !!url && sp.photo === url;
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    disabled={!url}
+                    onClick={() => url && updateSpeaker(i, { photo: url })}
+                    className={`rounded-pill border px-2.5 py-1 text-[11px] font-semibold transition disabled:cursor-not-allowed disabled:opacity-40 ${
+                      active
+                        ? "border-green-500 bg-green-50 text-green-700"
+                        : "border-gray-200 text-gray-600 hover:bg-gray-50"
+                    }`}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+              {!sp.photoVariants?.cutout && (
+                <span className="text-[11px] text-gray-400">
+                  Run “Cut out BG” to generate the cut-out variants
+                </span>
               )}
-              Upload
-            </button>
-            <input
-              ref={photoInputRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                // Reset so re-picking the same file fires onChange again.
-                e.target.value = "";
-                if (file) uploadSpeakerPhoto(file);
-              }}
-            />
+            </div>
           </div>
-          <datalist id="avatars">
-            {BUNDLED_AVATARS.map((a) => (
-              <option key={a} value={a} />
-            ))}
-          </datalist>
-          {photoError && (
-            <span className="mt-1 block text-[11.5px] text-red-600">{photoError}</span>
-          )}
-        </Field>
+        ))}
+        <button
+          type="button"
+          onClick={() => setSpeakers([...speakerList, { name: "", enabled: true }])}
+          className="flex items-center gap-1.5 rounded-[10px] border border-dashed border-gray-300 px-3 py-1.5 text-[12.5px] font-semibold text-gray-600"
+        >
+          <Plus size={13} /> Add speaker
+        </button>
       </div>
+      <input
+        ref={photoInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          // Reset so re-picking the same file fires onChange again.
+          e.target.value = "";
+          if (file) uploadSpeakerPhoto(file, photoTargetRef.current);
+        }}
+      />
+      <datalist id="avatars">
+        {BUNDLED_AVATARS.map((a) => (
+          <option key={a} value={a} />
+        ))}
+      </datalist>
+      {photoError && (
+        <span className="mt-1 block text-[11.5px] text-red-600">{photoError}</span>
+      )}
     </>
   );
 
@@ -898,13 +1163,198 @@ export default function HeaderStudioPage() {
           onChange={(on) => set("theme", { ...config.theme, card: on })}
         />
       </div>
+      <div className="flex items-center justify-between border-t border-gray-100 pt-3">
+        <div>
+          <span className="block text-[12px] font-semibold text-gray-700">
+            Black &amp; white photos
+          </span>
+          <span className="text-[11px] text-gray-500">
+            Desaturate every speaker photo (non-destructive)
+          </span>
+        </div>
+        <Toggle
+          label="Black and white photos"
+          checked={!!config.photoFx?.bw}
+          onChange={(on) => set("photoFx", { ...config.photoFx, bw: on })}
+        />
+      </div>
+      <div className="flex items-center justify-between border-t border-gray-100 pt-3">
+        <div>
+          <span className="block text-[12px] font-semibold text-gray-700">
+            Panel behind photos
+          </span>
+          <span className="text-[11px] text-gray-500">
+            Light→accent gradient backdrop — pairs with &quot;Cut out BG&quot; cutouts
+          </span>
+        </div>
+        <Toggle
+          label="Panel behind photos"
+          checked={!!config.photoFx?.panel}
+          onChange={(on) => set("photoFx", { ...config.photoFx, panel: on })}
+        />
+      </div>
+
+      {/* ---- Photo frame ---- */}
+      <div className="space-y-3 border-t border-gray-100 pt-3">
+        <span className="block text-[12px] font-semibold uppercase tracking-wide text-gray-500">
+          Photo frame
+        </span>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <Field
+            label={`Corner radius${typeof fx.radius === "number" ? ` (${fx.radius}px)` : " (auto)"}`}
+          >
+            <div className="flex items-center gap-2">
+              <input
+                type="range"
+                min={0}
+                max={48}
+                step={1}
+                className="w-full accent-green-500"
+                value={fx.radius ?? 16}
+                onChange={(e) => setFx({ radius: Number(e.target.value) })}
+              />
+              <button
+                type="button"
+                title="Back to each template's own radius"
+                onClick={() => setFx({ radius: undefined })}
+                className="shrink-0 rounded-[8px] bg-gray-100 px-2 py-1 text-[11px] font-semibold text-gray-600"
+              >
+                Auto
+              </button>
+            </div>
+          </Field>
+          <Field label="Border">
+            <div className="flex items-center gap-2">
+              <Toggle
+                label="Show photo border"
+                checked={fx.border !== false}
+                onChange={(on) => setFx({ border: on })}
+              />
+              <input
+                type="color"
+                title="Border color"
+                className="h-8 w-10 rounded-[8px] border border-gray-200 disabled:opacity-40"
+                disabled={fx.border === false}
+                value={fx.borderColor ?? "#FFFFFF"}
+                onChange={(e) => setFx({ borderColor: e.target.value })}
+              />
+              <button
+                type="button"
+                title="Back to the defaults (accent for the lead, white for the rest)"
+                onClick={() => setFx({ borderColor: undefined })}
+                className="shrink-0 rounded-[8px] bg-gray-100 px-2 py-1 text-[11px] font-semibold text-gray-600"
+              >
+                Auto
+              </button>
+            </div>
+          </Field>
+        </div>
+      </div>
+
+      {/* ---- Panel gradient (only meaningful while the panel is on) ---- */}
+      {fx.panel && (
+        <div className="space-y-3 border-t border-gray-100 pt-3">
+          <span className="block text-[12px] font-semibold uppercase tracking-wide text-gray-500">
+            Panel gradient
+          </span>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <Field label="Type">
+              <select
+                className={inputCls}
+                value={fx.gradientType ?? "linear"}
+                onChange={(e) =>
+                  setFx({ gradientType: e.target.value as "linear" | "radial" })
+                }
+              >
+                <option value="linear">Linear</option>
+                <option value="radial">Radial</option>
+              </select>
+            </Field>
+            {(fx.gradientType ?? "linear") === "linear" && (
+              <Field label={`Angle (${fx.gradientAngle ?? 180}°)`}>
+                <input
+                  type="range"
+                  min={0}
+                  max={360}
+                  step={5}
+                  className="w-full accent-green-500"
+                  value={fx.gradientAngle ?? 180}
+                  onChange={(e) => setFx({ gradientAngle: Number(e.target.value) })}
+                />
+              </Field>
+            )}
+          </div>
+          <div>
+            <span className="mb-1 block text-[12px] font-semibold text-gray-700">
+              Color stops (color · opacity % · position %)
+            </span>
+            <div className="space-y-2">
+              {panelStops.map((s, idx) => (
+                <div key={idx} className="flex items-center gap-2">
+                  <input
+                    type="color"
+                    title="Stop color"
+                    className="h-8 w-10 shrink-0 rounded-[8px] border border-gray-200"
+                    value={s.color}
+                    onChange={(e) => setStop(idx, { color: e.target.value })}
+                  />
+                  <input
+                    type="number"
+                    title="Opacity %"
+                    min={0}
+                    max={100}
+                    className={`${inputCls} w-20 text-center`}
+                    value={Math.round((s.alpha ?? 1) * 100)}
+                    onChange={(e) =>
+                      setStop(idx, {
+                        alpha: Math.min(100, Math.max(0, Number(e.target.value))) / 100,
+                      })
+                    }
+                  />
+                  <input
+                    type="number"
+                    title="Position % (may exceed 100)"
+                    min={-100}
+                    max={300}
+                    className={`${inputCls} w-20 text-center`}
+                    value={Math.round(s.at)}
+                    onChange={(e) => setStop(idx, { at: Number(e.target.value) })}
+                  />
+                  <button
+                    type="button"
+                    title="Remove stop"
+                    disabled={panelStops.length <= 2}
+                    onClick={() =>
+                      setFx({ stops: panelStops.filter((_, j) => j !== idx) })
+                    }
+                    className="shrink-0 rounded-[8px] bg-gray-100 p-1.5 text-gray-600 disabled:opacity-40"
+                  >
+                    <X size={13} />
+                  </button>
+                </div>
+              ))}
+              <button
+                type="button"
+                onClick={() =>
+                  setFx({
+                    stops: [...panelStops, { color: "#FFFFFF", alpha: 1, at: 100 }],
+                  })
+                }
+                className="flex items-center gap-1.5 rounded-[10px] border border-dashed border-gray-300 px-3 py-1.5 text-[12.5px] font-semibold text-gray-600"
+              >
+                <Plus size={13} /> Add stop
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 
   const SECTIONS = [
     { key: "background", label: "Background", icon: ImageIcon, body: backgroundBody },
     { key: "content", label: "Content", icon: TextT, body: contentBody },
-    { key: "speaker", label: "Speaker", icon: User, body: speakerBody },
+    { key: "speaker", label: "Speakers", icon: User, body: speakerBody },
     { key: "style", label: "Style", icon: Palette, body: styleBody },
   ] as const;
 

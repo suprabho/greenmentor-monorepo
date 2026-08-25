@@ -7,6 +7,18 @@
 //
 // All three render from lib/header/render.ts, so this type is the contract.
 
+/**
+ * Stored photo variants for a speaker. "Cut out BG" fills `cutout` (transparent
+ * background) and `cutoutBw` (transparent + black & white) and remembers the
+ * pre-cutout photo as `original`, so the studio's variant picker can switch
+ * between them without reprocessing.
+ */
+export type SpeakerPhotoVariants = {
+  original?: string;
+  cutout?: string;
+  cutoutBw?: string;
+};
+
 /** A speaker / host shown in the lower-left card (optional). */
 export type HeaderSpeaker = {
   name: string;
@@ -16,6 +28,14 @@ export type HeaderSpeaker = {
   org?: string;
   /** Absolute URL or app-relative path (e.g. "/avatars/supro.jpg"). */
   photo?: string;
+  /** Hosted variants of `photo` (original / cutout / B&W cutout). */
+  photoVariants?: SpeakerPhotoVariants;
+  /**
+   * Small label over the card in multi-speaker templates, e.g. "Host",
+   * "Moderator", "Speaker". Templates that show tags fall back to
+   * "Host" for the lead and "Speaker" for the rest when omitted.
+   */
+  tag?: string;
   /**
    * Whether the speaker card renders. Undefined is treated as enabled so
    * older configs keep working; the studio toggle sets it explicitly.
@@ -86,6 +106,115 @@ export function auraEmbedUrl(slug: string): string {
   return `https://aura.promad.design/embed/${finalSlug}?hideText=true`;
 }
 
+/**
+ * Layout template. `classic` is the original single-speaker layout; the rest
+ * are multi-speaker layouts whose speaker grid adapts to the roster size
+ * (photo/card dimensions shrink as speakers are added). In every multi-speaker
+ * template the FIRST speaker in `speakers` is the lead instructor and gets the
+ * front-and-center treatment.
+ */
+export type TemplatePreset = {
+  id: string;
+  label: string;
+  /** One-line "use this when…" hint shown in the studio picker. */
+  hint: string;
+};
+
+export const TEMPLATE_PRESETS: TemplatePreset[] = [
+  {
+    id: "classic",
+    label: "Classic — footer speaker card",
+    hint: "The original layout: badge / title / chips with one speaker in the footer.",
+  },
+  {
+    id: "spotlight",
+    label: "Spotlight — lead front and center",
+    hint: "Centered title with the lead instructor's portrait mid-stage and supporting speakers flanking outward. 1–6 speakers.",
+  },
+  {
+    id: "lineup",
+    label: "Lineup — speaker columns",
+    hint: "Conference-style vertical panels (tag, name, role, portrait) in an equal-width row. Great for 3–5 speakers.",
+  },
+  {
+    id: "billboard",
+    label: "Billboard — title left, speakers right",
+    hint: "Big headline top-left, bottom-aligned speaker row on the right with the lead slightly larger. 2–4 speakers.",
+  },
+  {
+    id: "gallery",
+    label: "Gallery — big photo cards",
+    hint: "Large rounded portrait cards side by side with name plates; the lead card carries the accent. 1–4 speakers.",
+  },
+];
+
+export const DEFAULT_TEMPLATE_ID = "classic";
+
+/** Resolve the template id, falling back to classic for unknown/older configs. */
+export function templateFor(config: Pick<HeaderConfig, "template">): string {
+  const id = config.template?.trim();
+  return id && TEMPLATE_PRESETS.some((t) => t.id === id) ? id : DEFAULT_TEMPLATE_ID;
+}
+
+/**
+ * The renderable speaker roster: the `speakers` array when present, else the
+ * legacy single `speaker`, minus disabled/blank entries. Index 0 is the lead.
+ */
+export function speakersFor(
+  config: Pick<HeaderConfig, "speaker" | "speakers">
+): HeaderSpeaker[] {
+  const list = config.speakers?.length
+    ? config.speakers
+    : config.speaker
+      ? [config.speaker]
+      : [];
+  return list.filter((s) => s && s.enabled !== false && s.name.trim());
+}
+
+/** One color stop of the photo-panel gradient. */
+export type PanelStop = {
+  /** Hex color (#RGB or #RRGGBB). */
+  color: string;
+  /** 0–1 opacity of this stop. Omitted -> 1. */
+  alpha?: number;
+  /** Stop position in % (can exceed 100 to push a color past the edge). */
+  at: number;
+};
+
+/**
+ * Photo treatment applied to every speaker portrait at render time.
+ * - `bw`: black & white (CSS grayscale — non-destructive, toggle any time).
+ * - `panel`: a gradient panel painted behind each photo frame. Invisible
+ *   behind ordinary full-bleed photos, but gives cutout PNGs (transparent
+ *   background, see the studio's "Cut out BG" button) a branded backdrop like
+ *   the reference posters. Its gradient is configurable: `gradientType`
+ *   linear (with `gradientAngle`, default 180°) or radial, over `stops`
+ *   (color + alpha + position; default light-grey → accent).
+ * - Frame overrides, applied whether or not the panel is on: `radius` (corner
+ *   radius in baseline px, scaled with the canvas), `border` (false hides the
+ *   photo frames' borders), `borderColor` (overrides every frame's border
+ *   color, the lead's accent included).
+ */
+export type HeaderPhotoFx = {
+  bw?: boolean;
+  panel?: boolean;
+  gradientType?: "linear" | "radial";
+  /** Linear gradient direction in degrees (default 180 = top→bottom). */
+  gradientAngle?: number;
+  stops?: PanelStop[];
+  radius?: number;
+  border?: boolean;
+  borderColor?: string;
+};
+
+/** Default panel gradient stops (light grey → brand accent, past the edge). */
+export function defaultPanelStops(accent: string): PanelStop[] {
+  return [
+    { color: "#EDF3F0", alpha: 1, at: 0 },
+    { color: accent, alpha: 1, at: 175 },
+  ];
+}
+
 /** Theme controls for the text overlay legibility scrim + accent. */
 export type HeaderTheme = {
   /** 0–1: darkness of the gradient scrim behind text. */
@@ -137,7 +266,28 @@ export type HeaderConfig = {
   title: string;
   subtitle?: string;
   chips: HeaderChip[];
+  /**
+   * Legacy single speaker. Still honored (as a one-person roster) when
+   * `speakers` is absent, so older saved configs keep rendering. The studio
+   * mirrors `speakers[0]` here on every edit.
+   */
   speaker?: HeaderSpeaker;
+  /**
+   * Multi-speaker roster for the template layouts. Index 0 is the lead
+   * instructor (front and center). Takes precedence over `speaker`.
+   */
+  speakers?: HeaderSpeaker[];
+  /** Layout template id from TEMPLATE_PRESETS. Omitted -> "classic". */
+  template?: string;
+  /**
+   * Title size multiplier (0.5–2, default 1) on the layout's computed title
+   * size. This sets the *starting* size — the renderer still auto-shrinks the
+   * headline block if it would overflow / crowd the speaker stage, so a large
+   * value can never push the photos off the canvas.
+   */
+  titleScale?: number;
+  /** Speaker-photo treatment (black & white, panel backdrop). Omitted -> none. */
+  photoFx?: HeaderPhotoFx;
   /**
    * Which brand lockup to show bottom-right — a brand id from the catalog
    * (lib/header/brands.ts), e.g. "greenmentor". Resolved via getBrand(), which
@@ -184,6 +334,12 @@ export const DEFAULT_CONFIG: HeaderConfig = {
     card: false,
   },
 };
+
+/** Resolve the title multiplier, clamped so extreme values can't break layout. */
+export function titleScaleFor(config: Pick<HeaderConfig, "titleScale">): number {
+  const s = config.titleScale ?? 1;
+  return Math.min(2, Math.max(0.5, Number.isFinite(s) ? s : 1));
+}
 
 /** Resolve the logo config with defaults so partial/older configs stay valid. */
 export function logoFor(config: HeaderConfig): BrandLogo {

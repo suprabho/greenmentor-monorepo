@@ -4,6 +4,7 @@ import {
   AURA_PRESETS,
   BRAND_GREEN,
   SIZE_PRESETS,
+  TEMPLATE_PRESETS,
   type AuraPreset,
   type HeaderConfig,
 } from "@/lib/header/types";
@@ -110,6 +111,41 @@ export async function POST(req: Request) {
         },
         required: ["name"],
       },
+      speakers: {
+        type: "array",
+        description:
+          "Full speaker roster when the brief names MORE THAN ONE person, lead instructor FIRST. Also set `template` to a multi-speaker layout. Omit for zero or one speaker (use `speaker` instead).",
+        items: {
+          type: "object",
+          additionalProperties: false,
+          properties: {
+            name: { type: "string" },
+            role: { type: "string" },
+            org: { type: "string" },
+            tag: {
+              type: "string",
+              description: "Card label like 'Host', 'Moderator', 'Speaker'. Omit for the defaults (Host for the lead, Speaker for the rest).",
+            },
+          },
+          required: ["name"],
+        },
+      },
+      template: {
+        type: "string",
+        enum: TEMPLATE_PRESETS.map((t) => t.id),
+        description:
+          "Layout template. 'classic' = single footer speaker card (default). Multi-speaker layouts: 'spotlight' (lead front and center, others flanking), 'lineup' (equal speaker columns, good for 3–5), 'billboard' (title left, speaker row bottom-right, 2–4), 'gallery' (big photo cards, 1–4). Pick one of these whenever the roster has 2+ people.",
+      },
+      photoFx: {
+        type: "object",
+        additionalProperties: false,
+        description:
+          "Speaker-photo treatment. Set bw:true when the brief asks for black & white / monochrome photos; panel:true pairs a light→accent gradient backdrop with cutout photos. Omit otherwise.",
+        properties: {
+          bw: { type: "boolean" },
+          panel: { type: "boolean" },
+        },
+      },
       theme: {
         type: "object",
         additionalProperties: false,
@@ -127,7 +163,9 @@ export async function POST(req: Request) {
 
   const system = `You draft header-image configs for GreenMentor (a sustainability brand; tagline "Sustainability Simplified"). Today is ${today}.
 
-Turn the user's brief into a header config by calling the draft_header tool. Extract the badge, title, optional subtitle, meta chips (mode/date/time), and speaker (name, role, org) from the brief. Infer sensible defaults; only set fields the brief supports — leave the rest out so existing defaults apply.
+Turn the user's brief into a header config by calling the draft_header tool. Extract the badge, title, optional subtitle, meta chips (mode/date/time), and the people (name, role, org) from the brief. Infer sensible defaults; only set fields the brief supports — leave the rest out so existing defaults apply.
+
+One named person → set \`speaker\`. Two or more → set \`speakers\` with the lead instructor/host FIRST, and pick a multi-speaker \`template\` ('spotlight' for a clear lead + supporting speakers, 'lineup' for an equal panel of 3–5, 'billboard' for 2–4 with a big headline, 'gallery' for 1–4 large photo cards). The speaker grids scale automatically with the roster size.
 
 Pick an aura background slug from this list (match the type to the theme: fluid→tech/data, aurora→premium/evening/energy, ribbon→elegant/corporate, liquid→creative/abstract). When in doubt use ${DEFAULT_AURA_SLUG} (on-brand green):
 ${auraMenu}

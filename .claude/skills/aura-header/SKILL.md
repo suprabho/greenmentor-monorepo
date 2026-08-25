@@ -37,9 +37,29 @@ All paths are under the community-engine app:
    truth — do not hardcode fields from memory.
 
 2. **Gather the brief.** Extract: badge/tag, title, optional subtitle,
-   meta chips (mode, date, time), speaker (name, role, org, photo), brand,
-   target size. Ask only for what's genuinely missing — infer sensible
+   meta chips (mode, date, time), speaker(s) (name, role, org, photo, tag),
+   brand, target size. Ask only for what's genuinely missing — infer sensible
    defaults for everything else (see "Defaults" below).
+
+   **Multi-speaker headers**: put the roster in `speakers` (an array of the
+   same speaker shape, plus optional `tag` like "Host"/"Moderator") with the
+   lead instructor FIRST, and pick a `template` (see `TEMPLATE_PRESETS` in
+   types.ts):
+   - `classic` (default) — single speaker card in the footer; extra roster
+     entries collapse to a "+N more" hint.
+   - `spotlight` — lead front and center, supporting speakers flanking
+     outward; centered headline. 1–6 speakers.
+   - `lineup` — conference-style equal columns (tag / name / role /
+     portrait); lead column accent-framed. Best at 3–5.
+   - `billboard` — big headline top-left, bottom-aligned speaker row on the
+     right, lead first and larger. Best at 2–4.
+   - `gallery` — large rounded photo cards with name plates; lead card
+     accented. Best at 1–4.
+   Every grid recomputes card/photo sizes from the roster length, so adding
+   or removing a speaker never needs manual layout tweaks. Speakers without
+   a photo render an initials monogram tile. Multi-speaker templates want
+   vertical room — prefer `newsletter`, `webinar-wide`, `square`, or `story`
+   (strips always fall back to the compact single-speaker layout).
 
 3. **Pick an aura background.** Default to the `green-vibrant` preset (verified
    live, on-brand). To choose something else, use the scene-context-graph
@@ -95,6 +115,20 @@ All paths are under the community-engine app:
 }
 ```
 
+Multi-speaker variant — swap `speaker` for `speakers` (lead first) and pick a
+`template`:
+
+```json
+{
+  "template": "spotlight",
+  "speakers": [
+    { "name": "Ankit Todi", "role": "Chief Sustainability Officer", "org": "Mahindra Group", "photo": "https://…", "tag": "Host" },
+    { "name": "Meera Iyer", "role": "Head of ESG", "org": "Infosys", "photo": "https://…" },
+    { "name": "Rohan Shah", "role": "Climate Lead", "org": "Tata Steel", "photo": "https://…" }
+  ]
+}
+```
+
 ## Defaults to infer (don't pester the user)
 
 - `sizeId`: `newsletter` (1200×627) unless they ask otherwise. Other presets
@@ -116,6 +150,24 @@ All paths are under the community-engine app:
 
 - Keep titles under ~90 chars — the renderer drops the title size automatically
   past that, but very long titles still crowd the speaker row.
+- `titleScale` (0.5–2, default 1) multiplies the computed title size. It only
+  sets the *starting* size: the rendered document auto-shrinks the headline
+  block until nothing overflows, and the speaker stage never gives up its
+  space (photos hold ≥ half the canvas in the multi-speaker templates), so a
+  big value can't push the photos off.
+- `photoFx` styles every speaker photo: `bw: true` renders them black & white
+  (non-destructive CSS grayscale); `panel: true` paints a gradient panel
+  behind each photo frame — meant for cutout photos with transparent
+  backgrounds (in-app the studio's "Cut out BG" button makes those via POST
+  `/api/photo/cutout`, a vendored U²-Net model — no external service, and
+  stores original / cutout / B&W-cutout variants on the speaker's
+  `photoVariants` for its picker). The panel gradient is configurable:
+  `gradientType` ("linear" with `gradientAngle`, default 180°, or "radial")
+  over `stops` (`{ color, alpha 0–1, at % }`, default light-grey → accent).
+  Frame overrides: `radius` (baseline px, canvas-scaled), `border: false`
+  hides frame borders, `borderColor` overrides them (lead's accent
+  included). B&W cutouts on accent panels reproduce the RIOBook-style
+  reference look.
 - `newsletter-strip` (1100×220) uses a horizontal layout (badge + title + chips
   on the left, speaker + brand on the right) and clamps the title to 2 lines —
   keep its title short (≤ ~55 chars) and use 1–2 chips so it reads as a banner.
