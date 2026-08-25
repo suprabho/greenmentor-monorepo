@@ -11,6 +11,7 @@ import {
   TextT,
   User,
   Palette,
+  Scissors,
   Upload,
 } from "@phosphor-icons/react";
 import { Card, PageHeader, Chip } from "@/components/ui";
@@ -232,6 +233,8 @@ export default function HeaderStudioPage() {
   const photoInputRef = useRef<HTMLInputElement>(null);
   // Which roster row the shared hidden file input uploads into.
   const photoTargetRef = useRef(0);
+  // Roster row currently running background removal (null = idle).
+  const [cutoutBusy, setCutoutBusy] = useState<number | null>(null);
   // Mobile only: which section's bottom sheet is open (null = none). The four
   // editing sections live in a bottom nav + sheets on phones; on desktop they
   // stay inline in the left column.
@@ -408,6 +411,47 @@ export default function HeaderStudioPage() {
       setPhotoError((e as Error).message);
     } finally {
       setUploadingPhoto(false);
+    }
+  }
+
+  // Remove the background from a roster entry's photo: the server runs the
+  // vendored U²-Net model and returns a transparent PNG, which then goes
+  // through the normal upload flow so the cutout is baked into a hosted URL.
+  // Also turns on the panel backdrop so the cutout sits on a branded gradient.
+  async function cutoutSpeakerPhoto(index: number) {
+    const photo = speakerList[index]?.photo?.trim();
+    if (!photo || cutoutBusy !== null) return;
+    setPhotoError(null);
+    setCutoutBusy(index);
+    try {
+      const res = await fetch("/api/photo/cutout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: photo }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error ?? `HTTP ${res.status}`);
+      }
+      const blob = await res.blob();
+      const file = new File([blob], "cutout.png", { type: "image/png" });
+      const url = await uploadImage(file, "speakers");
+      setConfig((c) => {
+        const list = c.speakers ?? (c.speaker ? [c.speaker] : []);
+        const next = list.map((s, j) =>
+          j === index ? { ...s, photo: url, enabled: true } : s
+        );
+        return {
+          ...c,
+          speakers: next,
+          speaker: next[0] ?? c.speaker,
+          photoFx: { ...c.photoFx, panel: true },
+        };
+      });
+    } catch (e) {
+      setPhotoError((e as Error).message);
+    } finally {
+      setCutoutBusy(null);
     }
   }
 
@@ -807,6 +851,20 @@ export default function HeaderStudioPage() {
                   )}
                   Upload
                 </button>
+                <button
+                  type="button"
+                  title="Remove the photo's background (AI cutout)"
+                  disabled={cutoutBusy !== null || !sp.photo?.trim()}
+                  onClick={() => cutoutSpeakerPhoto(i)}
+                  className="flex shrink-0 items-center gap-1.5 rounded-[10px] bg-gray-100 px-3 text-[12.5px] font-semibold text-gray-800 hover:bg-gray-200 disabled:opacity-60"
+                >
+                  {cutoutBusy === i ? (
+                    <Spinner size={13} className="animate-spin" />
+                  ) : (
+                    <Scissors size={13} />
+                  )}
+                  {cutoutBusy === i ? "Cutting…" : "Cut out BG"}
+                </button>
               </div>
             </Field>
           </div>
@@ -1009,6 +1067,36 @@ export default function HeaderStudioPage() {
           label="Card behind text"
           checked={!!config.theme.card}
           onChange={(on) => set("theme", { ...config.theme, card: on })}
+        />
+      </div>
+      <div className="flex items-center justify-between border-t border-gray-100 pt-3">
+        <div>
+          <span className="block text-[12px] font-semibold text-gray-700">
+            Black &amp; white photos
+          </span>
+          <span className="text-[11px] text-gray-500">
+            Desaturate every speaker photo (non-destructive)
+          </span>
+        </div>
+        <Toggle
+          label="Black and white photos"
+          checked={!!config.photoFx?.bw}
+          onChange={(on) => set("photoFx", { ...config.photoFx, bw: on })}
+        />
+      </div>
+      <div className="flex items-center justify-between border-t border-gray-100 pt-3">
+        <div>
+          <span className="block text-[12px] font-semibold text-gray-700">
+            Panel behind photos
+          </span>
+          <span className="text-[11px] text-gray-500">
+            Light→accent gradient backdrop — pairs with &quot;Cut out BG&quot; cutouts
+          </span>
+        </div>
+        <Toggle
+          label="Panel behind photos"
+          checked={!!config.photoFx?.panel}
+          onChange={(on) => set("photoFx", { ...config.photoFx, panel: on })}
         />
       </div>
     </>

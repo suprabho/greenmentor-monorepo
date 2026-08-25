@@ -157,6 +157,19 @@ export function speakersFor(
   return list.filter((s) => s && s.enabled !== false && s.name.trim());
 }
 
+/**
+ * Photo treatment applied to every speaker portrait at render time.
+ * - `bw`: black & white (CSS grayscale — non-destructive, toggle any time).
+ * - `panel`: a light→accent gradient panel painted behind each photo frame.
+ *   Invisible behind ordinary full-bleed photos, but gives cutout PNGs
+ *   (transparent background, see the studio's "Cut out BG" button) a branded
+ *   backdrop like the reference posters.
+ */
+export type HeaderPhotoFx = {
+  bw?: boolean;
+  panel?: boolean;
+};
+
 /** Theme controls for the text overlay legibility scrim + accent. */
 export type HeaderTheme = {
   /** 0–1: darkness of the gradient scrim behind text. */
@@ -228,6 +241,8 @@ export type HeaderConfig = {
    * value can never push the photos off the canvas.
    */
   titleScale?: number;
+  /** Speaker-photo treatment (black & white, panel backdrop). Omitted -> none. */
+  photoFx?: HeaderPhotoFx;
   /**
    * Which brand lockup to show bottom-right — a brand id from the catalog
    * (lib/header/brands.ts), e.g. "greenmentor". Resolved via getBrand(), which

@@ -136,6 +136,16 @@ export async function POST(req: Request) {
         description:
           "Layout template. 'classic' = single footer speaker card (default). Multi-speaker layouts: 'spotlight' (lead front and center, others flanking), 'lineup' (equal speaker columns, good for 3–5), 'billboard' (title left, speaker row bottom-right, 2–4), 'gallery' (big photo cards, 1–4). Pick one of these whenever the roster has 2+ people.",
       },
+      photoFx: {
+        type: "object",
+        additionalProperties: false,
+        description:
+          "Speaker-photo treatment. Set bw:true when the brief asks for black & white / monochrome photos; panel:true pairs a light→accent gradient backdrop with cutout photos. Omit otherwise.",
+        properties: {
+          bw: { type: "boolean" },
+          panel: { type: "boolean" },
+        },
+      },
       theme: {
         type: "object",
         additionalProperties: false,

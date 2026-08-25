@@ -35,6 +35,7 @@ const nextConfig: NextConfig = {
     "@napi-rs/canvas",
     "@llamaindex/liteparse",
     "jsdom",
+    "onnxruntime-node",
   ],
 
   // Next 15's webpack still follows dynamic imports INSIDE transpiled
@@ -103,6 +104,14 @@ const nextConfig: NextConfig = {
       "../../node_modules/.pnpm/@llamaindex+liteparse@*/node_modules/@llamaindex/liteparse/*.{node,so}",
       "../../node_modules/@llamaindex/liteparse/*.{node,so}",
       "./node_modules/@llamaindex/liteparse/*.{node,so}",
+    ],
+    // Speaker-photo background removal reads the vendored U²-Net model with a
+    // runtime-computed path (process.cwd()), which the tracer can't see, and
+    // onnxruntime-node's native binding is loaded the same lazy way as the
+    // packages above.
+    "/api/photo/cutout": [
+      "./models/**",
+      "../../node_modules/.pnpm/onnxruntime-node@*/node_modules/onnxruntime-node/bin/**",
     ],
   },
 };

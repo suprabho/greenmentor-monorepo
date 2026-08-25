@@ -104,6 +104,30 @@ function tagFor(sp: HeaderSpeaker, isLead: boolean): string {
   return sp.tag?.trim() || (isLead ? "Host" : "Speaker");
 }
 
+/**
+ * CSS for the configured photo treatment, applied to a layout's portrait
+ * selectors (comma-separated). `bw` desaturates the photos; `panel` paints a
+ * light→accent gradient behind each frame — invisible under full-bleed
+ * photos, a branded backdrop under transparent cutouts. Monogram tiles keep
+ * their own background.
+ */
+function photoFxCss(config: HeaderConfig, selectors: string): string {
+  const fx = config.photoFx;
+  if (!fx?.bw && !fx?.panel) return "";
+  const each = selectors.split(",").map((s) => s.trim());
+  const parts: string[] = [];
+  if (fx.bw) {
+    parts.push(`  ${each.map((s) => `img${s}`).join(", ")} { filter: grayscale(1) contrast(1.04); }`);
+  }
+  if (fx.panel) {
+    const nonMono = each.map((s) => `${s}:not(.monogram)`).join(", ");
+    parts.push(
+      `  ${nonMono} { background: linear-gradient(180deg, #EDF3F0 0%, ${config.theme.accent} 175%); }`
+    );
+  }
+  return `\n${parts.join("\n")}`;
+}
+
 /** Head + body shell shared by both layouts: reset, aura iframe, scrim. */
 function documentShell(args: {
   width: number;
@@ -349,7 +373,7 @@ function stackedDocument(
   .brand-logo { display: inline-block; vertical-align: bottom; height: ${logoPx}px; width: auto; }  .brand-sub {
     font-size: ${Math.round(10 * u)}px; font-weight: 600; opacity: 0.75;
     text-transform: uppercase; letter-spacing: 0.16em; margin-top: ${Math.round(6 * u)}px;
-  }`;
+  }${photoFxCss(config, ".sp-photo")}`;
 
   const bodyHtml = `<div class="content">
       <div>${badge}</div>
@@ -482,7 +506,7 @@ function compactDocument(
   .brand-logo { display: inline-block; vertical-align: bottom; height: ${logoPx}px; width: auto; }  .brand-sub {
     font-size: ${px(9)}px; font-weight: 600; opacity: 0.75;
     text-transform: uppercase; letter-spacing: 0.16em; margin-top: ${px(4)}px;
-  }`;
+  }${photoFxCss(config, ".sp-photo")}`;
 
   const hasRight = !!(speaker || brand);
   const bodyHtml = `<div class="content">
@@ -668,7 +692,7 @@ function spotlightDocument(
   .cell-name { font-size: ${px(15)}px; font-weight: 700; line-height: 1.15; margin-top: ${px(3)}px; }
   .cell.lead .cell-name { font-size: ${px(19)}px; }
   .cell-role { font-size: ${px(12)}px; opacity: 0.85; margin-top: ${px(3)}px; }
-  .cell-org { font-size: ${px(12)}px; font-weight: 700; margin-top: ${px(2)}px; }`;
+  .cell-org { font-size: ${px(12)}px; font-weight: 700; margin-top: ${px(2)}px; }${photoFxCss(config, ".ph-lead, .ph-sup")}`;
 
   const bodyHtml = `<div class="content">
       ${topbarHtml(config)}
@@ -756,7 +780,7 @@ function lineupDocument(
     flex: 1; min-height: 0; width: 100%; margin-top: ${px(10)}px;
     border-radius: ${px(10)}px; object-fit: cover;
   }
-  .monogram { font-size: ${px(30)}px; }`;
+  .monogram { font-size: ${px(30)}px; }${photoFxCss(config, ".col-photo")}`;
 
   const bodyHtml = `<div class="content">
       ${topbarHtml(config)}
@@ -851,7 +875,7 @@ function billboardDocument(
   .cell-org {
     font-size: ${px(11)}px; font-weight: 700; color: ${t.accent};
     text-transform: uppercase; letter-spacing: 0.08em; margin-top: ${px(2)}px;
-  }`;
+  }${photoFxCss(config, ".ph")}`;
 
   const bodyHtml = `<div class="content">
       ${topbarHtml(config)}
@@ -942,7 +966,7 @@ function galleryDocument(
   }
   .card.lead .card-tag { background: ${t.accent}; color: #04241C; border-color: transparent; }
   .card-name { font-size: ${px(16)}px; font-weight: 800; line-height: 1.15; }
-  .card-role { font-size: ${px(11)}px; opacity: 0.9; margin-top: ${px(2)}px; }`;
+  .card-role { font-size: ${px(11)}px; opacity: 0.9; margin-top: ${px(2)}px; }${photoFxCss(config, ".card-photo")}`;
 
   const bodyHtml = `<div class="content">
       ${topbarHtml(config)}
