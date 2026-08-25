@@ -9,12 +9,18 @@
 // Because every surface renders this identical markup, the preview and the
 // downloaded PNG can never disagree.
 //
-// Two layouts share the same shell, aura, and scrim:
-//   • the default vertical stack (badge top / title mid / speaker+brand footer),
-//     tuned for landscape-ish canvases and anchored to a 627px baseline height;
+// The layouts share the same shell, aura, and scrim:
+//   • "classic": the default vertical stack (badge top / title mid /
+//     speaker+brand footer), tuned for landscape-ish canvases and anchored to
+//     a 627px baseline height;
 //   • a horizontal "compact" layout (title left / speaker+brand right) for
-//     wide, short strips like the 1100×220 newsletter banner, where the stacked
-//     layout would shrink the type into illegibility.
+//     wide, short strips like the 1100×220 newsletter banner, where any
+//     stacked layout would shrink the type into illegibility — strips always
+//     use it, whatever template is selected;
+//   • four multi-speaker templates ("spotlight", "lineup", "billboard",
+//     "gallery") whose speaker grid recomputes card/photo sizes from the
+//     roster length, so 1 → 6 speakers lay out without manual tweaks. The
+//     first speaker is the lead instructor and gets the featured treatment.
 
 import {
   type HeaderConfig,
@@ -22,6 +28,8 @@ import {
   auraEmbedUrl,
   logoFor,
   sizeFor,
+  speakersFor,
+  templateFor,
 } from "./types";
 import { brandFor, type Brand } from "./brands";
 
@@ -57,6 +65,32 @@ function speakerPhotoTag(sp: HeaderSpeaker, origin?: string): string {
   return sp.photo
     ? `<img class="sp-photo" src="${esc(asset(sp.photo, origin))}" alt="" crossorigin="anonymous" />`
     : "";
+}
+
+/** First letters of the first two words — the no-photo fallback monogram. */
+function initialsOf(name: string): string {
+  return name
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((w) => w[0]?.toUpperCase() ?? "")
+    .join("");
+}
+
+/**
+ * Portrait for the multi-speaker templates: the photo when there is one, else
+ * an initials tile (same box, so the grid never collapses). Sizing comes from
+ * the template's CSS for `cls`.
+ */
+function portraitHtml(sp: HeaderSpeaker, cls: string, origin?: string): string {
+  return sp.photo
+    ? `<img class="${cls}" src="${esc(asset(sp.photo, origin))}" alt="" crossorigin="anonymous" />`
+    : `<div class="${cls} monogram"><span>${esc(initialsOf(sp.name))}</span></div>`;
+}
+
+/** Card tag label: explicit tag, else Host for the lead / Speaker otherwise. */
+function tagFor(sp: HeaderSpeaker, isLead: boolean): string {
+  return sp.tag?.trim() || (isLead ? "Host" : "Speaker");
 }
 
 /** Head + body shell shared by both layouts: reset, aura iframe, scrim. */
@@ -128,14 +162,35 @@ export function headerDocumentHTML(config: HeaderConfig, opts: RenderOpts = {}):
   const t = config.theme;
   const auraSrc = esc(auraEmbedUrl(config.auraSlug));
 
-  // Shared scrim: darker bottom-left where the copy sits.
-  const scrimCss = `
+  const template = templateFor(config);
+
+  // Shared scrim. The centered templates get a symmetric top+bottom fade (a
+  // left-biased scrim would lopside their speaker grid); everything else keeps
+  // the classic darker bottom-left where the copy sits.
+  const centered = template === "spotlight";
+  const scrimCss = centered
+    ? `
+      linear-gradient(180deg, rgba(2,18,18,${t.scrim * 0.7}) 0%, rgba(2,18,18,${t.scrim * 0.3}) 38%, rgba(2,18,18,${Math.min(0.85, t.scrim + 0.2)}) 100%)`
+    : `
       linear-gradient(90deg, rgba(2,18,18,${t.scrim}) 0%, rgba(2,18,18,${t.scrim * 0.5}) 42%, rgba(2,18,18,0) 78%),
       linear-gradient(0deg, rgba(2,18,18,${Math.min(0.85, t.scrim + 0.2)}) 0%, rgba(2,18,18,0) 46%)`;
 
-  return isCompact(width, height)
-    ? compactDocument(config, size, scrimCss, auraSrc, opts)
-    : stackedDocument(config, size, scrimCss, auraSrc, opts);
+  // Strips are too short for any stacked/grid layout — always compact.
+  if (isCompact(width, height)) {
+    return compactDocument(config, size, scrimCss, auraSrc, opts);
+  }
+  switch (template) {
+    case "spotlight":
+      return spotlightDocument(config, size, scrimCss, auraSrc, opts);
+    case "lineup":
+      return lineupDocument(config, size, scrimCss, auraSrc, opts);
+    case "billboard":
+      return billboardDocument(config, size, scrimCss, auraSrc, opts);
+    case "gallery":
+      return galleryDocument(config, size, scrimCss, auraSrc, opts);
+    default:
+      return stackedDocument(config, size, scrimCss, auraSrc, opts);
+  }
 }
 
 /** Default vertical stack — tuned for landscape-ish canvases (627px baseline). */
@@ -157,20 +212,22 @@ function stackedDocument(
 
   const chips = chipsHtml(config);
 
-  const sp = config.speaker;
-  const speaker =
-    sp && sp.enabled !== false && sp.name.trim()
-      ? `
+  // Classic shows the lead; extra roster entries surface as a "+N" hint.
+  const roster = speakersFor(config);
+  const sp = roster[0];
+  const extras = roster.length - 1;
+  const speaker = sp
+    ? `
       <div class="speaker">
         ${speakerPhotoTag(sp, opts.origin)}
         <div class="sp-meta">
           <div class="sp-with">With</div>
-          <div class="sp-name">${esc(sp.name)}</div>
+          <div class="sp-name">${esc(sp.name)}${extras > 0 ? ` <span style="font-weight:600;opacity:.75">+${extras} more</span>` : ""}</div>
           ${sp.role ? `<div class="sp-role">${esc(sp.role)}</div>` : ""}
           ${sp.org ? `<div class="sp-org">${esc(sp.org)}</div>` : ""}
         </div>
       </div>`
-      : "";
+    : "";
 
   const brand = brandHtml(config);
   const badge = badgeHtml(config);
@@ -293,15 +350,17 @@ function compactDocument(
   const badge = badgeHtml(config);
   const brand = brandHtml(config);
 
-  const sp = config.speaker;
   // Compact speaker: photo on the right edge, name + role·org to its left.
-  const speaker =
-    sp && sp.enabled !== false && sp.name.trim()
-      ? `
+  // Strips only fit one card, so show the lead and a "+N" hint for the rest.
+  const roster = speakersFor(config);
+  const sp = roster[0];
+  const extras = roster.length - 1;
+  const speaker = sp
+    ? `
       <div class="speaker">
         ${speakerPhotoTag(sp, opts.origin)}
         <div class="sp-meta">
-          <div class="sp-name">${esc(sp.name)}</div>
+          <div class="sp-name">${esc(sp.name)}${extras > 0 ? ` <span style="font-weight:600;opacity:.75">+${extras}</span>` : ""}</div>
           ${
             sp.role || sp.org
               ? `<div class="sp-role">${esc([sp.role, sp.org].filter(Boolean).join(" · "))}</div>`
@@ -309,7 +368,7 @@ function compactDocument(
           }
         </div>
       </div>`
-      : "";
+    : "";
 
   const modeCss = `
   .content {
@@ -395,6 +454,432 @@ function compactDocument(
     textColor: t.text,
     bodyHtml,
   });
+}
+
+/* ---- multi-speaker templates -------------------------------------------
+   All four share the same skeleton: a top bar (badge left / brand right), a
+   headline block, and a speaker "stage" pinned to the bottom whose card and
+   photo sizes are recomputed from the roster length so the grid adapts from
+   one speaker to six without manual tweaks. Index 0 is the lead instructor. */
+
+/** CSS shared by the template layouts (badge, chips, brand, monogram, title). */
+function templateBaseCss(
+  px: (n: number) => number,
+  accent: string,
+  logoPx: number,
+  pad: number
+): string {
+  return `
+  .content { padding: ${pad}px; display: flex; flex-direction: column; }
+  .topbar { display: flex; align-items: flex-start; justify-content: space-between; gap: ${px(20)}px; }
+  .badge {
+    display: inline-flex; align-items: center; gap: ${px(8)}px;
+    padding: ${px(7)}px ${px(15)}px;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.14);
+    border: 1px solid rgba(255,255,255,0.28);
+    backdrop-filter: blur(8px);
+    font-size: ${px(13)}px; font-weight: 700;
+    letter-spacing: 0.14em; text-transform: uppercase;
+    color: #fff;
+  }
+  .badge-dot {
+    width: ${px(7)}px; height: ${px(7)}px;
+    border-radius: 999px; background: ${accent};
+    box-shadow: 0 0 ${px(10)}px ${accent};
+  }
+  .chips { display: flex; flex-wrap: wrap; gap: ${px(10)}px; }
+  .chip {
+    display: inline-flex; align-items: center; gap: ${px(7)}px;
+    padding: ${px(7)}px ${px(13)}px;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.12);
+    border: 1px solid rgba(255,255,255,0.22);
+    backdrop-filter: blur(6px);
+    font-size: ${px(14)}px; font-weight: 600; color: #fff;
+  }
+  .chip-ic { font-size: ${px(14)}px; line-height: 1; }
+  .brand { text-align: right; }
+  .brand-logo { display: inline-block; vertical-align: bottom; height: ${logoPx}px; width: auto; }
+  .brand-sub {
+    font-size: ${px(10)}px; font-weight: 600; opacity: 0.75;
+    text-transform: uppercase; letter-spacing: 0.16em; margin-top: ${px(6)}px;
+  }
+  .title {
+    font-weight: 800; line-height: 1.08; letter-spacing: -0.015em;
+    text-shadow: 0 2px 18px rgba(0,0,0,0.35);
+  }
+  .subtitle { font-weight: 500; opacity: 0.9; }
+  .monogram {
+    display: flex; align-items: center; justify-content: center;
+    background: linear-gradient(135deg, rgba(255,255,255,0.22), rgba(255,255,255,0.08));
+    color: #fff; font-weight: 800; letter-spacing: 0.04em;
+  }`;
+}
+
+function topbarHtml(config: HeaderConfig): string {
+  const badge = badgeHtml(config);
+  const brand = brandHtml(config);
+  return `<div class="topbar">${badge || "<span></span>"}${brand || "<span></span>"}</div>`;
+}
+
+/**
+ * Spotlight — the lead instructor's portrait dead-center on the bottom stage,
+ * supporting speakers fanning outward left/right (added alternately, so the
+ * composition stays balanced at any count). Centered headline.
+ */
+function spotlightDocument(
+  config: HeaderConfig,
+  size: { width: number; height: number },
+  scrimCss: string,
+  auraSrc: string,
+  opts: RenderOpts,
+): string {
+  const { width, height } = size;
+  const t = config.theme;
+  const u = height / 627;
+  const px = (n: number) => Math.round(n * u);
+  const pad = px(46);
+  const titlePx = px(config.title.length > 90 ? 30 : 38);
+  const logoPx = Math.round(34 * u * logoFor(config).scale);
+
+  const roster = speakersFor(config);
+  const n = roster.length;
+
+  // Fit the stage to the canvas: shrink every card by the same factor once the
+  // natural sizes (lead 190u, supporting 148u) would overflow the width.
+  const gap = px(18);
+  const leadW0 = px(190);
+  const supW0 = px(148);
+  const natural = n ? leadW0 + (n - 1) * supW0 + (n - 1) * gap : 0;
+  const fit = n ? Math.min(1, (width - 2 * pad) / natural) : 1;
+  const leadW = Math.round(leadW0 * fit);
+  const supW = Math.round(supW0 * fit);
+
+  // Center-out order: lead in the middle, then alternate right / left.
+  const leftSide: HeaderSpeaker[] = [];
+  const rightSide: HeaderSpeaker[] = [];
+  roster.slice(1).forEach((s, i) => (i % 2 === 0 ? rightSide : leftSide).push(s));
+  leftSide.reverse();
+  const ordered = [
+    ...leftSide.map((s) => ({ s, lead: false })),
+    ...(roster[0] ? [{ s: roster[0], lead: true }] : []),
+    ...rightSide.map((s) => ({ s, lead: false })),
+  ];
+
+  const cells = ordered
+    .map(
+      ({ s, lead }) => `
+      <div class="cell${lead ? " lead" : ""}">
+        ${portraitHtml(s, lead ? "ph-lead" : "ph-sup", opts.origin)}
+        <div class="cell-name">${esc(s.name)}</div>
+        ${s.role ? `<div class="cell-role">${esc(s.role)}</div>` : ""}
+        ${s.org ? `<div class="cell-org">${esc(s.org)}</div>` : ""}
+      </div>`
+    )
+    .join("");
+
+  const chips = chipsHtml(config);
+
+  const modeCss = `${templateBaseCss(px, t.accent, logoPx, pad)}
+  .mid { display: flex; flex-direction: column; align-items: center; text-align: center; margin-top: ${px(16)}px; }
+  .title { max-width: ${Math.round(width * 0.84)}px; font-size: ${titlePx}px; }
+  .subtitle { max-width: ${Math.round(width * 0.7)}px; font-size: ${px(17)}px; margin-top: ${px(10)}px; }
+  .chips { justify-content: center; margin-top: ${px(16)}px; }
+  .stage { display: flex; align-items: flex-end; justify-content: center; gap: ${gap}px; margin-top: auto; padding-top: ${px(20)}px; }
+  .cell { display: flex; flex-direction: column; align-items: center; text-align: center; width: ${supW}px; }
+  .cell.lead { width: ${leadW}px; }
+  .ph-lead {
+    width: ${leadW}px; height: ${Math.round(leadW * 1.18)}px;
+    border-radius: ${px(18)}px; object-fit: cover;
+    border: 2px solid ${t.accent};
+    box-shadow: 0 ${px(14)}px ${px(40)}px rgba(0,0,0,0.45);
+  }
+  .ph-sup {
+    width: ${supW}px; height: ${Math.round(supW * 1.18)}px;
+    border-radius: ${px(16)}px; object-fit: cover;
+    border: 2px solid rgba(255,255,255,0.35);
+    box-shadow: 0 ${px(10)}px ${px(28)}px rgba(0,0,0,0.35);
+  }
+  .monogram { font-size: ${px(34)}px; }
+  .cell.lead .monogram { font-size: ${px(44)}px; }
+  .cell-name { font-size: ${px(15)}px; font-weight: 700; line-height: 1.15; margin-top: ${px(10)}px; }
+  .cell.lead .cell-name { font-size: ${px(19)}px; }
+  .cell-role { font-size: ${px(12)}px; opacity: 0.85; margin-top: ${px(3)}px; }
+  .cell-org { font-size: ${px(12)}px; font-weight: 700; margin-top: ${px(2)}px; }`;
+
+  const bodyHtml = `<div class="content">
+      ${topbarHtml(config)}
+      <div class="mid">
+        <h1 class="title">${esc(config.title)}</h1>
+        ${config.subtitle?.trim() ? `<p class="subtitle">${esc(config.subtitle)}</p>` : ""}
+        ${chips ? `<div class="chips">${chips}</div>` : ""}
+      </div>
+      ${cells ? `<div class="stage">${cells}</div>` : ""}
+    </div>`;
+
+  return documentShell({ width, height, scrimCss, modeCss, auraSrc, textColor: t.text, bodyHtml });
+}
+
+/**
+ * Lineup — conference-style vertical panels (tag / name / role / portrait) in
+ * an equal-width row. Flexbox splits the row evenly, so the columns narrow as
+ * speakers are added; the lead panel is accent-framed.
+ */
+function lineupDocument(
+  config: HeaderConfig,
+  size: { width: number; height: number },
+  scrimCss: string,
+  auraSrc: string,
+  opts: RenderOpts,
+): string {
+  const { width, height } = size;
+  const t = config.theme;
+  const u = height / 627;
+  const px = (n: number) => Math.round(n * u);
+  const pad = px(44);
+  const titlePx = px(config.title.length > 90 ? 28 : 34);
+  const logoPx = Math.round(34 * u * logoFor(config).scale);
+  const roster = speakersFor(config);
+  const chips = chipsHtml(config);
+
+  const cols = roster
+    .map(
+      (s, i) => `
+      <div class="col${i === 0 ? " lead" : ""}">
+        <div class="col-tag">${esc(tagFor(s, i === 0))}</div>
+        <div class="col-name">${esc(s.name)}</div>
+        ${s.role ? `<div class="col-role">${esc(s.role)}</div>` : ""}
+        ${s.org ? `<div class="col-org">${esc(s.org)}</div>` : ""}
+        ${portraitHtml(s, "col-photo", opts.origin)}
+      </div>`
+    )
+    .join("");
+
+  const modeCss = `${templateBaseCss(px, t.accent, logoPx, pad)}
+  .mid { margin-top: ${px(16)}px; }
+  .title { max-width: ${Math.round(width * 0.9)}px; font-size: ${titlePx}px; }
+  .subtitle { max-width: ${Math.round(width * 0.75)}px; font-size: ${px(16)}px; margin-top: ${px(8)}px; }
+  .chips { margin-top: ${px(14)}px; }
+  .stage {
+    display: flex; justify-content: center; gap: ${px(14)}px;
+    margin-top: auto; padding-top: ${px(20)}px;
+    height: ${Math.round(height * 0.46)}px; box-sizing: content-box;
+  }
+  .col {
+    flex: 1 1 0; max-width: ${px(250)}px; min-width: 0;
+    display: flex; flex-direction: column;
+    padding: ${px(14)}px;
+    border-radius: ${px(16)}px;
+    background: rgba(2,18,18,0.35);
+    border: 1px solid rgba(255,255,255,0.18);
+    backdrop-filter: blur(8px);
+  }
+  .col.lead { border-color: ${t.accent}; background: rgba(2,18,18,0.45); }
+  .col-tag {
+    font-size: ${px(10)}px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.14em; opacity: 0.8;
+  }
+  .col.lead .col-tag { color: ${t.accent}; opacity: 1; }
+  .col-name {
+    font-size: ${px(17)}px; font-weight: 800; line-height: 1.12; margin-top: ${px(6)}px;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  }
+  .col-role {
+    font-size: ${px(11)}px; opacity: 0.85; margin-top: ${px(3)}px;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  }
+  .col-org { font-size: ${px(11)}px; font-weight: 700; margin-top: ${px(2)}px; }
+  .col-photo {
+    flex: 1; min-height: 0; width: 100%; margin-top: ${px(10)}px;
+    border-radius: ${px(10)}px; object-fit: cover;
+  }
+  .monogram { font-size: ${px(30)}px; }`;
+
+  const bodyHtml = `<div class="content">
+      ${topbarHtml(config)}
+      <div class="mid">
+        <h1 class="title">${esc(config.title)}</h1>
+        ${config.subtitle?.trim() ? `<p class="subtitle">${esc(config.subtitle)}</p>` : ""}
+        ${chips ? `<div class="chips">${chips}</div>` : ""}
+      </div>
+      ${cols ? `<div class="stage">${cols}</div>` : ""}
+    </div>`;
+
+  return documentShell({ width, height, scrimCss, modeCss, auraSrc, textColor: t.text, bodyHtml });
+}
+
+/**
+ * Billboard — big headline top-left, bottom-aligned speaker row on the right
+ * with the lead first and slightly larger. Photo widths shrink together once
+ * the roster would overflow the row.
+ */
+function billboardDocument(
+  config: HeaderConfig,
+  size: { width: number; height: number },
+  scrimCss: string,
+  auraSrc: string,
+  opts: RenderOpts,
+): string {
+  const { width, height } = size;
+  const t = config.theme;
+  const u = height / 627;
+  const px = (n: number) => Math.round(n * u);
+  const pad = px(48);
+  const titlePx = px(config.title.length > 90 ? 36 : 44);
+  const logoPx = Math.round(34 * u * logoFor(config).scale);
+  const roster = speakersFor(config);
+  const n = roster.length;
+  const chips = chipsHtml(config);
+
+  const gap = px(20);
+  const leadW0 = px(168);
+  const supW0 = px(136);
+  const natural = n ? leadW0 + (n - 1) * supW0 + (n - 1) * gap : 0;
+  const fit = n ? Math.min(1, (width - 2 * pad) / natural) : 1;
+  const leadW = Math.round(leadW0 * fit);
+  const supW = Math.round(supW0 * fit);
+
+  const cells = roster
+    .map(
+      (s, i) => `
+      <div class="cell${i === 0 ? " lead" : ""}">
+        ${portraitHtml(s, "ph", opts.origin)}
+        <div class="cell-name">${esc(s.name)}</div>
+        ${s.role ? `<div class="cell-role">${esc(s.role)}</div>` : ""}
+        ${s.org ? `<div class="cell-org">${esc(s.org)}</div>` : ""}
+      </div>`
+    )
+    .join("");
+
+  const modeCss = `${templateBaseCss(px, t.accent, logoPx, pad)}
+  .mid { margin-top: ${px(18)}px; }
+  .title { max-width: ${Math.round(width * 0.68)}px; font-size: ${titlePx}px; }
+  .subtitle { max-width: ${Math.round(width * 0.6)}px; font-size: ${px(17)}px; margin-top: ${px(10)}px; }
+  .chips { margin-top: ${px(16)}px; }
+  .stage { display: flex; align-items: flex-end; justify-content: flex-end; gap: ${gap}px; margin-top: auto; padding-top: ${px(20)}px; }
+  .cell { display: flex; flex-direction: column; align-items: flex-start; width: ${supW}px; }
+  .cell.lead { width: ${leadW}px; }
+  .ph {
+    width: 100%; height: ${Math.round(supW * 1.05)}px;
+    border-radius: ${px(14)}px; object-fit: cover;
+    border: 2px solid rgba(255,255,255,0.35);
+    box-shadow: 0 ${px(10)}px ${px(28)}px rgba(0,0,0,0.35);
+  }
+  .cell.lead .ph { height: ${Math.round(leadW * 1.05)}px; border-color: ${t.accent}; }
+  .monogram { font-size: ${px(30)}px; }
+  .cell-name {
+    font-size: ${px(14)}px; font-weight: 800; text-transform: uppercase;
+    letter-spacing: 0.02em; line-height: 1.15; margin-top: ${px(8)}px;
+  }
+  .cell-role { font-size: ${px(11)}px; opacity: 0.85; margin-top: ${px(3)}px; }
+  .cell-org {
+    font-size: ${px(11)}px; font-weight: 700; color: ${t.accent};
+    text-transform: uppercase; letter-spacing: 0.08em; margin-top: ${px(2)}px;
+  }`;
+
+  const bodyHtml = `<div class="content">
+      ${topbarHtml(config)}
+      <div class="mid">
+        <h1 class="title">${esc(config.title)}</h1>
+        ${config.subtitle?.trim() ? `<p class="subtitle">${esc(config.subtitle)}</p>` : ""}
+        ${chips ? `<div class="chips">${chips}</div>` : ""}
+      </div>
+      ${cells ? `<div class="stage">${cells}</div>` : ""}
+    </div>`;
+
+  return documentShell({ width, height, scrimCss, modeCss, auraSrc, textColor: t.text, bodyHtml });
+}
+
+/**
+ * Gallery — large rounded full-bleed portrait cards side by side, each with a
+ * bottom gradient name plate. Flexbox shares the row, so cards narrow as the
+ * roster grows; the lead card is accent-framed with an accent tag pill.
+ */
+function galleryDocument(
+  config: HeaderConfig,
+  size: { width: number; height: number },
+  scrimCss: string,
+  auraSrc: string,
+  opts: RenderOpts,
+): string {
+  const { width, height } = size;
+  const t = config.theme;
+  const u = height / 627;
+  const px = (n: number) => Math.round(n * u);
+  const pad = px(46);
+  const titlePx = px(config.title.length > 90 ? 30 : 38);
+  const logoPx = Math.round(34 * u * logoFor(config).scale);
+  const roster = speakersFor(config);
+  const chips = chipsHtml(config);
+
+  const cards = roster
+    .map(
+      (s, i) => `
+      <div class="card${i === 0 ? " lead" : ""}">
+        ${portraitHtml(s, "card-photo", opts.origin)}
+        <div class="card-shade"></div>
+        <div class="card-meta">
+          <span class="card-tag">${esc(tagFor(s, i === 0))}</span>
+          <div class="card-name">${esc(s.name)}</div>
+          ${
+            s.role || s.org
+              ? `<div class="card-role">${esc([s.role, s.org].filter(Boolean).join(" · "))}</div>`
+              : ""
+          }
+        </div>
+      </div>`
+    )
+    .join("");
+
+  const modeCss = `${templateBaseCss(px, t.accent, logoPx, pad)}
+  .mid { margin-top: ${px(16)}px; }
+  .title { max-width: ${Math.round(width * 0.85)}px; font-size: ${titlePx}px; }
+  .subtitle { max-width: ${Math.round(width * 0.7)}px; font-size: ${px(16)}px; margin-top: ${px(8)}px; }
+  .chips { margin-top: ${px(14)}px; }
+  .stage {
+    display: flex; justify-content: center; gap: ${px(16)}px;
+    margin-top: auto; padding-top: ${px(20)}px;
+    height: ${Math.round(height * 0.5)}px; box-sizing: content-box;
+  }
+  .card {
+    position: relative; flex: 1 1 0; max-width: ${px(300)}px; min-width: 0;
+    border-radius: ${px(22)}px; overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.28);
+    box-shadow: 0 ${px(18)}px ${px(50)}px rgba(0,0,0,0.35);
+  }
+  .card.lead { border: 2px solid ${t.accent}; }
+  .card-photo { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .card-photo.monogram { font-size: ${px(40)}px; }
+  .card-shade {
+    position: absolute; inset: 0;
+    background: linear-gradient(180deg, rgba(0,0,0,0) 48%, rgba(0,0,0,0.78) 100%);
+  }
+  .card-meta { position: absolute; left: ${px(14)}px; right: ${px(14)}px; bottom: ${px(12)}px; }
+  .card-tag {
+    display: inline-block; padding: ${px(3)}px ${px(9)}px; border-radius: 999px;
+    font-size: ${px(10)}px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.12em;
+    background: rgba(255,255,255,0.18);
+    border: 1px solid rgba(255,255,255,0.3);
+    backdrop-filter: blur(6px);
+    margin-bottom: ${px(6)}px;
+  }
+  .card.lead .card-tag { background: ${t.accent}; color: #04241C; border-color: transparent; }
+  .card-name { font-size: ${px(16)}px; font-weight: 800; line-height: 1.15; }
+  .card-role { font-size: ${px(11)}px; opacity: 0.9; margin-top: ${px(2)}px; }`;
+
+  const bodyHtml = `<div class="content">
+      ${topbarHtml(config)}
+      <div class="mid">
+        <h1 class="title">${esc(config.title)}</h1>
+        ${config.subtitle?.trim() ? `<p class="subtitle">${esc(config.subtitle)}</p>` : ""}
+        ${chips ? `<div class="chips">${chips}</div>` : ""}
+      </div>
+      ${cards ? `<div class="stage">${cards}</div>` : ""}
+    </div>`;
+
+  return documentShell({ width, height, scrimCss, modeCss, auraSrc, textColor: t.text, bodyHtml });
 }
 
 /* ---- shared markup partials (CSS sizing comes from each layout) ---- */

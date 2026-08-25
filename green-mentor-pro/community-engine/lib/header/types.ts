@@ -17,6 +17,12 @@ export type HeaderSpeaker = {
   /** Absolute URL or app-relative path (e.g. "/avatars/supro.jpg"). */
   photo?: string;
   /**
+   * Small label over the card in multi-speaker templates, e.g. "Host",
+   * "Moderator", "Speaker". Templates that show tags fall back to
+   * "Host" for the lead and "Speaker" for the rest when omitted.
+   */
+  tag?: string;
+  /**
    * Whether the speaker card renders. Undefined is treated as enabled so
    * older configs keep working; the studio toggle sets it explicitly.
    */
@@ -86,6 +92,71 @@ export function auraEmbedUrl(slug: string): string {
   return `https://aura.promad.design/embed/${finalSlug}?hideText=true`;
 }
 
+/**
+ * Layout template. `classic` is the original single-speaker layout; the rest
+ * are multi-speaker layouts whose speaker grid adapts to the roster size
+ * (photo/card dimensions shrink as speakers are added). In every multi-speaker
+ * template the FIRST speaker in `speakers` is the lead instructor and gets the
+ * front-and-center treatment.
+ */
+export type TemplatePreset = {
+  id: string;
+  label: string;
+  /** One-line "use this when…" hint shown in the studio picker. */
+  hint: string;
+};
+
+export const TEMPLATE_PRESETS: TemplatePreset[] = [
+  {
+    id: "classic",
+    label: "Classic — footer speaker card",
+    hint: "The original layout: badge / title / chips with one speaker in the footer.",
+  },
+  {
+    id: "spotlight",
+    label: "Spotlight — lead front and center",
+    hint: "Centered title with the lead instructor's portrait mid-stage and supporting speakers flanking outward. 1–6 speakers.",
+  },
+  {
+    id: "lineup",
+    label: "Lineup — speaker columns",
+    hint: "Conference-style vertical panels (tag, name, role, portrait) in an equal-width row. Great for 3–5 speakers.",
+  },
+  {
+    id: "billboard",
+    label: "Billboard — title left, speakers right",
+    hint: "Big headline top-left, bottom-aligned speaker row on the right with the lead slightly larger. 2–4 speakers.",
+  },
+  {
+    id: "gallery",
+    label: "Gallery — big photo cards",
+    hint: "Large rounded portrait cards side by side with name plates; the lead card carries the accent. 1–4 speakers.",
+  },
+];
+
+export const DEFAULT_TEMPLATE_ID = "classic";
+
+/** Resolve the template id, falling back to classic for unknown/older configs. */
+export function templateFor(config: Pick<HeaderConfig, "template">): string {
+  const id = config.template?.trim();
+  return id && TEMPLATE_PRESETS.some((t) => t.id === id) ? id : DEFAULT_TEMPLATE_ID;
+}
+
+/**
+ * The renderable speaker roster: the `speakers` array when present, else the
+ * legacy single `speaker`, minus disabled/blank entries. Index 0 is the lead.
+ */
+export function speakersFor(
+  config: Pick<HeaderConfig, "speaker" | "speakers">
+): HeaderSpeaker[] {
+  const list = config.speakers?.length
+    ? config.speakers
+    : config.speaker
+      ? [config.speaker]
+      : [];
+  return list.filter((s) => s && s.enabled !== false && s.name.trim());
+}
+
 /** Theme controls for the text overlay legibility scrim + accent. */
 export type HeaderTheme = {
   /** 0–1: darkness of the gradient scrim behind text. */
@@ -137,7 +208,19 @@ export type HeaderConfig = {
   title: string;
   subtitle?: string;
   chips: HeaderChip[];
+  /**
+   * Legacy single speaker. Still honored (as a one-person roster) when
+   * `speakers` is absent, so older saved configs keep rendering. The studio
+   * mirrors `speakers[0]` here on every edit.
+   */
   speaker?: HeaderSpeaker;
+  /**
+   * Multi-speaker roster for the template layouts. Index 0 is the lead
+   * instructor (front and center). Takes precedence over `speaker`.
+   */
+  speakers?: HeaderSpeaker[];
+  /** Layout template id from TEMPLATE_PRESETS. Omitted -> "classic". */
+  template?: string;
   /**
    * Which brand lockup to show bottom-right — a brand id from the catalog
    * (lib/header/brands.ts), e.g. "greenmentor". Resolved via getBrand(), which

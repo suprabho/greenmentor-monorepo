@@ -37,9 +37,29 @@ All paths are under the community-engine app:
    truth — do not hardcode fields from memory.
 
 2. **Gather the brief.** Extract: badge/tag, title, optional subtitle,
-   meta chips (mode, date, time), speaker (name, role, org, photo), brand,
-   target size. Ask only for what's genuinely missing — infer sensible
+   meta chips (mode, date, time), speaker(s) (name, role, org, photo, tag),
+   brand, target size. Ask only for what's genuinely missing — infer sensible
    defaults for everything else (see "Defaults" below).
+
+   **Multi-speaker headers**: put the roster in `speakers` (an array of the
+   same speaker shape, plus optional `tag` like "Host"/"Moderator") with the
+   lead instructor FIRST, and pick a `template` (see `TEMPLATE_PRESETS` in
+   types.ts):
+   - `classic` (default) — single speaker card in the footer; extra roster
+     entries collapse to a "+N more" hint.
+   - `spotlight` — lead front and center, supporting speakers flanking
+     outward; centered headline. 1–6 speakers.
+   - `lineup` — conference-style equal columns (tag / name / role /
+     portrait); lead column accent-framed. Best at 3–5.
+   - `billboard` — big headline top-left, bottom-aligned speaker row on the
+     right, lead first and larger. Best at 2–4.
+   - `gallery` — large rounded photo cards with name plates; lead card
+     accented. Best at 1–4.
+   Every grid recomputes card/photo sizes from the roster length, so adding
+   or removing a speaker never needs manual layout tweaks. Speakers without
+   a photo render an initials monogram tile. Multi-speaker templates want
+   vertical room — prefer `newsletter`, `webinar-wide`, `square`, or `story`
+   (strips always fall back to the compact single-speaker layout).
 
 3. **Pick an aura background.** Default to the `green-vibrant` preset (verified
    live, on-brand). To choose something else, use the scene-context-graph
@@ -92,6 +112,20 @@ All paths are under the community-engine app:
   "brandId": "greenmentor",
   "brandSub": "Sustainability Simplified",
   "theme": { "scrim": 0.55, "accent": "#07D862", "text": "#FFFFFF" }
+}
+```
+
+Multi-speaker variant — swap `speaker` for `speakers` (lead first) and pick a
+`template`:
+
+```json
+{
+  "template": "spotlight",
+  "speakers": [
+    { "name": "Ankit Todi", "role": "Chief Sustainability Officer", "org": "Mahindra Group", "photo": "https://…", "tag": "Host" },
+    { "name": "Meera Iyer", "role": "Head of ESG", "org": "Infosys", "photo": "https://…" },
+    { "name": "Rohan Shah", "role": "Climate Lead", "org": "Tata Steel", "photo": "https://…" }
+  ]
 }
 ```
 
