@@ -16,22 +16,26 @@ export type LandingCourse = {
 };
 
 /**
- * Real product content for the landing carousel: the top-ranked feed article,
- * the first published in-app course, and the newest job. Each read fails soft
- * to `null` — the carousel then falls back to its static preview card, so a
- * missing migration or an empty table never blanks the landing page.
+ * Real product content for the landing carousel: the top-ranked feed
+ * articles and newest jobs (the slides cycle through these), and the first
+ * published in-app course. Each read fails soft to empty/`null` — the
+ * carousel then falls back to its static preview card, so a missing
+ * migration or an empty table never blanks the landing page.
  */
 export type LandingSamples = {
-  article: FeedArticle | null;
+  articles: FeedArticle[];
   course: LandingCourse | null;
-  job: Job | null;
+  jobs: Job[];
 };
 
-// Over-fetch a little so rankFeed has something to reorder (it prefers
-// India-region and recent items over the raw newest row).
-const ARTICLE_FETCH = 12;
+/** How many cards each cycling slide rotates through. */
+export const CYCLE_SIZE = 5;
 
-async function topArticle(): Promise<FeedArticle | null> {
+// Over-fetch so rankFeed has something to reorder (it prefers India-region
+// and recent items over the raw newest rows).
+const ARTICLE_FETCH = 24;
+
+async function topArticles(): Promise<FeedArticle[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("articles")
@@ -39,8 +43,7 @@ async function topArticle(): Promise<FeedArticle | null> {
     .order("published_at", { ascending: false, nullsFirst: false })
     .limit(ARTICLE_FETCH);
   if (error) throw new Error(error.message);
-  const rows = rankFeed(((data ?? []) as unknown as ArticleRowRaw[]).map(mapArticle));
-  return rows[0] ?? null;
+  return rankFeed(((data ?? []) as unknown as ArticleRowRaw[]).map(mapArticle)).slice(0, CYCLE_SIZE);
 }
 
 async function firstCourse(): Promise<LandingCourse | null> {
@@ -64,16 +67,15 @@ async function firstCourse(): Promise<LandingCourse | null> {
   };
 }
 
-async function newestJob(): Promise<Job | null> {
-  const jobs = await fetchJobs();
-  return jobs[0] ?? null;
+async function newestJobs(): Promise<Job[]> {
+  return (await fetchJobs()).slice(0, CYCLE_SIZE);
 }
 
 export async function fetchLandingSamples(): Promise<LandingSamples> {
-  const [article, course, job] = await Promise.all([
-    topArticle().catch(() => null),
+  const [articles, course, jobs] = await Promise.all([
+    topArticles().catch(() => []),
     firstCourse().catch(() => null),
-    newestJob().catch(() => null),
+    newestJobs().catch(() => []),
   ]);
-  return { article, course, job };
+  return { articles, course, jobs };
 }

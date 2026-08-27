@@ -10,7 +10,8 @@ import { track } from "@/lib/utils/analytics";
 import { FeedCard } from "@/app/(app)/feed/feed-card";
 import { CourseCard } from "@/components/academy/course-card";
 import { JobCard } from "@/components/jobs/jobs-board";
-import type { LandingSamples } from "@/lib/marketing/landing-samples";
+import { CYCLE_SIZE, type LandingSamples } from "@/lib/marketing/landing-samples";
+import { VerticalCycler } from "./VerticalCycler";
 import {
   ChatWelcomePreview,
   CourseCardPreview,
@@ -29,12 +30,20 @@ import {
  * Each slide's card is the real in-app component fed with real content
  * (`samples`, read on the server); a slide whose sample is missing falls back
  * to the static replica in slide-cards.tsx so the page never shows a hole.
+ * The feed and jobs slides carry several rows and cycle through them
+ * vertically while that slide is the active one.
  *
  * One component covers both layouts from the design bundle. Below `md` it is
  * the 390px file — eyebrow label, stacked card, bar indicators, swipe. At `md`
  * and up it is the desktop file — copy and card side by side, a numbered tab
  * strip, and the Backed-by lockup on the right.
  */
+
+type SlideCardProps = { samples: LandingSamples; active: boolean };
+
+/** Cadence of the feed / jobs card cycler, and how many cards it holds — the
+ *  slide dwells long enough for one full pass (CYCLE_SIZE × CYCLE_MS). */
+const CYCLE_MS = 3000;
 
 const SLIDES = [
   {
@@ -44,8 +53,19 @@ const SLIDES = [
     accent: "read in a minute.",
     sub: "Regulation, climate and reporting updates in one open feed. Free to read, no account needed.",
     subShort: "Regulation, climate and reporting updates in one open feed. Free to read.",
-    Card: ({ samples }: { samples: LandingSamples }) =>
-      samples.article ? <FeedCard article={samples.article} /> : <FeedCardPreview />,
+    seconds: (CYCLE_SIZE * CYCLE_MS) / 1000,
+    Card: ({ samples, active }: SlideCardProps) =>
+      samples.articles.length ? (
+        <VerticalCycler
+          items={samples.articles}
+          keyOf={(a) => a.id}
+          render={(a) => <FeedCard article={a} />}
+          active={active}
+          intervalMs={CYCLE_MS}
+        />
+      ) : (
+        <FeedCardPreview />
+      ),
   },
   {
     id: "academy",
@@ -54,7 +74,7 @@ const SLIDES = [
     accent: "real credentials.",
     sub: "Bite-sized ESG courses with a quick check after every module. The Fundamental track is free.",
     subShort: "Bite-sized ESG courses with a check after every module. The Fundamental track is free.",
-    Card: ({ samples }: { samples: LandingSamples }) =>
+    Card: ({ samples }: SlideCardProps) =>
       samples.course ? <CourseCard {...samples.course} /> : <CourseCardPreview />,
   },
   {
@@ -73,8 +93,19 @@ const SLIDES = [
     accent: "matched to the profile.",
     sub: "Curated roles across India, the GCC and beyond. Filter by country and level, then apply directly.",
     subShort: "Curated roles across India, the GCC and beyond. Apply directly.",
-    Card: ({ samples }: { samples: LandingSamples }) =>
-      samples.job ? <JobCard job={samples.job} /> : <JobCardPreview />,
+    seconds: (CYCLE_SIZE * CYCLE_MS) / 1000,
+    Card: ({ samples, active }: SlideCardProps) =>
+      samples.jobs.length ? (
+        <VerticalCycler
+          items={samples.jobs}
+          keyOf={(j) => j.id}
+          render={(j) => <JobCard job={j} />}
+          active={active}
+          intervalMs={CYCLE_MS}
+        />
+      ) : (
+        <JobCardPreview />
+      ),
   },
 ] as const;
 
@@ -100,6 +131,7 @@ export function ProCarousel({
   ctaHref: string;
   /** Real content for the product cards; see lib/marketing/landing-samples.ts. */
   samples: LandingSamples;
+  /** Default dwell per slide; a slide with its own `seconds` overrides it. */
   slideSeconds?: number;
 }) {
   const [index, setIndex] = useState(0);
@@ -127,11 +159,13 @@ export function ProCarousel({
     return () => mq.removeEventListener("change", sync);
   }, []);
 
+  const dwellSeconds = ("seconds" in SLIDES[index] ? SLIDES[index].seconds : undefined) ?? slideSeconds;
+
   useEffect(() => {
     if (!playing || paused) return;
-    const t = setTimeout(() => setIndex((i) => (i + 1) % COUNT), slideSeconds * 1000);
+    const t = setTimeout(() => setIndex((i) => (i + 1) % COUNT), dwellSeconds * 1000);
     return () => clearTimeout(t);
-  }, [playing, paused, index, slideSeconds]);
+  }, [playing, paused, index, dwellSeconds]);
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -264,7 +298,7 @@ export function ProCarousel({
                   </div>
 
                   <div className="min-w-full md:min-w-[min(100%,300px)] md:shrink md:grow-0 md:basis-[440px]">
-                    <slide.Card samples={samples} />
+                    <slide.Card samples={samples} active={i === index} />
                   </div>
                 </div>
               </section>
@@ -294,7 +328,7 @@ export function ProCarousel({
               )}
               style={
                 autoplaying
-                  ? { animationDuration: `${slideSeconds}s` }
+                  ? { animationDuration: `${dwellSeconds}s` }
                   : { transform: `scaleX(${(index + 1) / COUNT})` }
               }
             />
