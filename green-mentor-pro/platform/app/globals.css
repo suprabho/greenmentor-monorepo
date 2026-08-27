@@ -216,6 +216,22 @@
     mask-image: linear-gradient(to right, transparent, #000 6%, #000 94%, transparent);
   }
 
+  /* ----- Carousel progress line -----
+     Fills the autoplay timeline for the single-fold landing's control bar.
+     Duration comes from the element's own `animation-duration`, so the slide
+     length stays a prop rather than a value hard-coded here. scaleX keeps it
+     off the layout path; the caller sets `origin-left`. The component drops
+     this class entirely under prefers-reduced-motion (autoplay is off there,
+     and the global collapse rule would otherwise snap the bar straight to
+     full). */
+  @keyframes gm-carousel-progress {
+    from { transform: scaleX(0); }
+    to   { transform: scaleX(1); }
+  }
+  .gm-carousel-progress {
+    animation: gm-carousel-progress 9s linear forwards;
+  }
+
   /* ----- Vertical ticker (mentor roster) -----
      Vertical sibling of the marquee above. The track stacks two identical
      groups with a shared 12px gap; translating up by one group + one gap
