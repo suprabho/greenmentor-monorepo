@@ -1,19 +1,24 @@
 "use client";
 
-import { ThumbsUp, ChatCircle, LinkSimple, ArrowUp } from "@phosphor-icons/react";
+import { useRouter } from "next/navigation";
+import { ThumbsUp, ChatCircle, LinkSimple } from "@phosphor-icons/react";
 import { Card, Chip, ProgressBar } from "@/components/ui";
 import { ArticleImage } from "@/components/feed/article-image";
+import { ChatComposer } from "@/components/ai-hub/ChatComposer";
+import { SuggestionChips } from "@/components/ai-hub/SuggestionChips";
 import { CHAT_SKILLS } from "@/components/ai-hub/skills";
 
 /**
- * Static product-UI replicas for the single-fold carousel landing.
+ * Fallback cards for the single-fold carousel landing.
  *
- * Each card mirrors the real in-app component (feed card, course card, chat
- * welcome, job card) but renders fixed sample content and no interactivity —
- * a marketing visitor is signed out, so the live components' Supabase reads,
- * reaction writes and navigation have nothing to talk to. Shared primitives
- * (Card, Chip, ProgressBar, ArticleImage) are the real ones, so chrome, chip
- * tones, radii and shadows track the design system rather than a copy of it.
+ * The feed, academy and jobs slides render the real in-app components with
+ * real rows (see lib/marketing/landing-samples.ts); the static replicas here
+ * only appear when a sample can't be read — an empty table, a migration not
+ * yet applied — so the fold never shows a hole. The AI Hub card is the one
+ * that's always this file's: it composes the real composer and chips, but
+ * routes a signed-out visitor to sign-in instead of creating a conversation.
+ * Shared primitives (Card, Chip, ProgressBar, ArticleImage) are the real ones,
+ * so chrome, chip tones, radii and shadows track the design system.
  *
  * Sizing is fluid: mobile values first, desktop clamps at `md` and up.
  */
@@ -124,47 +129,32 @@ export function CourseCardPreview() {
 
 /* ---------------------------------------------------------------- 03 AI Hub */
 
-/** The "/" skills the welcome screen leads with, in the order the design shows
- *  them. Read off CHAT_SKILLS so the labels can't drift from the real composer;
- *  an id that disappears just drops out of the row. "Understand an EPD" is the
- *  one hidden below `md` — three chips is all a 390px card fits in two rows. */
-const PREVIEW_SKILL_IDS = ["scoping", "extract-bill", "understand-epd", "materiality"];
-
-const PREVIEW_SKILLS = PREVIEW_SKILL_IDS.map((id) =>
-  CHAT_SKILLS.find((s) => s.id === id),
-).filter((s) => s !== undefined);
-
-/** Index of the chip that drops below `md`, tracked by id so a missing skill
- *  above it doesn't hide the wrong one. */
-const DESKTOP_ONLY_SKILL_ID = "understand-epd";
-
+/**
+ * The AI Hub welcome state, built from the real composer and suggestion chips
+ * rather than a drawing of them. Unlike `ChatWelcome` it never creates a
+ * conversation: a marketing visitor is signed out, so a send or a picked chip
+ * carries them to sign-in and on to the chat, where the real welcome takes
+ * over. The chips fetch /api/ai-hub/chat/suggestions like they do in-app and
+ * keep their defaults when that 401s.
+ */
 export function ChatWelcomePreview() {
+  const router = useRouter();
+  const goSignIn = () => router.push("/login?next=/ai-hub/chat");
+
   return (
     <Card className="p-[18px] md:p-[clamp(18px,2.2vw,26px)]">
       <p className="font-display text-center text-[20px] text-ink md:text-[clamp(20px,2vw,26px)]">
-        Welcome, Aditi
+        Welcome to the AI Hub
       </p>
-
-      <div className="mt-4 flex items-center gap-2.5 rounded-xl border border-gray-200 bg-gray-50 p-3.5 md:mt-5 md:gap-3 md:px-[18px] md:py-4">
-        <span className="flex-1 text-[13.5px] leading-[1.35] text-gray-400 md:text-[14px]">
-          How can I help with your ESG reporting?
-        </span>
-        <span className="grid size-11 shrink-0 place-items-center rounded-full bg-green-500 text-teal-900 md:size-[34px]">
-          <ArrowUp size={16} weight="bold" />
-        </span>
+      <div className="mt-4 md:mt-5">
+        <ChatComposer
+          onSend={goSignIn}
+          placeholder="How can I help with your ESG reporting?"
+          skills={CHAT_SKILLS}
+        />
       </div>
-
-      <div className="mt-3.5 flex flex-wrap gap-2 md:mt-4">
-        {PREVIEW_SKILLS.map((skill) => (
-          <span
-            key={skill.id}
-            className={`rounded-pill border border-gray-200 bg-white px-3.5 py-2 text-[12.5px] font-medium text-gray-700 md:py-[7px] ${
-              skill.id === DESKTOP_ONLY_SKILL_ID ? "hidden md:inline-block" : ""
-            }`}
-          >
-            / {skill.label}
-          </span>
-        ))}
+      <div className="mt-3.5 md:mt-4">
+        <SuggestionChips onPick={goSignIn} />
       </div>
     </Card>
   );

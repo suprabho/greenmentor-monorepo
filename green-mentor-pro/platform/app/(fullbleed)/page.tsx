@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { ProCarousel } from "@/components/marketing/pro-carousel/ProCarousel";
 import { createClient } from "@/lib/supabase/server";
+import { fetchLandingSamples } from "@/lib/marketing/landing-samples";
 
 /**
  * The Green Mentor Pro landing page (`/`) — a single-fold carousel over the
@@ -14,9 +15,11 @@ import { createClient } from "@/lib/supabase/server";
  * shell's sticky Nav, Footer and WhatsApp bubble would all fight it. The
  * (marketing) group still serves /esg-readiness.
  *
- * A Server Component only so the session read stays on the server — the CTA
- * points a signed-in visitor at /home instead of bouncing them through /login,
- * with no logged-out → logged-in href flash on hydration.
+ * A Server Component so the session read and the sample content stay on the
+ * server: the CTA points a signed-in visitor at /home instead of bouncing them
+ * through /login (no logged-out → logged-in href flash on hydration), and the
+ * slides render real product cards — the top feed article, the first in-app
+ * course, the newest job — instead of hand-drawn replicas.
  */
 
 const DESCRIPTION =
@@ -30,9 +33,12 @@ export const metadata: Metadata = {
 
 export default async function LandingPage() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const [
+    {
+      data: { user },
+    },
+    samples,
+  ] = await Promise.all([supabase.auth.getUser(), fetchLandingSamples()]);
 
-  return <ProCarousel ctaHref={user ? "/home" : "/login"} />;
+  return <ProCarousel ctaHref={user ? "/home" : "/login"} samples={samples} />;
 }

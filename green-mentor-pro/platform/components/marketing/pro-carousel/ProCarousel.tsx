@@ -7,6 +7,10 @@ import { cn } from "@/lib/utils/cn";
 import { Button } from "@/components/marketing-ui/Button";
 import { Logo, SubBrand } from "@/components/marketing/Logo";
 import { track } from "@/lib/utils/analytics";
+import { FeedCard } from "@/app/(app)/feed/feed-card";
+import { CourseCard } from "@/components/academy/course-card";
+import { JobCard } from "@/components/jobs/jobs-board";
+import type { LandingSamples } from "@/lib/marketing/landing-samples";
 import {
   ChatWelcomePreview,
   CourseCardPreview,
@@ -22,6 +26,10 @@ import {
  * tall: the slide area is the only thing that flexes, and it scrolls internally
  * rather than pushing the header or the control bar off-screen on short windows.
  *
+ * Each slide's card is the real in-app component fed with real content
+ * (`samples`, read on the server); a slide whose sample is missing falls back
+ * to the static replica in slide-cards.tsx so the page never shows a hole.
+ *
  * One component covers both layouts from the design bundle. Below `md` it is
  * the 390px file — eyebrow label, stacked card, bar indicators, swipe. At `md`
  * and up it is the desktop file — copy and card side by side, a numbered tab
@@ -36,7 +44,8 @@ const SLIDES = [
     accent: "read in a minute.",
     sub: "Regulation, climate and reporting updates in one open feed. Free to read, no account needed.",
     subShort: "Regulation, climate and reporting updates in one open feed. Free to read.",
-    Card: FeedCardPreview,
+    Card: ({ samples }: { samples: LandingSamples }) =>
+      samples.article ? <FeedCard article={samples.article} /> : <FeedCardPreview />,
   },
   {
     id: "academy",
@@ -45,7 +54,8 @@ const SLIDES = [
     accent: "real credentials.",
     sub: "Bite-sized ESG courses with a quick check after every module. The Fundamental track is free.",
     subShort: "Bite-sized ESG courses with a check after every module. The Fundamental track is free.",
-    Card: CourseCardPreview,
+    Card: ({ samples }: { samples: LandingSamples }) =>
+      samples.course ? <CourseCard {...samples.course} /> : <CourseCardPreview />,
   },
   {
     id: "ai-hub",
@@ -54,7 +64,7 @@ const SLIDES = [
     accent: "that does the work.",
     sub: "Ask ESG Buddy anything, or run a skill: extract a bill, scope an engagement, draft a data request.",
     subShort: "Ask ESG Buddy anything, or run a skill: extract a bill, scope an engagement.",
-    Card: ChatWelcomePreview,
+    Card: () => <ChatWelcomePreview />,
   },
   {
     id: "jobs",
@@ -63,7 +73,8 @@ const SLIDES = [
     accent: "matched to the profile.",
     sub: "Curated roles across India, the GCC and beyond. Filter by country and level, then apply directly.",
     subShort: "Curated roles across India, the GCC and beyond. Apply directly.",
-    Card: JobCardPreview,
+    Card: ({ samples }: { samples: LandingSamples }) =>
+      samples.job ? <JobCard job={samples.job} /> : <JobCardPreview />,
   },
 ] as const;
 
@@ -82,10 +93,13 @@ const SWIPE_THRESHOLD = 45;
 
 export function ProCarousel({
   ctaHref,
+  samples,
   slideSeconds = 9,
 }: {
   /** Resolved server-side so a signed-in visitor lands in the app, not /login. */
   ctaHref: string;
+  /** Real content for the product cards; see lib/marketing/landing-samples.ts. */
+  samples: LandingSamples;
   slideSeconds?: number;
 }) {
   const [index, setIndex] = useState(0);
@@ -231,7 +245,10 @@ export function ProCarousel({
                     it sprawls across the 520–767px band, where the card is still
                     a single column. Small phones never reach the cap. */}
                 <div className="mx-auto flex max-w-[520px] flex-wrap items-center gap-5 md:max-w-[1240px] md:gap-[clamp(24px,4vw,56px)]">
-                  <div className="min-w-full md:min-w-[min(100%,300px)] md:shrink md:grow md:basis-[340px]">
+                  {/* Frosted panel behind the copy: the aura's bright lobes
+                      drift under the headline, and white-on-neon-green is
+                      unreadable without a little separation. */}
+                  <div className="min-w-full rounded-2xl border border-white/15 bg-white/10 p-5 shadow-[0_8px_40px_rgba(0,0,0,0.18)] backdrop-blur-xl md:min-w-[min(100%,300px)] md:shrink md:grow md:basis-[340px] md:p-[clamp(20px,2.4vw,32px)]">
                     <p className="text-[11px] tracking-[0.11em] text-green-500 uppercase md:hidden">
                       {slide.label}
                     </p>
@@ -246,7 +263,7 @@ export function ProCarousel({
                   </div>
 
                   <div className="min-w-full md:min-w-[min(100%,300px)] md:shrink md:grow-0 md:basis-[440px]">
-                    <slide.Card />
+                    <slide.Card samples={samples} />
                   </div>
                 </div>
               </section>

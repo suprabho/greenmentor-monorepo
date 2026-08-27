@@ -213,7 +213,7 @@ export function JobsBoard({ jobs }: { jobs: Job[] }) {
   );
 }
 
-function JobCard({ job }: { job: Job }) {
+export function JobCard({ job }: { job: Job }) {
   const applyHref = job.applyUrl ?? (job.applyEmail ? `mailto:${job.applyEmail}` : null);
   const meta = [job.location, job.experience].filter(Boolean);
 
