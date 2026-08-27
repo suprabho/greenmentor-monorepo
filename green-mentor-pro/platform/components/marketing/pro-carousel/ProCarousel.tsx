@@ -10,7 +10,8 @@ import { track } from "@/lib/utils/analytics";
 import { FeedCard } from "@/app/(app)/feed/feed-card";
 import { CourseCard } from "@/components/academy/course-card";
 import { JobCard } from "@/components/jobs/jobs-board";
-import { CYCLE_SIZE, type LandingSamples } from "@/lib/marketing/landing-samples";
+import type { LandingSamples } from "@/lib/marketing/landing-samples";
+import { CYCLE_SIZE } from "@/lib/marketing/landing-constants";
 import { VerticalCycler } from "./VerticalCycler";
 import {
   ChatWelcomePreview,

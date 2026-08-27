@@ -6,6 +6,7 @@ import { fetchCourseCatalog, fetchCourseTree, type CatalogDb } from "@/lib/acade
 import { sumDurations } from "@/lib/academy/format";
 import { fetchJobs, type Job } from "@/lib/jobs/repo";
 import type { Course } from "@/lib/academy/types";
+import { CYCLE_SIZE } from "./landing-constants";
 
 /** One real course plus the meta the CourseCard needs, same math as /academy. */
 export type LandingCourse = {
@@ -27,9 +28,6 @@ export type LandingSamples = {
   course: LandingCourse | null;
   jobs: Job[];
 };
-
-/** How many cards each cycling slide rotates through. */
-export const CYCLE_SIZE = 5;
 
 // Over-fetch so rankFeed has something to reorder (it prefers India-region
 // and recent items over the raw newest rows).
