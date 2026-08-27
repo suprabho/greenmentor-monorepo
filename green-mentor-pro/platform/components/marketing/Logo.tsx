@@ -50,15 +50,28 @@ export function Logo({ className, bare = false, variant = "light" }: LogoProps) 
  * Sub-brand lockup — the navigation-style "GM Academy" name set in ABeeZee.
  * Used on the hero and in the nav as a quiet identification of which surface
  * of the parent brand the user is on.
+ *
+ * `tone` picks the world it sits in: "primary" (green-700) reads on white,
+ * "accent" (green-500) is the neon that holds up against the dark teal.
  */
-export function SubBrand({ className }: { className?: string }) {
+export function SubBrand({
+  label = "Plus",
+  tone = "primary",
+  className,
+}: {
+  label?: string;
+  tone?: "primary" | "accent";
+  className?: string;
+}) {
+  const color = tone === "accent" ? "text-green-500" : "text-green-700";
+
   return (
-    <span className={cn("relative inline-block font-accent text-xl font-bold text-green-700", className)}>
-      Plus
+    <span className={cn("relative inline-block font-accent text-xl font-bold", color, className)}>
+      {label}
       <svg
         viewBox="0 0 24 24"
         aria-hidden="true"
-        className="absolute -right-2.5 -top-1 h-2.5 w-2.5 text-green-700"
+        className={cn("absolute -right-2.5 -top-1 h-2.5 w-2.5", color)}
       >
         <path
           d="M12 5v14M5 12h14"

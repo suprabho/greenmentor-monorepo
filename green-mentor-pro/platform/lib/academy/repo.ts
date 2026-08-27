@@ -120,8 +120,16 @@ function mapAssessment(row: {
 const COURSE_COLUMNS =
   "id, slug, title, description, level, price_credits, status, cover_image_object_path, position";
 
-export async function fetchCourseCatalog(): Promise<Course[]> {
-  const supabase = await createClient();
+/** A Supabase client the read-only catalog readers can run against. */
+export type CatalogDb = Awaited<ReturnType<typeof createClient>>;
+
+/**
+ * Published courses. `db` defaults to the request-scoped client, which is RLS-
+ * scoped to `authenticated` (0006_academy_content.sql); the signed-out landing
+ * page passes the service-role client so the catalog is readable there too.
+ */
+export async function fetchCourseCatalog(db?: CatalogDb): Promise<Course[]> {
+  const supabase = db ?? (await createClient());
   const { data, error } = await supabase
     .from("courses")
     .select(COURSE_COLUMNS)
@@ -131,8 +139,8 @@ export async function fetchCourseCatalog(): Promise<Course[]> {
   return (data ?? []).map(mapCourse);
 }
 
-export async function fetchCourseTree(slug: string): Promise<CourseTree | null> {
-  const supabase = await createClient();
+export async function fetchCourseTree(slug: string, db?: CatalogDb): Promise<CourseTree | null> {
+  const supabase = db ?? (await createClient());
 
   const { data: courseRow, error: courseErr } = await supabase
     .from("courses")
