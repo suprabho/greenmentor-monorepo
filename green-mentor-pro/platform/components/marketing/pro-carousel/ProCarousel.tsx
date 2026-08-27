@@ -244,11 +244,12 @@ export function ProCarousel({
                 {/* The stacked layout is drawn for a 390px phone; without a cap
                     it sprawls across the 520–767px band, where the card is still
                     a single column. Small phones never reach the cap. */}
-                <div className="mx-auto flex max-w-[520px] flex-wrap items-center gap-5 md:max-w-[1240px] md:gap-[clamp(24px,4vw,56px)]">
-                  {/* Frosted panel behind the copy: the aura's bright lobes
-                      drift under the headline, and white-on-neon-green is
-                      unreadable without a little separation. */}
-                  <div className="min-w-full rounded-2xl border border-white/15 bg-white/10 p-5 shadow-[0_8px_40px_rgba(0,0,0,0.18)] backdrop-blur-xl md:min-w-[min(100%,300px)] md:shrink md:grow md:basis-[340px] md:p-[clamp(20px,2.4vw,32px)]">
+                {/* Frosted panel behind the whole slide — copy and product
+                    card together: the aura's bright lobes drift under both,
+                    and white-on-neon-green is unreadable without a little
+                    separation. */}
+                <div className="mx-auto flex max-w-[520px] flex-wrap items-center gap-5 rounded-2xl border border-white/15 bg-white/10 p-5 shadow-[0_8px_40px_rgba(0,0,0,0.18)] backdrop-blur-xl md:max-w-[1240px] md:gap-[clamp(24px,4vw,56px)] md:p-[clamp(24px,3vw,40px)]">
+                  <div className="min-w-full md:min-w-[min(100%,300px)] md:shrink md:grow md:basis-[340px]">
                     <p className="text-[11px] tracking-[0.11em] text-green-500 uppercase md:hidden">
                       {slide.label}
                     </p>
