@@ -57,7 +57,7 @@ export function VerticalCycler<T>({
   if (current === undefined) return null;
 
   return (
-    <div className="grid" aria-live="off">
+    <div className="grid h-full grid-rows-[minmax(0,1fr)] [&>*]:h-full [&>*]:min-h-0 [&>*>*]:h-full" aria-live="off">
       {previous !== null && items[previous] !== undefined && (
         <div
           key={`out-${keyOf(items[previous])}`}

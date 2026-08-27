@@ -60,7 +60,7 @@ const SLIDES = [
         <VerticalCycler
           items={samples.articles}
           keyOf={(a) => a.id}
-          render={(a) => <FeedCard article={a} />}
+          render={(a) => <FeedCard article={a} fill />}
           active={active}
           intervalMs={CYCLE_MS}
         />
@@ -298,7 +298,13 @@ export function ProCarousel({
                     </p>
                   </div>
 
-                  <div className="min-w-full md:min-w-[min(100%,300px)] md:shrink md:grow-0 md:basis-[440px]">
+                  {/* Card frame: one fixed size for every slide, so the
+                      feed article, course, chat welcome and job all land in
+                      the same box and nothing jumps between slides or as
+                      the cyclers swap. Each card is stretched to fill it
+                      (the `[&>*]` rules reach the Card, or the Link a
+                      CourseCard wraps itself in). */}
+                  <div className="h-[400px] min-w-full md:h-[clamp(380px,46vh,440px)] md:min-w-[min(100%,300px)] md:shrink md:grow-0 md:basis-[440px] [&>*]:h-full [&>a]:block">
                     <slide.Card samples={samples} active={i === index} />
                   </div>
                 </div>

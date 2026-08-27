@@ -142,7 +142,7 @@ export function ChatWelcomePreview() {
   const goSignIn = () => router.push("/login?next=/ai-hub/chat");
 
   return (
-    <Card className="p-[18px] md:p-[clamp(18px,2.2vw,26px)]">
+    <Card className="flex flex-col justify-center p-[18px] md:p-[clamp(18px,2.2vw,26px)]">
       <p className="font-display text-center text-[20px] text-ink md:text-[clamp(20px,2vw,26px)]">
         Welcome to the AI Hub
       </p>
