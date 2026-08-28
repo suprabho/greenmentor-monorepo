@@ -39,7 +39,7 @@ export default async function WebinarsPage() {
             No upcoming webinars right now — new sessions are announced every week.
           </Card>
         ) : (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {upcoming.map((w) => (
               <WebinarCard
                 key={w.id}
