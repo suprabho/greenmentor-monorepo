@@ -1,8 +1,10 @@
 "use client";
 
 import {
+  useCallback,
   useEffect,
   useId,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -38,6 +40,14 @@ const SORTED_COUNTRIES: Country[] = [...COUNTRIES].sort((a, b) =>
   a.name.localeCompare(b.name),
 );
 
+/** Lowercase and strip diacritics so "reunion" finds "Réunion". */
+function fold(s: string): string {
+  return s
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
 /**
  * Rank a country against a search query; lower ranks first, -1 means no match.
  * A digit query (with or without a leading +) searches dial codes, anything
@@ -53,7 +63,7 @@ function matchRank(c: Country, q: string): number {
     if (dial.includes(digits)) return 2;
     return -1;
   }
-  const name = c.name.toLowerCase();
+  const name = fold(c.name);
   if (c.iso.toLowerCase() === q) return 0;
   if (name.startsWith(q)) return 0;
   if (name.split(/\s+/).some((w) => w.startsWith(q))) return 1;
@@ -61,8 +71,23 @@ function matchRank(c: Country, q: string): number {
   return -1;
 }
 
+/**
+ * Where and how big the dropdown panel is, in layout-viewport coordinates.
+ * The panel is `position: fixed` so the host dialog's overflow can't clip it;
+ * `up` flips it above the field when the space below is tighter (a soft
+ * keyboard eating the bottom half of the screen is the common cause), and
+ * `maxList` squeezes the list to whatever actually fits.
+ */
+interface PanelPos {
+  left: number;
+  top?: number;
+  bottom?: number;
+  width: number;
+  maxList: number;
+}
+
 function filterCountries(query: string): Country[] {
-  const q = query.trim().toLowerCase();
+  const q = fold(query.trim());
   if (!q) return SORTED_COUNTRIES;
   return SORTED_COUNTRIES.map((c) => ({ c, rank: matchRank(c, q) }))
     .filter(({ rank }) => rank >= 0)
@@ -80,7 +105,9 @@ function filterCountries(query: string): Country[] {
  * offer type-to-search: the panel opens with a filter field that matches
  * country names ("uni") and dial codes ("971" or "+971") alike, with the full
  * list sorted alphabetically. Arrow keys move the highlight, Enter picks,
- * Escape closes without touching the surrounding dialog.
+ * Escape closes without touching the surrounding dialog. The panel itself is
+ * fixed-positioned and sized against the visual viewport (see PanelPos), so
+ * it stays visible inside scrollable dialogs and above soft keyboards.
  */
 export function PhoneInput({
   label,
@@ -105,12 +132,70 @@ export function PhoneInput({
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [highlight, setHighlight] = useState(0);
+  const [panel, setPanel] = useState<PanelPos | null>(null);
   const pickerRef = useRef<HTMLDivElement>(null);
+  const controlRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
 
   const filtered = useMemo(() => filterCountries(query), [query]);
+
+  /**
+   * Anchor the panel to the field within the *visual* viewport — the part of
+   * the page the soft keyboard hasn't covered. Re-run on every viewport
+   * resize/scroll while open, so the panel flips or shrinks as the keyboard
+   * comes and goes.
+   */
+  const positionPanel = useCallback(() => {
+    const anchor = controlRef.current;
+    if (!anchor) return;
+    const rect = anchor.getBoundingClientRect();
+    const vv = window.visualViewport;
+    const vpTop = vv?.offsetTop ?? 0;
+    const vpLeft = vv?.offsetLeft ?? 0;
+    const vpW = vv?.width ?? window.innerWidth;
+    const vpH = vv?.height ?? window.innerHeight;
+    const margin = 8;
+    const gap = 4;
+    const searchH = 54; // search row height incl. padding and borders
+    const idealList = 224; // matches the old max-h-56
+
+    const width = Math.min(288, vpW - margin * 2);
+    const left = Math.min(Math.max(rect.left, vpLeft + margin), vpLeft + vpW - width - margin);
+    const below = vpTop + vpH - rect.bottom - gap - margin;
+    const above = rect.top - vpTop - gap - margin;
+    const up = below < searchH + 120 && above > below;
+    const maxList = Math.max(90, Math.min(idealList, (up ? above : below) - searchH));
+
+    setPanel({
+      left,
+      width,
+      maxList,
+      top: up ? undefined : rect.bottom + gap,
+      bottom: up ? window.innerHeight - rect.top + gap : undefined,
+    });
+  }, []);
+
+  useLayoutEffect(() => {
+    if (!open) {
+      setPanel(null);
+      return;
+    }
+    positionPanel();
+    const vv = window.visualViewport;
+    window.addEventListener("resize", positionPanel);
+    // Capture-phase so scrolls inside a host dialog's scroll container count.
+    window.addEventListener("scroll", positionPanel, true);
+    vv?.addEventListener("resize", positionPanel);
+    vv?.addEventListener("scroll", positionPanel);
+    return () => {
+      window.removeEventListener("resize", positionPanel);
+      window.removeEventListener("scroll", positionPanel, true);
+      vv?.removeEventListener("resize", positionPanel);
+      vv?.removeEventListener("scroll", positionPanel);
+    };
+  }, [open, positionPanel]);
 
   const openPicker = () => {
     setQuery("");
@@ -126,9 +211,22 @@ export function PhoneInput({
     triggerRef.current?.focus();
   };
 
+  // The panel mounts one commit after `open` (once positionPanel has run),
+  // so focus once when it first appears rather than on the open flip.
+  const focusedOnOpen = useRef(false);
   useEffect(() => {
-    if (open) searchRef.current?.focus();
-  }, [open]);
+    if (!open) {
+      focusedOnOpen.current = false;
+      return;
+    }
+    if (focusedOnOpen.current || !panel) return;
+    focusedOnOpen.current = true;
+    // On touch devices focusing the search field would summon the keyboard
+    // and eat half the viewport before the list is even seen — let the user
+    // opt into typing by tapping the field instead.
+    if (window.matchMedia("(pointer: coarse)").matches) return;
+    searchRef.current?.focus();
+  }, [open, panel]);
 
   // Close on any press outside the picker (trigger + panel).
   useEffect(() => {
@@ -148,7 +246,8 @@ export function PhoneInput({
       ?.scrollIntoView({ block: "nearest" });
   }, [open, highlight]);
 
-  const onPanelKeyDown = (e: ReactKeyboardEvent) => {
+  const onPickerKeyDown = (e: ReactKeyboardEvent) => {
+    if (!open) return;
     if (e.key === "Escape") {
       // Swallow it: dialogs hosting this field close on window Escape, and a
       // press meant for the dropdown shouldn't take the whole form with it.
@@ -178,8 +277,11 @@ export function PhoneInput({
         </label>
       ) : null}
 
-      <div ref={pickerRef} className="relative">
+      {/* Key handler covers the trigger too, so Escape/arrows work before
+          focus moves into the panel. */}
+      <div ref={pickerRef} className="relative" onKeyDown={onPickerKeyDown}>
         <div
+          ref={controlRef}
           className={cn(
             "flex h-12 w-full items-stretch overflow-hidden rounded-[8px] border border-gray-200 bg-white text-[16px] text-ink",
             "transition-colors duration-200",
@@ -230,10 +332,15 @@ export function PhoneInput({
           />
         </div>
 
-        {open && (
+        {open && panel && (
           <div
-            onKeyDown={onPanelKeyDown}
-            className="absolute left-0 top-[calc(100%+4px)] z-30 w-72 max-w-[calc(100vw-2rem)] overflow-hidden rounded-[8px] border border-gray-200 bg-white shadow-lg"
+            style={{
+              left: panel.left,
+              top: panel.top,
+              bottom: panel.bottom,
+              width: panel.width,
+            }}
+            className="fixed z-[60] overflow-hidden rounded-[8px] border border-gray-200 bg-white shadow-lg"
           >
             <div className="border-b border-gray-100 p-2">
               <input
@@ -257,7 +364,8 @@ export function PhoneInput({
               id={listboxId}
               role="listbox"
               aria-label="Country code"
-              className="max-h-56 overflow-y-auto py-1"
+              style={{ maxHeight: panel.maxList }}
+              className="overflow-y-auto py-1"
             >
               {filtered.length === 0 ? (
                 <li className="px-3 py-2 text-[13.5px] text-gray-500">No matching countries</li>
