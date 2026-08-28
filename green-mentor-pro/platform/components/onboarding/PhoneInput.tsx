@@ -278,8 +278,11 @@ export function PhoneInput({
       ) : null}
 
       {/* Key handler covers the trigger too, so Escape/arrows work before
-          focus moves into the panel. */}
-      <div ref={pickerRef} className="relative" onKeyDown={onPickerKeyDown}>
+          focus moves into the panel. min-w-0: as a grid item this would
+          otherwise size the track to the row's intrinsic width (the text
+          input's size attribute plus the dial chip), overflowing narrow
+          containers instead of letting flexbox shrink the input. */}
+      <div ref={pickerRef} className="relative min-w-0" onKeyDown={onPickerKeyDown}>
         <div
           ref={controlRef}
           className={cn(
@@ -298,7 +301,7 @@ export function PhoneInput({
             aria-haspopup="listbox"
             aria-expanded={open}
             onClick={() => (open ? setOpen(false) : openPicker())}
-            className="relative flex cursor-pointer items-center gap-1.5 border-r border-gray-200 pl-4 pr-8 text-ink focus:outline-none"
+            className="relative flex shrink-0 cursor-pointer items-center gap-1.5 border-r border-gray-200 pl-4 pr-8 text-ink focus:outline-none"
           >
             <span className="text-[18px] leading-none">{flagEmoji(selected.iso)}</span>
             <span className="tabular-nums">{selected.dial}</span>
@@ -356,7 +359,10 @@ export function PhoneInput({
                   setHighlight(0);
                 }}
                 placeholder="Search country or code"
-                className="h-9 w-full rounded-[6px] border border-gray-200 bg-white px-3 text-[14px] text-ink placeholder:text-gray-400 focus:border-green-700 focus:outline-none focus:ring-2 focus:ring-green-700/15"
+                // 16px on touch widths: mobile browsers auto-zoom the page
+                // when a focused input's font is smaller, which leaves the
+                // whole dialog cropped and horizontally scrollable.
+                className="h-9 w-full rounded-[6px] border border-gray-200 bg-white px-3 text-[16px] text-ink placeholder:text-gray-400 focus:border-green-700 focus:outline-none focus:ring-2 focus:ring-green-700/15 sm:text-[14px]"
               />
             </div>
             <ul
