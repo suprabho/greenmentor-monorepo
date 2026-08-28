@@ -111,11 +111,11 @@ export default async function FeedPage({
   return (
     <div className="mx-auto max-w-2xl space-y-5">
       {/* follow-graph filter chips */}
-      <div className="flex flex-wrap gap-2">
+      <div className="flex gap-2 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <Link
           href="/feed"
           className={
-            "rounded-pill border px-3 py-1.5 text-[12.5px] font-semibold " +
+            "shrink-0 whitespace-nowrap rounded-pill border px-3 py-1.5 text-[12.5px] font-semibold " +
             (!activeSlug ? "border-teal-900 bg-teal-900 text-white" : "border-gray-200 bg-white text-gray-700 hover:border-gray-300")
           }
         >
@@ -126,7 +126,7 @@ export default async function FeedPage({
             key={e.slug}
             href={`/feed?entity=${e.slug}`}
             className={
-              "rounded-pill border px-3 py-1.5 text-[12.5px] font-semibold " +
+              "shrink-0 whitespace-nowrap rounded-pill border px-3 py-1.5 text-[12.5px] font-semibold " +
               (activeSlug === e.slug ? "border-teal-900 bg-teal-900 text-white" : "border-gray-200 bg-white text-gray-700 hover:border-gray-300")
             }
           >
