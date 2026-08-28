@@ -49,7 +49,7 @@ export function WebinarCard({
           <img
             src={webinar.coverImageUrl}
             alt=""
-            className="aspect-[1200/627] w-full max-w-none rounded-t-2xl object-cover"
+            className="aspect-[1200/627] w-full rounded-t-2xl object-cover"
           />
         </Link>
       )}
