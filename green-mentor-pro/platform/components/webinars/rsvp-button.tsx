@@ -57,8 +57,11 @@ async function postRsvp(webinarId: string, contact: RsvpContactDefaults): Promis
   if (!res.ok) throw new Error(body.error ?? `Could not save your RSVP (HTTP ${res.status})`);
 }
 
+// Inputs are 16px below the sm breakpoint: mobile browsers auto-zoom the page
+// when a focused input's font is any smaller, leaving the dialog cropped and
+// horizontally scrollable.
 const inputCls =
-  "w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-[13.5px] text-ink placeholder:text-gray-400 focus:border-green-700 focus:outline-none focus:ring-2 focus:ring-green-700/15";
+  "w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-[16px] text-ink placeholder:text-gray-400 focus:border-green-700 focus:outline-none focus:ring-2 focus:ring-green-700/15 sm:text-[13.5px]";
 const labelCls = "flex flex-col gap-1.5 text-[12px] font-semibold text-ink";
 const errorCls = "text-[11.5px] font-normal text-danger";
 
