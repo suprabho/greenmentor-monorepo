@@ -75,7 +75,11 @@ export default async function HomePage() {
         )}
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-3 lg:items-start">
+      {/* grid-cols-1 matters: an implicit grid track is min-content-sized, so a
+          long unbreakable agenda/card title would widen the track past the
+          viewport and give the whole page a horizontal scroll on mobile.
+          minmax(0, 1fr) — what grid-cols-* compiles to — clamps it. */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 lg:items-start">
         {/* Main column */}
         <div className="order-2 space-y-6 lg:order-1 lg:col-span-2">
           <section>
@@ -95,7 +99,7 @@ export default async function HomePage() {
                 No upcoming webinars right now — new sessions are announced every week.
               </Card>
             ) : (
-              <div className="grid gap-4 sm:grid-cols-2">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 {nextWebinars.map((w) => (
                   <WebinarCard
                     key={w.id}

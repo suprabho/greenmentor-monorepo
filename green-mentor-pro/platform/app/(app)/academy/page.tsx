@@ -78,7 +78,7 @@ export default async function AcademyPage() {
         {courses.length === 0 && learnystSelfPaced.length === 0 ? (
           <Card className="p-6 text-[13.5px] text-gray-600">No published courses yet — check back soon.</Card>
         ) : (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {courses.map((course) => {
               const tree = treeBySlug.get(course.slug);
               const lessons = tree?.modules.flatMap((m) => m.lessons) ?? [];
@@ -103,7 +103,7 @@ export default async function AcademyPage() {
       {bundles.length > 0 && (
         <section className="mt-10">
           <SectionHeading>Bundles</SectionHeading>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {bundles.map((bundle) => (
               <BundleCard key={bundle.slug} bundle={bundle} />
             ))}
