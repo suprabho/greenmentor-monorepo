@@ -86,8 +86,23 @@ export default function JobCardComponent({ config, noteReady }: VizRenderProps<G
       </p>
     ) : null;
 
+  // Location reads as a headline fact, not a footnote, so it gets its own row
+  // above the rest of the meta at a size a viewer can catch at a glance.
+  const locationRow =
+    !config.hideMeta && job.location ? (
+      <div
+        className="font-semibold"
+        style={{
+          color: "var(--gmcard-text)",
+          fontSize: compact ? 15 : 19,
+          lineHeight: 1.2,
+        }}
+      >
+        {job.location}
+      </div>
+    ) : null;
+
   const meta = [
-    job.location,
     job.employment_type,
     job.experience ?? job.seniority,
     cardDateOnly(job.posted_on),
@@ -138,7 +153,14 @@ export default function JobCardComponent({ config, noteReady }: VizRenderProps<G
       )}
       {title}
       {details}
-      {metaRow}
+      {/* Location and the rest of the meta are one block: a tighter gap than the
+          card's own, so the two rows read together rather than as separate facts. */}
+      {(locationRow || metaRow) && (
+        <div className="flex flex-col gap-1">
+          {locationRow}
+          {metaRow}
+        </div>
+      )}
       {factsRow}
       {chips}
     </div>
