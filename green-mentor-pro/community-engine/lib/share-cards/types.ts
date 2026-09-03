@@ -251,8 +251,8 @@ export interface ShareCardJob {
   title: string;
   company: string | null;
   location: string | null;
-  /** Filter facet (India, UAE, …) — the picker's geography dropdown; cards
-   *  render the free-text `location` instead. */
+  /** Free-text country name (India, UAE, …) — the picker's geography facet, and
+   *  the job card's flag + country suffix on its location row (countryFlag.ts). */
   country: string | null;
   employment_type: string;
   experience: string | null;

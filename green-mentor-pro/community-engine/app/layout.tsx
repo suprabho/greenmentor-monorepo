@@ -21,8 +21,12 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        {/* Noto Color Emoji backs the flag glyph on the job share card: the
+            export's serverless Chromium ships no emoji font, so without a web
+            font a flag would rasterise as two bare letters. The file only
+            downloads on pages that actually use the family. */}
         <link
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Color+Emoji&display=swap"
           rel="stylesheet"
         />
       </head>
