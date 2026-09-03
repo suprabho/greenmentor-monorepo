@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import type { VizRenderProps } from "@vismay/viz-engine";
 import { useShareCardJob } from "../../dataContext";
 import { cardDateOnly } from "../shared";
+import { flagEmojiFor, jobCountryOf, locationWithCountry } from "../../countryFlag";
 import { EntityChipRow } from "../chips/EntityChipRow";
 import type { GmJobConfig } from "./index";
 
@@ -87,18 +88,40 @@ export default function JobCardComponent({ config, noteReady }: VizRenderProps<G
     ) : null;
 
   // Location reads as a headline fact, not a footnote, so it gets its own row
-  // above the rest of the meta at a size a viewer can catch at a glance.
+  // above the rest of the meta at a size a viewer can catch at a glance. The
+  // country rides along (appended unless the location already ends with it)
+  // and its flag leads the row — a glyph the eye catches before any text.
+  const country = jobCountryOf(job);
+  const flag = flagEmojiFor(country);
+  const locationText = locationWithCountry(job.location, country);
   const locationRow =
-    !config.hideMeta && job.location ? (
+    !config.hideMeta && locationText ? (
       <div
-        className="font-semibold"
+        className="flex items-center gap-2 font-semibold"
         style={{
           color: "var(--gmcard-text)",
           fontSize: compact ? 15 : 19,
           lineHeight: 1.2,
         }}
       >
-        {job.location}
+        {flag && (
+          <span
+            aria-label={country ?? undefined}
+            role="img"
+            className="shrink-0"
+            style={{
+              // Noto first so the studio preview and the headless export (Linux
+              // Chromium with no system emoji font) draw the same flag; the
+              // platform emoji fonts follow so a missing web font still shows one.
+              fontFamily: '"Noto Color Emoji", "Apple Color Emoji", "Segoe UI Emoji", sans-serif',
+              fontSize: compact ? 17 : 22,
+              lineHeight: 1,
+            }}
+          >
+            {flag}
+          </span>
+        )}
+        <span>{locationText}</span>
       </div>
     ) : null;
 
