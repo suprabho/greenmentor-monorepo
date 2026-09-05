@@ -18,6 +18,7 @@
 import { NextResponse } from "next/server";
 import { appendStorySection } from "@vismay/content-source/storySection";
 import { applyGmBandRhythm } from "@gm/story-vertical";
+import { closingSection } from "@gm/story-vertical/templates";
 import { requireAdminApiUser } from "@/lib/auth/apiGate";
 import { createAdminClient, isServiceRoleConfigured } from "@/lib/supabase/admin";
 import { casUpdateStoryFiles, getStory, updateStory } from "@/lib/db/stories";
@@ -81,6 +82,22 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
     cfg = r.configYaml;
     const idx = nextOutline.findIndex((e) => e.id === entry.id);
     if (idx >= 0) nextOutline[idx].sectionId = r.id;
+  }
+
+  // Every issue must end on a closing section, but nothing upstream
+  // guarantees the outline (LLM-generated or legacy) actually proposed one —
+  // fall back to the house closing band rather than silently shipping
+  // without it.
+  const cfgObj = JSON.parse(cfg) as { sections?: Array<{ foreground?: { regions?: Record<string, unknown[]> } }> };
+  const hasClosing = (cfgObj.sections ?? []).some((s) =>
+    Object.values(s.foreground?.regions ?? {}).some(
+      (layers) => Array.isArray(layers) && layers.some((l) => (l as { type?: unknown })?.type === "gm:footer")
+    )
+  );
+  if (!hasClosing) {
+    cfgObj.sections = [...(cfgObj.sections ?? []), closingSection()];
+    cfg = JSON.stringify(cfgObj, null, 2);
+    md = `${md.replace(/\n+$/, "")}\n\n## Closing\n`;
   }
 
   // Stamp the corpus band rhythm (gm:surface per section, regions form).
